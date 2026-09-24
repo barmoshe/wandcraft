@@ -2,7 +2,15 @@
 
 - Updated: 2026-09-24
 
-## Where we are
+## MVP (ADR 0010, `research/mvp-plan.md`)
+- **v0.4.1 is now the POC.** The MVP is a store-ready World 1, rebuilt in place inside `game/`, in milestones M0–M11.
+- **Research:** `research/mvp-research.md` holds the POC audit plus sourced genre and production research.
+- **Bar's calls:** code-drawn art (with a higher ceiling), CC0 sound effects plus free-licensed music, and a $0 budget. Store submission waits behind a gate that needs the accounts (Apple $99 a year, Play $25).
+- **Progress:**
+  - Step 1 (research, plan, ADR 0010): done.
+  - Next up: **M0**, foundations and baselines.
+
+## Where we are (POC history)
 - **M0 Foundation: done.**
   - Project folder, ADRs 0001-0006 and research notes.
   - Godot 4.7.2 headless toolchain.
@@ -135,9 +143,14 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
-- **Testers:** install 0.4.1 and report on the look, feel, text size and difficulty. Say whether the hero reads well on a phone.
-- **iPhone, today:** the web version is live at https://wandcraft-test.vercel.app (see `store/web-test.md`). Add it to the Home Screen and play in landscape. The native iOS build comes later via TestFlight.
-- **Next:** the performance quality tier, M2 breadth (worlds 2–5) and M5 (the paywall, Game Center / Play Games).
+- **MVP M0** (`research/mvp-plan.md`):
+  - ADR 0011: the renderer A/B check, then the switch to Compatibility.
+  - GitHub Actions CI: test, taptest ×3, webtest, and a nightly bench.
+  - A `--perf` overlay.
+  - Screenshot goldens.
+  - A shortlist of music and sound-effect candidates.
+- **Bar, during M0:** record baseline performance on the iPhone (web and native) and on Android in `research/perf.md`. The overlay will show the numbers.
+- **The POC build stays live for testers:** https://wandcraft-test.vercel.app and APK 0.4.1.
 - **Known gaps:**
   - Keys, curses, potions and meta unlocks are deferred (ADR 0005).
   - The iOS privacy manifest must be checked against the one Godot generates.
