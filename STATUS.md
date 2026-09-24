@@ -97,7 +97,7 @@
   - **Phone build:**
     - Generated app icon and splash.
     - `export_presets.cfg` for Android and iOS.
-    - `tools/build_android.sh` builds `build/wandcraft-0.3.0-debug.apk`: 29 MB, arm64, min SDK 24, landscape, only the VIBRATE permission.
+    - `tools/build_android.sh` builds `build/wandcraft-0.3.0.apk`: 27.7 MB (release template, throwaway sideload key), arm64, min SDK 24, landscape, only the VIBRATE permission. The first sideload failed with "problem with the app file" because the copy was truncated in transfer (23.85 of 29.5 MB), so the script now prints the byte size and SHA-256 to check against.
     - Guides: `store/ios-first-build.md` and `store/android-sideload.md`.
     - Reference privacy manifest.
   - **Tests:** 48 headless tests, including a bot clearing World 1, plus the balance bench.

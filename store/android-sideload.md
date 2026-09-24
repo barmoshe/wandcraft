@@ -1,6 +1,6 @@
 # Installing the Android test build (sideload)
 
-The APK is built on Linux by `tools/build_android.sh`. It writes `build/wandcraft-<version>-debug.apk`, which is not committed. It is a **debug build signed with a throwaway debug key**: fine for testing, never for the Play Store.
+The APK is built on Linux by `tools/build_android.sh`. It writes `build/wandcraft-<version>.apk`, which is not committed. It uses Godot's release template (smaller and faster than debug) but is **signed with a throwaway sideload key**: fine for testing, never for the Play Store. `--debug` builds the debug-template variant instead.
 
 ## On the phone (Android 7.0 or newer, 64-bit)
 1. Copy the `.apk` to the phone (Drive, email to yourself, or USB).
@@ -8,7 +8,15 @@ The APK is built on Linux by `tools/build_android.sh`. It writes `build/wandcraf
 3. Install, then open **Wandcraft**. It runs in landscape.
    - Android may show a "Play Protect" warning because the build is not from the store. Choose *Install anyway*.
 
-With a cable and `adb` instead: `adb install -r build/wandcraft-0.3.0-debug.apk`.
+### "There's a problem with the app file"
+The copy on the phone is incomplete: the download or transfer was cut short.
+- Compare sizes. The build script prints the exact byte count and SHA-256, and the phone's file manager must show the same size (Samsung *My Files* shows decimal MB, so 27,668,409 bytes appears as 27.67 MB).
+- Download the file again, directly on the phone, and wait until it finishes before tapping it. Don't forward a half-downloaded copy.
+- If you send it through WhatsApp, attach it as a **Document** and wait for the upload to finish.
+
+If the full-size file still fails, the phone may be running 32-bit Android (some older budget models). The build is 64-bit only (arm64), so tell us the phone model.
+
+With a cable and `adb` instead: `adb install -r build/wandcraft-0.3.0.apk`.
 
 ## Rebuilding
 ```bash

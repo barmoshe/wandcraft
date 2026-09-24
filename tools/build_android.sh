@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# Builds an installable Android debug APK from the Godot project.
+# Builds an installable Android APK from the Godot project.
 #
-#   tools/build_android.sh            set up (first run only) and export build/wandcraft-<ver>-debug.apk
+#   tools/build_android.sh            set up (first run only) and export build/wandcraft-<ver>.apk
+#   tools/build_android.sh --debug    export the debug-template build instead (bigger, slower, has logs)
 #   tools/build_android.sh --setup    only download and set up the toolchain
+#
+# The default build uses Godot's RELEASE template (about half the size and faster on the phone)
+# but is still signed with the throwaway sideload key, so it is for testing only, never the store.
 #
 # Everything heavy lives OUTSIDE the repo in ~/.cache/wandcraft-build (Godot export templates,
 # Android SDK command-line tools, build-tools, a debug keystore). Nothing here is committed.
@@ -84,15 +88,21 @@ setup_keystore
 setup_editor_settings
 [ "${1:-}" = "--setup" ] && { log "toolchain ready in $CACHE"; exit 0; }
 
+MODE="release"; [ "${1:-}" = "--debug" ] && MODE="debug"
 VER="$(grep '^config/version=' "$GAME/project.godot" | cut -d'"' -f2)"
-APK="$OUT/wandcraft-${VER:-dev}-debug.apk"
+if [ "$MODE" = "debug" ]; then APK="$OUT/wandcraft-${VER:-dev}-debug.apk"; else APK="$OUT/wandcraft-${VER:-dev}.apk"; fi
+rm -f "$APK" "$APK.idsig"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
-log "exporting $APK"
+log "exporting $APK ($MODE template)"
 GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$KEYSTORE" GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey \
 GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android \
-  "$HERE/godot.sh" --headless --path "$GAME" --export-debug "Android" "$APK" 2>&1 | tee "$OUT/export.log" | grep -E "ERROR|error|Export" || true
+GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$KEYSTORE" GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey \
+GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android \
+  "$HERE/godot.sh" --headless --path "$GAME" "--export-$MODE" "Android" "$APK" 2>&1 | tee "$OUT/export.log" | grep -E "ERROR|error|Export" || true
 if [ -f "$APK" ]; then
-  log "done: $APK ($(du -h "$APK" | cut -f1))"
+  "$SDK/build-tools/$BUILD_TOOLS/apksigner" verify "$APK" 2>/dev/null || { log "signature check FAILED"; exit 1; }
+  log "done: $APK ($(stat -c %s "$APK") bytes)"
+  log "sha256: $(sha256sum "$APK" | cut -d' ' -f1)"
   "$SDK/build-tools/$BUILD_TOOLS/aapt" dump badging "$APK" 2>/dev/null | grep -E "^package|sdkVersion|targetSdk|launchable" || true
 else
   log "export failed, see $OUT/export.log"
