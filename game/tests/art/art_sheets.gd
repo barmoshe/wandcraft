@@ -37,8 +37,10 @@ static func chars(s: Node) -> void:
 static func icons(s: Node) -> void:
 	const KINDS := {"proj": SpellDef.Kind.PROJ, "boost": SpellDef.Kind.BOOST, "trig": SpellDef.Kind.TRIG, "passive": SpellDef.Kind.PASSIVE}
 	s.section("spells")
-	for id in IconSpells.ART:
-		var e: Dictionary = IconSpells.ART[id]
+	var all_spells: Dictionary = IconSpells.ART.duplicate()
+	all_spells.merge(IconSpellsB.ART)
+	for id in all_spells:
+		var e: Dictionary = all_spells[id]
 		var kind: int = KINDS.get(e.get("kind", ""), Catalog.spell(id).kind if Catalog.spells().has(id) else SpellDef.Kind.PROJ)
 		s.add(String(id), PixelArt.tex(Icons.framed(kind, e)))
 	s.section("relics")
@@ -46,7 +48,7 @@ static func icons(s: Node) -> void:
 		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconRelics.ART[id])))
 	s.section("not drawn yet")
 	for id in Catalog.spells():
-		if not IconSpells.ART.has(id):
+		if IconArt.spell(id).is_empty():
 			s.add(String(id), Icons.spell(Catalog.spell(id)))
 	for id in Relics.DEFS:
 		if not IconRelics.ART.has(id):
