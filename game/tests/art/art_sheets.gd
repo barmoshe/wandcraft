@@ -27,13 +27,25 @@ static func chars(s: Node) -> void:
 		s.add(String(k), Sprites.boss_texture(k))
 
 
+## Icon art straight from the IconSpells / IconRelics data, including items whose gameplay
+## is not in the catalog yet ("kind" in the entry: proj, boost, trig, passive).
 static func icons(s: Node) -> void:
+	const KINDS := {"proj": SpellDef.Kind.PROJ, "boost": SpellDef.Kind.BOOST, "trig": SpellDef.Kind.TRIG, "passive": SpellDef.Kind.PASSIVE}
 	s.section("spells")
-	for id in Catalog.spells():
-		s.add(String(id), Icons.spell(Catalog.spell(id)))
+	for id in IconSpells.ART:
+		var e: Dictionary = IconSpells.ART[id]
+		var kind: int = KINDS.get(e.get("kind", ""), Catalog.spell(id).kind if Catalog.spells().has(id) else SpellDef.Kind.PROJ)
+		s.add(String(id), PixelArt.tex(Icons.framed(kind, e)))
 	s.section("relics")
+	for id in IconRelics.ART:
+		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconRelics.ART[id])))
+	s.section("not drawn yet")
+	for id in Catalog.spells():
+		if not IconSpells.ART.has(id):
+			s.add(String(id), Icons.spell(Catalog.spell(id)))
 	for id in Relics.DEFS:
-		s.add(String(id), Icons.relic(id))
+		if not IconRelics.ART.has(id):
+			s.add(String(id), Icons.relic(id))
 
 
 static func tiles(s: Node) -> void:
@@ -62,9 +74,9 @@ static func style(s: Node) -> void:
 		s.add("new " + k, Bestiary.frames(k)[0])
 		s.add("old " + k, Sprites.enemy_frames(k)[0])
 	s.section("spell and relic icons: new / old")
-	for id in IconArt.SPELLS:
-		s.add("new " + String(id), Icons.spell(Catalog.spell(id)))
-	for id in IconArt.RELICS:
-		s.add("new " + String(id), Icons.relic(id))
+	for id in ["mote", "ember", "frost", "empower", "then"]:
+		s.add("new " + id, Icons.spell(Catalog.spell(StringName(id))))
+	for id in ["hot_patch", "overclock"]:
+		s.add("new " + id, Icons.relic(StringName(id)))
 	s.add("old mote", PixelArt.cached("old_mote", func() -> Image: return Icons._build(Catalog.spell(&"mote"))))
 	s.add("old ember", PixelArt.cached("old_ember", func() -> Image: return Icons._build(Catalog.spell(&"ember"))))

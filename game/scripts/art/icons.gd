@@ -42,8 +42,8 @@ const GLYPHS := {
 
 
 static func spell(d: SpellDef) -> Texture2D:
-	if IconArt.SPELLS.has(d.id):
-		return PixelArt.cached("icon2_%s" % d.id, func() -> Image: return framed(d.kind, IconArt.SPELLS[d.id]))
+	if not IconArt.spell(d.id).is_empty():
+		return PixelArt.cached("icon2_%s" % d.id, func() -> Image: return framed(d.kind, IconArt.spell(d.id)))
 	return PixelArt.cached("icon_%s" % d.id, func() -> Image: return _build(d))
 
 
@@ -174,8 +174,8 @@ const DOOR_GLYPH := {
 
 ## A relic: a gold-rimmed round plate with the relic's glyph.
 static func relic(id: StringName) -> Texture2D:
-	if IconArt.RELICS.has(id):
-		return PixelArt.cached("relic2_%s" % id, func() -> Image: return framed(-1, IconArt.RELICS[id]))
+	if not IconArt.relic(id).is_empty():
+		return PixelArt.cached("relic2_%s" % id, func() -> Image: return framed(-1, IconArt.relic(id)))
 	var d: Dictionary = Relics.DEFS[id]
 	return PixelArt.cached("relic_%s" % id, func() -> Image:
 		return _plate(Color(d["color"]), RELIC_GLYPHS[d["glyph"]], Color("#e0b84e")))
