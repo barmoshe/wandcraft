@@ -3,7 +3,8 @@ extends Control
 ## Floating twin sticks for phones. The left half of the screen moves (the stick appears
 ## where the thumb lands); the right half aims and fires.
 ## Tapping a wand row in the HUD selects that wand. Multi-touch safe: each finger is
-## tracked by its index.
+## tracked by its index. Any int can be an index: iPhone Safari's touch ids reach the web
+## build as large and even negative numbers, so "is a stick held" is its own flag.
 
 signal hud_pressed(id: String)
 
@@ -12,8 +13,10 @@ const DEAD := 0.18
 
 var controls: Controls
 var hud: Hud
-var _move_id := -1
-var _aim_id := -1
+var _moving := false
+var _aiming := false
+var _move_id := 0
+var _aim_id := 0
 var _move_origin := Vector2.ZERO
 var _move_pos := Vector2.ZERO
 var _aim_origin := Vector2.ZERO
@@ -29,8 +32,8 @@ func _ready() -> void:
 
 ## Drops both sticks (a menu opened, or the app lost focus).
 func release_all() -> void:
-	_move_id = -1
-	_aim_id = -1
+	_moving = false
+	_aiming = false
 	_apply()
 
 
@@ -46,9 +49,9 @@ func _input(event: InputEvent) -> void:
 			_release(t.index)
 	elif event is InputEventScreenDrag:
 		var d := event as InputEventScreenDrag
-		if d.index == _move_id:
+		if _moving and d.index == _move_id:
 			_move_pos = d.position
-		elif d.index == _aim_id:
+		elif _aiming and d.index == _aim_id:
 			_aim_pos = d.position
 		_apply()
 
@@ -64,11 +67,13 @@ func _press(id: int, p: Vector2) -> void:
 			controls.select_wand = wi
 			return
 	var half := get_viewport_rect().size.x / 2.0
-	if p.x < half and _move_id < 0:
+	if p.x < half and not _moving:
+		_moving = true
 		_move_id = id
 		_move_origin = p
 		_move_pos = p
-	elif p.x >= half and _aim_id < 0:
+	elif p.x >= half and not _aiming:
+		_aiming = true
 		_aim_id = id
 		_aim_origin = p
 		_aim_pos = p
@@ -76,20 +81,20 @@ func _press(id: int, p: Vector2) -> void:
 
 
 func _release(id: int) -> void:
-	if id == _move_id:
-		_move_id = -1
-	elif id == _aim_id:
-		_aim_id = -1
+	if _moving and id == _move_id:
+		_moving = false
+	elif _aiming and id == _aim_id:
+		_aiming = false
 	_apply()
 
 
 func _apply() -> void:
-	controls.move = _stick(_move_id, _move_origin, _move_pos, true)
-	controls.aim = _stick(_aim_id, _aim_origin, _aim_pos, false)
+	controls.move = _stick(_moving, _move_origin, _move_pos, true)
+	controls.aim = _stick(_aiming, _aim_origin, _aim_pos, false)
 
 
-func _stick(id: int, o: Vector2, p: Vector2, drag_origin: bool) -> Vector2:
-	if id < 0:
+func _stick(held: bool, o: Vector2, p: Vector2, drag_origin: bool) -> Vector2:
+	if not held:
 		return Vector2.ZERO
 	var d := p - o
 	# the stick base follows the thumb when it overshoots, so there is no dead edge
@@ -109,9 +114,9 @@ func _process(_dt: float) -> void:
 func _draw() -> void:
 	if not touched_once and not Game.is_touch():
 		return
-	if _move_id >= 0:
+	if _moving:
 		_draw_stick(_move_origin, _move_pos, Color(0.7, 0.8, 1.0))
-	if _aim_id >= 0:
+	if _aiming:
 		_draw_stick(_aim_origin, _aim_pos, Color(1.0, 0.85, 0.45))
 
 

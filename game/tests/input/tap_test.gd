@@ -10,9 +10,10 @@ var failures := 0
 var main: Node
 var root: Window
 ## Touch id per gesture. Android and desktop number fingers from 0, but iPhone Safari (the
-## web build) gives every touch a large new id, so "--ios" mode does that.
+## web build) gives every touch a large new id that can wrap negative in Godot's 32-bit
+## index, so "--ios" mode uses ids like that.
 var _ios := false
-var _next_id := 7301
+var _next_id := -1294967296
 
 
 func _ready() -> void:
@@ -59,6 +60,11 @@ func _run() -> void:
 		await _tap(_button_rect(s, "resume").get_center())
 		await _frames(5)
 		_check(main.get("screen") == null and not world.paused, "RESUME closes pause")
+	# the move stick: hold a thumb on the left half and slide it right, the hero walks
+	var v := root.get_visible_rect().size
+	var p0 := world.player.global_position
+	await _drag(Vector2(v.x * 0.2, v.y * 0.6), Vector2(v.x * 0.2 + 40.0, v.y * 0.6), 30)
+	_check(world.player.global_position.x > p0.x + 4.0, "the left stick moves the hero (%.1f px)" % (world.player.global_position.x - p0.x))
 	# the wand editor: drag the first spell two slots to the right
 	await _tap((hud.buttons["edit"] as Rect2).get_center())
 	await _frames(20)
@@ -121,7 +127,7 @@ func _gesture_id() -> int:
 	return _next_id
 
 
-func _drag(a: Vector2, b: Vector2) -> void:
+func _drag(a: Vector2, b: Vector2, hold_frames := 0) -> void:
 	var tf := root.get_final_transform()
 	var id := _gesture_id()
 	var t := InputEventScreenTouch.new()
@@ -137,6 +143,7 @@ func _drag(a: Vector2, b: Vector2) -> void:
 		d.relative = tf.basis_xform((b - a) / 8.0)
 		Input.parse_input_event(d)
 		await _frames(1)
+	await _frames(hold_frames)
 	var u := InputEventScreenTouch.new()
 	u.index = id
 	u.position = tf * b

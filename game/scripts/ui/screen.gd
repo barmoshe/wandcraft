@@ -24,9 +24,10 @@ var run: RunState
 var _buttons: Array = []     # [Rect2 hit area, id]
 var _press_id := ""
 var _press_pos := Vector2.ZERO
-## The finger being followed: the latest one down. Not assumed to be 0, because the web
-## build on iPhone numbers touches with Safari's large arbitrary ids.
-var _finger := -1
+## The finger being followed: the latest one down. Not assumed to be 0, and any int can be
+## an index: the web build on iPhone gets Safari's large touch ids, which can wrap negative.
+var _finger := 0
+var _has_finger := false
 var _age := 0.0
 var _toast := ""
 var _toast_t := 0.0
@@ -83,14 +84,15 @@ func _input(ev: InputEvent) -> void:
 	if ev is InputEventScreenTouch:
 		if ev.pressed:
 			_finger = ev.index
+			_has_finger = true
 			down = true
-		elif ev.index == _finger:
-			_finger = -1
+		elif _has_finger and ev.index == _finger:
+			_has_finger = false
 			up = true
 		else:
 			return
 	elif ev is InputEventScreenDrag:
-		if ev.index != _finger:
+		if not _has_finger or ev.index != _finger:
 			return
 		drag = true
 	elif ev is InputEventMouseButton and ev.device != InputEvent.DEVICE_ID_EMULATION:

@@ -8,7 +8,7 @@ This is the web version of the game. It needs no Mac, no Apple account and no Ap
 1. Open the link in **Safari**. The first load downloads about 40 MB; after that it's cached.
 2. Tap **Share → Add to Home Screen → Add**. Wandcraft now has its own icon and opens full screen, without Safari's bars.
 3. Hold the phone **sideways** (landscape). In portrait the game asks you to turn it.
-4. Tap anywhere once so sound can start (Safari only allows audio after a tap).
+4. Tap anywhere once so sound can start (Safari only allows audio after a tap). Sound plays even with the phone on silent, and it pauses other music, like a video does.
 
 The game fills the whole screen, including behind the Dynamic Island. The HUD and menus stay clear of the island, the rounded corners and the home bar.
 
@@ -21,6 +21,7 @@ The game fills the whole screen, including behind the Dynamic Island. The HUD an
 - **Renderer:** the browser version uses Godot's WebGL renderer. Lights and glow can look slightly different.
 - **Performance:** it runs a little slower than a native build. A busy fight is the thing to watch.
 - **Vibration:** iPhone Safari does not allow vibration.
+- **Touch ids:** Safari numbers touches with large ids that can reach the game as negative numbers. The game never treats a touch index as special (`tools/taptest.sh` runs an `--ios` mode for this).
 - **Saves:** they live in the browser storage of whatever opened the game. Safari and the Home Screen icon each keep their own, and deleting the icon deletes its saves.
 
 ## Publishing a new version (from the repo)

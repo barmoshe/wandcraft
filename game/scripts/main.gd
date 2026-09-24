@@ -139,10 +139,10 @@ func _start_from_args() -> void:
 	if _args.has("touchdemo"):
 		var v := get_viewport_rect().size
 		touch.touched_once = true
-		touch.set("_move_id", 90)
+		touch.set("_moving", true)
 		touch.set("_move_origin", Vector2(70, v.y - 60))
 		touch.set("_move_pos", Vector2(84, v.y - 70))
-		touch.set("_aim_id", 91)
+		touch.set("_aiming", true)
 		touch.set("_aim_origin", Vector2(v.x - 110, v.y - 70))
 		touch.set("_aim_pos", Vector2(v.x - 96, v.y - 84))
 

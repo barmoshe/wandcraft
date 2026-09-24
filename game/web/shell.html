@@ -133,6 +133,39 @@ body {
 			<div id="status-notice"></div>
 		</div>
 
+		<script>
+// iPhone sound. Web audio counts as "ambient" on iOS, so the silent switch / Action button
+// mutes it; "playback" makes the game play like a video does. iOS also only unlocks audio
+// on a touch's END, so every audio context the engine makes is resumed on touchend/click.
+(function () {
+	try {
+		if (navigator.audioSession) {
+			navigator.audioSession.type = 'playback';
+		}
+	} catch (e) { /* older iOS: keep the default */ }
+	const contexts = [];
+	const Base = window.AudioContext || window.webkitAudioContext;
+	if (Base) {
+		const Tracked = class extends Base {
+			constructor(...args) {
+				super(...args);
+				contexts.push(this);
+			}
+		};
+		window.AudioContext = Tracked;
+		window.webkitAudioContext = Tracked;
+	}
+	const unlock = function () {
+		contexts.forEach((c) => {
+			if (c.state !== 'running') {
+				c.resume().catch(() => {});
+			}
+		});
+	};
+	['touchend', 'click', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { capture: true, passive: true }));
+	window.wandcraftAudioState = () => contexts.map((c) => c.state).join(',') || 'none';
+}());
+		</script>
 		<script src="$GODOT_URL"></script>
 		<script>
 const GODOT_CONFIG = $GODOT_CONFIG;
