@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <!-- Wandcraft web shell: Godot 4.7.2's godot.html, changed to fill an iPhone screen as a
-     Home Screen app (viewport-fit=cover, fixed full-screen canvas) and to report the CSS
-     safe-area insets to the game (window.wandcraftSafeArea, read by Game.safe_rect). -->
+     Home Screen app (viewport-fit=cover, fixed full-screen canvas), to report the CSS
+     safe-area insets to the game (window.wandcraftSafeArea, read by Game.safe_rect), to make
+     sound work on iPhone, and to carry the Home Screen manifest itself (no service worker). -->
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
@@ -114,6 +115,7 @@ body {
 	z-index: 1;
 }
 		</style>
+		<link rel="manifest" href="index.manifest.json">
 		$GODOT_HEAD_INCLUDE
 	</head>
 	<body>
@@ -134,15 +136,29 @@ body {
 		</div>
 
 		<script>
-// iPhone sound. Web audio counts as "ambient" on iOS, so the silent switch / Action button
-// mutes it; "playback" makes the game play like a video does. iOS also only unlocks audio
-// on a touch's END, so every audio context the engine makes is resumed on touchend/click.
+// Build stamp (the git commit), written in by tools/build_web.sh; the title shows it.
+window.wandcraftBuild = '__WANDCRAFT_BUILD__';
+
+// Wandcraft has no service worker any more (decisions/0008). Drop one left by an older
+// build, so a phone never keeps serving a stale cached copy of the game.
+if ('serviceWorker' in navigator) {
+	navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
+}
+
+// iPhone sound (decisions/0008):
+// - Web audio counts as "ambient" on iOS, so the silent switch / Action button mutes it.
+//   audioSession "playback" fixes that on iOS 17+, and a silent looping <audio> element
+//   started on the first tap does the same on any iOS: the page then plays like a video.
+// - iOS only unlocks audio on a touch's END (and may leave it "interrupted" after a call
+//   or the app going to the background), so every audio context the engine makes is
+//   resumed on touchend / click / keydown and when the page becomes visible again.
+// - wandcraftAudioState() is the pause screen's one-line sound report.
 (function () {
 	try {
 		if (navigator.audioSession) {
 			navigator.audioSession.type = 'playback';
 		}
-	} catch (e) { /* older iOS: keep the default */ }
+	} catch (e) { /* older iOS: the <audio> loop below covers it */ }
 	const contexts = [];
 	const Base = window.AudioContext || window.webkitAudioContext;
 	if (Base) {
@@ -155,7 +171,34 @@ body {
 		window.AudioContext = Tracked;
 		window.webkitAudioContext = Tracked;
 	}
+	// every engine sound waits on its audio worklet: record whether it loaded
+	let worklet = 'none';
+	if (window.AudioWorklet && AudioWorklet.prototype.addModule) {
+		const addModule = AudioWorklet.prototype.addModule;
+		AudioWorklet.prototype.addModule = function (...args) {
+			worklet = 'loading';
+			return addModule.apply(this, args).then((v) => {
+				worklet = 'ok';
+				return v;
+			}, (err) => {
+				worklet = 'fail';
+				throw err;
+			});
+		};
+	}
+	const silent = document.createElement('audio');
+	silent.src = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+	silent.loop = true;
+	silent.setAttribute('playsinline', '');
+	silent.setAttribute('x-webkit-airplay', 'deny');
+	let silentState = 'off';
 	const unlock = function () {
+		if (silent.paused) {
+			const p = silent.play();
+			if (p) {
+				p.then(() => { silentState = 'on'; }, () => { silentState = 'blocked'; });
+			}
+		}
 		contexts.forEach((c) => {
 			if (c.state !== 'running') {
 				c.resume().catch(() => {});
@@ -163,7 +206,25 @@ body {
 		});
 	};
 	['touchend', 'click', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { capture: true, passive: true }));
-	window.wandcraftAudioState = () => contexts.map((c) => c.state).join(',') || 'none';
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'visible') {
+			contexts.forEach((c) => {
+				if (c.state !== 'running') {
+					c.resume().catch(() => {});
+				}
+			});
+		} else if (!silent.paused) {
+			silent.pause();   // restarted by the next tap
+		}
+	});
+	window.wandcraftAudioState = function () {
+		let session = 'n/a';
+		try {
+			session = navigator.audioSession ? navigator.audioSession.type : 'n/a';
+		} catch (e) { /* ignore */ }
+		const ctx = contexts.map((c) => c.state + ' ' + c.sampleRate).join(',') || 'no ctx';
+		return ctx + ' / session ' + session + ' / worklet ' + worklet + ' / loop ' + silentState;
+	};
 }());
 		</script>
 		<script src="$GODOT_URL"></script>

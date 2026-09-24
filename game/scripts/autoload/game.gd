@@ -75,6 +75,22 @@ func safe_rect(view: Vector2) -> Rect2:
 	return Rect2(sr.position / k, sr.size / k).intersection(Rect2(Vector2.ZERO, view))
 
 
+## Web build only: the build stamp web/shell.html carries (the git commit, written in by
+## tools/build_web.sh), so a phone shows which build it is running. "" natively.
+func web_build() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	return str(JavaScriptBridge.eval("window.wandcraftBuild || ''", true))
+
+
+## Web build only: a one-line sound report (audio state, iOS audio session, the engine's
+## audio worklet, the silent-switch unlock), shown on the pause screen. "" natively.
+func web_sound() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	return str(JavaScriptBridge.eval("window.wandcraftAudioState ? window.wandcraftAudioState() : ''", true))
+
+
 ## The page's CSS safe-area insets as fractions of the window [top, right, bottom, left],
 ## from web/shell.html. Re-read only when the window size changes (a rotation moves them).
 var _insets: Array[float] = [0.0, 0.0, 0.0, 0.0]

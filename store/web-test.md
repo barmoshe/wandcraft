@@ -17,6 +17,8 @@ The game fills the whole screen, including behind the Dynamic Island. The HUD an
 2. Open the link in Safari and reload once.
 3. Add the icon to the Home Screen again.
 
+**Which build am I on?** The bottom-left of the title shows `v0.4.1  web <commit>`. The pause screen's bottom line shows the build and a sound report (audio state / iOS audio session / worklet / silent-switch loop). If the game is silent, send a screenshot of that line.
+
 ## How it differs from the native app
 - **Renderer:** the browser version uses Godot's WebGL renderer. Lights and glow can look slightly different.
 - **Performance:** it runs a little slower than a native build. A busy fight is the thing to watch.
@@ -31,4 +33,4 @@ tools/deploy_web.sh    # uploads it to Vercel (project wandcraft-test); needs `v
 ```
 The page itself is `game/web/shell.html`: Godot's default web page, changed to fill the iPhone screen and to report the safe-area insets to the game (`Game.safe_rect`).
 
-If the phone keeps showing the old version, close the app and open it again. The offline cache updates on the next launch.
+There is no offline cache (no service worker since 0.4.1, decisions/0008): a new deploy shows on the next launch. If an older build still shows, swipe the app closed and open it again once.

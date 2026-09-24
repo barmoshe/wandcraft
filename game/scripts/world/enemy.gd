@@ -52,6 +52,12 @@ var ph := 0.0
 var burst := 0
 var bcd := 0.0
 var hit_wall := false
+var strafe := 1.0              # weaver: which way it circles the player
+var strafe_t := 0.0            # weaver: time until it may change direction on its own
+var _flip_cd := 0.0            # weaver: a wall bump flips the strafe at most this often
+var _route := Vector2.ZERO     # last route step around cover (chase_dir), re-planned every 0.1 s
+var _route_direct := true
+var _route_t := 0.0
 var vel := Vector2.ZERO        # measured each tick (aim-ahead uses it)
 var _prev := Vector2.ZERO
 var burn_t := 0.0
@@ -84,6 +90,8 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	heavy = ai == &"turret"
 	position = pos
 	ph = w.rng.randf() * TAU
+	strafe = 1.0 if sin(ph) > 0.0 else -1.0
+	_route_t = fmod(ph, 0.1)   # stagger the re-plans across ticks (no extra rng draw)
 	cd = w.rng.randf_range(0.8, 2.0)
 	frames = Bestiary.frames(String(k)) if Bestiary.has(String(k)) else Sprites.enemy_frames(String(k))
 	muzzle = Vector2(0, -roundf(frames[0].get_height() * 0.5))
@@ -150,20 +158,34 @@ func tick(dt: float) -> void:
 	var mv := Vector2.ZERO
 	match ai:
 		&"chase":
-			mv = dir + Vector2(sin(t * 2.0 + ph), cos(t * 2.0 + ph)) * 0.35
+			# along the flow field around cover; the wobble only in the open (decisions/0008)
+			var cdir := _steer(dt, dir)
+			var wob := 0.35 if _route_direct else 0.1
+			mv = cdir + Vector2(sin(t * 2.0 + ph), cos(t * 2.0 + ph)) * wob
 		&"shoot":
-			var want := -1.0 if dd < 80.0 else (1.0 if dd > 125.0 else 0.0)
-			var side := 1.0 if sin(ph + t * 0.4) > 0.0 else -1.0
-			mv = dir * want + dir.orthogonal() * 0.7 * side
+			var sees := world.enemy_sees(position)
 			cd -= dt
-			if cd <= 0.0 and dd < 220.0:
-				shoot(d.angle())
-				cd = float(def["shot"]["cd"]) * world.rng.randf_range(0.85, 1.15)
+			_flip_cd -= dt
+			if sees:
+				var want := -1.0 if dd < 80.0 else (1.0 if dd > 125.0 else 0.0)
+				strafe_t -= dt
+				if strafe_t <= 0.0:
+					strafe = -strafe if world.rng.randf() < 0.5 else strafe
+					strafe_t = world.rng.randf_range(2.0, 4.0)
+				mv = dir * want + dir.orthogonal() * 0.7 * strafe
+				if cd <= 0.0 and dd < 220.0:
+					shoot(d.angle())
+					cd = float(def["shot"]["cd"]) * world.rng.randf_range(0.85, 1.15)
+			else:
+				# no line to the player: walk around the cover until it has one
+				mv = _steer(dt, dir)
+				cd = maxf(cd, 0.4)
 		&"charge":
 			match state:
 				&"move":
-					mv = dir
-					if dd < 120.0:
+					mv = _steer(dt, dir)
+					# only wind up a charge down a clear lane (no BONK into a pillar)
+					if dd < 120.0 and world.clear_path(position, pl.position, r):
 						cd -= dt
 						if cd <= 0.0:
 							state = &"tele"
@@ -201,7 +223,7 @@ func tick(dt: float) -> void:
 					shoot(d.angle())
 					burst -= 1
 					bcd = shot["cd"]
-			elif cd <= 0.0 and dd < 240.0:
+			elif cd <= 0.0 and dd < 240.0 and world.enemy_sees(position):
 				if shot.has("burst"):
 					burst = shot["burst"]
 					bcd = 0.0
@@ -213,6 +235,10 @@ func tick(dt: float) -> void:
 		mv = mv.normalized()
 	if state != &"dash":
 		position = world.move_body(position, r, mv * spd * dt)
+		if ai == &"shoot" and _flip_cd <= 0.0 and (world.last_hit_x or world.last_hit_y):
+			strafe = -strafe   # strafed into a wall: circle the other way
+			strafe_t = world.rng.randf_range(2.0, 4.0)
+			_flip_cd = 0.8
 	if absf(mv.x) > 0.1:
 		face = 1 if mv.x > 0.0 else -1
 	if knock.length_squared() > 1.0:
@@ -229,6 +255,18 @@ func tick(dt: float) -> void:
 	if dt > 0.0:
 		vel = vel.lerp((position - _prev) / dt, 0.3)
 	_animate()
+
+
+## The way toward the player: straight at them while the lane is clear, otherwise the
+## route around cover from World.chase_dir. The route is re-planned every 0.1 s (it costs
+## a few line checks), but a clear lane follows the player every tick.
+func _steer(dt: float, dir: Vector2) -> Vector2:
+	_route_t -= dt
+	if _route_t <= 0.0:
+		_route_t = 0.1
+		_route = world.chase_dir(position, r)
+		_route_direct = world.chase_direct
+	return dir if _route_direct else _route
 
 
 func _animate() -> void:

@@ -124,8 +124,14 @@
   - **UI:** parallax title, bevelled buttons, rarity-banded reward cards with tag chips, and a reskinned shop and HUD.
   - **Checks:** 66 unit tests, the real-touch tap test, and the balance bench (70% survival, mini-boss about 58 s, boss about 41 s, no stalls).
 
+- **0.4.1 (iPhone web fixes + enemy AI, ADR 0008):**
+  - The web build fills the iPhone screen, takes taps and stick input with Safari's touch ids, and plays sound even on silent.
+  - It has no service worker any more, and the title shows the build stamp.
+  - Enemies path around pillars and crates, and shooters need a clear line to fire.
+  - Checks: 69 unit tests, the tap test in 3 modes (including iPhone touch ids), and the bench at 80% survival.
+
 ## Next action
-- **Testers:** install 0.4.0 and report on the look, feel, text size and difficulty. Say whether the hero reads well on a phone.
+- **Testers:** install 0.4.1 and report on the look, feel, text size and difficulty. Say whether the hero reads well on a phone.
 - **iPhone, today:** the web version is live at https://wandcraft-test.vercel.app (see `store/web-test.md`). Add it to the Home Screen and play in landscape. The native iOS build comes later via TestFlight.
 - **Next:** the performance quality tier, M2 breadth (worlds 2–5) and M5 (the paywall, Game Center / Play Games).
 - **Known gaps:**

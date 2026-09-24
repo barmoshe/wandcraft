@@ -195,6 +195,7 @@ var _bot_dmg_seen := 0.0
 var _bot_progress_t := 0.0
 
 # move_body results
+var grid_ver := 0              # bumped on every grid change (the flow field rebuilds)
 var last_hit_x := false
 var last_hit_y := false
 
@@ -359,6 +360,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 				"c":
 					tile = 4
 			grid[y * gw + x] = tile
+	grid_ver += 1
 	_place_doors()
 	doors_open = false
 	cleared = false
@@ -459,10 +461,11 @@ func _spawn_wave(list: Array) -> void:
 	_shuffle(socks)
 	for i in list.size():
 		var p: Vector2 = socks[i % socks.size()] + Vector2(rng.randf_range(-8, 8), rng.randf_range(-8, 8))
-		if solid_at(p):
+		var er: float = float(Enemy.DEFS[list[i][0]]["r"]) + (2.0 if list[i][1] else 0.0)
+		if not body_fits(p, er):
 			p = socks[i % socks.size()]
 		var e := spawn_enemy(list[i][0], p, list[i][1])
-		e.spawn_t = 0.7 + rng.randf() * 0.4
+		e.spawn_t = 0.5 + rng.randf() * 0.3
 	Audio.sfx("spawn")
 	Hints.show("aim")
 
@@ -532,6 +535,7 @@ func _open_doors() -> void:
 	for d in doors:
 		for dx in 2:
 			grid[int(d["col"]) + dx] = 0
+	grid_ver += 1
 	_deco.queue_redraw()
 
 
@@ -823,6 +827,7 @@ func break_crate(tx: int, ty: int) -> void:
 	if tile_at(tx, ty) != 4:
 		return
 	grid[ty * gw + tx] = 0
+	grid_ver += 1
 	var p := _center(tx, ty)
 	fx.dissolve(p + Vector2(0, 7), _crate_texture())
 	fx.sparks(p, 6, Color("#c8a070"), 70.0)
@@ -1185,6 +1190,129 @@ func path_dir(p: Vector2, goal: Vector2) -> Vector2:
 			best = n
 	var to := _center(best.x, best.y) - p
 	return to.normalized() if to.length() > 1.0 else (goal - p).normalized()
+
+
+# ------------------------------------------------------------------ enemy steering
+
+## Enemies path around pillars, crates and walls (decisions/0008). One breadth-first
+## distance field toward the player's tile is shared by every enemy and rebuilt only when
+## the player changes tile or the grid changes (a crate breaks, doors open).
+var _flow := PackedInt32Array()
+var _flow_goal := Vector2i(-99, -99)
+var _flow_ver := -1
+## True when the last chase_dir() went straight at the player (nothing in the way).
+var chase_direct := false
+const _DIRS8 := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+
+
+func walkable(x: int, y: int) -> bool:
+	var t := tile_at(x, y)
+	return t == 0 or t == 2
+
+
+## Whether a body of radius r can stand at p (its centre and four edge points are free).
+func body_fits(p: Vector2, r: float) -> bool:
+	for o in [Vector2.ZERO, Vector2(r, 0), Vector2(-r, 0), Vector2(0, r), Vector2(0, -r)]:
+		if solid_at(p + o):
+			return false
+	return true
+
+
+## Whether a body of radius r could travel straight from a to b: the centre line and both
+## side lines are clear of walls, pillars and crates.
+func clear_path(a: Vector2, b: Vector2, r: float) -> bool:
+	var side := (b - a).orthogonal().normalized() * r * 0.9
+	return los(a, b, true) and los(a + side, b + side, true) and los(a - side, b - side, true)
+
+
+## Whether an enemy at p can see (and so shoot) the player. Enemy shots stop on crates,
+## so crates block their sight.
+func enemy_sees(p: Vector2) -> bool:
+	return los(p, player.position, true)
+
+
+func _flow_update() -> void:
+	var goal := Vector2i(floori(player.position.x / TS), floori(player.position.y / TS))
+	if goal == _flow_goal and _flow_ver == grid_ver and _flow.size() == gw * gh:
+		return
+	_flow_goal = goal
+	_flow_ver = grid_ver
+	_flow.resize(gw * gh)
+	_flow.fill(-1)
+	if goal.x < 0 or goal.y < 0 or goal.x >= gw or goal.y >= gh:
+		return
+	var queue: Array[Vector2i] = [goal]
+	_flow[goal.y * gw + goal.x] = 0
+	var head := 0
+	while head < queue.size():
+		var c: Vector2i = queue[head]
+		head += 1
+		var dc := _flow[c.y * gw + c.x] + 1
+		for k in 4:
+			var n: Vector2i = c + _DIRS8[k]
+			if walkable(n.x, n.y) and _flow[n.y * gw + n.x] < 0:
+				_flow[n.y * gw + n.x] = dc
+				queue.append(n)
+
+
+func _flow_at(c: Vector2i) -> int:
+	if c.x < 0 or c.y < 0 or c.x >= gw or c.y >= gh:
+		return -1
+	return _flow[c.y * gw + c.x]
+
+
+## The neighbouring tile one step closer to the player (a diagonal only when both of its
+## side tiles are free, so a body never cuts a pillar corner), or c itself.
+func _flow_next(c: Vector2i) -> Vector2i:
+	var best := c
+	var bd := _flow_at(c)
+	for d in _DIRS8:
+		var n: Vector2i = c + d
+		var v := _flow_at(n)
+		if v < 0 or (bd >= 0 and v >= bd):
+			continue
+		if d.x != 0 and d.y != 0 and not (walkable(c.x + d.x, c.y) and walkable(c.x, c.y + d.y)):
+			continue
+		best = n
+		bd = v
+	return best
+
+
+## Direction for an enemy of radius r at p to move toward the player: straight at them
+## when the way is clear, otherwise along the flow field, aiming at the furthest tile of
+## the path it can reach in a straight line (so it walks smoothly rather than tile by tile).
+func chase_dir(p: Vector2, r: float) -> Vector2:
+	var to := player.position - p
+	if to.length() < 1.0:
+		chase_direct = true
+		return Vector2.ZERO
+	if clear_path(p, player.position, r):
+		chase_direct = true
+		return to.normalized()
+	chase_direct = false
+	_flow_update()
+	var cur := Vector2i(floori(p.x / TS), floori(p.y / TS))
+	if _flow_at(cur) < 0:
+		# off the field (pressed into a wall corner): step to any tile that is on it
+		for d in _DIRS8:
+			if _flow_at(cur + d) >= 0:
+				return (_center(cur.x + d.x, cur.y + d.y) - p).normalized()
+		return to.normalized()
+	var aim := Vector2.INF
+	var c := cur
+	for i in 6:
+		var nxt := _flow_next(c)
+		if nxt == c:
+			break
+		var cp := _center(nxt.x, nxt.y)
+		if i > 0 and not clear_path(p, cp, r):
+			break
+		aim = cp
+		c = nxt
+	if aim == Vector2.INF or p.distance_to(aim) < 1.0:
+		return to.normalized()
+	return (aim - p).normalized()
 
 
 # ------------------------------------------------------------------ drawing

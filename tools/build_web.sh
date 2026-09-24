@@ -28,5 +28,15 @@ mkdir -p "$OUT"
 log "exporting to $OUT"
 "$HERE/godot.sh" --headless --path "$GAME" --export-release "Web" "$OUT/index.html" 2>&1 | tee "$OUT/../web-export.log" | grep -E "ERROR|error" || true
 [ -f "$OUT/index.html" ] && [ -f "$OUT/index.wasm" ] || { log "export failed, see build/web-export.log"; exit 1; }
+
+# Home Screen app files (the engine's PWA export is off: no service worker, decisions/0008),
+# the kill switch for the old worker, and the build stamp the title shows.
+cp "$HERE/web/index.manifest.json" "$HERE/web/index.service.worker.js" "$OUT/"
+for n in 144 180 512; do cp "$GAME/assets/icon/pwa_$n.png" "$OUT/index.${n}x${n}.png"; done
+STAMP="$(git -C "$HERE" rev-parse --short HEAD 2>/dev/null || echo dev)"
+git -C "$HERE" diff --quiet HEAD -- "$GAME" 2>/dev/null || STAMP="$STAMP+"
+sed -i "s|__WANDCRAFT_BUILD__|$STAMP|" "$OUT/index.html"
+grep -q "wandcraftBuild = '$STAMP'" "$OUT/index.html" || { log "build stamp missing from index.html"; exit 1; }
+log "build stamp: $STAMP"
 log "done:"
 ls -la "$OUT" | awk 'NR>1 {printf "  %10s  %s\n", $5, $9}'

@@ -51,6 +51,10 @@ func _paint() -> void:
 	y += 4
 	button(Rect2(cx - 146, y, 140, 26), "hints", "SHOW TIPS AGAIN", "ghost")
 	button(Rect2(cx + 6, y, 140, 26), "abandon", "TAP AGAIN TO ABANDON" if confirm_abandon else "ABANDON RUN", "danger")
+	var diag := Game.web_sound()
+	if diag != "":
+		# web only: lets a tester report why a phone is silent without a Mac inspector
+		text_center(cx, sr.end.y - 2, "web %s  -  sound: %s" % [Game.web_build(), diag], MUTED.darkened(0.3))
 
 
 func _on_button(id: String) -> void:

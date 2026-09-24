@@ -97,7 +97,11 @@ func _paint() -> void:
 		button(Rect2(cx - 70, by, 140, 32), "new", "NEW RUN", "primary")
 	if int(meta.get("runs", 0)) > 0:
 		text_center(cx, sr.end.y - 6, "Runs %d   Wins %d   Enemies defeated %d" % [meta["runs"], meta["wins"], meta["kills"]], MUTED)
-	text(Vector2(sr.position.x, sr.end.y - 6), "v" + str(ProjectSettings.get_setting("application/config/version", "")), MUTED.darkened(0.3))
+	var ver := "v" + str(ProjectSettings.get_setting("application/config/version", ""))
+	var build := Game.web_build()
+	if build != "":
+		ver += "  web " + build
+	text(Vector2(sr.position.x, sr.end.y - 6), ver, MUTED.darkened(0.3))
 
 
 func _on_button(id: String) -> void:
