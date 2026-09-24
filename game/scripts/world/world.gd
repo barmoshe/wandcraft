@@ -653,8 +653,6 @@ func _bot_drive() -> void:
 	if hazard_at(p + mv.normalized() * 10.0):
 		mv = -mv
 	controls.move = mv.limit_length(1.0)
-	if player.hp < 40.0 and player.dash_cd <= 0.0 and to_e.length() < 30.0:
-		controls.dash = true
 
 
 # ------------------------------------------------------------------ drawing

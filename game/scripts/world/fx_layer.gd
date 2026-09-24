@@ -1,6 +1,6 @@
 class_name FxLayer
 extends Node2D
-## Short-lived effects drawn immediately: rings, beams, _sparks and dash ghosts are additive
+## Short-lived effects drawn immediately: rings, beams and sparks are additive
 ## (they feed the glow); damage numbers and toasts are drawn on a normal-blend child.
 ## Everything is capped so a wild wand cannot tank the frame rate.
 
@@ -10,7 +10,6 @@ const MAX_TEXTS := 40
 var rings: Array = []    # [pos, r0, r1, t, life, color]
 var beams: Array = []    # [a, b, color, width, t, life]
 var _sparks: Array = []   # [pos, vel, t, life, color]
-var ghosts: Array = []   # [pos, tex, flip, t]
 var texts: Array = []    # [pos, text, color, t, size]
 var rng := RandomNumberGenerator.new()
 var _text_node: Node2D
@@ -42,10 +41,6 @@ func sparks(p: Vector2, n: int, c: Color, speed: float) -> void:
 		_sparks.append([p, v, 0.0, rng.randf_range(0.18, 0.4), c])
 
 
-func ghost(p: Vector2, tex: Texture2D, flip: bool) -> void:
-	ghosts.append([p, tex, flip, 0.0])
-
-
 func text(p: Vector2, s: String, c: Color, size := 8) -> void:
 	if texts.size() >= MAX_TEXTS:
 		texts.pop_front()
@@ -60,7 +55,6 @@ func clear_all() -> void:
 	rings.clear()
 	beams.clear()
 	_sparks.clear()
-	ghosts.clear()
 	texts.clear()
 
 
@@ -83,10 +77,6 @@ func update(dt: float) -> void:
 			_sparks[w] = s
 			w += 1
 	_sparks.resize(w)
-	for i in range(ghosts.size() - 1, -1, -1):
-		ghosts[i][3] += dt
-		if ghosts[i][3] > 0.25:
-			ghosts.remove_at(i)
 	for i in range(texts.size() - 1, -1, -1):
 		texts[i][3] += dt
 		if texts[i][3] > 0.8:
@@ -99,14 +89,6 @@ func _process(_dt: float) -> void:
 
 
 func _draw() -> void:
-	for g in ghosts:
-		var tex: Texture2D = g[1]
-		var k: float = 1.0 - g[3] / 0.25
-		var size := tex.get_size()
-		var rect := Rect2(g[0] - Vector2(size.x / 2.0, size.y - 1.0), size)
-		if g[2]:
-			rect = Rect2(rect.position + Vector2(size.x, 0), Vector2(-size.x, size.y))
-		draw_texture_rect(tex, rect, false, Color(0.35, 0.45, 1.0, 0.5 * k))
 	for rg in rings:
 		var k: float = rg[3] / rg[4]
 		var rad: float = lerpf(rg[1], rg[2], 1.0 - pow(1.0 - k, 2.0))

@@ -1,7 +1,7 @@
 extends Node2D
 ## Builds the game in code: glow environment, world, camera, HUD and touch controls.
 ## Desktop testing: WASD/arrows move, hold the left mouse button to aim and fire,
-## Space/Shift dash, 1/2 pick a wand, F toggles auto-fire. Gamepads: sticks + RB/A.
+## 1/2 pick a wand, F toggles auto-fire. Gamepads: sticks, LB/RB switch wands.
 ##
 ## Command-line options (after `--`):
 ##   --demo              a bot plays (for screenshots and soak runs)
@@ -163,8 +163,6 @@ func _read_desktop_input() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
-			KEY_SPACE, KEY_SHIFT:
-				world.controls.dash = true
 			KEY_1:
 				world.controls.select_wand = 0
 			KEY_2:
@@ -173,7 +171,5 @@ func _unhandled_input(event: InputEvent) -> void:
 				Game.auto_fire = not Game.auto_fire
 				Events.toast.emit("Auto-fire %s" % ("on" if Game.auto_fire else "off"))
 	elif event is InputEventJoypadButton and event.pressed:
-		if event.button_index in [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_A]:
-			world.controls.dash = true
-		elif event.button_index == JOY_BUTTON_LEFT_SHOULDER:
+		if event.button_index in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
 			world.controls.select_wand = (world.player.cur + 1) % world.player.wands.size()

@@ -1,13 +1,10 @@
 class_name Player
 extends Node2D
-## The wizard. Twin-stick movement with a dash, aim assist, and wand casting.
+## The wizard. Twin-stick movement, aim assist, and wand casting.
 ## On phones the right stick aims and fires; with no stick held, auto-fire shoots at the
 ## nearest visible enemy (Game.auto_fire), so one thumb is enough to play.
 
 const SPEED := 92.0
-const DASH_SPEED := 270.0
-const DASH_TIME := 0.16
-const DASH_CD := 0.8
 const ASSIST_CONE := 0.45      # radians either side of the stick
 const AUTO_RANGE := 210.0
 
@@ -22,9 +19,6 @@ var wands: Array[WandState] = []
 var cur := 0
 var bag: Array = []            # spare spells: {"id", "lv"}
 var target: Enemy
-var dash_t := 0.0
-var dash_cd := 0.0
-var dash_dir := Vector2.RIGHT
 var inv := 0.0
 var cast_t := 0.0
 var face := 1
@@ -80,7 +74,6 @@ func tick(dt: float) -> void:
 	if dead:
 		return
 	inv = maxf(0.0, inv - dt)
-	dash_cd = maxf(0.0, dash_cd - dt)
 	cast_t = maxf(0.0, cast_t - dt)
 	if controls.select_wand >= 0:
 		if controls.select_wand < wands.size():
@@ -88,20 +81,7 @@ func tick(dt: float) -> void:
 		controls.select_wand = -1
 	# movement
 	var mv := controls.move.limit_length(1.0)
-	if controls.dash:
-		controls.dash = false
-		if dash_cd <= 0.0:
-			dash_t = DASH_TIME
-			dash_cd = DASH_CD
-			dash_dir = mv.normalized() if mv.length() > 0.2 else Vector2.from_angle(aim)
-			world.fx.sparks(position, 6, Color("#9fb4ff"), 50.0)
-	if dash_t > 0.0:
-		dash_t -= dt
-		vel = dash_dir * DASH_SPEED
-		if fmod(dash_t, 0.04) < dt:
-			world.fx.ghost(position, sprite.texture, face < 0)
-	else:
-		vel = vel.lerp(mv * SPEED, 1.0 - pow(0.0005, dt))
+	vel = vel.lerp(mv * SPEED, 1.0 - pow(0.0005, dt))
 	position = world.move_body(position, r, vel * dt)
 	if mv.length() > 0.1:
 		walk_t += dt * mv.length()
@@ -147,7 +127,7 @@ func _assist(ang: float) -> float:
 
 
 func hurt(amount: float, from: Vector2) -> void:
-	if dead or inv > 0.0 or dash_t > 0.0 or Game.god_mode:
+	if dead or inv > 0.0 or Game.god_mode:
 		return
 	hp -= amount
 	inv = 0.7
@@ -199,5 +179,3 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, 6.0, Color(0, 0, 0, 0.45))
 	draw_set_transform(Vector2.ZERO)
-	if dash_cd > 0.0:
-		draw_arc(Vector2(0, 2), 7.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - dash_cd / DASH_CD), 12, Color(0.6, 0.7, 1.0, 0.5), 1.0)

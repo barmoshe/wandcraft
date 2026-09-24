@@ -6,7 +6,6 @@ extends RefCounted
 var move := Vector2.ZERO     # left stick, length 0..1
 var aim := Vector2.ZERO      # right stick; non-zero means "fire this way"
 var fire := false            # fire toward the auto target without aiming
-var dash := false            # edge-triggered: Player clears it
 var select_wand := -1        # edge-triggered: Player clears it
 
 
@@ -14,5 +13,4 @@ func clear() -> void:
 	move = Vector2.ZERO
 	aim = Vector2.ZERO
 	fire = false
-	dash = false
 	select_wand = -1

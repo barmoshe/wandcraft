@@ -19,11 +19,11 @@
       - Rune Sentry (burst turret)
     - Treasure rooms drop a spell, which goes into an empty slot or the bag.
   - **Combat:** a pooled BulletPool (2048 bullets, one MultiMesh draw) and a SpellRunner for bolts, beams, bursts and the Starwheel, plus every trigger event, shatter, pierce, bounce and homing.
-  - **Player:** twin-stick movement, dash with i-frames, aim assist, and auto-fire at the nearest visible enemy (one thumb is enough). Two starting wands: Apprentice Rod (Payload Seed → Rune Burst, Arcane Mote) and Chorus Harp.
+  - **Player:** twin-stick movement (no dash, as in Magicraft), aim assist, and auto-fire at the nearest visible enemy (one thumb is enough). Two starting wands: Apprentice Rod (Payload Seed → Rune Burst, Arcane Mote) and Chorus Harp.
   - **UI:**
     - The HUD follows the prototype v5 layout: wand rows with round sockets, a pointer and a recharge sweep; the bag; HP and MP bars; gold, room and kills.
     - A room banner.
-    - Floating twin sticks plus a dash button, inside the safe area.
+    - Floating twin sticks (move / aim), inside the safe area; tap a wand row to switch wands.
     - Pixel fonts: Silkscreen and Pixelify Sans (OFL).
   - **Look:**
     - 2D lighting: an ambient tint, torch lights and a light around the wizard.
@@ -51,7 +51,7 @@
 - Tests: `tools/test.sh`
 - Screenshots: `tools/shots.sh`. For a staged fight: `tools/shots.sh show --showcase --frames=130 --wand=2`
 - Playing on the Mac: open `game/project.godot` in Godot 4.7.2 and press Play.
-  - Controls: WASD to move, hold the mouse button to aim and fire, Space to dash, 1/2 to switch wands, F to toggle auto-fire.
+  - Controls: WASD to move, hold the mouse button to aim and fire, 1/2 to switch wands, F to toggle auto-fire.
 
 ## Waiting on Bar
 - [ ] **Apple:** enroll in the Apple Developer Program ($99/yr). Decide between individual and organization (an organization needs a D-U-N-S number).

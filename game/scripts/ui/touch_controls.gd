@@ -1,7 +1,7 @@
 class_name TouchControls
 extends Control
 ## Floating twin sticks for phones. The left half of the screen moves (the stick appears
-## where the thumb lands); the right half aims and fires. A dash button sits bottom-right.
+## where the thumb lands); the right half aims and fires.
 ## Tapping a wand row in the HUD selects that wand. Multi-touch safe: each finger is
 ## tracked by its index.
 
@@ -22,11 +22,6 @@ var touched_once := false
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-
-
-func dash_rect() -> Rect2:
-	var sr := Game.safe_rect(get_viewport_rect().size)
-	return Rect2(sr.end - Vector2(52, 72), Vector2(34, 34))
 
 
 func _input(event: InputEvent) -> void:
@@ -52,9 +47,6 @@ func _press(id: int, p: Vector2) -> void:
 		if wi >= 0:
 			controls.select_wand = wi
 			return
-	if dash_rect().grow(6.0).has_point(p):
-		controls.dash = true
-		return
 	var half := get_viewport_rect().size.x / 2.0
 	if p.x < half and _move_id < 0:
 		_move_id = id
@@ -101,12 +93,6 @@ func _process(_dt: float) -> void:
 func _draw() -> void:
 	if not touched_once and not OS.has_feature("mobile"):
 		return
-	var dr := dash_rect()
-	var c := dr.get_center()
-	draw_circle(c, dr.size.x / 2.0, Color(0.05, 0.03, 0.1, 0.55))
-	draw_arc(c, dr.size.x / 2.0, 0.0, TAU, 28, Color(0.62, 0.7, 1.0, 0.7), 1.0)
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-6, -5), c + Vector2(4, 0), c + Vector2(-6, 5)]), Color(0.62, 0.7, 1.0, 0.8))
-	draw_colored_polygon(PackedVector2Array([c + Vector2(0, -5), c + Vector2(9, 0), c + Vector2(0, 5)]), Color(0.62, 0.7, 1.0, 0.5))
 	if _move_id >= 0:
 		_draw_stick(_move_origin, _move_pos, Color(0.7, 0.8, 1.0))
 	if _aim_id >= 0:
