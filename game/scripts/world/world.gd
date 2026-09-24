@@ -200,6 +200,8 @@ var last_hit_y := false
 
 var _uid := 0
 var _floor: Sprite2D
+var _vignette: Sprite2D
+var _vignette_tex: GradientTexture2D
 var _deco: Node2D
 var _actors: Node2D
 var _top: Node2D
@@ -213,7 +215,26 @@ func setup(seed_value: int) -> void:
 	rng.seed = seed_value
 	_floor = Sprite2D.new()
 	_floor.centered = false
+	_floor.position = -Vector2(RoomPainter.MARGIN * TS)
 	add_child(_floor)
+	# the surroundings fade into the dark toward the screen edges
+	_vignette = Sprite2D.new()
+	_vignette.centered = false
+	_vignette.position = _floor.position
+	var g := Gradient.new()
+	g.set_offset(0, 0.0)
+	g.set_color(0, Color(Style.RAMPS["night"][1], 0.0))
+	g.set_offset(1, 1.0)
+	g.set_color(1, Color(Style.RAMPS["night"][1], 0.92))
+	g.add_point(0.52, Color(Style.RAMPS["night"][1], 0.0))
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill = GradientTexture2D.FILL_SQUARE
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 1.0)
+	_vignette_tex = gt
+	_vignette.texture = gt
+	add_child(_vignette)
 	_deco = Node2D.new()
 	add_child(_deco)
 	_deco.draw.connect(_draw_deco)
@@ -341,6 +362,9 @@ func build_room(tpl: String, kind: StringName) -> void:
 	doors_open = false
 	cleared = false
 	_floor.texture = ImageTexture.create_from_image(RoomPainter.paint(grid, gw, gh, run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()))
+	var vs := RoomPainter.size_px(gw, gh)
+	_vignette_tex.width = vs.x
+	_vignette_tex.height = vs.y
 	for l in _lights.get_children():
 		l.queue_free()
 	for tp in torches:
@@ -1159,31 +1183,29 @@ func _draw_deco() -> void:
 				var x := h.x * TS + 4 + (k % 2) * 7
 				var y := h.y * TS + 4 + (k / 2) * 7
 				_deco.draw_colored_polygon(PackedVector2Array([Vector2(x, y + 2), Vector2(x + 1.5, y - 3), Vector2(x + 3, y + 2)]), Color("#cfd4e0"))
+	for tp in torches:
+		_deco.draw_texture(Props.sconce(), (tp + Vector2(-3, -3)).round())
 	for d in doors:
 		var def: Dictionary = d["def"]
 		var x0 := float(int(d["col"]) * TS)
-		var r := Rect2(x0, 0, TS * 2, TS)
 		var c := Chapter.door_color(def)
-		_deco.draw_rect(r, Color("#0c0818"))
-		if doors_open:
-			_deco.draw_rect(r.grow(-2), Color(c.r, c.g, c.b, 0.35))
-			_deco.draw_rect(Rect2(x0 + 3, 3, TS * 2 - 6, TS - 3), Color(c.r, c.g, c.b, 0.25))
-		else:
-			for k in 5:
-				_deco.draw_rect(Rect2(x0 + 3 + k * 6, 1, 2, TS - 1), Color("#6a6078"))
-		_deco.draw_rect(Rect2(x0 - 2, 0, 2, TS), Color("#8a7a5a"))
-		_deco.draw_rect(Rect2(x0 + TS * 2, 0, 2, TS), Color("#8a7a5a"))
-		_deco.draw_rect(Rect2(x0 - 2, 0, TS * 2 + 4, 2), c.darkened(0.2))
+		_deco.draw_texture(Props.door(c, doors_open), Vector2(x0 - 5, -9))
 		var icon := Icons.door(Chapter.door_key(def))
-		_deco.draw_texture(icon, Vector2(x0 + TS - icon.get_width() / 2.0, 1).round(), Color(1, 1, 1, 1.0 if doors_open else 0.55))
+		_deco.draw_texture(icon, Vector2(x0 + TS - icon.get_width() / 2.0, -1).round(), Color(1, 1, 1, 1.0 if doors_open else 0.6))
 	if not orb.is_empty():
 		var p: Vector2 = orb["pos"]
 		var bob := sin(time * 3.0) * 2.0
-		_deco.draw_circle(p + Vector2(0, 5), 6.0, Color(0, 0, 0, 0.4))
 		var key := String(orb["kind"])
 		var c := Color(Chapter.INFO.get(key, {"color": "#ffe066"})["color"])
-		_deco.draw_circle(p + Vector2(0, -6 - bob), 7.0, c.darkened(0.3))
-		_deco.draw_circle(p + Vector2(-2, -8 - bob), 2.0, c.lightened(0.5))
+		_deco.draw_set_transform(p + Vector2(0, 6), 0.0, Vector2(1.0, 0.45))
+		_deco.draw_circle(Vector2.ZERO, 10.0, Color(0, 0, 0, 0.4))
+		_deco.draw_set_transform(Vector2.ZERO)
+		var alt := Props.altar(c)
+		_deco.draw_texture(alt, (p + Vector2(-alt.get_width() / 2.0, 7 - alt.get_height())).round())
+		var o := p + Vector2(0, -12 - bob)
+		_deco.draw_circle(o, 7.0, c.darkened(0.35))
+		_deco.draw_circle(o + Vector2(0.5, 0.5), 5.5, c.darkened(0.1))
+		_deco.draw_circle(o + Vector2(-2, -2), 2.0, c.lightened(0.6))
 	if not npc.is_empty():
 		_draw_npc(npc)
 	var crate := _crate_texture()
@@ -1200,34 +1222,31 @@ func _draw_npc(n: Dictionary) -> void:
 	_deco.draw_set_transform(Vector2.ZERO)
 	match n["kind"]:
 		&"spring":
-			_deco.draw_circle(p, 10.0, Color("#3a4a6a"))
-			_deco.draw_circle(p, 8.0, Color("#2a6ab8") if not n["used"] else Color("#223048"))
-			_deco.draw_arc(p, 10.0, 0.0, TAU, 24, Color("#8a9ab8"), 2.0)
+			var f := Props.fountain(not n["used"])
+			_deco.draw_texture(f, (p + Vector2(-f.get_width() / 2.0, 8 - f.get_height())).round())
 		&"shop":
-			_deco.draw_rect(Rect2(p + Vector2(-14, -4), Vector2(28, 10)), Color("#6a4a2a"))
-			_deco.draw_rect(Rect2(p + Vector2(-14, -4), Vector2(28, 2)), Color("#a07a4a"))
-			_deco.draw_texture(Icons.glyph("coin", Color("#ffd36b")), p + Vector2(-7, -22))
+			var m := Props.merchant(int(time * 2.0) % 2)
+			_deco.draw_texture(m, (p + Vector2(-m.get_width() / 2.0, 8 - m.get_height())).round())
+			_deco.draw_texture(Icons.glyph("coin", Color("#ffd36b")), (p + Vector2(-9, -34)).round())
 		&"forge":
-			_deco.draw_rect(Rect2(p + Vector2(-10, -6), Vector2(20, 5)), Color("#5a5a6a"))
-			_deco.draw_rect(Rect2(p + Vector2(-4, -1), Vector2(8, 6)), Color("#3a3a48"))
-			_deco.draw_rect(Rect2(p + Vector2(-9, 5), Vector2(18, 3)), Color("#3a3a48"))
-			_deco.draw_texture(Icons.glyph("anvil", Color("#ff8a3c")), p + Vector2(-7, -24))
+			var a := Props.anvil()
+			_deco.draw_texture(a, (p + Vector2(-a.get_width() / 2.0, 8 - a.get_height())).round())
+			_deco.draw_texture(Icons.glyph("anvil", Color("#ff8a3c")), (p + Vector2(-9, -30)).round())
 
 
 ## Additive glow on top of the actors: torch flames, door and orb shine, boss telegraphs.
 func _draw_top() -> void:
 	for tp in torches:
-		var f := 0.8 + sin(time * 9.0 + tp.x) * 0.1 + sin(time * 23.0 + tp.y) * 0.05
-		_top.draw_rect(Rect2(tp + Vector2(-1, -2), Vector2(2, 5)), Color("#5a3a22"))
-		_top.draw_rect(Rect2(tp + Vector2(-1.5, -7 - f), Vector2(3, 4)), Color(1.0, 0.75, 0.3))
-		_top.draw_rect(Rect2(tp + Vector2(-0.5, -8 - f * 2.0), Vector2(1, 2)), Color(1.0, 0.95, 0.7))
+		var fr := int(time * 9.0 + tp.x * 0.37) % 3
+		_top.draw_texture(Props.flame(fr), (tp + Vector2(-3, -12)).round())
+		_top.draw_circle(tp + Vector2(0, -7), 6.0 + sin(time * 11.0 + tp.y) * 0.8, Color(1.0, 0.6, 0.25, 0.12))
 	if doors_open:
 		for d in doors:
 			var c := Chapter.door_color(d["def"])
 			var x := int(d["col"]) * TS + TS
 			_top.draw_circle(Vector2(x, 10), 16.0 + sin(time * 4.0) * 2.0, Color(c.r, c.g, c.b, 0.08))
 	if not orb.is_empty():
-		var p: Vector2 = orb["pos"] + Vector2(0, -6 - sin(time * 3.0) * 2.0)
+		var p: Vector2 = orb["pos"] + Vector2(0, -12 - sin(time * 3.0) * 2.0)
 		_top.draw_circle(p, 12.0 + sin(time * 5.0), Color(1.0, 0.9, 0.5, 0.12))
 		_top.draw_arc(p, 9.0, time * 2.0, time * 2.0 + PI * 1.2, 12, Color(1.0, 0.95, 0.7, 0.8), 1.0)
 	# spawn runes: where an enemy is about to appear

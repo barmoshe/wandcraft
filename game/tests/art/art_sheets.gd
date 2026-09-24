@@ -54,7 +54,20 @@ static func icons(s: Node) -> void:
 
 
 static func tiles(s: Node) -> void:
-	s.section("room")
+	s.section("props")
+	for k in ["spell", "relic", "boss", "shop"]:
+		var c := Color(Chapter.INFO.get(k, {"color": "#ffffff"})["color"])
+		s.add("door %s" % k, Props.door(c, true))
+	s.add("door closed", Props.door(Color.WHITE, false))
+	s.add("altar", Props.altar(Color("#ffe066")))
+	s.add("fountain", Props.fountain(true))
+	s.add("fountain dry", Props.fountain(false))
+	s.add("merchant 0", Props.merchant(0))
+	s.add("merchant 1", Props.merchant(1))
+	s.add("anvil", Props.anvil())
+	for i in 3:
+		s.add("flame %d" % i, Props.flame(i))
+	s.add("sconce", Props.sconce())
 
 
 static func fx(s: Node) -> void:

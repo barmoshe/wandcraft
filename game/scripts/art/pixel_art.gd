@@ -164,13 +164,20 @@ static func layered(w: int, h: int, layers: Array, pal: Dictionary, rim := true,
 	return paint(rows, pal, rim, outline)
 
 
-## Filled disc of radius r (in pixels) at center c.
+## Filled disc of radius r (in pixels) at center c, drawn as one span per row.
 static func disc(img: Image, c: Vector2, r: float, col: Color) -> void:
-	for j in range(floori(c.y - r), ceili(c.y + r) + 1):
-		for i in range(floori(c.x - r), ceili(c.x + r) + 1):
-			if i >= 0 and j >= 0 and i < img.get_width() and j < img.get_height():
-				if Vector2(i + 0.5, j + 0.5).distance_to(c) <= r:
-					img.set_pixel(i, j, col)
+	var w := img.get_width()
+	var h := img.get_height()
+	for j in range(maxi(0, floori(c.y - r)), mini(h, ceili(c.y + r) + 1)):
+		var dy := j + 0.5 - c.y
+		var q := r * r - dy * dy
+		if q < 0.0:
+			continue
+		var half := sqrt(q)
+		var x0 := maxi(0, ceili(c.x - half - 0.5))
+		var x1 := mini(w, floori(c.x + half - 0.5) + 1)
+		if x1 > x0:
+			img.fill_rect(Rect2i(x0, j, x1 - x0, 1), col)
 
 
 ## 1px line (Bresenham).
