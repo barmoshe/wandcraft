@@ -61,11 +61,38 @@ func is_touch() -> bool:
 
 ## The screen area free of notches, the Dynamic Island and the home bar, in virtual pixels.
 func safe_rect(view: Vector2) -> Rect2:
-	if DisplayServer.get_name() == "headless" or not OS.has_feature("mobile"):
+	if DisplayServer.get_name() == "headless":
+		return Rect2(Vector2.ZERO, view)
+	if OS.has_feature("web"):
+		var ins := _web_insets()
+		var tl := Vector2(ins[3] * view.x, ins[0] * view.y)
+		var br := Vector2(ins[1] * view.x, ins[2] * view.y)
+		return Rect2(tl, view - tl - br)
+	if not OS.has_feature("mobile"):
 		return Rect2(Vector2.ZERO, view)
 	var sr := Rect2(DisplayServer.get_display_safe_area())
 	var k := pixel_scale()
 	return Rect2(sr.position / k, sr.size / k).intersection(Rect2(Vector2.ZERO, view))
+
+
+## The page's CSS safe-area insets as fractions of the window [top, right, bottom, left],
+## from web/shell.html. Re-read only when the window size changes (a rotation moves them).
+var _insets: Array[float] = [0.0, 0.0, 0.0, 0.0]
+var _insets_for := Vector2i(-1, -1)
+
+
+func _web_insets() -> Array[float]:
+	var sz := get_window().size
+	if sz == _insets_for:
+		return _insets
+	_insets_for = sz
+	_insets = [0.0, 0.0, 0.0, 0.0]
+	var raw := str(JavaScriptBridge.eval("window.wandcraftSafeArea ? window.wandcraftSafeArea() : ''", true))
+	var parts := raw.split(",")
+	if parts.size() == 4:
+		for i in 4:
+			_insets[i] = clampf(parts[i].to_float(), 0.0, 0.25)
+	return _insets
 
 
 ## Pixel fonts (SIL OFL, see assets/fonts). "small" = Silkscreen (8 px grid),
