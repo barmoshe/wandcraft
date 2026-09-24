@@ -129,6 +129,10 @@
   - It has no service worker any more, and the title shows the build stamp.
   - Enemies path around pillars and crates, and shooters need a clear line to fire.
   - Checks: 69 unit tests, the tap test in 3 modes (including iPhone touch ids), and the bench at 80% survival.
+- **Web sound fix (ADR 0009):**
+  - Godot's default web playback ("Sample") was silent in every browser with our QOA sounds. The web build now uses Stream playback.
+  - It asks iOS for the ambient audio session, so it mixes with your music and has no lock-screen player.
+  - `tools/webtest.sh` measures real audio output.
 
 ## Next action
 - **Testers:** install 0.4.1 and report on the look, feel, text size and difficulty. Say whether the hero reads well on a phone.

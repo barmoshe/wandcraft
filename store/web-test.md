@@ -8,7 +8,7 @@ This is the web version of the game. It needs no Mac, no Apple account and no Ap
 1. Open the link in **Safari**. The first load downloads about 40 MB; after that it's cached.
 2. Tap **Share → Add to Home Screen → Add**. Wandcraft now has its own icon and opens full screen, without Safari's bars.
 3. Hold the phone **sideways** (landscape). In portrait the game asks you to turn it.
-4. Tap anywhere once so sound can start (Safari only allows audio after a tap). Sound plays even with the phone on silent, and it pauses other music, like a video does.
+4. Tap anywhere once so sound can start (Safari only allows audio after a tap). The game mixes with music you have playing, and the silent switch mutes it, like most games (decisions/0009).
 
 The game fills the whole screen, including behind the Dynamic Island. The HUD and menus stay clear of the island, the rounded corners and the home bar.
 
@@ -17,7 +17,7 @@ The game fills the whole screen, including behind the Dynamic Island. The HUD an
 2. Open the link in Safari and reload once.
 3. Add the icon to the Home Screen again.
 
-**Which build am I on?** The bottom-left of the title shows `v0.4.1  web <commit>`. The pause screen's bottom line shows the build and a sound report (audio state / iOS audio session / worklet / silent-switch loop). If the game is silent, send a screenshot of that line.
+**Which build am I on?** The bottom-left of the title shows `v0.4.1  web <commit>`. The pause screen's bottom line shows the build and a sound report (audio state / iOS audio session / worklet). If the game is silent, send a screenshot of that line.
 
 ## How it differs from the native app
 - **Renderer:** the browser version uses Godot's WebGL renderer. Lights and glow can look slightly different.
@@ -29,6 +29,7 @@ The game fills the whole screen, including behind the Dynamic Island. The HUD an
 ## Publishing a new version (from the repo)
 ```bash
 tools/build_web.sh     # exports build/web (single-threaded, works in iPhone Safari)
+tools/webtest.sh       # plays it headless as a landscape iPhone: fills the screen, sound really comes out
 tools/deploy_web.sh    # uploads it to Vercel (project wandcraft-test); needs `vercel login` once
 ```
 The page itself is `game/web/shell.html`: Godot's default web page, changed to fill the iPhone screen and to report the safe-area insets to the game (`Game.safe_rect`).

@@ -17,6 +17,10 @@ boot_splash/fullsize=false
 boot_splash/use_filter=false
 run/max_fps=0
 
+[audio]
+
+general/default_playback_type.web=0
+
 [autoload]
 
 Events="*res://scripts/autoload/events.gd"
