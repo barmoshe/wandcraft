@@ -17,6 +17,8 @@ var shatter := 0
 var scatter := 0.0
 var burn := 0        # status level applied on hit (Ember Coat)
 var chill := 0       # status level applied on hit (Frost Coat)
+var split := 0       # bolts a spell splits into on its first hit (Split Rune)
+var pull := 0.0      # px/s the spell drags nearby enemies (Gravity Rune)
 
 
 func copy() -> Mods:
@@ -24,7 +26,7 @@ func copy() -> Mods:
 	m.dmg = dmg; m.spd = spd; m.area = area; m.dur_add = dur_add; m.home = home
 	m.pierce = pierce; m.bounce = bounce; m.crit = crit; m.multi = multi
 	m.mp_mul = mp_mul; m.cnt_mp = cnt_mp; m.shatter = shatter; m.scatter = scatter
-	m.burn = burn; m.chill = chill
+	m.burn = burn; m.chill = chill; m.split = split; m.pull = pull
 	return m
 
 

@@ -21,7 +21,35 @@ static func roll_spell(run: RunState, bias := 0, exclude: Array = []) -> StringN
 		for id in Catalog.spells():
 			if not exclude.has(id):
 				pool.append(id)
-	return pool[run.rng.randi() % pool.size()]
+	var owned := owned_tags(run)
+	var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Catalog.tags(id), owned))
+	return pool[_weighted_index(w, run.rng)]
+
+
+## Tag counts over everything the run holds: spells in wands and the bag, and relics.
+static func owned_tags(run: RunState) -> Dictionary:
+	var out := {}
+	var add := func(tags: Array) -> void:
+		for t in tags:
+			out[t] = int(out.get(t, 0)) + 1
+	for wd in run.wands:
+		for sl in wd.slots:
+			if sl != null:
+				add.call(Catalog.tags(sl["id"]))
+	for it in run.bag:
+		add.call(Catalog.tags(it["id"]))
+	for r in run.relics:
+		add.call(Relics.tags(r))
+	return out
+
+
+## x1.6 per tag the run already has, capped at x2.5: builds take shape without being forced.
+static func tag_weight(tags: Array, owned: Dictionary) -> float:
+	var k := 1.0
+	for t in tags:
+		if owned.has(t):
+			k *= 1.6
+	return minf(k, 2.5)
 
 
 static func roll_relics(run: RunState, n: int, min_rar := 0) -> Array:
@@ -29,8 +57,14 @@ static func roll_relics(run: RunState, n: int, min_rar := 0) -> Array:
 	for id in Relics.DEFS:
 		if not run.relics.has(id) and int(Relics.DEFS[id]["rar"]) >= min_rar:
 			pool.append(id)
-	_shuffle(pool, run.rng)
-	return pool.slice(0, n)
+	var owned := owned_tags(run)
+	var out: Array = []
+	while out.size() < n and not pool.is_empty():
+		var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Relics.tags(id), owned))
+		var i := _weighted_index(w, run.rng)
+		out.append(pool[i])
+		pool.remove_at(i)
+	return out
 
 
 static func roll_wand(run: RunState, min_rar := 0, exclude: Array = []) -> StringName:

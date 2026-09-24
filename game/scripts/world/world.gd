@@ -199,6 +199,7 @@ var last_hit_x := false
 var last_hit_y := false
 
 var _uid := 0
+var _cascading := false
 var _floor: Sprite2D
 var _vignette: Sprite2D
 var _vignette_tex: GradientTexture2D
@@ -254,7 +255,7 @@ func setup(seed_value: int) -> void:
 	ebullets.setup(512, _enemy_bullet_texture())
 	glow_layer.add_child(ebullets)
 	bullets = BulletPool.new()
-	bullets.setup(2048, PixelArt.bullet_texture())
+	bullets.setup_atlas(2048, Projectiles.atlas(), Projectiles.cell_count())
 	glow_layer.add_child(bullets)
 	fx = FxLayer.new()
 	fx.rng.seed = seed_value + 7
@@ -954,6 +955,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	var crit := crit_chance > 0.0 and rng.randf() < crit_chance
 	if crit:
 		dmg *= 2.0
+	if run and run.has_relic(&"cold_boot") and e.chill_t > 0.0:
+		dmg *= 1.25
 	if not dot and run and run.has_relic(&"null_pointer") and e.hp >= e.max_hp:
 		dmg *= 2.0
 	dmg = maxf(1.0, dmg) if not dot else dmg
@@ -969,6 +972,13 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit)
 		Audio.sfx("crit" if crit else "hit", 0.1, 0.0 if crit else -6.0)
+	if crit and not dot and not _cascading and run and run.has_relic(&"cascade_failure"):
+		var nx := nearest_enemy(e.position, 60.0, e.uid)
+		if nx:
+			_cascading = true
+			fx.beam(e.position + Vector2(0, -4), nx.position + Vector2(0, -4), Color("#fff27a"), 1.0)
+			hurt_enemy(nx, dmg * 0.5, e.position, 0.0, 0.3)
+			_cascading = false
 	if e.hp <= 0.0:
 		kill_enemy(e)
 	return dmg
@@ -1007,6 +1017,14 @@ func kill_enemy(e: Enemy) -> void:
 			_kill_streak += 1
 			if _kill_streak % 6 == 0:
 				player.heal(4.0)
+		if run.has_relic(&"wildfire") and e.burn_t > 0.0:
+			for k in hash.query(e.position, 44.0):
+				var o: Enemy = enemies[k]
+				if o != e and not o.dead and o.position.distance_to(e.position) < 36.0 + o.r:
+					apply_status(o, 1, 0, e.burn_dps / 0.4)
+			fx.ring(e.position, 2.0, 36.0, 0.3, Color("#ff8a3c"))
+		if run.has_relic(&"bug_bounty") and not (e is Boss):
+			_release_bug(e.position)
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
 	if e.elite:
 		hitstop(0.06)
@@ -1025,6 +1043,25 @@ func kill_enemy(e: Enemy) -> void:
 	fx.ring(e.position, 2.0, 12.0, 0.25, Color("#ff3fa4"))
 	shake(0.06)
 	Events.enemy_killed.emit(e.kind, e.position)
+
+
+## Bug Bounty: a small homing bolt that hunts the nearest enemy.
+func _release_bug(p: Vector2) -> void:
+	var b := bullets.spawn()
+	if b == null:
+		return
+	var a := rng.randf() * TAU
+	b.pos = p + Vector2(0, -4)
+	b.prev = b.pos
+	b.a = a
+	b.vel = Vector2.from_angle(a) * 150.0
+	b.dmg = 10.0
+	b.r = 2.0
+	b.home = 9.0
+	b.life = 1.8
+	b.max_life = 1.8
+	b.color = Color("#9cd01c")
+	b.depth = SpellRunner.MAX_DEPTH
 
 
 func shake(amount: float) -> void:

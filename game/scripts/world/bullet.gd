@@ -25,7 +25,14 @@ var chain := 0
 var area := 1.0
 var color := Color.WHITE
 var size := 1.0
-var beh: StringName = &"bolt"   # bolt | wheel | pseudo
+var beh: StringName = &"bolt"   # bolt | wheel | pseudo | boomerang | mine | orb
+var split := 0
+var pull := 0.0
+var cell := 0          # Projectiles atlas cell (0: the tinted core)
+var frames := 1
+var dir_sprite := false
+var ret := false    # Boomerang Disc: on its way back
+var fin := 0        # Finally: payloads released so far
 var instant := false
 var cast: CastNode
 var src: WandState
@@ -82,3 +89,10 @@ func reset() -> void:
 	size = 1.0
 	instant = false
 	beh = &"bolt"
+	split = 0
+	pull = 0.0
+	cell = 0
+	frames = 1
+	dir_sprite = false
+	ret = false
+	fin = 0

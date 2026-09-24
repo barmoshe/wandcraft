@@ -11,6 +11,10 @@ const AUTO_RANGE := 210.0
 ## Where the wand is held and spells leave, relative to the feet (Hero art: hands at
 ## the belt, 8 px up). Floating text starts above the hat (`head`, set from the sprite).
 const HAND := Vector2(0, -8)
+## Busy Wait: seconds standing still (the next cast is charged at 0.6 s).
+var still_t := 0.0
+## Buffer Overflow: overheal kept as a shield that takes hits first.
+var shield := 0.0
 var head := Vector2(0, -36)
 var world: World
 var controls: Controls
@@ -105,7 +109,8 @@ func tick(dt: float) -> void:
 			_dust_t = 0.22
 			world.fx.dust(position + Vector2(0, 1))
 	# aim and fire
-	var auto_range := AUTO_RANGE * (1.4 if run.has_relic(&"keen_scope") else 1.0)
+	var auto_range := AUTO_RANGE * 1.2
+	still_t = still_t + dt if mv.length() < 0.1 else 0.0
 	target = world.assist_target(position, auto_range)
 	var stick := controls.aim
 	var firing := false
@@ -176,6 +181,14 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
 	amount *= Relics.damage_taken_mul(run)
+	if shield > 0.0:
+		var soak := minf(shield, amount)
+		shield -= soak
+		amount -= soak
+		world.fx.ring(position + Vector2(0, -12), 2.0, 14.0, 0.25, Color("#9ab0ff"))
+		if amount <= 0.0:
+			inv = 0.4
+			return
 	last_hurt_by = by
 	hp -= amount
 	inv = 0.9 * (1.5 if run.has_relic(&"afterimage") else 1.0)
@@ -192,6 +205,9 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 
 
 func heal(amount: float) -> void:
+	var over := hp + amount - max_hp
+	if over > 0.0 and world.run and world.run.has_relic(&"buffer_overflow"):
+		shield = minf(30.0, shield + over)
 	hp = minf(max_hp, hp + amount)
 	world.fx.text(position + head, "+%d" % roundi(amount), Color("#7dff6a"))
 

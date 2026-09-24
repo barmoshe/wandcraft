@@ -8,6 +8,30 @@ var active: Array[Bullet] = []
 var _free: Array[Bullet] = []
 var capacity := 0
 var base_size := 8.0
+var cells := 0          # > 0: `texture` is an atlas strip of square cells (Projectiles)
+
+const ATLAS_SHADER := """
+shader_type canvas_item;
+render_mode blend_add;
+uniform float cells = 1.0;
+void vertex() {
+	UV = vec2((UV.x + INSTANCE_CUSTOM.x) / cells, UV.y);
+}
+"""
+
+
+## Player bullets: per-bullet sprites from an atlas strip, still one draw call.
+func setup_atlas(cap: int, tex: Texture2D, n_cells: int) -> void:
+	cells = n_cells
+	setup(cap, tex, false)
+	base_size = float(tex.get_height())
+	(multimesh.mesh as QuadMesh).size = Vector2(base_size, base_size)
+	var sh := Shader.new()
+	sh.code = ATLAS_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("cells", float(n_cells))
+	material = mat
 
 
 func setup(cap: int, tex: Texture2D, additive := true) -> void:
@@ -17,6 +41,7 @@ func setup(cap: int, tex: Texture2D, additive := true) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_2D
 	mm.use_colors = true
+	mm.use_custom_data = cells > 0
 	var q := QuadMesh.new()
 	base_size = float(tex.get_width())
 	q.size = Vector2(base_size, base_size)
@@ -72,9 +97,20 @@ func sync(frac: float) -> void:
 	for i in n:
 		var b := active[i]
 		var p := b.prev.lerp(b.pos, frac) if b.alive else b.pos
-		var s := b.size * (b.r * 2.0 + 3.0) / base_size
 		var fade := clampf(b.life * 8.0, 0.0, 1.0)
+		if cells > 0 and b.cell > 0:
+			# a drawn sprite: native pixel size (times the spell's size), no tint
+			var f := b.cell + (int(b.t * 12.0) % b.frames if b.frames > 1 else 0)
+			var rot := b.vel.angle() if b.dir_sprite and b.vel.length_squared() > 1.0 else b.spin
+			var k := b.size if b.size > 1.0 else 1.0
+			mm.set_instance_transform_2d(i, Transform2D(rot, Vector2(k, k), 0.0, p.round()))
+			mm.set_instance_color(i, Color(1.2, 1.2, 1.2, fade if b.alive else 0.0))
+			mm.set_instance_custom_data(i, Color(f, 0, 0, 0))
+			continue
+		var s := b.size * (b.r * 2.0 + 3.0) / (base_size * (0.66 if cells > 0 else 1.0))
 		mm.set_instance_transform_2d(i, Transform2D(b.spin, Vector2(s, s), 0.0, p.round()))
 		var c := b.color
 		mm.set_instance_color(i, Color(c.r * 1.6, c.g * 1.6, c.b * 1.6, fade if b.alive else 0.0))
+		if cells > 0:
+			mm.set_instance_custom_data(i, Color(0, 0, 0, 0))
 	mm.visible_instance_count = n

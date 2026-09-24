@@ -255,10 +255,11 @@ static func clone_frames() -> Array[Texture2D]:
 					if c.a == 0.0:
 						continue
 					var v := c.get_luminance()
-					var k := clampi(int(v * 5.0), 0, 4)
-					var nc := Color(ramp_hi[k]) if (c.b > c.r + 0.1) else Color(ramp_lo[mini(k + 1, 4)]).lerp(Color(ramp_hi[k]), 0.35)
-					if c.r > 0.9 and c.g > 0.85:
-						nc = Color("#dffcff")   # beard and highlights go cyan-white
+					var nc := Color(ramp_hi[clampi(int(v * 5.0) + 1, 1, 4)])
+					if v < 0.12:
+						nc = Color(ramp_lo[3])
+					if v > 0.8:
+						nc = Color("#dffcff")   # highlights go cyan-white
 					img.set_pixel(x, j, Color(nc.r, nc.g, nc.b, c.a))
 			# scan-line tears: two bands shifted by 2px, position depends on the frame
 			var tear := img.duplicate() as Image

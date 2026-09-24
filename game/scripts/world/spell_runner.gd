@@ -6,6 +6,8 @@ extends RefCounted
 ##   callback             fires on every hit (pays mana each time, with a cooldown)
 ##   loop                 fires repeatedly while the left spell flies (at least once)
 ##   wheel                sprays its payload 16 times while it spins
+##   finally              fires when the left spell kills (up to 1/2/3 times)
+## Behaviors: bolt, bomb, beam, burst, wheel, and (0.4) boomerang, mine, cone, orb.
 
 const MAX_DEPTH := 3
 const THEN_ADD := [0.3, 0.6, 1.2]
@@ -65,10 +67,19 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	opt.src = w
 	opt.sc = w.def.scatter
 	opt.gm = Relics.dmg_mul(run, world.room_time) if run else 1.0
+	if run and run.has_relic(&"busy_wait") and world.player.still_t >= 0.6:
+		opt.gm *= 1.6
+		world.fx.ring(origin, 2.0, 12.0, 0.2, Color("#ffe066"))
+	world.player.still_t = 0.0
 	cast_seq += 1
 	casts_fired += 1
 	for g in plan.groups:
 		emit_cast(g, origin, ang, opt)
+	# Stack Trace: every 7th cast also goes out backward
+	if run and run.has_relic(&"stack_trace") and casts_fired % 7 == 0:
+		cast_seq += 1
+		for g in plan.groups:
+			emit_cast(g, origin, ang + PI, opt)
 	# Echo Crystal: sometimes the whole cast happens again, for free
 	if run and run.has_relic(&"echo") and world.rng.randf() < 0.15:
 		cast_seq += 1
@@ -117,15 +128,26 @@ func _emit_one(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, o
 		&"burst":
 			_burst(c, pos + Vector2.from_angle(ang) * 8.0, ang, dmg, crit, opt)
 			return
+		&"cone":
+			_cone(c, pos, ang, dmg, crit, opt)
+			return
 	var spd := float(d.param("speed", c.level, 200.0)) * maxf(0.3, 1.0 + c.mods.spd)
-	if world.run and world.run.has_relic(&"keen_scope"):
-		spd *= 1.15
 	var b := _spawn(c, pos, ang, spd, dmg, crit, opt)
 	if b == null:
 		return
-	if d.behavior == &"wheel":
-		b.beh = &"wheel"
-		b.size = 1.6
+	match d.behavior:
+		&"wheel":
+			b.beh = &"wheel"
+			b.size = 1.6
+		&"boomerang":
+			b.beh = &"boomerang"
+			b.size = 1.4
+		&"mine":
+			b.beh = &"mine"
+			b.size = 1.3
+		&"orb":
+			b.beh = &"orb"
+			b.size = 2.0
 	if d.id == &"fan":
 		b.color = Color.from_hsv(float(idx) / 7.0, 0.55, 1.0)
 
@@ -152,6 +174,12 @@ func _fill(b: Bullet, c: CastNode, pos: Vector2, ang: float, spd: float, dmg: fl
 	b.bounce = m.bounce + (1 if world.run and world.run.has_relic(&"bounce_core") else 0)
 	b.home = float(d.param("homing", lv, 0.0)) + m.home
 	b.shatter = m.shatter
+	b.split = m.split
+	var spr := Projectiles.for_spell(d.id)
+	b.cell = spr[0]
+	b.frames = spr[1]
+	b.dir_sprite = spr[2]
+	b.pull = maxf(float(d.param("pull", lv, 0.0)), m.pull)
 	b.color = d.color
 	b.trig = c.trig
 	b.payload = c.payload
@@ -213,6 +241,7 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 		world.hurt_enemy(e, ps.dmg, pos, crit, 0.5)
 		world.apply_status(e, ps.burn, ps.chill, ps.dmg)
 		_on_hit(ps, e)
+		_on_kill_check(ps, e)
 		last = e
 		if pierce > 0:
 			pierce -= 1
@@ -240,9 +269,43 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 			world.hurt_enemy(e, dmg, pos, crit, 1.3)
 			world.apply_status(e, ps.burn, ps.chill, dmg)
 			_on_hit(ps, e)
+			_on_kill_check(ps, e)
 	world.shake(0.1)
 	world.break_crates_in(pos, r)
 	Audio.sfx("boom", 0.1, -3.0)
+	end_bullet(ps, null)
+
+
+## Static Cone: instant lightning in a wedge in front of the caster.
+func _cone(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
+	var reach := float(c.spell.param("len", c.level, 70.0)) * sqrt(c.mods.area) * world.area_mul()
+	var half := deg_to_rad(float(c.spell.param("arc", c.level, 70.0))) * 0.5
+	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
+	for k in 6:
+		var a := ang + world.rng.randf_range(-half, half)
+		var p0 := pos
+		var n := 4
+		for s in n:
+			var p1 := pos + Vector2.from_angle(a + world.rng.randf_range(-0.2, 0.2)) * reach * (s + 1) / n
+			world.fx.beam(p0, p1, c.spell.color, 1.0)
+			p0 = p1
+	for k in world.hash.query(pos, reach + 16.0):
+		var e: Enemy = world.enemies[k]
+		if e.dead or e.spawn_t > 0.0 or e.uid == opt.ignore:
+			continue
+		var to := e.position - pos
+		var dist := to.length()
+		if dist > reach + e.r:
+			continue
+		var slack := atan2(e.r, maxf(dist, 1.0))
+		if absf(angle_difference(ang, to.angle())) > half + slack:
+			continue
+		ps.pos = e.position
+		world.hurt_enemy(e, dmg, pos, crit, 0.8)
+		world.apply_status(e, ps.burn, ps.chill, dmg)
+		_on_hit(ps, e)
+		_on_kill_check(ps, e)
+	ps.pos = pos + Vector2.from_angle(ang) * reach
 	end_bullet(ps, null)
 
 
@@ -256,7 +319,7 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 		if e.dead or e.spawn_t > 0.0 or e == hit_e:
 			continue
 		if e.position.distance_squared_to(b.pos) < (r + e.r) * (r + e.r):
-			world.hurt_enemy(e, b.dmg * 0.7, b.pos, b.crit, 1.2)
+			world.hurt_enemy(e, b.dmg * (1.0 if b.beh == &"mine" else 0.7), b.pos, b.crit, 1.2)
 			world.apply_status(e, b.burn, b.chill, b.dmg)
 	world.shake(0.08)
 	world.break_crates_in(b.pos, r)
@@ -291,6 +354,32 @@ func update(dt: float) -> void:
 				b.wheel_t = b.max_life / (WHEEL_SHOTS + 1)
 				b.wheel_n += 1
 				fire_carry(b, &"nova", null, b.spin + b.wheel_n * 2.4)
+		match b.beh:
+			&"boomerang":
+				b.spin += dt * 18.0
+				if not b.ret and b.t >= b.max_life * 0.45:
+					b.ret = true
+					b.hits.clear()
+					b.life = maxf(b.life, 1.5)
+				if b.ret:
+					var home := world.player.position + Player.HAND
+					b.vel = (home - b.pos).normalized() * maxf(230.0, b.vel.length())
+					if b.pos.distance_squared_to(home) < 100.0:
+						end_bullet(b, null)
+						continue
+			&"mine":
+				b.vel *= pow(0.004, dt)
+				b.spin += dt * 3.0
+				if b.t > 0.35 and world.nearest_enemy(b.pos, 16.0) != null:
+					end_bullet(b, null)
+					continue
+			&"orb":
+				b.spin += dt * 4.0
+				if b.t - b.cb_t >= 0.25:
+					b.cb_t = b.t
+					b.hits.clear()
+		if b.pull > 0.0 and fmod(b.t, 0.05) < dt:
+			_pull(b, 0.05)
 		if b.home > 0.0:
 			# re-pick the target a few times a second, not every tick
 			if b.tgt == null or b.tgt.dead or fmod(b.t, 0.15) < dt:
@@ -301,6 +390,17 @@ func update(dt: float) -> void:
 		var tx := int(np.x) >> 4
 		var ty := int(np.y) >> 4
 		var tile := 1 if np.x < 0.0 or np.y < 0.0 or tx >= gw or ty >= gh else grid[ty * gw + tx]
+		if b.ret:
+			b.pos = np   # a returning disc flies over walls back to the hand
+			if b.life <= 0.0:
+				end_bullet(b, null)
+				continue
+			_hit_scan(b)
+			continue
+		if b.beh == &"mine" and tile != 0 and tile != 2:
+			b.vel = Vector2.ZERO
+			tile = 0
+			np = b.pos
 		if tile == 4:
 			world.break_crate(tx, ty)
 			world.fx.sparks(b.pos, 3, b.color, 50.0)
@@ -326,8 +426,22 @@ func update(dt: float) -> void:
 		if b.life <= 0.0:
 			end_bullet(b, null)
 			continue
-		_hit_scan(b)
+		if b.beh != &"mine":
+			_hit_scan(b)
 	bullets.compact()
+
+
+## Gravity: drags enemies near the spell toward it (bosses and their parts are too heavy).
+func _pull(b: Bullet, dt: float) -> void:
+	for k in world.hash.query(b.pos, 44.0):
+		var e: Enemy = world.enemies[k]
+		if e.dead or e.heavy or e.spawn_t > 0.0:
+			continue
+		var to := b.pos - e.position
+		var d := to.length()
+		if d < 3.0 or d > 44.0 + e.r:
+			continue
+		e.position = world.move_body(e.position, e.r, to / d * minf(b.pull * dt, d - 2.0))
 
 
 func _steer(b: Bullet, target: Vector2, rate: float, dt: float) -> void:
@@ -371,6 +485,9 @@ func _hit_one(b: Bullet, e: Enemy) -> bool:
 	world.hurt_enemy(e, b.dmg, b.pos - b.vel * 0.02, b.crit, 1.0)
 	world.apply_status(e, b.burn, b.chill, b.dmg)
 	_on_hit(b, e)
+	_on_kill_check(b, e)
+	if b.split > 0 and b.depth < MAX_DEPTH:
+		_split(b, e)
 	if not b.alive:
 		return true
 	if b.chain > 0:
@@ -407,11 +524,43 @@ func _on_hit(b: Bullet, e: Enemy) -> void:
 		fire_carry(b, &"hit", e)
 
 
+func _on_kill_check(b: Bullet, e: Enemy) -> void:
+	if e.dead and b.trig == &"finally":
+		fire_carry(b, &"kill", e)
+
+
+## Split Rune: on the first hit the bolt throws out `split` smaller bolts in a fan.
+func _split(b: Bullet, e: Enemy) -> void:
+	var n := b.split
+	b.split = 0
+	var base := b.vel.angle() if b.vel.length_squared() > 0.01 else b.a
+	var spd := maxf(180.0, b.vel.length())
+	for k in n:
+		var s := bullets.spawn()
+		if s == null:
+			break
+		var a := base + deg_to_rad(lerpf(-25.0, 25.0, float(k) / maxf(1.0, n - 1)))
+		s.pos = e.position
+		s.prev = e.position
+		s.a = a
+		s.vel = Vector2.from_angle(a) * spd
+		s.dmg = b.dmg * 0.4
+		s.crit = b.crit
+		s.r = 1.5
+		s.life = 0.5
+		s.max_life = 0.5
+		s.color = b.color
+		s.burn = b.burn
+		s.chill = b.chill
+		s.depth = MAX_DEPTH
+		s.ignore = e.uid
+
+
 func end_bullet(b: Bullet, hit_e: Enemy) -> void:
 	if not b.alive:
 		return
 	b.alive = false
-	if b.cast and b.cast.spell.behavior == &"bomb" and b.depth <= MAX_DEPTH:
+	if b.cast and (b.cast.spell.behavior == &"bomb" or b.beh == &"mine") and b.depth <= MAX_DEPTH:
 		_blast(b, hit_e)
 	if b.shatter > 0 and b.depth < MAX_DEPTH:
 		var n := mini(12, b.shatter)
@@ -490,6 +639,10 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 			if ev != &"nova":
 				return
 			mul = 0.5
+		&"finally":
+			if ev != &"kill" or b.fin >= i + 1:
+				return
+			b.fin += 1
 		_:
 			return
 	var a0: float = dir if not is_nan(dir) else (b.vel.angle() if b.vel.length_squared() > 0.01 else b.a)
@@ -510,3 +663,15 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 	cast_seq += 1
 	for k in n:
 		emit_cast(pl, b.pos, a0 + TAU * k / n + 0.4 if radial else a0, opt)
+	# Event Loop: the payload goes out a second time, weaker
+	if ev != &"fly" and ev != &"nova" and world.run and world.run.has_relic(&"event_loop"):
+		var o2 := Opt.new()
+		o2.gm = opt.gm
+		o2.mul = opt.mul * 0.6
+		o2.add = opt.add * 0.6
+		o2.src = opt.src
+		o2.depth = opt.depth
+		o2.ignore = opt.ignore
+		cast_seq += 1
+		for k in n:
+			emit_cast(pl, b.pos, (a0 + TAU * k / n + 0.4 if radial else a0) + 0.35, o2)

@@ -11,12 +11,12 @@ extends Control
 
 signal finished(result: Dictionary)
 
-const GOLD := Color("#e0b84e")
-const INK := Color("#0a0714")
-const PANEL := Color(0.07, 0.05, 0.13, 0.94)
-const RIM := Color("#3b3058")
-const TEXT := Color("#f2ecff")
-const MUTED := Color("#a89cc8")
+const GOLD := Style.UI_GOLD
+const INK := Style.INK
+const PANEL := Style.UI_PANEL
+const RIM := Style.UI_RIM
+const TEXT := Style.UI_TEXT
+const MUTED := Style.UI_MUTED
 const MIN_TAP := 32.0
 const GUARD := 0.18   # ignore input right after opening (the tap that opened us)
 
@@ -173,13 +173,28 @@ func dim(a := 0.84) -> void:
 	draw_rect(Rect2(Vector2.ZERO, view()), Color(0.02, 0.01, 0.05, a))
 
 
+## A framed panel: dark glass, a 1px ink edge, an inner rim lit from the top-left, and
+## (gold) corner brackets for the important ones.
 func panel(r: Rect2, gold := false) -> void:
 	draw_rect(r, PANEL)
 	draw_rect(r, INK, false, 1.0)
-	draw_rect(r.grow(-1.0), GOLD.darkened(0.25) if gold else RIM, false, 1.0)
+	var inner := r.grow(-1.0)
+	var lit := Style.UI_PANEL_HI.lightened(0.25) if not gold else Style.c("gold:2")
+	draw_rect(Rect2(inner.position, Vector2(inner.size.x, 1)), lit)
+	draw_rect(Rect2(inner.position, Vector2(1, inner.size.y)), lit.darkened(0.2))
+	draw_rect(Rect2(inner.position + Vector2(0, inner.size.y - 1), Vector2(inner.size.x, 1)), RIM.darkened(0.3))
+	draw_rect(Rect2(inner.position + Vector2(inner.size.x - 1, 0), Vector2(1, inner.size.y)), RIM.darkened(0.3))
 	if gold:
-		for c in [r.position, Vector2(r.end.x - 2, r.position.y), Vector2(r.position.x, r.end.y - 2), r.end - Vector2(2, 2)]:
-			draw_rect(Rect2(c, Vector2(2, 2)), GOLD)
+		var g := Style.c("gold:3")
+		for c in [[r.position, Vector2(1, 1)], [Vector2(r.end.x, r.position.y), Vector2(-1, 1)], [Vector2(r.position.x, r.end.y), Vector2(1, -1)], [r.end, Vector2(-1, -1)]]:
+			var o: Vector2 = c[0]
+			var d: Vector2 = c[1]
+			var ox := o.x if d.x > 0 else o.x - 5
+			var oy := o.y if d.y > 0 else o.y - 1
+			draw_rect(Rect2(ox, oy, 5, 1), g)
+			ox = o.x if d.x > 0 else o.x - 1
+			oy = o.y if d.y > 0 else o.y - 5
+			draw_rect(Rect2(ox, oy, 1, 5), g)
 
 
 func text(p: Vector2, s: String, c: Color = TEXT, size := 8, kind := "small", align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
@@ -230,25 +245,39 @@ func _wrap(f: Font, s: String, width: float, size: int) -> PackedStringArray:
 ## do not register. The hit area grows to at least MIN_TAP in both directions.
 func button(r: Rect2, id: String, label: String, kind := "normal", enabled := true) -> void:
 	var down := enabled and _press_id == id
-	var base := Color("#2a2140")
+	var ramp := "slate"
 	match kind:
 		"primary":
-			base = Color("#7a5a1a")
+			ramp = "gold"
 		"danger":
-			base = Color("#5a1a2a")
+			ramp = "blood"
 		"ghost":
-			base = Color("#171226")
-	if not enabled:
-		base = Color("#1a1624")
+			ramp = "night"
 	var rr := r
 	if down:
 		rr.position.y += 1
+	# drop shadow, ink edge, body with a two-tone bevel
+	if not down:
+		draw_rect(Rect2(r.position + Vector2(0, 2), r.size), Color(0, 0, 0, 0.35))
 	draw_rect(rr, INK)
-	draw_rect(rr.grow(-1.0), base.lightened(0.12) if not down else base.darkened(0.2))
-	draw_rect(Rect2(rr.position + Vector2(1, 1), Vector2(rr.size.x - 2, 1)), base.lightened(0.35) if enabled else base)
-	draw_rect(Rect2(rr.position + Vector2(1, rr.size.y - 2), Vector2(rr.size.x - 2, 1)), base.darkened(0.4))
+	var body := rr.grow(-1.0)
+	var top := Style.c(ramp + ":2") if enabled else Style.c("night:3")
+	var bot := Style.c(ramp + ":1") if enabled else Style.c("night:2")
+	if kind == "ghost" and enabled:
+		top = Style.c("night:4")
+		bot = Style.c("night:3")
+	if down:
+		var t := top
+		top = bot
+		bot = t
+	draw_rect(Rect2(body.position, Vector2(body.size.x, body.size.y * 0.55)), top)
+	draw_rect(Rect2(body.position + Vector2(0, body.size.y * 0.55), Vector2(body.size.x, body.size.y * 0.45)), bot)
+	draw_rect(Rect2(body.position, Vector2(body.size.x, 1)), Style.c(ramp + ":3") if enabled else Style.c("night:3"))
+	draw_rect(Rect2(body.position + Vector2(0, body.size.y - 1), Vector2(body.size.x, 1)), Style.c(ramp + ":0") if enabled else Style.c("night:1"))
 	if kind == "primary" and enabled:
-		draw_rect(rr, GOLD, false, 1.0)
+		# a slow pulse on the rim invites the tap
+		var a := 0.45 + 0.35 * sin(_age * 3.0)
+		draw_rect(rr.grow(1.0), Color(Style.c("gold:4"), a), false, 1.0)
 	var f := Game.font("bold")
 	var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 	text(Vector2(rr.get_center().x - w / 2.0, rr.get_center().y + 3.5), label, TEXT if enabled else MUTED.darkened(0.3), 8, "bold")

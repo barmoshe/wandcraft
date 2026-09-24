@@ -222,7 +222,8 @@ static func from_dict(d: Dictionary) -> RunState:
 	r.cur = clampi(int(d["cur"]), 0, r.wands.size() - 1)
 	r.bag = (d["bag"] as Array).map(_entry_in)
 	for id in d["relics"]:
-		r.relics.append(StringName(id))
+		if Relics.DEFS.has(StringName(id)):   # relics cut in later versions are dropped
+			r.relics.append(StringName(id))
 	r.shop = (d["shop"] as Array).map(_dict_in)
 	for k in d["stats"]:
 		r.stats[k] = d["stats"][k]

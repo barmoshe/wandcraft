@@ -149,7 +149,7 @@ func _strong_loadout(r: RunState) -> void:
 	r.wands[1].set_slots([&"empower", &"fan", &"then", &"burst", &"ember_coat", &"needle", &"frost", &"regen"])
 	r.cur = 0
 	r.bag = [{"id": &"shatter", "lv": 1}, {"id": &"loop", "lv": 1}, {"id": &"keen", "lv": 2}]
-	for id in [&"overclock", &"recursion", &"lucky_bit", &"blast_radius", &"cache_line"]:
+	for id in [&"overclock", &"recursion", &"lucky_bit", &"blast_radius", &"spare_battery"]:
 		r.add_relic(id)
 	r.gold = 140
 	r.path = [&"spell", &"relic", &"shop", &"mini", &"spell", &"forge", &"relic"]

@@ -89,7 +89,7 @@ func test_every_spell_and_relic_has_text_and_an_icon() -> void:
 	for id in Catalog.spells():
 		var d := Catalog.spell(id)
 		ok(d.title != "" and d.desc != "", "%s text" % id)
-		ok(Icons.GLYPHS.has(id), "%s has a glyph" % id)
+		ok(Icons.GLYPHS.has(id) or not IconArt.spell(id).is_empty(), "%s has an icon" % id)
 	for id in Relics.DEFS:
 		ok(Icons.RELIC_GLYPHS.has(Relics.DEFS[id]["glyph"]), "%s has a glyph" % id)
 

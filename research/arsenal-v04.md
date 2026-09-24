@@ -13,7 +13,7 @@ Bar's feedback (2026-09-24): "the spells and relics should be designed and arted
 | id | Name | Role | Tags | New |
 |---|---|---|---|---|
 | mote | Arcane Mote | Cheap, reliable single-target bolt | | |
-| needle | Glitch Needle | Very fast piercing sliver. Crits deal ×2.5 instead of ×2 | Crit, Glitch | changed |
+| needle | Glitch Needle | Very fast piercing sliver | Crit, Glitch | |
 | lance | Prism Lance | Instant beam, hits everything in a line | | |
 | fan | Spectrum Fan | Seven-bolt spread for crowds at close range | Multi | |
 | moths | Seeker Moths | Homing swarm that never misses | Multi | |
@@ -81,7 +81,7 @@ cache, regen and heatsink, unchanged.
 | null_pointer | Null Pointer | R | The first hit on an unhurt enemy deals double | Crit | kept |
 | deadline | Deadline | R | +40% damage for the first 6 s of each fight | | kept |
 | stack_trace | Stack Trace | R | Every 7th cast also fires backward | Glitch, Multi | **new** |
-| bug_bounty | Bug Bounty | R | Kills release a small seeking bug (a homing bolt at 8 + 40% of the kill's hit) | Carrier | **new** |
+| bug_bounty | Bug Bounty | R | Kills release a small seeking bug (a homing bolt, 10 damage) | Carrier | **new** |
 | cascade_failure | Cascade Failure | R | Crits arc to the nearest other enemy within 60 px for 50% | Crit | **new** |
 | wildfire | Wildfire | R | Burning enemies spread their burn to enemies within 36 px when they die | Burn | **new** |
 | cold_boot | Cold Boot | R | Chilled enemies take +25% damage | Frost | **new** |

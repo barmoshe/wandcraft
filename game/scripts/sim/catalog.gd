@@ -8,6 +8,21 @@ static var _spells: Dictionary = {}
 static var _wands: Dictionary = {}
 
 
+## Synergy tags (research/arsenal-v04.md). Rewards lean toward tags a run already has.
+const TAGS := {
+	&"needle": ["Crit", "Glitch"], &"fan": ["Multi"], &"moths": ["Multi"], &"frost": ["Frost", "Multi"],
+	&"ember": ["Burn", "Area"], &"burst": ["Area", "Crit"], &"seed": ["Carrier"], &"wheel": ["Carrier"],
+	&"mine": ["Area", "Glitch"], &"static": ["Area"], &"null_orb": ["Glitch"],
+	&"twin": ["Multi"], &"chorus": ["Multi"], &"shatter": ["Multi"], &"split": ["Multi"], &"wide": ["Area"],
+	&"keen": ["Crit"], &"ember_coat": ["Burn"], &"frost_coat": ["Frost"], &"gravity": ["Glitch"], &"mirror": ["Glitch"],
+	&"then": ["Trigger"], &"callback": ["Trigger"], &"loop": ["Trigger"], &"fork": ["Trigger"], &"finally": ["Trigger"],
+}
+
+
+static func tags(id: StringName) -> Array:
+	return TAGS.get(id, [])
+
+
 static func spells() -> Dictionary:
 	if _spells.is_empty():
 		_build()
@@ -77,6 +92,14 @@ static func _build() -> void:
 	_s("wheel", P, "Starwheel", "#ffd36b", {"rar": 2, "mp": [12], "dmg": [16], "carry": "wheel", "beh": "wheel", "p": {"speed": 80, "radius": 4.0, "life": 1.6, "pierce": 99}},
 		"A spinning star that sprays the next shooting spell 16 times around it. That spell costs x4 mana and deals x0.5 damage.")
 	# ---- boosts: change every shooting spell to their right until the wand recharges ----
+	_s("disc", P, "Boomerang Disc", "#c8e6ff", {"mp": [6, 8, 10], "dmg": [9, 13, 19], "beh": "boomerang", "p": {"speed": 210, "radius": 3.0, "life": 1.4, "pierce": 99}},
+		"Flies out and comes back to you, cutting through everything both ways.")
+	_s("mine", P, "Glitch Mine", "#ff6fd2", {"mp": [5, 7, 9], "dmg": [22, 34, 52], "beh": "mine", "p": {"speed": 170, "radius": 3.0, "life": 4.0, "area": [26.0, 30.0, 34.0]}},
+		"Tossed ahead. Arms after a moment, then blasts when an enemy steps close.")
+	_s("static", P, "Static Cone", "#8ff0ff", {"mp": [4, 6, 8], "dmg": [8, 12, 17], "beh": "cone", "p": {"len": 70.0, "arc": 70.0}},
+		"An instant cone of lightning in front of you. Hits everything inside it.")
+	_s("null_orb", P, "Null Orb", "#a060d8", {"rar": 1, "mp": [9, 12, 15], "dmg": [5, 7, 10], "beh": "orb", "p": {"speed": 55, "radius": 5.0, "life": 2.6, "pierce": 99, "pull": 55.0}},
+		"A slow orb that drags enemies in and grinds anything it touches, four times a second.")
 	_s("empower", B, "Empower", "#ff7b7b", {"mp": [5]}, "Damage +25/50/100%.")
 	_s("quicken", B, "Quicken", "#7cc6ff", {"mp": [2]}, "Flight speed +35/70/140%.")
 	_s("seek", B, "Seek", "#6fe3c1", {"rar": 1, "mp": [4]}, "Spells steer toward enemies.")
@@ -93,11 +116,16 @@ static func _build() -> void:
 	_s("frost_coat", B, "Frost Coat", "#9fe8ff", {"rar": 1, "mp": [4]}, "Hits chill enemies: they move and shoot slower.")
 	_s("mirror", B, "Mirror", "#d6d6ff", {"rar": 1, "mp": [2]}, "Copies the next spell: a boost applies twice, a shooting spell is cast twice.")
 	# ---- triggers: sit between two spells, the left one fires the right one ----
+	_s("split", B, "Split Rune", "#9cf06a", {"mp": [3]}, "On their first hit, bolts split into 2/3/4 bolts at 40% damage.")
+	_s("gravity", B, "Gravity Rune", "#b48cff", {"rar": 1, "mp": [3]}, "Spells drag nearby enemies toward their path (40/65/100 px/s).")
+
 	_s("then", T, "THEN", "#ffe066", {"mp": [4], "t": "then"}, "When the left spell ends, cast the right one. It inherits 30/60/120% of the left spell's damage.")
 	_s("callback", T, "Callback", "#ffe066", {"rar": 1, "mp": [5], "t": "callback"}, "Every hit of the left spell calls the right one, at 80/65/50% mana, at most every 0.3/0.2/0.1s.")
 	_s("loop", T, "While Loop", "#ffe066", {"mp": [4], "t": "loop"}, "While the left spell flies, keep casting the right one at 70/55/40% mana.")
 	_s("fork", T, "Fork Bomb", "#ffe066", {"rar": 1, "mp": [6], "t": "fork"}, "When the left spell ends, the right one forks 4 ways at 35/45/60% damage. Its mana x4.")
 	# ---- passives: work from any slot ----
+	_s("finally", T, "Finally", "#ffe066", {"rar": 1, "mp": [4], "t": "finally"}, "When the left spell kills an enemy, cast the right one from the body at the next enemy. Up to 1/2/3 times.")
+
 	_s("cache", S, "Mana Cache", "#5ce1ff", {}, "Wand max mana +40/80/160%.")
 	_s("regen", S, "Regen Coil", "#7dff9a", {}, "Wand mana regenerates 30/60/120% faster.")
 	_s("heatsink", S, "Heat Sink", "#9b7bff", {}, "Wand recharge x0.6/0.3/0.15.")
@@ -143,6 +171,8 @@ static func apply_boost(id: StringName, m: Mods, lv: int) -> void:
 		&"keen": m.crit += [0.15, 0.25, 0.4][i]
 		&"ember_coat": m.burn = maxi(m.burn, i + 1)
 		&"frost_coat": m.chill = maxi(m.chill, i + 1)
+		&"split": m.split = maxi(m.split, i + 2)
+		&"gravity": m.pull = maxf(m.pull, [40.0, 65.0, 100.0][i])
 		&"shatter":
 			m.shatter = maxi(m.shatter, [3, 5, 8][i])
 			m.cnt_mp *= 1.4

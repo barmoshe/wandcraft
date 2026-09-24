@@ -71,8 +71,8 @@ static func tiles(s: Node) -> void:
 
 
 static func fx(s: Node) -> void:
-	s.section("bullets")
-	s.add("bullet", PixelArt.bullet_texture())
+	s.section("projectiles")
+	s.add("atlas", Projectiles.atlas())
 
 
 static func ui(_s: Node) -> void:
