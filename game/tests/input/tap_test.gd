@@ -9,6 +9,10 @@ extends Node
 var failures := 0
 var main: Node
 var root: Window
+## Touch id per gesture. Android and desktop number fingers from 0, but iPhone Safari (the
+## web build) gives every touch a large new id, so "--ios" mode does that.
+var _ios := false
+var _next_id := 7301
 
 
 func _ready() -> void:
@@ -19,6 +23,7 @@ func _ready() -> void:
 func _run() -> void:
 	SaveGame.enabled = false
 	var rotate := OS.get_cmdline_user_args().has("--rotate")
+	_ios = OS.get_cmdline_user_args().has("--ios")
 	if rotate:
 		# start in portrait, then turn to landscape like a phone does at launch
 		DisplayServer.window_set_size(Vector2i(1080, 2340))
@@ -109,23 +114,31 @@ func _filled(run: RunState) -> int:
 	return n
 
 
+func _gesture_id() -> int:
+	if not _ios:
+		return 0
+	_next_id += 13
+	return _next_id
+
+
 func _drag(a: Vector2, b: Vector2) -> void:
 	var tf := root.get_final_transform()
+	var id := _gesture_id()
 	var t := InputEventScreenTouch.new()
-	t.index = 0
+	t.index = id
 	t.position = tf * a
 	t.pressed = true
 	Input.parse_input_event(t)
 	await _frames(2)
 	for k in range(1, 9):
 		var d := InputEventScreenDrag.new()
-		d.index = 0
+		d.index = id
 		d.position = tf * a.lerp(b, k / 8.0)
 		d.relative = tf.basis_xform((b - a) / 8.0)
 		Input.parse_input_event(d)
 		await _frames(1)
 	var u := InputEventScreenTouch.new()
-	u.index = 0
+	u.index = id
 	u.position = tf * b
 	u.pressed = false
 	Input.parse_input_event(u)
@@ -142,14 +155,15 @@ func _button_rect(s: Screen, id: String) -> Rect2:
 ## Taps a point given in the game's 480x270-ish canvas coordinates.
 func _tap(canvas_pos: Vector2, hold_frames := 3) -> void:
 	var wp: Vector2 = root.get_final_transform() * canvas_pos
+	var id := _gesture_id()
 	var t := InputEventScreenTouch.new()
-	t.index = 0
+	t.index = id
 	t.position = wp
 	t.pressed = true
 	Input.parse_input_event(t)
 	await _frames(hold_frames)
 	var u := InputEventScreenTouch.new()
-	u.index = 0
+	u.index = id
 	u.position = wp
 	u.pressed = false
 	Input.parse_input_event(u)
