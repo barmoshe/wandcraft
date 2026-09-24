@@ -4,7 +4,10 @@ extends Control
 ## HUD) so everything stays crisp and matches the game's look. Buttons are registered while
 ## drawing and hit-tested on release; a button press only fires when the finger lifts on the
 ## same button (so a slide-off cancels). Touch targets are at least 32 px (about 44 pt).
-## Taps reach Controls as emulated mouse events (project setting emulate_mouse_from_touch).
+## Input is read in _input straight from touch events (and real, non-emulated mouse events),
+## not through the GUI: a Control under a CanvasLayer can end up with a 0x0 rect, and then
+## the GUI never delivers it a click. That shipped in 0.3.0 and made every menu dead on
+## phones; tests/input/tap_test.tscn guards it with real touch events.
 
 signal finished(result: Dictionary)
 
@@ -27,9 +30,15 @@ var _toast_t := 0.0
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fit()
+	get_viewport().size_changed.connect(_fit)
 	_opened()
+
+
+func _fit() -> void:
+	position = Vector2.ZERO
+	size = get_viewport_rect().size
 
 
 func _opened() -> void:
@@ -50,25 +59,60 @@ func safe() -> Rect2:
 	return Game.safe_rect(view()).grow(-6.0)
 
 
-func _gui_input(ev: InputEvent) -> void:
-	if _age < GUARD:
-		accept_event()
+## Only the newest screen on the menu layer takes input (main.gd opens one at a time).
+func _is_top() -> bool:
+	var p := get_parent()
+	if p == null:
+		return false
+	for i in range(p.get_child_count() - 1, -1, -1):
+		var c := p.get_child(i)
+		if c is Screen and not c.is_queued_for_deletion():
+			return c == self
+	return false
+
+
+func _input(ev: InputEvent) -> void:
+	if not is_visible_in_tree() or not _is_top():
 		return
-	if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
-		if ev.pressed:
-			_press_id = hit(ev.position)
-			_press_pos = ev.position
-			_on_down(ev.position)
-		else:
-			var id := hit(ev.position)
-			var consumed := _on_up(ev.position)
-			if not consumed and id != "" and id == _press_id:
-				press(id)
-			_press_id = ""
-		accept_event()
-	elif ev is InputEventMouseMotion and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		_on_drag(ev.position)
-		accept_event()
+	var down := false
+	var up := false
+	var drag := false
+	if ev is InputEventScreenTouch:
+		if ev.index != 0:
+			return
+		down = ev.pressed
+		up = not ev.pressed
+	elif ev is InputEventScreenDrag:
+		if ev.index != 0:
+			return
+		drag = true
+	elif ev is InputEventMouseButton and ev.device != InputEvent.DEVICE_ID_EMULATION:
+		if ev.button_index != MOUSE_BUTTON_LEFT:
+			return
+		down = ev.pressed
+		up = not ev.pressed
+	elif ev is InputEventMouseMotion and ev.device != InputEvent.DEVICE_ID_EMULATION:
+		if (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0:
+			return
+		drag = true
+	else:
+		return
+	get_viewport().set_input_as_handled()
+	if _age < GUARD:
+		return
+	var p: Vector2 = make_input_local(ev).position
+	if down:
+		_press_id = hit(p)
+		_press_pos = p
+		_on_down(p)
+	elif up:
+		var id := hit(p)
+		var consumed := _on_up(p)
+		if not consumed and id != "" and id == _press_id:
+			press(id)
+		_press_id = ""
+	elif drag:
+		_on_drag(p)
 
 
 ## Activates a button by id (also used by tests and by keyboard shortcuts).

@@ -97,24 +97,35 @@
   - **Phone build:**
     - Generated app icon and splash.
     - `export_presets.cfg` for Android and iOS.
-    - `tools/build_android.sh` builds `build/wandcraft-0.3.0.apk`: 27.7 MB (release template, throwaway sideload key), arm64, min SDK 24, landscape, only the VIBRATE permission. The first sideload failed with "problem with the app file" because the copy was truncated in transfer (23.85 of 29.5 MB), so the script now prints the byte size and SHA-256 to check against.
+    - `tools/build_android.sh` builds `build/wandcraft-<version>.apk`: 27.7 MB (release template, throwaway sideload key), arm64, min SDK 24, landscape, only the VIBRATE permission. The first sideload failed with "problem with the app file" because the copy was truncated in transfer (23.85 of 29.5 MB), so the script now prints the byte size and SHA-256 to check against.
     - Guides: `store/ios-first-build.md` and `store/android-sideload.md`.
     - Reference privacy manifest.
   - **Tests:** 48 headless tests, including a bot clearing World 1, plus the balance bench.
+- **0.3.1 hotfix: menus respond to taps. Done 2026-09-24.**
+  - **Phone test log:** the first testers (Yotam, Yossi) installed 0.3.0 but could not press NEW RUN.
+  - **Root cause:** every menu is a `Screen` Control under a CanvasLayer, and its rect was 0×0. The GUI never delivered a click to it, even though it drew full-screen. It affected every menu on every device.
+  - **Why nothing caught it:** all tests called `Screen.press()` directly, so no real input was ever tested.
+  - **Fix:** `screen.gd` now reads touch and real mouse events in `_input` (emulated mouse events are ignored, so there is no double handling) and sizes itself to the viewport.
+  - **Guard:** `tools/taptest.sh` boots the real game at 2340×1080 (straight, and after a portrait-to-landscape rotation) and sends real `InputEventScreenTouch` events. It covers title NEW RUN, HUD pause and RESUME, an editor drag, reward TAKE and a mouse click. It failed on the old code and passes now.
+  - **Also:** the title's version label now comes from the project settings (it was hard-coded "v0.2").
 
 ## Next action
-- **Bar:** install the APK on an Android phone and/or follow `store/ios-first-build.md` on the Mac. Send a short screen recording of a fight.
-- **v0.4, based on device feedback:**
-  - Tuning of the touch sticks, text size and difficulty.
-  - The performance quality tier (Compatibility renderer on low-end devices).
-  - Then M2 breadth (worlds 2–5) and M5 (the paywall with StoreKit 2 and Play Billing, Game Center / Play Games).
+- **Testers:** install 0.3.1 and confirm the menus respond, then report on feel, text size and difficulty.
+- **0.4 "Art + Arsenal"** is planned and approved, and drawn in code:
+  - A shared style and palette.
+  - Bigger, animated characters and enemies.
+  - Rooms that fill wide phones, with Ruined Grove surroundings and set pieces.
+  - Redesigned spells with projectile art and new icons.
+  - Redesigned relics with synergy tags.
+  - A title and UI reskin.
+- **After that:** the performance quality tier, M2 breadth (worlds 2–5) and M5 (the paywall, Game Center / Play Games).
 - **Known gaps:**
   - Keys, curses, potions and meta unlocks are deferred (ADR 0005).
   - The iOS privacy manifest must be checked against the one Godot generates.
   - The bundle id is a placeholder.
 
 ## How to look at it
-- Tests: `tools/test.sh`. Balance bench: `tools/balance.sh` (a few minutes).
+- Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (xvfb). Balance bench: `tools/balance.sh` (a few minutes).
 - Regenerate assets: `tools/audio.sh` (sound and music), `tools/icon.sh` (icon and splash).
 - Android APK: `tools/build_android.sh`. It writes to `build/`, and the first run downloads the SDK outside the repo.
 - Screenshots: `tools/shots.sh`. Useful options (see `game/scripts/main.gd`):

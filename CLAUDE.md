@@ -5,7 +5,7 @@ Per-project context. Loads only when working in this folder. Business-wide rules
 - **What it is:** A pixel-art twin-stick roguelite for iOS and Android, built around wands you program like tiny code: spells fire left to right, boosts modify everything to their right, and triggers chain one spell into another. It grew out of the Wandcraft HTML prototypes (v1-v5, private claude.ai artifact) and is being rebuilt from scratch for the stores.
 - **Stack:** Godot 4.7.2 (GDScript, typed), Mobile renderer. The game is in `game/`, and deterministic asset and audio generators are in `tools/`. iOS export and signing happen on Bar's Mac (Xcode 26); everything else runs on Linux.
 - **Build lives in:** `game/` (Godot project).
-  - Tests: `tools/test.sh`. Balance bench: `tools/balance.sh`. Screenshots: `tools/shots.sh`.
+  - Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (run it after any UI or input change; unit tests call `Screen.press()` and never exercise real input). Balance bench: `tools/balance.sh`. Screenshots: `tools/shots.sh`.
   - Regenerate audio and icons: `tools/audio.sh`, `tools/icon.sh`.
   - Android APK: `tools/build_android.sh`. It writes `build/` (git-ignored) and caches the SDK outside the repo.
 - **Local conventions:**

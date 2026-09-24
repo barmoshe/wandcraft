@@ -10,13 +10,13 @@ The APK is built on Linux by `tools/build_android.sh`. It writes `build/wandcraf
 
 ### "There's a problem with the app file"
 The copy on the phone is incomplete: the download or transfer was cut short.
-- Compare sizes. The build script prints the exact byte count and SHA-256, and the phone's file manager must show the same size (Samsung *My Files* shows decimal MB, so 27,668,409 bytes appears as 27.67 MB).
+- Compare sizes. The build script prints the exact byte count and SHA-256, and the phone's file manager must show the same size (Samsung *My Files* shows decimal MB, so the 0.3.1 build is 27,668,409 bytes, which appears as 27.67 MB).
 - Download the file again, directly on the phone, and wait until it finishes before tapping it. Don't forward a half-downloaded copy.
 - If you send it through WhatsApp, attach it as a **Document** and wait for the upload to finish.
 
 If the full-size file still fails, the phone may be running 32-bit Android (some older budget models). The build is 64-bit only (arm64), so tell us the phone model.
 
-With a cable and `adb` instead: `adb install -r build/wandcraft-0.3.0.apk`.
+With a cable and `adb` instead: `adb install -r build/wandcraft-0.3.1.apk`.
 
 ## Rebuilding
 ```bash
