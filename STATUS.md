@@ -151,7 +151,9 @@
 - [ ] **Pricing:** choose the unlock price (around $4.99 suggested).
 - [ ] **Title:** confirm "Wandcraft", or pick a new one. It still needs a store and trademark check.
 - [ ] **App id:** choose the final bundle / package id (placeholder `com.barbuilds.wandcraft`). It can't change after the first store upload.
-- [ ] **Test on devices:** Android sideload (`store/android-sideload.md`) and the first iPhone build (`store/ios-first-build.md`).
+- [ ] **Test on devices:** Android sideload (`store/android-sideload.md`), and the iPhone.
+  - For a test-only build a free Apple ID is enough. Follow `store/ios-test.md`, then run `tools/export_ios.sh` on the Mac and press Run in Xcode.
+  - TestFlight for friends needs the $99 account.
 
 ## Blockers
 None. The first iOS build will need the Apple account and Xcode.

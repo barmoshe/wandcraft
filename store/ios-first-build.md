@@ -2,6 +2,10 @@
 
 iOS apps can only be built and signed on a Mac with Xcode. Everything else (game, icon, export settings) is already in the repo. Budget about an hour the first time.
 
+> **Just testing on your own iPhone?** You do not need the $99 account. A free Apple ID ("Personal Team") is enough. The app runs for 7 days per install, and you can re-Run from Xcode to refresh it.
+> - Step-by-step guide: [`ios-test.md`](ios-test.md).
+> - One command does the export: `tools/export_ios.sh`. The preset only generates the Xcode project, and Xcode signs it automatically.
+
 ## What you need
 - A Mac with **Xcode 26** from the App Store. Apple requires the iOS 26 SDK for uploads.
 - **Godot 4.7.2** (the standard build, not .NET) from godotengine.org, plus its **export templates**: in Godot, *Editor → Manage Export Templates → Download and Install*.
