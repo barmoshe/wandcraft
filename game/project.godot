@@ -1,0 +1,48 @@
+; Engine configuration file.
+; Wandcraft — Godot 4.7 project. Pixel base ~480x270, integer-scaled at runtime (see Game.fit_pixels).
+
+config_version=5
+
+[application]
+
+config/name="Wandcraft"
+config/description="Program your wand. Break the Glitch."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+run/max_fps=0
+
+[autoload]
+
+Events="*res://scripts/autoload/events.gd"
+Game="*res://scripts/autoload/game.gd"
+
+[display]
+
+window/size/viewport_width=480
+window/size/viewport_height=270
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+window/vsync/vsync_mode=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+pointing/emulate_mouse_from_touch=false
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/physics_interpolation=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
+viewport/hdr_2d=false
+environment/defaults/default_clear_color=Color(0.024, 0.016, 0.06, 1)
