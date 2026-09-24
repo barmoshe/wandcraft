@@ -10,6 +10,9 @@ var inf_mana := false
 var auto_fire := true
 var shake_scale := 1.0      # settings: screen shake (0 = off)
 var flash_fx := true        # settings: screen flash effects
+var haptics := true         # settings: vibration on hits and boss moments
+var sound := true
+var music := true
 var _fonts: Dictionary = {}
 
 
@@ -72,10 +75,23 @@ func font(kind := "small") -> Font:
 
 
 func settings() -> Dictionary:
-	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx}
+	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx, "haptics": haptics,
+		"sound": sound, "music": music}
 
 
 func apply_settings(d: Dictionary) -> void:
 	auto_fire = bool(d.get("auto_fire", auto_fire))
 	shake_scale = 1.0 if bool(d.get("shake", true)) else 0.0
 	flash_fx = bool(d.get("flash", flash_fx))
+	haptics = bool(d.get("haptics", haptics))
+	sound = bool(d.get("sound", sound))
+	music = bool(d.get("music", music))
+	var au := get_node_or_null("/root/Audio")
+	if au:
+		au.apply(settings())
+
+
+## A short vibration on phones (hurt, boss moments), if the player allows it.
+func buzz(ms: int) -> void:
+	if haptics and OS.has_feature("mobile"):
+		Input.vibrate_handheld(ms)

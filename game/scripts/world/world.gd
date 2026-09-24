@@ -6,7 +6,8 @@ extends Node2D
 ## never opens menus: it emits `ui_request` and waits (`paused`) until main.gd resolves it.
 ##
 ## Room legend: '#' wall, 'o' pillar, '~' spike plate, 's' spawn socket, 'L' torch,
-## 'c' crate (floor for now). Doors are carved into the top wall and open on clear.
+## 'c' crate (breakable cover: spells smash it for gold, enemy shots stop on it).
+## Doors are carved into the top wall and open on clear.
 
 const TS := 16
 const ROOMS := {
@@ -184,6 +185,11 @@ var shake_amt := 0.0
 var caught := false            # Try / Catch used in this room
 var damage_done := 0.0
 var _kill_streak := 0
+var _stop := 0.0               # hit-stop: the sim holds for a few frames on big hits
+var _last_stop := -9.0
+var _flash_t := -9.0
+var _bot_dmg_seen := 0.0
+var _bot_progress_t := 0.0
 
 # move_body results
 var last_hit_x := false
@@ -283,6 +289,8 @@ func enter_room() -> void:
 	build_room(tpl, kind)
 	if run.has_relic(&"interest") and run.gold >= 60:
 		run.gold += 3
+	if run.step == 0:
+		Hints.show("move")
 	SaveGame.save_run(run)
 
 
@@ -323,6 +331,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 					sockets.append(_center(x, y))
 				"L":
 					torches.append(_center(x, y))
+				"c":
+					tile = 4
 			grid[y * gw + x] = tile
 	_place_doors()
 	doors_open = false
@@ -356,6 +366,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 		&"empty":
 			cleared = true   # tests and the showcase: a room with nothing in it
 	_deco.queue_redraw()
+	Audio.music("boss" if kind == &"mini" or kind == &"boss" else "grove")
 	Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 		"title": _room_title(kind)})
 	room_built.emit()
@@ -424,6 +435,8 @@ func _spawn_wave(list: Array) -> void:
 			p = socks[i % socks.size()]
 		var e := spawn_enemy(list[i][0], p, list[i][1])
 		e.spawn_t = 0.7 + rng.randf() * 0.4
+	Audio.sfx("spawn")
+	Hints.show("aim")
 
 
 func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
@@ -443,6 +456,7 @@ func _spawn_boss() -> void:
 	_actors.add_child(b)
 	b.setup_boss(self, Vector2(gw * TS / 2.0, gh * TS * 0.35), _uid)
 	boss = b
+	Hints.show("boss")
 	Events.boss_started.emit(b.title, b.subtitle)
 
 
@@ -453,6 +467,7 @@ func _clear_room(reward := true) -> void:
 		_open_doors()
 		return
 	run.stats["rooms"] += 1
+	player.heal(8.0)
 	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
 	Events.room_cleared.emit()
 	var mid := _find_floor(gw / 2, gh / 2)
@@ -470,6 +485,7 @@ func _clear_room(reward := true) -> void:
 					var g := roundi((18 + run.step * 3) * Relics.gold_mul(run))
 					run.gold += g
 					fx.text(player.position + Vector2(0, -24), "+%d GOLD" % g, Color("#ffd36b"), 10)
+					Audio.sfx("coin")
 					_open_doors()
 				&"heart":
 					run.max_hp += 15.0
@@ -482,6 +498,8 @@ func _clear_room(reward := true) -> void:
 
 
 func _open_doors() -> void:
+	if not doors_open and room_kind != &"start":
+		Hints.show("doors")
 	doors_open = true
 	for d in doors:
 		for dx in 2:
@@ -493,6 +511,8 @@ func _open_doors() -> void:
 func reward_taken() -> void:
 	orb = {}
 	paused = false
+	if not run.bag.is_empty() or run.spell_refs().size() > 2:
+		Hints.show("editor")
 	_open_doors()
 	SaveGame.save_run(run)
 
@@ -551,6 +571,10 @@ func _process(_dt: float) -> void:
 func step(dt: float) -> void:
 	if paused or run == null:
 		return
+	if _stop > 0.0:
+		_stop -= dt
+		fx.update(dt * 0.25)
+		return
 	time += dt
 	room_time += dt
 	run.stats["time"] += dt
@@ -579,6 +603,7 @@ func step(dt: float) -> void:
 		if not e.dead:
 			e.tick(dt)
 	_separate()
+	_unstick()
 	spells.update(dt)
 	_update_enemy_bullets(dt)
 	_update_room(dt)
@@ -606,9 +631,12 @@ func _update_room(dt: float) -> void:
 				_clear_room()
 	# the reward orb opens the reward screen on touch
 	if not orb.is_empty():
+		if orb["t"] > 0.8:
+			Hints.show("orb")
 		orb["t"] += dt
 		if orb["t"] > 0.5 and player.position.distance_to(orb["pos"]) < 14.0:
 			paused = true
+			Audio.sfx("pick")
 			var kind: StringName = orb["kind"]
 			ui_request.emit(&"reward", {"kind": kind, "offer": Rewards.offer(run, kind)})
 			return
@@ -620,6 +648,7 @@ func _update_room(dt: float) -> void:
 					if not npc["used"]:
 						npc["used"] = true
 						player.heal(run.max_hp * 0.6)
+						Audio.sfx("heal")
 						fx.ring(npc["pos"], 4.0, 50.0, 0.6, Color("#6fb8ff"))
 						Events.toast.emit("The spring restores you")
 				&"shop", &"forge":
@@ -643,6 +672,17 @@ func _separate() -> void:
 				a.position = move_body(a.position, a.r, -d * (m - dist) * 0.25 / dist)
 
 
+## Safety net: anything that ended up inside a wall (a dash into a corner, a shove from a
+## crowd) is put back on the nearest open floor, so no fight can get stuck.
+func _unstick() -> void:
+	for e in enemies:
+		if not e.dead and e.spawn_t <= 0.0 and e.ai != &"part" and not (e is Boss) and solid_at(e.position):
+			e.position = _find_floor(floori(e.position.x / TS), floori(e.position.y / TS))
+			e.knock = Vector2.ZERO
+	if solid_at(player.position):
+		player.position = _find_floor(floori(player.position.x / TS), floori(player.position.y / TS))
+
+
 func _update_enemy_bullets(dt: float) -> void:
 	for b in ebullets.active:
 		if not b.alive:
@@ -659,7 +699,7 @@ func _update_enemy_bullets(dt: float) -> void:
 			continue
 		if b.pos.distance_squared_to(player.position + Vector2(0, -4)) < pow(b.r + player.r, 2):
 			b.alive = false
-			player.hurt(b.dmg, b.pos)
+			player.hurt(b.dmg, b.pos, b.by)
 	ebullets.compact()
 
 
@@ -670,7 +710,7 @@ func clear_enemy_bullets() -> void:
 			fx.sparks(b.pos, 1, b.color, 20.0)
 
 
-func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0) -> void:
+func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0, by := "") -> void:
 	var b := ebullets.spawn()
 	if b == null:
 		return
@@ -682,7 +722,9 @@ func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0)
 	b.dmg = dmg
 	b.r = 2.5
 	b.accel = accel
+	b.by = by
 	b.color = Color("#ff4a7a")
+	Audio.sfx("eshot", 0.1, -6.0)
 
 
 ## A soft point light. Lights brighten what the ambient CanvasModulate darkens.
@@ -745,7 +787,42 @@ func tile_at(x: int, y: int) -> int:
 
 func solid_at(p: Vector2) -> bool:
 	var t := tile_at(floori(p.x / TS), floori(p.y / TS))
-	return t == 1 or t == 3
+	return t == 1 or t == 3 or t == 4
+
+
+## Smashes the crate at a tile (spells do this; enemy shots don't). Drops a little gold.
+func break_crate(tx: int, ty: int) -> void:
+	if tile_at(tx, ty) != 4:
+		return
+	grid[ty * gw + tx] = 0
+	var p := _center(tx, ty)
+	fx.dissolve(p + Vector2(0, 7), _crate_texture())
+	fx.sparks(p, 6, Color("#c8a070"), 70.0)
+	Audio.sfx("crate")
+	if run:
+		var g := rng.randi_range(1, 3)
+		run.gold += g
+		fx.text(p + Vector2(0, -10), "+%d" % g, Color("#ffd36b"))
+
+
+func break_crates_in(p: Vector2, r: float) -> void:
+	for ty in range(floori((p.y - r) / TS), floori((p.y + r) / TS) + 1):
+		for tx in range(floori((p.x - r) / TS), floori((p.x + r) / TS) + 1):
+			if tile_at(tx, ty) == 4 and _center(tx, ty).distance_to(p) < r + TS * 0.5:
+				break_crate(tx, ty)
+
+
+func hitstop(t: float) -> void:
+	_stop = maxf(_stop, t)
+	_last_stop = time
+
+
+## A brief full-screen flash (white, never red; at most ~3 per second), if the player allows it.
+func flash(amount: float, c := Color.WHITE) -> void:
+	if not Game.flash_fx or time - _flash_t < 0.34:
+		return
+	_flash_t = time
+	Events.screen_flash.emit(c, amount)
 
 
 func hazard_at(p: Vector2) -> bool:
@@ -795,10 +872,14 @@ func _move_step(pos: Vector2, r: float, delta: Vector2) -> Vector2:
 	return p
 
 
-func los(a: Vector2, b: Vector2) -> bool:
+## Line of sight. Crates block movement but not aim (spells smash them), so by default
+## they do not block sight either.
+func los(a: Vector2, b: Vector2, crates_block := false) -> bool:
 	var n := ceili(a.distance_to(b) / 8.0)
 	for k in range(1, n):
-		if solid_at(a.lerp(b, float(k) / n)):
+		var q := a.lerp(b, float(k) / n)
+		var t := tile_at(floori(q.x / TS), floori(q.y / TS))
+		if t == 1 or t == 3 or (crates_block and t == 4):
 			return false
 	return true
 
@@ -856,8 +937,11 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		run.stats["damage"] += dmg
 	if not e.heavy and kb > 0.0:
 		e.knock += (e.position - from).normalized() * kb * (70.0 if crit else 38.0)
+	if crit and time - _last_stop > 0.25:
+		hitstop(0.035)
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit)
+		Audio.sfx("crit" if crit else "hit", 0.1, 0.0 if crit else -6.0)
 	if e.hp <= 0.0:
 		kill_enemy(e)
 	return dmg
@@ -896,9 +980,15 @@ func kill_enemy(e: Enemy) -> void:
 			_kill_streak += 1
 			if _kill_streak % 6 == 0:
 				player.heal(4.0)
+	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
+	if e.elite:
+		hitstop(0.06)
 	if e is Boss:
 		(e as Boss).die()
 		run.stats["bosses"] += 1
+		hitstop(0.3)
+		flash(0.45)
+		Game.buzz(200)
 		shake(0.8)
 		for k in 6:
 			fx.ring(e.position + Vector2(rng.randf_range(-12, 12), rng.randf_range(-12, 12)), 2.0, 20.0 + k * 6.0, 0.5, [Color("#ff3fa4"), Color("#ffc94a"), Color("#5ce1ff")][k % 3])
@@ -923,35 +1013,75 @@ func _bot_drive() -> void:
 	var p := player.position
 	if not orb.is_empty():
 		var op: Vector2 = orb["pos"]
-		controls.move = (op - p).normalized() if los(p, op) else path_dir(p, op)
+		# follow the grid path (a straight line snags on pillar corners)
+		controls.move = path_dir(p, op)
 		return
 	if cleared and doors_open:
 		var d: Dictionary = doors[0]
 		var below := Vector2(int(d["col"]) * TS + TS, TS * 1.5)
 		if p.distance_to(below) > 10.0 and p.y > TS * 1.2:
-			controls.move = (below - p).normalized() if los(p, below) else path_dir(p, below)
+			controls.move = path_dir(p, below)
 		else:
 			controls.move = Vector2(0, -1)
 		return
-	var e := nearest_enemy(p, 400.0)
+	var e := nearest_enemy(p, 900.0)
 	if e == null:
 		controls.move = (Vector2(gw * TS / 2.0, gh * TS / 2.0) - p).limit_length(1.0) * 0.5
 		return
+	# watchdog: no damage for a while means we are stuck somewhere; walk the path for a bit
+	if damage_done > _bot_dmg_seen:
+		_bot_dmg_seen = damage_done
+		_bot_progress_t = time
+	var stuck := time - _bot_progress_t > 8.0 and time - _bot_progress_t < 10.0
 	var to_e := e.position - p
-	if not los(p, e.position):
-		# no line of sight (a wall between us): walk the grid path toward it
-		controls.move = path_dir(p, e.position)
+	# sight is judged from the hand, where spells leave the wand (as the player does)
+	var sees := los(p + Vector2(0, -8), e.position)
+	if stuck or not sees or player.target == null:
+		controls.move = _bot_dodge(p, path_dir(p, e.position))
 		return
-	var want := -1.0 if to_e.length() < 70.0 else (1.0 if to_e.length() > 120.0 else 0.0)
-	var mv := to_e.normalized() * want + to_e.normalized().orthogonal() * 0.8
-	# dodge the nearest enemy bullet heading our way
-	for b in ebullets.active:
-		if b.alive and b.pos.distance_squared_to(p) < 40.0 * 40.0:
-			mv += (p - b.pos).normalized().orthogonal() * 1.5
-			break
-	if hazard_at(p + mv.normalized() * 10.0):
-		mv = -mv
-	controls.move = mv.limit_length(1.0)
+	var dist := to_e.length()
+	var want := -1.0 if dist < 50.0 else (1.0 if dist > 140.0 else 0.0)
+	var desire := (to_e.normalized() * want + to_e.normalized().orthogonal() * 0.7).limit_length(1.0)
+	controls.move = _bot_dodge(p, desire)
+
+
+## Picks the move (8 directions or standing still) with the least predicted danger over the
+## next ~0.4 s, breaking ties toward where the bot wants to go. Roughly how a new player
+## dodges: sees bullets coming, sidesteps, sometimes gets cornered.
+func _bot_dodge(p: Vector2, desire: Vector2) -> Vector2:
+	var best := desire
+	var best_score := INF
+	for k in 9:
+		var dir := Vector2.ZERO if k == 8 else Vector2.from_angle(k * TAU / 8.0)
+		# where this move would really take us (sliding along walls); a move that a wall
+		# or corner blocks is no move at all
+		var q := move_body(p, player.r, dir * Player.SPEED * 0.25)
+		if dir != Vector2.ZERO and q.distance_to(p) < 4.0:
+			continue
+		if hazard_at(q) and spikes_up():
+			continue
+		var danger := 0.0
+		for b in ebullets.active:
+			if not b.alive:
+				continue
+			var rel := b.pos - q
+			if rel.length_squared() > 120.0 * 120.0:
+				continue
+			var tt := clampf(-rel.dot(b.vel) / maxf(1.0, b.vel.length_squared()), 0.0, 0.4)
+			var close := (rel + b.vel * tt).length()
+			if close < 12.0:
+				danger += (12.0 - close) * (1.4 - tt * 2.0)
+		for e in enemies:
+			if not e.dead and e.spawn_t <= 0.0 and e.dmg > 0.0:
+				# where the body will be in a moment, not just where it is
+				var dist := minf(e.position.distance_to(q), (e.position + e.vel * 0.25).distance_to(q))
+				if dist < e.r + 16.0:
+					danger += (e.r + 16.0 - dist) * 1.5
+		var score := danger * 4.0 - dir.dot(desire)
+		if score < best_score:
+			best_score = score
+			best = dir
+	return best
 
 
 ## Direction along the shortest walkable path from p to goal (breadth-first search over
@@ -994,6 +1124,15 @@ func path_dir(p: Vector2, goal: Vector2) -> Vector2:
 
 
 # ------------------------------------------------------------------ drawing
+
+func _crate_texture() -> Texture2D:
+	return PixelArt.cached("crate", func() -> Image:
+		return PixelArt.from_rows(PackedStringArray([
+			"wwwwwwwwwwwwww", "wBbbbbbbbbbbBw", "wbBbbbbbbbbBbw", "wbbBbbbbbbBbbw", "wbbbBbbbbBbbbw",
+			"wbbbbBbbBbbbbw", "wbbbbbBBbbbbbw", "wbbbbbBBbbbbbw", "wbbbbBbbBbbbbw", "wbbbBbbbbBbbbw",
+			"wbbBbbbbbbBbbw", "wBbbbbbbbbbbBw", "wwwwwwwwwwwwww", "dddddddddddddd",
+		]), {"w": "#8a6a3a", "b": "#b8894a", "B": "#6e4a24", "d": "#3a2a18"}))
+
 
 func _enemy_bullet_texture() -> Texture2D:
 	return PixelArt.cached("ebullet", func() -> Image:
@@ -1044,6 +1183,11 @@ func _draw_deco() -> void:
 		_deco.draw_circle(p + Vector2(-2, -8 - bob), 2.0, c.lightened(0.5))
 	if not npc.is_empty():
 		_draw_npc(npc)
+	var crate := _crate_texture()
+	for y in gh:
+		for x in gw:
+			if grid[y * gw + x] == 4:
+				_deco.draw_texture(crate, Vector2(x * TS, y * TS) + Vector2(1, 0))
 
 
 func _draw_npc(n: Dictionary) -> void:
@@ -1083,6 +1227,12 @@ func _draw_top() -> void:
 		var p: Vector2 = orb["pos"] + Vector2(0, -6 - sin(time * 3.0) * 2.0)
 		_top.draw_circle(p, 12.0 + sin(time * 5.0), Color(1.0, 0.9, 0.5, 0.12))
 		_top.draw_arc(p, 9.0, time * 2.0, time * 2.0 + PI * 1.2, 12, Color(1.0, 0.95, 0.7, 0.8), 1.0)
+	# spawn runes: where an enemy is about to appear
+	for e in enemies:
+		if e.spawn_t > 0.0 and not e.dead:
+			var k := 1.0 - e.spawn_t / 1.1
+			_top.draw_arc(e.position, 3.0 + k * 8.0, 0.0, TAU, 16, Color(0.77, 0.42, 1.0, 0.85), 1.0)
+			_top.draw_arc(e.position, 10.0 - k * 6.0, time * 3.0, time * 3.0 + PI, 8, Color(1.0, 0.25, 0.64, 0.85), 1.0)
 	if boss and not boss.dead:
 		var a := 0.35 + 0.25 * sin(time * 20.0)
 		for tl in boss.tele:

@@ -84,6 +84,7 @@ func _on_button(id: String) -> void:
 	elif id.begins_with("item"):
 		var i := int(id.substr(4))
 		sel = -1 if sel == i else i
+		Audio.sfx("ui", 0.05)
 	elif id == "buy":
 		_buy()
 
@@ -95,7 +96,9 @@ func _buy() -> void:
 	var it: Dictionary = items[sel]
 	var price := int(it["price"])
 	if it.get("sold", false) or run.gold < price:
+		Audio.sfx("deny", 0.0)
 		return
+	Audio.sfx("coin", 0.0)
 	if mode == "forge":
 		var ref: Dictionary = _forge_refs[sel]
 		ref["s"]["lv"] = int(ref["s"]["lv"]) + 1

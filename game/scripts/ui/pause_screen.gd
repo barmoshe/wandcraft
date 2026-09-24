@@ -19,7 +19,7 @@ func _paint() -> void:
 	var y := sr.position.y + 48
 	# relics
 	var rw := minf(sr.size.x - 20, 300.0)
-	var rr := Rect2(cx - rw / 2.0, y, rw, 70)
+	var rr := Rect2(cx - rw / 2.0, y, rw, 62)
 	panel(rr)
 	text(rr.position + Vector2(8, 12), "RELICS  %d" % run.relics.size(), MUTED, 8, "bold")
 	if run.relics.is_empty():
@@ -32,18 +32,25 @@ func _paint() -> void:
 		area(Rect2(p - Vector2(10, 10), Vector2(20, 20)), "relic%d" % i)
 	if sel_relic >= 0 and sel_relic < run.relics.size():
 		var d: Dictionary = Relics.DEFS[run.relics[sel_relic]]
-		text(rr.position + Vector2(8, 52), d["title"], TEXT, 8, "bold")
-		text(rr.position + Vector2(8, 63), d["desc"], MUTED)
-	y = rr.end.y + 8
-	button(Rect2(cx - 70, y, 140, 30), "resume", "RESUME", "primary")
-	y += 38
+		text(rr.position + Vector2(8, 48), d["title"], TEXT, 8, "bold")
+		text(rr.position + Vector2(8, 58), d["desc"], MUTED)
+	y = rr.end.y + 6
+	button(Rect2(cx - 70, y, 140, 28), "resume", "RESUME", "primary")
+	y += 34
 	var bw := 96.0
 	var s := Game.settings()
-	button(Rect2(cx - bw * 1.5 - 6, y, bw, 28), "auto", "AUTO-FIRE %s" % ("ON" if s["auto_fire"] else "OFF"))
-	button(Rect2(cx - bw / 2.0, y, bw, 28), "shake", "SHAKE %s" % ("ON" if s["shake"] else "OFF"))
-	button(Rect2(cx + bw / 2.0 + 6, y, bw, 28), "flash", "FLASH %s" % ("ON" if s["flash"] else "OFF"))
-	y += 36
-	button(Rect2(cx - 70, y, 140, 26), "abandon", "TAP AGAIN TO ABANDON" if confirm_abandon else "ABANDON RUN", "danger")
+	var rows := [
+		[["auto", "AUTO-FIRE", s["auto_fire"]], ["shake", "SHAKE", s["shake"]], ["flash", "FLASH", s["flash"]]],
+		[["sound", "SOUND", s["sound"]], ["music", "MUSIC", s["music"]], ["haptics", "VIBRATION", s["haptics"]]],
+	]
+	for row in rows:
+		for k in 3:
+			var b: Array = row[k]
+			button(Rect2(cx - bw * 1.5 - 6 + k * (bw + 6), y, bw, 26), b[0], "%s %s" % [b[1], "ON" if b[2] else "OFF"])
+		y += 30
+	y += 4
+	button(Rect2(cx - 146, y, 140, 26), "hints", "SHOW TIPS AGAIN", "ghost")
+	button(Rect2(cx + 6, y, 140, 26), "abandon", "TAP AGAIN TO ABANDON" if confirm_abandon else "ABANDON RUN", "danger")
 
 
 func _on_button(id: String) -> void:
@@ -56,9 +63,12 @@ func _on_button(id: String) -> void:
 			if confirm_abandon:
 				finished.emit({"abandon": true})
 			confirm_abandon = true
-		"auto", "shake", "flash":
+		"hints":
+			Hints.reset()
+			toast("Tips will show again")
+		"auto", "shake", "flash", "sound", "music", "haptics":
 			var s := Game.settings()
-			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash"}[id]
+			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash", "sound": "sound", "music": "music", "haptics": "haptics"}[id]
 			s[key] = not s[key]
 			Game.apply_settings(s)
 			SaveGame.save_settings(s)

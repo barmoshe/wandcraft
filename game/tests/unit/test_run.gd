@@ -98,7 +98,7 @@ func test_relics_that_act_on_pickup() -> void:
 	var r := RunState.create(3)
 	r.hp = 50.0
 	r.add_relic(&"hot_patch")
-	eq(r.max_hp, 120.0, "Hot Patch: max HP +20")
+	eq(r.max_hp, 140.0, "Hot Patch: max HP +20")
 	eq(r.hp, 70.0, "and heals 20")
 	r.add_relic(&"spare_battery")
 	ok(is_equal_approx(r.wand().max_mana(), Catalog.wand(&"apprentice").max_mana * 1.3), "Spare Battery: +30% mana")
@@ -107,7 +107,7 @@ func test_relics_that_act_on_pickup() -> void:
 	ok(Relics.dmg_mul(r, 0.0) == 1.0, "no damage relic yet")
 	r.add_relic(&"heap_overflow")
 	ok(is_equal_approx(Relics.dmg_mul(r, 10.0), 1.3), "Heap Overflow: +30% damage")
-	eq(r.max_hp, 100.0, "and max HP -20")
+	eq(r.max_hp, 120.0, "and max HP -20")
 
 
 func test_wands_are_capped_and_replacing_keeps_spells() -> void:
@@ -115,11 +115,17 @@ func test_wands_are_capped_and_replacing_keeps_spells() -> void:
 	r.add_wand(&"birch")
 	r.add_wand(&"oak")
 	eq(r.wands.size(), 3, "three wands")
-	r.wand().set_slots([&"fan", &"moths"])
+	eq(r.cur, 0, "new wands do not take the hand")
+	r.wands[1].set_slots([&"fan", &"moths"])
 	r.add_wand(&"crystal")
 	eq(r.wands.size(), 3, "still three")
-	eq(r.wand().def.id, &"crystal", "the new wand replaced the one in hand")
-	eq(r.bag.size(), 2, "its spells went to the bag")
+	eq(r.wands[2].def.id, &"crystal", "the emptiest wand (the oak) was replaced")
+	eq(r.wand().def.id, &"apprentice", "the wand in hand is untouched")
+	eq(r.bag.size(), 0, "nothing lost")
+	r.wands[2].set_slots([&"then"])
+	r.add_wand(&"birch")
+	eq(r.wands[2].def.id, &"birch", "again the emptiest one")
+	eq(r.bag.size(), 1, "its spell went to the bag")
 
 
 func test_save_round_trip() -> void:
@@ -146,7 +152,7 @@ func test_save_round_trip() -> void:
 	eq(q.hp, 61.0, "hp")
 	eq(q.relics, r.relics, "relics")
 	eq(q.wands.size(), 2, "wands")
-	eq(q.cur, 1, "wand in hand")
+	eq(q.cur, r.cur, "wand in hand")
 	eq(int(q.wand().slots[1]["lv"]), 2, "spell levels")
 	eq(q.bag[0]["id"], &"seek", "bag")
 	eq(q.shop.size(), r.shop.size(), "shop stock")

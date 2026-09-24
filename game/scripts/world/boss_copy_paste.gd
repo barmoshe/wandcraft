@@ -12,7 +12,7 @@ func _init_boss() -> void:
 	title = "Copy-Paste"
 	subtitle = "Mini-boss"
 	mini = true
-	max_hp = 560.0
+	max_hp = 360.0
 	r = 9.0
 	spd = 40.0
 	move_table = {
@@ -70,7 +70,7 @@ func _go(m: StringName) -> void:
 			var to: Vector2 = get_meta("to")
 			world.fx.beam(position, to, Color("#5ce1ff"), 2.0)
 			position = to
-			ring(position, 14 + phase * 4, 70.0, world.rng.randf())
+			ring(position, 10 + phase * 4, 62.0, world.rng.randf())
 			world.fx.text(position + Vector2(0, -24), "CTRL+Z", Color("#5ce1ff"), 10)
 		&"dup_row":
 			var left: bool = get_meta("left")
@@ -79,7 +79,7 @@ func _go(m: StringName) -> void:
 			for i in range(-2, 3):
 				for k in 2:
 					var x := 20.0 + k * 14.0 if left else w - 20.0 - k * 14.0
-					world.enemy_shoot(Vector2(x, y + i * 16.0), 0.0 if left else PI, 95.0, ed())
+					world.enemy_shoot(Vector2(x, y + i * 16.0), 0.0 if left else PI, 95.0, ed(), 0.0, "shot:Copy-Paste")
 		&"paste":
 			world.fx.text(position + Vector2(0, -24), "CTRL+V", Color("#ff3fa4"), 10)
 			for k in 2:
@@ -91,8 +91,8 @@ func _act(m: StringName, dt: float, _t: float) -> void:
 	if m == &"mirror_shot":
 		cd -= dt
 		if cd <= 0.0:
-			aimed(position + Vector2(0, -8), 5, 0.7, 105.0)
-			cd = 0.45 - phase * 0.1
+			aimed(position + Vector2(0, -8), 3 + phase * 2, 0.6 + phase * 0.1, 90.0 + phase * 15.0)
+			cd = 0.5 - phase * 0.1
 
 
 func _animate() -> void:

@@ -25,6 +25,11 @@ var banner_t := 0.0
 var toast := ""
 var toast_t := 0.0
 var boss_title := ""
+var hint := ""
+var hint_t := 0.0
+var _hint_queue: Array[String] = []   # tips wait their turn; each gets its full time
+var flash_c := Color.WHITE
+var flash_a := 0.0
 
 
 func _ready() -> void:
@@ -38,6 +43,10 @@ func _ready() -> void:
 		banner = "ROOM CLEAR"
 		banner_sub = ""
 		banner_t = 1.4)
+	Events.hint.connect(func(s: String) -> void: _hint_queue.append(s))
+	Events.screen_flash.connect(func(c: Color, a: float) -> void:
+		flash_c = c
+		flash_a = maxf(flash_a, a))
 	Events.boss_started.connect(func(t: String, sub: String) -> void:
 		boss_title = t
 		banner = t.to_upper()
@@ -54,6 +63,11 @@ func _on_room(def: Dictionary) -> void:
 func _process(dt: float) -> void:
 	banner_t = maxf(0.0, banner_t - dt)
 	toast_t = maxf(0.0, toast_t - dt)
+	hint_t = maxf(0.0, hint_t - dt)
+	if hint_t <= 0.0 and not _hint_queue.is_empty():
+		hint = _hint_queue.pop_front()
+		hint_t = 5.0
+	flash_a = maxf(0.0, flash_a - dt * 2.5)
 	queue_redraw()
 
 
@@ -83,6 +97,7 @@ func _draw() -> void:
 	var sr := safe()
 	var run := world.run
 	buttons.clear()
+	_draw_low_hp(run)
 	_draw_wands(sr.position, run)
 	_draw_vitals(Vector2(sr.position.x, sr.end.y), run)
 	_draw_top_right(Vector2(sr.end.x, sr.position.y), run)
@@ -90,6 +105,39 @@ func _draw() -> void:
 	if world.boss and not world.boss.dead:
 		_draw_boss_bar(sr)
 	_draw_banner(sr)
+	_draw_hint(sr)
+	if flash_a > 0.0:
+		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(flash_c.r, flash_c.g, flash_c.b, flash_a))
+
+
+## A slow red glow at the screen edges when HP is low (a pulse, not a flash).
+func _draw_low_hp(run: RunState) -> void:
+	var k := run.hp / run.max_hp
+	if k >= 0.3 or world.player.dead:
+		return
+	var a := (0.3 - k) / 0.3 * (0.22 + 0.1 * sin(world.time * 3.0))
+	var v := get_viewport_rect().size
+	for i in 10:
+		var c := Color(0.85, 0.1, 0.2, a * (1.0 - i / 10.0))
+		draw_rect(Rect2(0, 0, v.x, 2), c)
+		draw_rect(Rect2(i * 2, 0, 2, v.y), c)
+		draw_rect(Rect2(v.x - (i + 1) * 2, 0, 2, v.y), c)
+		draw_rect(Rect2(0, v.y - (i + 1) * 2, v.x, 2), c)
+
+
+func _draw_hint(sr: Rect2) -> void:
+	if hint_t <= 0.0 or hint == "":
+		return
+	var a := clampf(hint_t * 2.0, 0.0, 1.0) * clampf((5.0 - hint_t) * 4.0, 0.0, 1.0)
+	var f := Game.font("small")
+	var w := f.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var y := sr.end.y - (58.0 if world.boss and not world.boss.dead else 42.0)
+	var r := Rect2(sr.get_center().x - w / 2.0 - 20, y, w + 30, 18)
+	draw_rect(r, Color(0.07, 0.05, 0.13, 0.9 * a))
+	draw_rect(r, Color(GOLD.r, GOLD.g, GOLD.b, a), false, 1.0)
+	draw_circle(r.position + Vector2(10, 9), 5.0, Color(GOLD.r, GOLD.g, GOLD.b, a))
+	_text(r.position + Vector2(8, 13), "?", Color(0.1, 0.06, 0.15, a), 8, "bold")
+	_text(r.position + Vector2(20, 13), hint, Color(1, 0.96, 0.85, a), 8)
 
 
 func _panel(r: Rect2, gold := false) -> void:

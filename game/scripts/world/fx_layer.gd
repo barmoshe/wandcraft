@@ -6,11 +6,13 @@ extends Node2D
 
 const MAX_SPARKS := 500
 const MAX_TEXTS := 40
+const MAX_SHARDS := 400
 
 var rings: Array = []    # [pos, r0, r1, t, life, color]
 var beams: Array = []    # [a, b, color, width, t, life]
 var _sparks: Array = []   # [pos, vel, t, life, color]
 var texts: Array = []    # [pos, text, color, t, size]
+var _shards: Array = []  # normal-blend pixels: [pos, vel, t, life, color, gravity]
 var rng := RandomNumberGenerator.new()
 var _text_node: Node2D
 
@@ -41,6 +43,35 @@ func sparks(p: Vector2, n: int, c: Color, speed: float) -> void:
 		_sparks.append([p, v, 0.0, rng.randf_range(0.18, 0.4), c])
 
 
+## An enemy (or anything with a sprite) bursts into its own pixels.
+func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> void:
+	if tex == null:
+		return
+	var img := tex.get_image()
+	if img == null:
+		return
+	var w := img.get_width()
+	var h := img.get_height()
+	var step := 1 if w * h <= 220 else 2
+	for y in range(0, h, step):
+		for x in range(0, w, step):
+			if _shards.size() >= MAX_SHARDS:
+				return
+			var c := img.get_pixel(x, y)
+			if c.a < 0.5:
+				continue
+			var lx := (w - 1 - x) if flip else x
+			var p := center + Vector2((lx - w / 2.0) * scale, (y - h) * scale)
+			var v := (p - center - Vector2(0, -h * 0.4)).normalized() * rng.randf_range(20, 90) + Vector2(0, -30)
+			_shards.append([p, v, 0.0, rng.randf_range(0.35, 0.7), c, 160.0])
+
+
+## A little dust under the feet.
+func dust(p: Vector2) -> void:
+	if _shards.size() < MAX_SHARDS:
+		_shards.append([p + Vector2(rng.randf_range(-3, 3), 0), Vector2(rng.randf_range(-10, 10), -8), 0.0, 0.35, Color(0.7, 0.72, 0.6, 0.6), 0.0])
+
+
 func text(p: Vector2, s: String, c: Color, size := 8) -> void:
 	if texts.size() >= MAX_TEXTS:
 		texts.pop_front()
@@ -55,6 +86,7 @@ func clear_all() -> void:
 	rings.clear()
 	beams.clear()
 	_sparks.clear()
+	_shards.clear()
 	texts.clear()
 
 
@@ -67,6 +99,17 @@ func update(dt: float) -> void:
 		beams[i][4] += dt
 		if beams[i][4] >= beams[i][5]:
 			beams.remove_at(i)
+	var ws := 0
+	for i in _shards.size():
+		var s: Array = _shards[i]
+		s[2] += dt
+		if s[2] < s[3]:
+			s[1] += Vector2(0, s[5] * dt)
+			s[0] += s[1] * dt
+			s[1] *= pow(0.2, dt)
+			_shards[ws] = s
+			ws += 1
+	_shards.resize(ws)
 	var w := 0
 	for i in _sparks.size():
 		var s: Array = _sparks[i]
@@ -108,6 +151,10 @@ func _draw() -> void:
 
 
 func _draw_texts() -> void:
+	for s in _shards:
+		var c: Color = s[4]
+		var k: float = 1.0 - s[2] / s[3]
+		_text_node.draw_rect(Rect2((s[0] as Vector2).round(), Vector2.ONE), Color(c.r, c.g, c.b, c.a * minf(1.0, k * 2.0)))
 	var font := Game.font()
 	for tx in texts:
 		var k: float = tx[3] / 0.8

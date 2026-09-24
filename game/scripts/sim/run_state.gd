@@ -15,8 +15,8 @@ var step := 0                       # index into Chapter.PLAN
 var path: Array = []                # door kinds taken, for the map strip
 var room: Dictionary = {}           # the door that led here: {"kind", "reward"}
 var doors: Array = []               # the doors this room will offer once cleared
-var hp := 100.0
-var max_hp := 100.0
+var hp := 120.0
+var max_hp := 120.0
 var gold := 0
 var wands: Array[WandState] = []
 var cur := 0
@@ -37,6 +37,14 @@ static func create(seed_value_: int) -> RunState:
 
 func wand() -> WandState:
 	return wands[cur]
+
+
+## True if the wand holds at least one shooting spell (so it can actually cast).
+static func can_cast(w: WandState) -> bool:
+	for s in w.slots:
+		if s != null and Catalog.spell(s["id"]).kind == SpellDef.Kind.PROJ:
+			return true
+	return false
 
 
 func has_relic(id: StringName) -> bool:
@@ -153,14 +161,22 @@ func add_wand(id: StringName) -> void:
 		w.bonus_mana = 1.3
 		w.mana = w.max_mana()
 	if wands.size() < MAX_WANDS:
+		# a new wand arrives empty: it goes on the belt, the one in hand stays in hand
 		wands.append(w)
-		cur = wands.size() - 1
 		return
-	# full: the new wand replaces the current one, and its spells go to the bag
-	for s in wand().slots:
+	# full: the new wand replaces the emptiest wand (never the one in hand if there is a
+	# choice), and whatever spells that wand held go to the bag
+	var victim := -1
+	var fewest := 999
+	for i in wands.size():
+		var n := wands[i].slots.filter(func(s: Variant) -> bool: return s != null).size()
+		if n < fewest or (n == fewest and victim == cur):
+			fewest = n
+			victim = i
+	for s in wands[victim].slots:
 		if s != null:
 			bag.append(s)
-	wands[cur] = w
+	wands[victim] = w
 
 
 # ------------------------------------------------------------------ save / load

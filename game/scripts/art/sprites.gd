@@ -112,7 +112,7 @@ const BOSS_ART := {
 	&"loop_head": {
 		"rows": ["....gggggg......", "..ggGGGGGGgg....", ".gGGGGGGGGGGg...", "gGGGyyGGGGGGGg..", "gGGyYeyGGGGGGGgg",
 			"gGGGyyGGGGGGGGGw", "gGGGGGGGGGGGmmmm", "gGGGGGGGGGGGGGGw", ".gGGGGGGGGGGGgg.", "..ggGGGGGGgg....", "....gggggg......"],
-		"pal": {"g": "#237a3a", "G": "#3fa85a", "y": "#ffe066", "Y": "#fff3b0", "e": "#1d1540", "m": "#1d1540", "w": "#ffffff"},
+		"pal": {"g": "#3fbf5a", "G": "#7de08a", "y": "#ffe066", "Y": "#fff3b0", "e": "#1d1540", "m": "#1d1540", "w": "#ffffff"},
 	},
 }
 

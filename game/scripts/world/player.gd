@@ -33,6 +33,8 @@ var cast_t := 0.0
 var face := 1
 var walk_t := 0.0
 var dead := false
+var prev_pos := Vector2.ZERO    # position at the start of the tick (camera interpolation)
+var _dust_t := 0.0
 var sprite: Sprite2D
 var wand_sprite: Sprite2D
 var tip_glow: Sprite2D
@@ -72,12 +74,19 @@ func tip() -> Vector2:
 func tick(dt: float) -> void:
 	if dead:
 		return
+	prev_pos = position
 	inv = maxf(0.0, inv - dt)
 	cast_t = maxf(0.0, cast_t - dt)
 	if controls.select_wand >= 0:
 		if controls.select_wand < wands.size():
 			cur = controls.select_wand
 		controls.select_wand = -1
+	# a wand with nothing to shoot is no use in hand: switch to one that can cast
+	if not RunState.can_cast(wand()):
+		for i in wands.size():
+			if RunState.can_cast(wands[i]):
+				cur = i
+				break
 	# movement
 	var mv := controls.move.limit_length(1.0)
 	var run := world.run
@@ -86,6 +95,10 @@ func tick(dt: float) -> void:
 	position = world.move_body(position, r, vel * dt)
 	if mv.length() > 0.1:
 		walk_t += dt * mv.length()
+		_dust_t -= dt
+		if _dust_t <= 0.0:
+			_dust_t = 0.22
+			world.fx.dust(position + Vector2(0, 1))
 	# aim and fire
 	var auto_range := AUTO_RANGE * (1.4 if run.has_relic(&"keen_scope") else 1.0)
 	target = world.assist_target(position, auto_range)
@@ -95,8 +108,10 @@ func tick(dt: float) -> void:
 		aim = _assist(stick.angle())
 		firing = true
 	elif target and (controls.fire or Game.auto_fire):
-		aim = (target.position - position).angle()
-		firing = world.los(position, target.position)
+		# aim from the hand, where the spell leaves the wand (8 px above the feet)
+		var hand := position + Vector2(0, -8)
+		aim = (lead(target) - hand).angle()
+		firing = world.los(hand, target.position)
 	elif mv.length() > 0.1:
 		aim = mv.angle()
 	var regen_mul := Relics.mana_regen_mul(run)
@@ -110,8 +125,19 @@ func tick(dt: float) -> void:
 		cast_t = 0.12
 	# hazards
 	if world.hazard_at(position) and world.spikes_up() and not run.has_relic(&"sandbox"):
-		hurt(10.0, position)
+		hurt(6.0, position, "spikes")
 	_animate()
+
+
+## Where to aim to hit a moving target with a bolt of about BOLT_SPEED.
+const BOLT_SPEED := 230.0
+
+
+func lead(e: Enemy) -> Vector2:
+	var d := e.position - position
+	var t := minf(0.6, d.length() / BOLT_SPEED)
+	var p := e.position + e.vel * t
+	return p if world.los(position + Vector2(0, -8), p) else e.position
 
 
 ## Snaps the stick direction onto an enemy inside the assist cone.
@@ -127,11 +153,14 @@ func _assist(ang: float) -> float:
 		var diff := absf(angle_difference(ang, d.angle()))
 		if diff < bd:
 			bd = diff
-			best = d.angle()
+			best = (lead(e) - position).angle()
 	return best
 
 
-func hurt(amount: float, from: Vector2) -> void:
+var last_hurt_by := ""
+
+
+func hurt(amount: float, from: Vector2, by := "") -> void:
 	if dead or inv > 0.0 or Game.god_mode:
 		return
 	var run := world.run
@@ -142,11 +171,14 @@ func hurt(amount: float, from: Vector2) -> void:
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
 	amount *= Relics.damage_taken_mul(run)
+	last_hurt_by = by
 	hp -= amount
-	inv = 0.7 * (1.5 if run.has_relic(&"afterimage") else 1.0)
+	inv = 0.9 * (1.5 if run.has_relic(&"afterimage") else 1.0)
 	vel += (position - from).normalized() * 120.0
 	world.fx.text(position + Vector2(0, -22), "-%d" % roundi(amount), Color("#ff5a6a"))
 	world.shake(0.18)
+	world.flash(0.15)
+	Game.buzz(40)
 	Events.player_hurt.emit(amount)
 	if hp <= 0.0:
 		hp = 0.0

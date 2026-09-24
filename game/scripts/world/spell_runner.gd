@@ -76,6 +76,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		for g in plan.groups:
 			emit_cast(g, origin, a2, opt)
 	world.fx.ring(origin, 1.0, 6.0, 0.12, plan.groups[0].spell.color)
+	Audio.cast(plan.groups[0].spell.id)
 	Events.wand_cast.emit(w.flash)
 	return true
 
@@ -188,8 +189,10 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 	var reach := length
 	var s := 4.0
 	while s < length:
-		if world.solid_at(pos + dir * s):
+		var q := pos + dir * s
+		if world.solid_at(q):
 			reach = s
+			world.break_crate(floori(q.x / World.TS), floori(q.y / World.TS))
 			break
 		s += 4.0
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
@@ -238,6 +241,8 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 			world.apply_status(e, ps.burn, ps.chill, dmg)
 			_on_hit(ps, e)
 	world.shake(0.1)
+	world.break_crates_in(pos, r)
+	Audio.sfx("boom", 0.1, -3.0)
 	end_bullet(ps, null)
 
 
@@ -254,6 +259,8 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 			world.hurt_enemy(e, b.dmg * 0.7, b.pos, b.crit, 1.2)
 			world.apply_status(e, b.burn, b.chill, b.dmg)
 	world.shake(0.08)
+	world.break_crates_in(b.pos, r)
+	Audio.sfx("boom", 0.12, -5.0)
 
 
 func update(dt: float) -> void:
@@ -294,6 +301,11 @@ func update(dt: float) -> void:
 		var tx := int(np.x) >> 4
 		var ty := int(np.y) >> 4
 		var tile := 1 if np.x < 0.0 or np.y < 0.0 or tx >= gw or ty >= gh else grid[ty * gw + tx]
+		if tile == 4:
+			world.break_crate(tx, ty)
+			world.fx.sparks(b.pos, 3, b.color, 50.0)
+			end_bullet(b, null)
+			continue
 		if tile == 1 or tile == 3:
 			if b.bounce > 0:
 				var hx := world.solid_at(Vector2(np.x, b.pos.y))
@@ -487,6 +499,7 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 			a0 = (tgt.position - b.pos).angle()
 	if ev != &"nova":
 		world.fx.ring(b.pos, 1.0, 9.0, 0.18, Color("#ffe066"))
+		Audio.sfx("trigger", 0.1, -4.0)
 	var opt := Opt.new()
 	opt.gm = b.gm
 	opt.mul = mul

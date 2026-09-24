@@ -10,3 +10,5 @@ signal wand_cast(slot: int)
 signal toast(text: String)
 signal boss_started(title: String, subtitle: String)
 signal boss_defeated
+signal hint(text: String)
+signal screen_flash(color: Color, amount: float)

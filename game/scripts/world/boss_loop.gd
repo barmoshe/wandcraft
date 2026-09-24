@@ -22,7 +22,7 @@ var k := 0
 func _init_boss() -> void:
 	title = "The Infinite Loop"
 	subtitle = "Boss"
-	max_hp = 1300.0
+	max_hp = 850.0
 	r = 10.0
 	spd = 0.0
 	move_table = {
@@ -44,6 +44,8 @@ func _init_boss() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = _flash_shader()
 	sprite.material = _mat
+	var glow := world.make_light(Color(0.5, 1.0, 0.6), 0.9, 90.0)
+	add_child(glow)
 	for i in SEGMENTS:
 		var p := make_part(&"loop_seg", 6.0)
 		p.sprite.offset = Vector2(0, -3)
@@ -89,7 +91,7 @@ func _start(m: StringName) -> void:
 func _act(m: StringName, dt: float, t_in: float) -> void:
 	match m:
 		&"lap_charge":
-			_loop_move(dt, 3.2)
+			_loop_move(dt, 2.4)
 			if world.rng.randf() < 0.5:
 				world.fx.sparks(position, 1, Color("#7de08a"), 20.0)
 		&"tail_volley":
@@ -101,7 +103,7 @@ func _act(m: StringName, dt: float, t_in: float) -> void:
 				for i in parts.size():
 					if i % 2 == k % 2:
 						var p := parts[i].position
-						world.enemy_shoot(p, (p - center).angle(), 70.0, ed())
+						world.enemy_shoot(p, (p - center).angle(), 70.0, ed(), 0.0, "shot:Loop")
 		&"while_true":
 			_loop_move(dt, 1.0)
 			cd -= dt
@@ -114,7 +116,7 @@ func _act(m: StringName, dt: float, t_in: float) -> void:
 			position += Vector2.from_angle(a) * 120.0 * dt
 			_loop_move(dt, 0.0)
 			if world.rng.randf() < 0.12:
-				world.enemy_shoot(position, a + PI + world.rng.randf_range(-0.5, 0.5), 50.0, ed())
+				world.enemy_shoot(position, a + PI + world.rng.randf_range(-0.5, 0.5), 50.0, ed(), 0.0, "shot:Loop")
 
 
 func _end(m: StringName) -> void:

@@ -103,7 +103,7 @@ static func _build() -> void:
 	_s("heatsink", S, "Heat Sink", "#9b7bff", {}, "Wand recharge x0.6/0.3/0.15.")
 
 	var w := WandDef.new()
-	w.id = &"apprentice"; w.title = "Apprentice Rod"; w.slots = 5; w.max_mana = 80; w.regen = 18; w.cast_delay = 0.15; w.recharge = 0.5; w.scatter = 5
+	w.id = &"apprentice"; w.title = "Apprentice Rod"; w.slots = 5; w.max_mana = 80; w.regen = 18; w.cast_delay = 0.12; w.recharge = 0.4; w.scatter = 5
 	_wands[w.id] = w
 	_w(&"birch", "Birch Switch", 0, 4, 60, 16, 0.1, 0.35, 4, 1, false, "#d8c090")
 	_w(&"mirror_rod", "Mirror Rod", 1, 6, 90, 20, 0.14, 0.5, 5, 1, true, "#b8b8ff")

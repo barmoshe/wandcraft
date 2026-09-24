@@ -66,12 +66,23 @@ func _on_button(id: String) -> void:
 	if id.begins_with("card"):
 		var i := int(id.substr(4))
 		sel = -1 if sel == i else i
+		Audio.sfx("ui", 0.05)
 	elif id == "take" and sel >= 0:
 		var item: Dictionary = offer[sel]
 		if not Rewards.grant(run, item):
-			toast("Your bag is full: make room in the wand editor")
+			Audio.sfx("deny", 0.0)
+			toast("Your bag is full (12). Skip this one, or merge spells.")
 			return
+		Audio.sfx("levelup" if _merged(item) else "pick", 0.0)
 		finished.emit({"taken": item})
 	elif id == "skip":
+		Audio.sfx("coin")
 		run.gold += Rewards.SKIP_GOLD
 		finished.emit({"taken": null})
+
+
+## True when taking this spell just merged three copies into a higher level.
+func _merged(item: Dictionary) -> bool:
+	if item["t"] != &"spell":
+		return false
+	return run.spell_refs().any(func(r: Dictionary) -> bool: return r["s"]["id"] == item["id"] and int(r["s"]["lv"]) > 1)

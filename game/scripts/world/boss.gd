@@ -31,7 +31,7 @@ func setup_boss(w: World, pos: Vector2, id: int) -> void:
 	ai = &"boss"
 	heavy = true
 	spawn_t = 0.0
-	dmg = 16.0
+	dmg = 12.0
 	def = {"gold": 40 if mini else 90}
 	ph = 0.0
 	sm = &"intro"
@@ -49,6 +49,9 @@ func tick(dt: float) -> void:
 	dt = statuses(dt)
 	if dead:
 		return
+	if dt > 0.0:
+		vel = vel.lerp((position - _prev) / dt, 0.5)
+	_prev = position
 	t += dt
 	flash = maxf(0.0, flash - dt)
 	invuln = maxf(0.0, invuln - dt)
@@ -60,6 +63,10 @@ func tick(dt: float) -> void:
 		world.shake(0.5)
 		world.fx.ring(position, 4.0, 90.0, 0.6, Color.WHITE)
 		world.fx.text(position + Vector2(0, -28), "PHASE %d" % (phase + 1), Color("#ff3fa4"), 10)
+		Audio.sfx("phase", 0.0)
+		Game.buzz(120)
+		world.hitstop(0.12)
+		world.flash(0.35)
 		sm = &"recover"
 		st_t = 1.2
 		tele.clear()
@@ -98,7 +105,7 @@ func tick(dt: float) -> void:
 	var room := world.room_size()
 	position = position.clamp(Vector2(24, 30), room - Vector2(24, 24))
 	if position.distance_squared_to(world.player.position) < pow(r + world.player.r - 2.0, 2):
-		world.player.hurt(dmg, position)
+		world.player.hurt(dmg, position, "touch:%s" % title)
 	for p in parts:
 		p.flash = flash
 	_animate()
@@ -115,6 +122,7 @@ func _pick_move() -> void:
 	tele.clear()
 	done = false
 	mt = 0.0
+	Audio.sfx("tele", 0.05, -4.0)
 	_start(move)
 
 
@@ -153,18 +161,18 @@ func _idle(dt: float) -> void:
 
 # ---- emitters
 func ed() -> float:
-	return 12.0
+	return 6.0
 
 
 func ring(p: Vector2, n: int, speed: float, offset := 0.0, accel := 0.0) -> void:
 	for i in n:
-		world.enemy_shoot(p, offset + TAU * i / n, speed, ed(), accel)
+		world.enemy_shoot(p, offset + TAU * i / n, speed, ed(), accel, "shot:%s" % title)
 
 
 func aimed(p: Vector2, n: int, spread: float, speed: float) -> void:
 	var a := (world.player.position - p).angle()
 	for i in n:
-		world.enemy_shoot(p, a + ((float(i) / (n - 1) - 0.5) * spread if n > 1 else 0.0), speed, ed())
+		world.enemy_shoot(p, a + ((float(i) / (n - 1) - 0.5) * spread if n > 1 else 0.0), speed, ed(), 0.0, "shot:%s" % title)
 
 
 func tele_line(p: Vector2, ang: float, length: float, width: float) -> void:
@@ -185,7 +193,7 @@ func make_part(k: StringName, rad: float, fwd := 0.6) -> Enemy:
 	p.sprite.visible = true
 	p.r = rad
 	p.heavy = true
-	p.dmg = dmg * 0.8
+	p.dmg = dmg * 0.5
 	p.max_hp = 1e9
 	p.hp = 1e9
 	parts.append(p)

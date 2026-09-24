@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Wandcraft privacy manifest, kept as a REFERENCE of what we declare. Godot 4.7's iOS exporter
+  generates the real PrivacyInfo.xcprivacy from the export preset (privacy/* options) and adds
+  the engine's own required-reason API entries, so check the generated file in the Xcode
+  project against this one before the first App Store submission.
+
+  What we declare: no tracking, no tracking domains, no data collected (saves stay on the
+  device in the app container; no analytics, no ads, no accounts).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- our own code reads file timestamps only through the engine's save system -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

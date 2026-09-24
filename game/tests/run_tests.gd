@@ -1,7 +1,7 @@
 extends SceneTree
 ## Headless test runner (no plugins). Loads every tests/unit/test_*.gd, calls each test_* method
 ## on a fresh instance, and exits non-zero on any failure.
-## Run: godot --headless --path game -s res://tests/run_tests.gd [-- --only=name]
+## Run: godot --headless --path game -s res://tests/run_tests.gd [-- --only=name] [--dir=bench]
 
 var failures := 0
 var passed := 0
@@ -10,16 +10,19 @@ var current := ""
 
 func _initialize() -> void:
 	var only := ""
+	var folder := "unit"
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):
 			only = a.substr(7)
-	var dir := DirAccess.open("res://tests/unit")
+		elif a.begins_with("--dir="):
+			folder = a.substr(6)
+	var dir := DirAccess.open("res://tests/" + folder)
 	var files := Array(dir.get_files()).filter(func(f: String) -> bool: return f.begins_with("test_") and f.ends_with(".gd"))
 	files.sort()
 	for f in files:
 		if only != "" and not String(f).contains(only):
 			continue
-		var script: GDScript = load("res://tests/unit/" + f)
+		var script: GDScript = load("res://tests/%s/%s" % [folder, f])
 		for m in script.get_script_method_list():
 			var name: String = m["name"]
 			if not name.begins_with("test_"):

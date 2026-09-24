@@ -9,13 +9,19 @@ config/name="Wandcraft"
 config/description="Program your wand. Break the Glitch."
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://assets/icon/icon_1024.png"
+config/version="0.3.0"
+boot_splash/bg_color=Color(0.047, 0.027, 0.125, 1)
+boot_splash/image="res://assets/icon/splash.png"
+boot_splash/fullsize=false
+boot_splash/use_filter=false
 run/max_fps=0
 
 [autoload]
 
 Events="*res://scripts/autoload/events.gd"
 Game="*res://scripts/autoload/game.gd"
+Audio="*res://scripts/autoload/audio.gd"
 
 [display]
 
@@ -42,6 +48,7 @@ common/physics_interpolation=true
 
 renderer/rendering_method="mobile"
 textures/canvas_textures/default_texture_filter=0
+textures/vram_compression/import_etc2_astc=true
 2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true
 viewport/hdr_2d=false

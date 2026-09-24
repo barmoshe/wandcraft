@@ -16,6 +16,7 @@ extends Node2D
 ##   --shot=out.png --frames=N   save a screenshot after N frames, then quit
 ##   --touchdemo         draw sample thumbs on the sticks (store screenshots)
 ##   --wand=N            start with wand N selected
+##   --resethints        show the first-run tips again
 
 var world: World
 var hud: Hud
@@ -32,6 +33,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
+	if _args.has("resethints"):
+		Hints.reset()
 	_build_environment()
 	world = World.new()
 	add_child(world)
@@ -69,6 +72,7 @@ func _show_title() -> void:
 	hud.visible = false
 	touch.enabled = false
 	world.visible = false
+	Audio.music("title")
 	var t := TitleScreen.new()
 	_open(t, func(res: Dictionary) -> void:
 		if res.get("action") == "continue":
@@ -207,6 +211,8 @@ func _bot_answer(kind: StringName, data: Dictionary) -> void:
 func _open_end(won: bool) -> void:
 	_playing = false
 	SaveGame.record_run(world.run)
+	Audio.music("")
+	Audio.sfx("win" if won else "lose", 0.0)
 	var s := EndScreen.new()
 	s.won = won
 	_open(s, func(res: Dictionary) -> void:
@@ -324,7 +330,9 @@ func _follow_camera(snap := false) -> void:
 		return
 	var view := get_viewport_rect().size
 	var room := world.room_size()
-	var p := world.player.position
+	# the player moves on the 60 Hz physics tick; follow its interpolated position so the
+	# camera stays smooth on 90/120 Hz screens
+	var p := world.player.prev_pos.lerp(world.player.position, Engine.get_physics_interpolation_fraction()) if not snap else world.player.position
 	var lo := Vector2(-PAD_SIDE, -PAD_TOP)
 	var hi := room + Vector2(PAD_SIDE, PAD_BOTTOM)
 	var c := Vector2.ZERO

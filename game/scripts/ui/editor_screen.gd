@@ -211,6 +211,7 @@ func _move(from: Dictionary, to: Dictionary) -> void:
 			toast("The bag is full")
 			return
 	run.move_spell(from, to)
+	Audio.sfx("swap", 0.05)
 	if to["w"] >= 0:
 		focus_wand = to["w"]
 

@@ -47,11 +47,16 @@ static func save_settings(d: Dictionary) -> void:
 ## Lifetime numbers shown on the title screen.
 static func load_meta() -> Dictionary:
 	var d: Variant = _read(META_PATH)
-	var m := {"runs": 0, "wins": 0, "best_step": 0, "kills": 0}
+	var m := {"runs": 0, "wins": 0, "best_step": 0, "kills": 0, "hints": []}
 	if d is Dictionary:
 		for k in d:
 			m[k] = d[k]
 	return m
+
+
+static func save_meta(m: Dictionary) -> void:
+	if enabled:
+		_write(META_PATH, m)
 
 
 static func record_run(run: RunState) -> void:

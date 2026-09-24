@@ -4,12 +4,12 @@ extends Node2D
 ## (telegraph then dash), turret (bursts). Names and numbers are original (decisions/0002).
 
 const DEFS := {
-	&"slime": {"title": "Moss Blob", "ai": &"chase", "hp": 16.0, "spd": 34.0, "r": 6.0, "dmg": 8.0, "cost": 1, "gold": 1},
-	&"weaver": {"title": "Hex Weaver", "ai": &"shoot", "hp": 22.0, "spd": 40.0, "r": 6.0, "dmg": 10.0, "cost": 3, "gold": 3,
+	&"slime": {"title": "Moss Blob", "ai": &"chase", "hp": 16.0, "spd": 34.0, "r": 6.0, "dmg": 5.0, "cost": 1, "gold": 1},
+	&"weaver": {"title": "Hex Weaver", "ai": &"shoot", "hp": 22.0, "spd": 40.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
 		"shot": {"n": 1, "spd": 85.0, "cd": 2.2}},
-	&"ram": {"title": "Thornback", "ai": &"charge", "hp": 34.0, "spd": 30.0, "r": 7.0, "dmg": 14.0, "cost": 3, "gold": 3},
-	&"bugling": {"title": "Bugling", "ai": &"chase", "hp": 7.0, "spd": 62.0, "r": 4.0, "dmg": 6.0, "cost": 1, "gold": 1},
-	&"puffcap": {"title": "Puffcap", "ai": &"turret", "hp": 26.0, "spd": 0.0, "r": 6.0, "dmg": 9.0, "cost": 3, "gold": 3,
+	&"ram": {"title": "Thornback", "ai": &"charge", "hp": 34.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3},
+	&"bugling": {"title": "Bugling", "ai": &"chase", "hp": 7.0, "spd": 50.0, "r": 4.0, "dmg": 3.0, "cost": 1, "gold": 1},
+	&"puffcap": {"title": "Puffcap", "ai": &"turret", "hp": 26.0, "spd": 0.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
 		"shot": {"n": 8, "spd": 62.0, "cd": 3.0, "ring": true}},
 	&"loop_seg": {"title": "Loop Segment", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 6.0, "dmg": 12.0, "cost": 0, "gold": 0},
 	&"sentry": {"title": "Rune Sentry", "ai": &"turret", "hp": 44.0, "spd": 0.0, "r": 7.0, "dmg": 10.0, "cost": 4, "gold": 5,
@@ -52,6 +52,8 @@ var ph := 0.0
 var burst := 0
 var bcd := 0.0
 var hit_wall := false
+var vel := Vector2.ZERO        # measured each tick (aim-ahead uses it)
+var _prev := Vector2.ZERO
 var burn_t := 0.0
 var burn_dps := 0.0
 var chill_t := 0.0
@@ -101,6 +103,7 @@ func statuses(dt: float) -> float:
 		if _st_tick <= 0.0:
 			_st_tick = 0.25
 			world.hurt_enemy(self, burn_dps * 0.25, position, 0.0, 0.0, true)
+			Audio.sfx("burn", 0.2, -8.0)
 			world.fx.sparks(position + Vector2(0, -6), 1, Color("#ff8a3c"), 30.0)
 	if chill_t > 0.0:
 		chill_t -= dt
@@ -118,10 +121,10 @@ static func _flash_shader() -> Shader:
 func tick(dt: float) -> void:
 	if spawn_t > 0.0:
 		spawn_t -= dt
+		_prev = position
 		if spawn_t <= 0.0:
 			sprite.visible = true
 			world.fx.ring(position, 2.0, 14.0, 0.25, Color("#c46bff"))
-		queue_redraw()
 		return
 	dt = statuses(dt)
 	if dead:
@@ -129,8 +132,13 @@ func tick(dt: float) -> void:
 	t += dt
 	flash = maxf(0.0, flash - dt)
 	if ai == &"part":
+		# a boss segment is moved by its boss; still measure how fast it goes
+		if dt > 0.0:
+			vel = vel.lerp((position - _prev) / dt, 0.5)
+		_prev = position
 		_animate()
 		return
+	_prev = position
 	var pl := world.player
 	var d := pl.position - position
 	var dd := maxf(1.0, d.length())
@@ -207,9 +215,15 @@ func tick(dt: float) -> void:
 		position = world.move_body(position, r, knock * dt)
 		knock *= pow(0.004, dt)
 	if dmg > 0.0 and position.distance_squared_to(pl.position) < pow(r + pl.r - 1.0, 2):
-		pl.hurt(dmg, position)
+		pl.hurt(dmg, position, "touch:%s" % kind)
+		if state == &"dash":
+			# a charge that lands ends there: the ram stops, dazed
+			state = &"stun"
+			st_t = 0.8
 	if world.hazard_at(position) and world.spikes_up():
 		world.hurt_enemy(self, 12.0 * dt * 4.0, position, 0.0, 0.0, true)
+	if dt > 0.0:
+		vel = vel.lerp((position - _prev) / dt, 0.3)
 	_animate()
 
 
@@ -229,16 +243,13 @@ func shoot(ang: float) -> void:
 	var off := world.rng.randf() * TAU
 	for i in n:
 		var a := off + TAU * i / n if shot.get("ring", false) else ang
-		world.enemy_shoot(position + Vector2(0, -4), a, float(shot["spd"]), dmg * 0.9)
+		world.enemy_shoot(position + Vector2(0, -4), a, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
 	world.fx.ring(position + Vector2(0, -4), 1.0, 7.0, 0.15, Color("#ff5a7a"))
 
 
 func _draw() -> void:
 	if spawn_t > 0.0:
-		var k := 1.0 - spawn_t / 0.75
-		draw_arc(Vector2.ZERO, 3.0 + k * 8.0, 0.0, TAU, 16, Color(0.77, 0.42, 1.0, 0.8), 1.0)
-		draw_arc(Vector2.ZERO, 10.0 - k * 6.0, t, t + PI, 8, Color(1.0, 0.25, 0.64, 0.8), 1.0)
-		return
+		return   # the spawn rune is drawn by World on the glow layer
 	# contact shadow
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, r + 1.0, Color(0, 0, 0, 0.4))

@@ -36,6 +36,7 @@ var hits := PackedInt32Array()
 var shatter := 0
 var ignore := -1
 var tgt: Enemy
+var by := ""        # enemy bullets: who fired it (damage attribution)
 # trigger state
 var trig: StringName = &""
 var payload: CastNode

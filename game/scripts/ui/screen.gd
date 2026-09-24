@@ -73,6 +73,8 @@ func _gui_input(ev: InputEvent) -> void:
 
 ## Activates a button by id (also used by tests and by keyboard shortcuts).
 func press(id: String) -> void:
+	if not id.begins_with("slot:") and not id.begins_with("card") and not id.begins_with("item"):
+		Audio.sfx("ui_back" if id in ["close", "done", "resume", "skip", "title"] else "ui", 0.0)
 	_on_button(id)
 
 
