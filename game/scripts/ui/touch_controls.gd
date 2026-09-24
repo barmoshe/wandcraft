@@ -107,7 +107,7 @@ func _process(_dt: float) -> void:
 
 
 func _draw() -> void:
-	if not touched_once and not OS.has_feature("mobile"):
+	if not touched_once and not Game.is_touch():
 		return
 	if _move_id >= 0:
 		_draw_stick(_move_origin, _move_pos, Color(0.7, 0.8, 1.0))

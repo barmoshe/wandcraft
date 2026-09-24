@@ -34,7 +34,7 @@ static func show(id: String) -> bool:
 	var m := SaveGame.load_meta()
 	m["hints"] = _seen.keys()
 	SaveGame.save_meta(m)
-	Events.hint.emit(TIPS[id][0 if OS.has_feature("mobile") else 1])
+	Events.hint.emit(TIPS[id][0 if Game.is_touch() else 1])
 	return true
 
 

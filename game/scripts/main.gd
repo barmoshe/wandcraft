@@ -58,6 +58,11 @@ func _ready() -> void:
 	_screens = CanvasLayer.new()
 	_screens.layer = 20
 	add_child(_screens)
+	if OS.has_feature("web"):
+		var rot := CanvasLayer.new()
+		rot.layer = 100
+		add_child(rot)
+		rot.add_child(RotateHint.new())
 	var direct := _args.has("demo") or _args.has("showcase") or _args.has("step") or _args.has("kind") or _args.has("screen")
 	if direct and _args.get("screen", "") != "title":
 		_start_from_args()

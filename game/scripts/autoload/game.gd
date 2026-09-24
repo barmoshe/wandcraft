@@ -24,7 +24,18 @@ func _ready() -> void:
 	fit_pixels()
 
 
+## The web build does not always report a resize (phone rotation, browser bars sliding),
+## so the window size is also checked every frame; refitting only happens on a change.
+var _fitted := Vector2i.ZERO
+
+
+func _process(_dt: float) -> void:
+	if DisplayServer.get_name() != "headless" and get_window().size != _fitted:
+		fit_pixels()
+
+
 func fit_pixels() -> void:
+	_fitted = get_window().size
 	var win := get_window()
 	var size := Vector2(win.size)
 	if size.y <= 0.0:
@@ -38,7 +49,14 @@ func fit_pixels() -> void:
 func pixel_scale() -> float:
 	if DisplayServer.get_name() == "headless":
 		return 1.0
-	return maxf(1.0, roundf(float(get_window().size.y) / TARGET_HEIGHT))
+	# the short side sets the scale, so a phone held upright (web) is not scaled to a speck
+	var sz := get_window().size
+	return maxf(1.0, roundf(float(mini(sz.x, sz.y)) / TARGET_HEIGHT))
+
+
+## True on phones and tablets: the native apps, and the web build in a phone's browser.
+func is_touch() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("web_ios") or OS.has_feature("web_android")
 
 
 ## The screen area free of notches, the Dynamic Island and the home bar, in virtual pixels.
@@ -93,5 +111,5 @@ func apply_settings(d: Dictionary) -> void:
 
 ## A short vibration on phones (hurt, boss moments), if the player allows it.
 func buzz(ms: int) -> void:
-	if haptics and OS.has_feature("mobile"):
+	if haptics and is_touch():
 		Input.vibrate_handheld(ms)

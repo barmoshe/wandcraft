@@ -8,6 +8,7 @@ Per-project context. Loads only when working in this folder. Business-wide rules
   - Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (run it after any UI or input change; unit tests call `Screen.press()` and never exercise real input). Balance bench: `tools/balance.sh`. Screenshots: `tools/shots.sh`.
   - Regenerate audio and icons: `tools/audio.sh`, `tools/icon.sh`. Art review: `tools/artsheet.sh` (contact sheets).
   - Android APK: `tools/build_android.sh`. It writes `build/` (git-ignored) and caches the SDK outside the repo.
+  - Web build (plays in iPhone Safari): `tools/build_web.sh`, then `tools/deploy_web.sh` publishes it to https://wandcraft-test.vercel.app (Vercel project `wandcraft-test`; see `store/web-test.md`).
   - iOS test build (on Bar's Mac): `tools/export_ios.sh`. It generates the Xcode project in `~/wandcraft-ios`, and Xcode signs it with a Personal Team (see `store/ios-test.md`).
 - **Local conventions:**
   - **Content is original.** No name, description, number table or art may be copied from Magicraft or any other game (see `decisions/0002`). The mechanics are free to use.

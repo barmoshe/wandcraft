@@ -126,6 +126,7 @@
 
 ## Next action
 - **Testers:** install 0.4.0 and report on the look, feel, text size and difficulty. Say whether the hero reads well on a phone.
+- **iPhone, today:** the web version is live at https://wandcraft-test.vercel.app (see `store/web-test.md`). Add it to the Home Screen and play in landscape. The native iOS build comes later via TestFlight.
 - **Next:** the performance quality tier, M2 breadth (worlds 2–5) and M5 (the paywall, Game Center / Play Games).
 - **Known gaps:**
   - Keys, curses, potions and meta unlocks are deferred (ADR 0005).
@@ -137,6 +138,7 @@
 - Regenerate assets: `tools/audio.sh` (sound and music), `tools/icon.sh` (icon and splash).
 - Art review: `tools/artsheet.sh chars|icons|tiles|fx|style [-- --only=name --scale=8]` writes contact sheets to `shots/`.
 - Android APK: `tools/build_android.sh`. It writes to `build/`, and the first run downloads the SDK outside the repo.
+- Web (iPhone Safari): `tools/build_web.sh`, then `tools/deploy_web.sh` publishes it to https://wandcraft-test.vercel.app.
 - Screenshots: `tools/shots.sh`. Useful options (see `game/scripts/main.gd`):
   - A staged fight: `--showcase --wand=2`.
   - A boss: `--demo --kind=boss --loadout=strong --frames=480`.

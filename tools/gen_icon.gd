@@ -23,6 +23,11 @@ func _initialize() -> void:
 	_stamp(icon, bust, Vector2i(512, 1024 - bust.get_height() * 32 / 2 + 8), 32)
 	icon.convert(Image.FORMAT_RGB8)
 	icon.save_png(OUT + "icon_1024.png")
+	# web build (PWA / Add to Home Screen): 144, 180 (Apple touch icon), 512
+	for n in [144, 180, 512]:
+		var small := icon.duplicate() as Image
+		small.resize(n, n, Image.INTERPOLATE_LANCZOS)
+		small.save_png(OUT + "pwa_%d.png" % n)
 	# Android adaptive: the foreground keeps its art inside the central 66% safe zone
 	var fg := Image.create_empty(432, 432, false, Image.FORMAT_RGBA8)
 	_stamp(fg, bust, Vector2i(216, 224), 10)
