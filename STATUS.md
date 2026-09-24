@@ -109,16 +109,24 @@
   - **Guard:** `tools/taptest.sh` boots the real game at 2340×1080 (straight, and after a portrait-to-landscape rotation) and sends real `InputEventScreenTouch` events. It covers title NEW RUN, HUD pause and RESUME, an editor drag, reward TAKE and a mouse click. It failed on the old code and passes now.
   - **Also:** the title's version label now comes from the project settings (it was hard-coded "v0.2").
 
+- **0.4 "Art + Arsenal": done 2026-09-24** (ADR 0007, `research/arsenal-v04.md`). Everything is drawn in code on one Style palette.
+  - **Hero:** reinvented as a hipster mage after Bar's reference (quiff, teal shades, beard, yellow shirt, red tie, teal suspenders, red trousers). The Copy-Paste boss is his glitched copy. The app icon is his bust.
+  - **Enemies:** redrawn bigger, with animation parts. The Loop gets a serpent head with an open-jaw telegraph.
+  - **Rooms:** the Ruined Grove fills wide phones.
+    - Painted surroundings instead of black bars, and a calmer floor with moss creep.
+    - Archway doors, reward altar, fountain, merchant, anvil and torches.
+  - **Arsenal:**
+    - 4 new shooting spells (Boomerang Disc, Glitch Mine, Static Cone, Null Orb), 2 new boosts (Split, Gravity) and a new trigger (Finally).
+    - 8 new relics. Cache Line is merged into Spare Battery and Keen Scope is cut.
+    - Synergy tags steer the rewards.
+    - Every flying spell has its own projectile sprite.
+    - Every item has an illustrated icon.
+  - **UI:** parallax title, bevelled buttons, rarity-banded reward cards with tag chips, and a reskinned shop and HUD.
+  - **Checks:** 66 unit tests, the real-touch tap test, and the balance bench (70% survival, mini-boss about 58 s, boss about 41 s, no stalls).
+
 ## Next action
-- **Testers:** install 0.3.1 and confirm the menus respond, then report on feel, text size and difficulty.
-- **0.4 "Art + Arsenal"** is planned and approved, and drawn in code:
-  - A shared style and palette.
-  - Bigger, animated characters and enemies.
-  - Rooms that fill wide phones, with Ruined Grove surroundings and set pieces.
-  - Redesigned spells with projectile art and new icons.
-  - Redesigned relics with synergy tags.
-  - A title and UI reskin.
-- **After that:** the performance quality tier, M2 breadth (worlds 2–5) and M5 (the paywall, Game Center / Play Games).
+- **Testers:** install 0.4.0 and report on the look, feel, text size and difficulty. Say whether the hero reads well on a phone.
+- **Next:** the performance quality tier, M2 breadth (worlds 2–5) and M5 (the paywall, Game Center / Play Games).
 - **Known gaps:**
   - Keys, curses, potions and meta unlocks are deferred (ADR 0005).
   - The iOS privacy manifest must be checked against the one Godot generates.
@@ -127,6 +135,7 @@
 ## How to look at it
 - Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (xvfb). Balance bench: `tools/balance.sh` (a few minutes).
 - Regenerate assets: `tools/audio.sh` (sound and music), `tools/icon.sh` (icon and splash).
+- Art review: `tools/artsheet.sh chars|icons|tiles|fx|style [-- --only=name --scale=8]` writes contact sheets to `shots/`.
 - Android APK: `tools/build_android.sh`. It writes to `build/`, and the first run downloads the SDK outside the repo.
 - Screenshots: `tools/shots.sh`. Useful options (see `game/scripts/main.gd`):
   - A staged fight: `--showcase --wand=2`.

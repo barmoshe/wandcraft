@@ -46,3 +46,6 @@ Every one of these would also hit real players:
 ## Caveats
 - The bot is not a human. Early human play should be easier than this (people adapt to patterns), and the Loop may feel harder (the body is hard to read on a small screen). Re-check on the first real-device build.
 - Numbers live in data (`Enemy.DEFS`, the boss `_init_boss`, `World._compose_waves`, `RunState`), so tuning after device tests does not touch logic.
+
+## After the 0.4 arsenal (2026-09-24)
+New spells and relics, tag-weighted rewards and +20% base auto-aim reach (Keen Scope cut). Same bench, 10 seeds: **70% survival**, mini-boss about 58 s, boss about 41 s, no stalls. It stays inside the guardrail (40–85%), so no tuning was needed.
