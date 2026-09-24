@@ -290,6 +290,35 @@ func button(r: Rect2, id: String, label: String, kind := "normal", enabled := tr
 		_buttons.append([hr, id])
 
 
+## Synergy tags of an offer item (spells and relics), for the card chips.
+static func item_tags(item: Dictionary) -> Array:
+	match item["t"]:
+		&"spell":
+			return Catalog.tags(item["id"])
+		&"relic":
+			return Relics.tags(item["id"])
+	return []
+
+
+## Small tag chips in a centered row; returns the height used (0 when no tags).
+func chips(cx: float, y: float, tags: Array) -> float:
+	if tags.is_empty():
+		return 0.0
+	var f := Game.font("small")
+	var ws: Array = tags.map(func(t: String) -> float: return f.get_string_size(t.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0)
+	var total := 0.0
+	for w in ws:
+		total += w + 3.0
+	var x := cx - (total - 3.0) / 2.0
+	for i in tags.size():
+		var r := Rect2(x, y, ws[i], 10)
+		draw_rect(r, Style.c("night:3"))
+		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Style.c("night:4"))
+		text(r.position + Vector2(4, 8), String(tags[i]).to_upper(), Style.c("cyan:4"))
+		x += ws[i] + 3.0
+	return 12.0
+
+
 ## Registers an invisible tappable area (cards, slots).
 func area(r: Rect2, id: String) -> void:
 	_buttons.append([r, id])

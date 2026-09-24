@@ -124,7 +124,7 @@ static func _build() -> void:
 	_s("loop", T, "While Loop", "#ffe066", {"mp": [4], "t": "loop"}, "While the left spell flies, keep casting the right one at 70/55/40% mana.")
 	_s("fork", T, "Fork Bomb", "#ffe066", {"rar": 1, "mp": [6], "t": "fork"}, "When the left spell ends, the right one forks 4 ways at 35/45/60% damage. Its mana x4.")
 	# ---- passives: work from any slot ----
-	_s("finally", T, "Finally", "#ffe066", {"rar": 1, "mp": [4], "t": "finally"}, "When the left spell kills an enemy, cast the right one from the body at the next enemy. Up to 1/2/3 times.")
+	_s("finally", T, "Finally", "#ffe066", {"rar": 1, "mp": [4], "t": "finally"}, "A kill by the left spell casts the right one from the body. Up to 1/2/3 times.")
 
 	_s("cache", S, "Mana Cache", "#5ce1ff", {}, "Wand max mana +40/80/160%.")
 	_s("regen", S, "Regen Coil", "#7dff9a", {}, "Wand mana regenerates 30/60/120% faster.")

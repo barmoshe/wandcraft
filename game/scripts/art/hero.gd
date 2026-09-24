@@ -9,11 +9,11 @@ extends RefCounted
 
 const PAL := {
 	# hair (near-black with a cool sheen)
-	"h": "night:1", "H": "slate:2",
+	"h": "slate:1", "H": "slate:3",
 	# face, shades, beard
 	"S": "skin:2", "s": "skin:3", "z": "skin:4", "n": "skin:2",
 	"o": "night:0", "G": "cyan:2", "g": "cyan:4",
-	"B": "night:1", "m": "rose:1",
+	"B": "slate:1", "m": "rose:1",
 	# shirt, collar, tie, suspenders, cuffs, belt
 	"Y": "gold:3", "w": "gold:4", "y": "gold:2", "c": "bone:4", "T": "blood:2", "t": "blood:3",
 	"Q": "cyan:2", "k": "gold:2", "L": "wood:1",

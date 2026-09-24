@@ -21,12 +21,13 @@ func _play(seed_value: int) -> Dictionary:
 	world.ui_request.connect(_answer.bind(world, state))
 	var by: Dictionary = {}
 	res["by"] = by
-	Events.player_hurt.connect(func(a: float) -> void:
+	var on_hurt := func(a: float) -> void:
 		if not is_instance_valid(world):
 			return
 		res["hp_lost"] += a
 		var k: String = world.player.last_hurt_by
-		by[k] = float(by.get(k, 0.0)) + a)
+		by[k] = float(by.get(k, 0.0)) + a
+	Events.player_hurt.connect(on_hurt)
 	world.start_run(RunState.create(seed_value))
 	var t := 0.0
 	var boss_t0 := -1.0
@@ -41,6 +42,7 @@ func _play(seed_value: int) -> Dictionary:
 		if world.boss and world.boss.dead and boss_t0 >= 0.0:
 			res["mini" if world.room_kind == &"mini" else "boss"] = t - boss_t0
 			boss_t0 = -1.0
+	Events.player_hurt.disconnect(on_hurt)
 	res["won"] = state["victory"]
 	res["step"] = world.run.step
 	res["time"] = t

@@ -1,5 +1,5 @@
 extends SceneTree
-## Renders the app icon set from the game's own pixel art (the wizard casting, on the purple
+## Renders the app icon set from the game's own pixel art (the hipster hero, on the purple
 ## Glitch background), so the icon always matches the game. Deterministic.
 ##   game/assets/icon/icon_1024.png      App Store / iOS (opaque, no alpha)
 ##   game/assets/icon/android_192.png    legacy Android launcher icon
@@ -15,36 +15,36 @@ const BG_BOTTOM := Color("#0c0720")
 
 func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
-	var wiz := _wizard()
-	# iOS: opaque square, the wizard filling most of it
+	var bust := _bust()
+	var body := Hero.frame(0, 0, false)
+	# iOS: opaque square, a head-and-shoulders portrait rising from the bottom edge
 	var icon := _background(1024)
 	_sparkles(icon, 1024, 77)
-	_stamp(icon, wiz, Vector2i(512, 560), 30)
-	_glow_tip(icon, Vector2i(512, 560), 30)
+	_stamp(icon, bust, Vector2i(512, 1024 - bust.get_height() * 32 / 2 + 8), 32)
 	icon.convert(Image.FORMAT_RGB8)
 	icon.save_png(OUT + "icon_1024.png")
 	# Android adaptive: the foreground keeps its art inside the central 66% safe zone
 	var fg := Image.create_empty(432, 432, false, Image.FORMAT_RGBA8)
-	_stamp(fg, wiz, Vector2i(216, 236), 10)
-	_glow_tip(fg, Vector2i(216, 236), 10)
+	_stamp(fg, bust, Vector2i(216, 224), 10)
 	fg.save_png(OUT + "android_fg_432.png")
 	var bg := _background(432)
 	_sparkles(bg, 432, 31)
 	bg.convert(Image.FORMAT_RGB8)
 	bg.save_png(OUT + "android_bg_432.png")
 	var legacy := _background(192)
-	_stamp(legacy, wiz, Vector2i(96, 106), 6)
+	_stamp(legacy, bust, Vector2i(96, 192 - bust.get_height() * 6 / 2 + 2), 6)
 	legacy.save_png(OUT + "android_192.png")
 	var splash := Image.create_empty(256, 256, false, Image.FORMAT_RGBA8)
-	_stamp(splash, wiz, Vector2i(128, 150), 6)
-	_glow_tip(splash, Vector2i(128, 150), 6)
+	_stamp(splash, body, Vector2i(128, 128), 5)
 	splash.save_png(OUT + "splash.png")
 	print("gen_icon: wrote the icon set to %s" % OUT)
 	quit()
 
 
-func _wizard() -> Image:
-	return PixelArt.from_rows(Sprites.wizard_rows(0, false, true), Sprites.WIZ_PAL)
+## The hero from the hat to the chest (quiff, shades, beard, collar and tie).
+func _bust() -> Image:
+	var full := Hero.frame(0, 0, false)
+	return full.get_region(Rect2i(0, 0, full.get_width(), 26))
 
 
 func _background(size: int) -> Image:

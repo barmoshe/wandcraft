@@ -9,12 +9,12 @@ extends Control
 ##   bottom       the boss bar during boss fights
 ## Everything sits inside the safe area (notch, Dynamic Island, home bar).
 
-const SOCKET := 16
+const SOCKET := 18    # the 0.4 icons are 18 px; their frame is the socket
 const BTN := 26.0
-const GOLD := Color("#e0b84e")
-const INK := Color("#0a0714")
+const GOLD := Style.UI_GOLD
+const INK := Style.INK
 const PANEL := Color(0.07, 0.05, 0.13, 0.86)
-const RIM := Color("#3b3058")
+const RIM := Style.UI_RIM
 
 var world: World
 var wand_rows: Array[Rect2] = []
@@ -143,10 +143,15 @@ func _draw_hint(sr: Rect2) -> void:
 func _panel(r: Rect2, gold := false) -> void:
 	draw_rect(r, PANEL)
 	draw_rect(r, INK, false, 1.0)
-	draw_rect(r.grow(-1.0), GOLD.darkened(0.25) if gold else RIM, false, 1.0)
+	var inner := r.grow(-1.0)
+	var lit := Style.c("gold:2") if gold else Style.UI_PANEL_HI.lightened(0.25)
+	draw_rect(Rect2(inner.position, Vector2(inner.size.x, 1)), lit)
+	draw_rect(Rect2(inner.position, Vector2(1, inner.size.y)), lit.darkened(0.2))
+	draw_rect(Rect2(inner.position + Vector2(0, inner.size.y - 1), Vector2(inner.size.x, 1)), RIM.darkened(0.3))
+	draw_rect(Rect2(inner.position + Vector2(inner.size.x - 1, 0), Vector2(1, inner.size.y)), RIM.darkened(0.3))
 	if gold:
 		for c in [r.position, Vector2(r.end.x - 2, r.position.y), Vector2(r.position.x, r.end.y - 2), r.end - Vector2(2, 2)]:
-			draw_rect(Rect2(c, Vector2(2, 2)), GOLD)
+			draw_rect(Rect2(c, Vector2(2, 2)), Style.c("gold:3"))
 
 
 func _text(p: Vector2, s: String, c: Color, size := 8, kind := "small", align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
@@ -172,7 +177,7 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		var w: WandState = run.wands[wi]
 		var sel := wi == run.cur
 		var n := w.slots.size()
-		var row := Rect2(origin.x, y, 22 + n * (SOCKET + 1) + 3, SOCKET + 8)
+		var row := Rect2(origin.x, y, 22 + n * (SOCKET + 1) + 3, SOCKET + 7)
 		widest = maxf(widest, row.size.x)
 		wand_rows.append(row)
 		_panel(row, sel)
@@ -186,13 +191,17 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		for i in n:
 			var c := row.position + Vector2(23 + i * (SOCKET + 1) + SOCKET / 2.0, 3 + SOCKET / 2.0 + 1)
 			var lit := w.flash == i and w.cd > 0.0
-			draw_circle(c, SOCKET / 2.0, INK)
-			draw_circle(c, SOCKET / 2.0 - 1.0, Color("#1a1330"))
-			draw_arc(c, SOCKET / 2.0 - 1.0, 0.0, TAU, 20, GOLD if lit else Color("#4a3e66"), 1.0)
 			var s: Variant = w.slots[i]
-			if s != null:
+			if s == null:
+				draw_circle(c, SOCKET / 2.0 - 1.0, INK)
+				draw_circle(c, SOCKET / 2.0 - 2.0, Style.c("night:2"))
+				draw_arc(c, SOCKET / 2.0 - 2.0, 0.0, TAU, 20, Style.c("night:4"), 1.0)
+			else:
 				var ic := Icons.spell(Catalog.spell(s["id"]))
-				draw_texture(ic, (c - ic.get_size() / 2.0).round(), Color.WHITE if sel else Color(0.75, 0.75, 0.8))
+				draw_texture(ic, (c - ic.get_size() / 2.0).round(), Color.WHITE if sel else Color(0.7, 0.7, 0.78))
+			if lit:
+				draw_arc(c, SOCKET / 2.0, 0.0, TAU, 20, GOLD, 1.0)
+			if s != null:
 				if int(s["lv"]) > 1:
 					_text(c + Vector2(3, 7), "+".repeat(int(s["lv"]) - 1), GOLD, 8)
 			if sel and i == w.ptr and w.rech <= 0.0:
@@ -227,8 +236,11 @@ func _draw_vitals(bl: Vector2, run: RunState) -> void:
 	var w := run.wand()
 	var panel := Rect2(bl.x, bl.y - 30, 128, 30)
 	_panel(panel)
-	_bar(Rect2(panel.position + Vector2(4, 4), Vector2(120, 11)), run.hp / run.max_hp, Color("#d8344a"), "%d/%d" % [roundi(run.hp), roundi(run.max_hp)])
-	_bar(Rect2(panel.position + Vector2(4, 17), Vector2(120, 9)), w.mana / w.max_mana(), Color("#3a7cf0"), "%d" % roundi(w.mana))
+	_bar(Rect2(panel.position + Vector2(4, 4), Vector2(120, 11)), run.hp / run.max_hp, Style.c("blood:2"), "%d/%d" % [roundi(run.hp), roundi(run.max_hp)])
+	if world.player.shield > 0.0:
+		var sk := world.player.shield / 30.0
+		draw_rect(Rect2(panel.position + Vector2(5, 5), Vector2(118 * sk, 2)), Style.c("frost:3"))
+	_bar(Rect2(panel.position + Vector2(4, 17), Vector2(120, 9)), w.mana / w.max_mana(), Style.c("arcane:3"), "%d" % roundi(w.mana))
 
 
 func _draw_top_right(tr: Vector2, run: RunState) -> void:
@@ -239,8 +251,9 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 	_text(gr.position + Vector2(20, 17), str(run.gold), GOLD, 8, "bold")
 	# relics, a compact column under the gold
 	for i in run.relics.size():
-		var p := Vector2(tr.x - 8 - (i % 6) * 15, tr.y + BTN + 10 + (i / 6) * 15)
-		draw_texture(Icons.relic(run.relics[i]), (p - Vector2(7, 7)).round())
+		var p := Vector2(tr.x - 9 - (i % 6) * 19, tr.y + BTN + 12 + (i / 6) * 19)
+		var ic := Icons.relic(run.relics[i])
+		draw_texture(ic, (p - ic.get_size() / 2.0).round())
 
 
 func _draw_map(tc: Vector2, run: RunState) -> void:

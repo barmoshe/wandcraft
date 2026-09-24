@@ -49,6 +49,7 @@ func _paint() -> void:
 		var it: Dictionary = items[i]
 		var r := Rect2(grid.position + Vector2((i % cols) * (tw + 6), (i / cols) * (th + 6)), Vector2(tw, th))
 		panel(r, i == sel)
+		draw_rect(Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4, 2)), rarity_color(Rewards.item_rarity(it)).darkened(0.2))
 		if i == sel:
 			draw_rect(r.grow(1.0), GOLD, false, 1.0)
 		var mod := Color(1, 1, 1, 0.35) if it.get("sold", false) else Color.WHITE
@@ -67,7 +68,9 @@ func _paint() -> void:
 		text(ir.position + Vector2(34, 17), Rewards.item_title(it), TEXT, 8, "bold")
 		var rar := Rewards.item_rarity(it)
 		text(ir.position + Vector2(34, 28), "%s - %s" % [kind_label(it), Relics.RARITY_NAMES[rar]], rarity_color(rar))
-		var used := para(Rect2(ir.position + Vector2(8, 40), Vector2(ir.size.x - 16, ir.size.y - 90)), Rewards.item_desc(it), MUTED)
+		var kl := kind_label(it).to_lower()
+		var ch := chips(ir.get_center().x, ir.position.y + 34, item_tags(it).filter(func(t: String) -> bool: return not kl.contains(t.to_lower())))
+		var used := para(Rect2(ir.position + Vector2(8, 40 + ch), Vector2(ir.size.x - 16, ir.size.y - 90 - ch)), Rewards.item_desc(it), Style.c("bone:3")) + ch
 		if it["t"] == &"spell":
 			var lv: int = int(it.get("lv", 1)) + (1 if mode == "forge" else 0)
 			text(ir.position + Vector2(8, 48 + used), spell_stats(it["id"], lv), Color("#8fd8ff"))
