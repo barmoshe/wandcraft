@@ -15,6 +15,8 @@ var mp_mul := 1.0
 var cnt_mp := 1.0
 var shatter := 0
 var scatter := 0.0
+var burn := 0        # status level applied on hit (Ember Coat)
+var chill := 0       # status level applied on hit (Frost Coat)
 
 
 func copy() -> Mods:
@@ -22,6 +24,7 @@ func copy() -> Mods:
 	m.dmg = dmg; m.spd = spd; m.area = area; m.dur_add = dur_add; m.home = home
 	m.pierce = pierce; m.bounce = bounce; m.crit = crit; m.multi = multi
 	m.mp_mul = mp_mul; m.cnt_mp = cnt_mp; m.shatter = shatter; m.scatter = scatter
+	m.burn = burn; m.chill = chill
 	return m
 
 

@@ -2,9 +2,11 @@ class_name World
 extends Node2D
 ## One room of the run and everything in it. `step(dt)` advances the whole simulation by
 ## one fixed tick; the scene calls it from _physics_process and tests call it directly.
+## The run itself (map position, wands, relics, gold) lives in `run` (RunState). The world
+## never opens menus: it emits `ui_request` and waits (`paused`) until main.gd resolves it.
 ##
 ## Room legend: '#' wall, 'o' pillar, '~' spike plate, 's' spawn socket, 'L' torch,
-## 'c' crate (floor for now). Two doors are carved into the top wall and open on clear.
+## 'c' crate (floor for now). Doors are carved into the top wall and open on clear.
 
 const TS := 16
 const ROOMS := {
@@ -55,16 +57,93 @@ const ROOMS := {
 		"#............................#",
 		"#L........s........s........L#",
 		"##############################"],
+	"donut": [
+		"##########################",
+		"#L....s.....s.....s.....L#",
+		"#........................#",
+		"#....~.............~.....#",
+		"#s.......########.......s#",
+		"#........#......#........#",
+		"#...c....#..cc..#....c...#",
+		"#........#......#........#",
+		"#s.......####..##.......s#",
+		"#....~..............~....#",
+		"#........................#",
+		"#L.........s.s..........L#",
+		"#........................#",
+		"##########################"],
+	"split": [
+		"################################",
+		"#L....s..........#.....s......L#",
+		"#................#.............#",
+		"#..~~~...........#.......~~~...#",
+		"#s...............#............s#",
+		"#.......o...............o......#",
+		"#..............................#",
+		"#....c......................c..#",
+		"#.......o...............o......#",
+		"#s...............#............s#",
+		"#..~~~...........#.......~~~...#",
+		"#................#.............#",
+		"#L.......s.......#......s.....L#",
+		"################################"],
+	"camp": [
+		"####################",
+		"#L................L#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#.....c......c.....#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#L................L#",
+		"#..................#",
+		"####################"],
+	"arena_open": [
+		"##############################",
+		"#L..........................L#",
+		"#............................#",
+		"#............................#",
+		"#.....o..................o...#",
+		"#............................#",
+		"#............................#",
+		"#............................#",
+		"#............................#",
+		"#............................#",
+		"#.....o..................o...#",
+		"#............................#",
+		"#............................#",
+		"#L..........................L#",
+		"#............................#",
+		"##############################"],
+	"arena_ring": [
+		"################################",
+		"#L............................L#",
+		"#..............................#",
+		"#..............................#",
+		"#..............................#",
+		"#..............................#",
+		"#.............oo...............#",
+		"#.............oo...............#",
+		"#..............................#",
+		"#..............................#",
+		"#..............................#",
+		"#..............................#",
+		"#L............................L#",
+		"#..............................#",
+		"################################"],
 }
-const FIGHT_ROOMS := ["hall", "cross", "pillars"]
-const ROSTER := [&"slime", &"weaver", &"ram", &"sentry"]
-const DOOR_KINDS := [&"fight", &"elite", &"treasure"]
-const LOOT := [&"mote", &"lance", &"fan", &"burst", &"moths", &"seed", &"empower", &"quicken", &"seek",
-	&"phase", &"ricochet", &"twin", &"chorus", &"shatter", &"mirror", &"then", &"callback", &"loop",
-	&"fork", &"cache", &"heatsink", &"wheel"]
+const FIGHT_ROOMS := ["hall", "cross", "pillars", "donut", "split"]
+const EARLY_ROSTER: Array[StringName] = [&"slime", &"bugling", &"weaver", &"puffcap"]
+const ROSTER: Array[StringName] = [&"slime", &"bugling", &"weaver", &"puffcap", &"ram", &"sentry"]
 
 signal room_built
+## kind: reward | shop | forge | victory | defeat. main.gd opens the screen, then calls
+## ui_done() (or reward_taken()) so the room can continue.
+signal ui_request(kind: StringName, data: Dictionary)
 
+var run: RunState
 var grid := PackedByteArray()
 var gw := 0
 var gh := 0
@@ -78,32 +157,33 @@ var controls := Controls.new()
 var fx: FxLayer
 var rng := RandomNumberGenerator.new()
 var time := 0.0
+var room_time := 0.0
 var auto_step := true
+var paused := false
 var bot := false
 var run_seed := 1
 
 # room state
-var room_no := 0
-var room_kind: StringName = &"fight"
-var room_tpl := "hall"
+var room_kind: StringName = &"start"
+var room_tpl := "camp"
 var sockets: Array[Vector2] = []
 var torches: Array[Vector2] = []
 var hazards: Array[Vector2i] = []
-var doors: Array = []          # {"col": int, "kind": StringName}
+var doors: Array = []          # {"col": int, "def": door dictionary}
 var doors_open := false
 var cleared := false
-var waves_left := 0
-var wave_budget := 0
+var waves: Array = []          # each wave: Array of [kind, elite]
+var wave_i := 0
 var wave_t := 0.0
-var pickups: Array = []        # {"pos": Vector2, "id": StringName, "t": float}
+var orb: Dictionary = {}       # reward orb: {"pos", "kind", "t"}
+var npc: Dictionary = {}       # {"pos", "kind": shop|forge|spring, "used", "near"}
+var boss: Boss
+var boss_t := 0.0
 var dead_t := 0.0
 var shake_amt := 0.0
-
-# run stats
-var gold := 0
-var kills := 0
+var caught := false            # Try / Catch used in this room
 var damage_done := 0.0
-var rooms_cleared := 0
+var _kill_streak := 0
 
 # move_body results
 var last_hit_x := false
@@ -164,29 +244,62 @@ func setup(seed_value: int) -> void:
 	Events.player_died.connect(_on_player_died)
 
 
-func new_run() -> void:
-	gold = 0
-	kills = 0
-	damage_done = 0.0
-	rooms_cleared = 0
-	room_no = 0
-	player.new_run()
-	build_room("hall", &"fight")
+## Starts (or resumes) a run: builds the room the run is standing in.
+func start_run(r: RunState) -> void:
+	run = r
+	rng.seed = r.seed_value * 7919 + r.step
+	player.dead = false
+	dead_t = 0.0
+	paused = false
+	enter_room()
 
 
 # ------------------------------------------------------------------ rooms
+
+func room_plan() -> StringName:
+	return Chapter.PLAN[clampi(run.step, 0, Chapter.PLAN.size() - 1)]
+
+
+## Builds the room for the run's current step and saves the run (a resume lands here).
+func enter_room() -> void:
+	var plan := room_plan()
+	var kind: StringName = plan
+	if plan == &"room":
+		kind = StringName(run.room.get("kind", "fight"))
+	var tpl: String
+	match kind:
+		&"start", &"shop", &"spring", &"forge":
+			tpl = "camp"
+		&"mini":
+			tpl = "arena_open"
+		&"boss":
+			tpl = "arena_ring"
+		_:
+			tpl = FIGHT_ROOMS[rng.randi() % FIGHT_ROOMS.size()]
+	if run.doors.is_empty():
+		run.doors = Chapter.door_options(run)
+	if kind == &"shop" and run.shop.is_empty():
+		run.shop = Rewards.shop_stock(run)
+	build_room(tpl, kind)
+	if run.has_relic(&"interest") and run.gold >= 60:
+		run.gold += 3
+	SaveGame.save_run(run)
+
 
 func build_room(tpl: String, kind: StringName) -> void:
 	for e in enemies:
 		e.queue_free()
 	enemies.clear()
+	boss = null
 	bullets.clear_all()
 	ebullets.clear_all()
 	fx.clear_all()
-	pickups.clear()
-	room_no += 1
+	orb = {}
+	npc = {}
 	room_tpl = tpl
 	room_kind = kind
+	room_time = 0.0
+	caught = false
 	var rows: Array = ROOMS[tpl]
 	gh = rows.size()
 	gw = String(rows[0]).length()
@@ -197,9 +310,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	for y in gh:
 		var row: String = rows[y]
 		for x in gw:
-			var ch := row[x]
 			var tile := 0
-			match ch:
+			match row[x]:
 				"#":
 					tile = 1
 				"o":
@@ -212,16 +324,10 @@ func build_room(tpl: String, kind: StringName) -> void:
 				"L":
 					torches.append(_center(x, y))
 			grid[y * gw + x] = tile
-	# two doors of two tiles each, a third and two thirds along the top wall
-	doors.clear()
-	var kinds := DOOR_KINDS.duplicate()
-	_shuffle(kinds)
-	for k in 2:
-		var col := int(gw * (k + 1) / 3.0) - 1
-		doors.append({"col": col, "kind": kinds[k]})
+	_place_doors()
 	doors_open = false
 	cleared = false
-	_floor.texture = ImageTexture.create_from_image(RoomPainter.paint(grid, gw, gh, run_seed * 131 + room_no))
+	_floor.texture = ImageTexture.create_from_image(RoomPainter.paint(grid, gw, gh, run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()))
 	for l in _lights.get_children():
 		l.queue_free()
 	for tp in torches:
@@ -232,17 +338,351 @@ func build_room(tpl: String, kind: StringName) -> void:
 	player.position = _find_floor(gw / 2, gh - 2)
 	player.vel = Vector2.ZERO
 	player.reset_physics_interpolation()
+	waves = []
+	wave_i = 0
+	wave_t = 0.8
+	var mid := _find_floor(gw / 2, gh / 2 - 1)
 	match kind:
-		&"treasure":
-			pickups.append({"pos": _center(gw / 2, gh / 2), "id": LOOT[rng.randi() % LOOT.size()], "t": 0.0})
+		&"start":
+			orb = {"pos": mid, "kind": &"start", "t": 0.0}
+			cleared = true
+		&"shop", &"forge", &"spring":
+			npc = {"pos": mid, "kind": kind, "used": false, "near": false}
 			_clear_room(false)
-		_:
-			waves_left = 2
-			wave_budget = 4 + room_no + (2 if kind == &"elite" else 0)
-			wave_t = 0.8
+		&"mini", &"boss":
+			boss_t = 1.0
+		&"fight", &"challenge":
+			waves = _compose_waves(kind)
+		&"empty":
+			cleared = true   # tests and the showcase: a room with nothing in it
 	_deco.queue_redraw()
-	Events.room_entered.emit({"no": room_no, "kind": kind, "tpl": tpl})
+	Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
+		"title": _room_title(kind)})
 	room_built.emit()
+
+
+func _room_title(kind: StringName) -> String:
+	match kind:
+		&"start":
+			return "THE RUINED GROVE"
+		&"mini":
+			return "MINI-BOSS"
+		&"boss":
+			return "BOSS"
+	var key := String(kind) if kind != &"fight" else String(run.room.get("reward", "spell")) if run else "fight"
+	return String(Chapter.INFO.get(key, {"name": String(kind)})["name"]).to_upper()
+
+
+## 1-3 doors of two tiles each, spread along the top wall over floor.
+func _place_doors() -> void:
+	doors.clear()
+	var defs: Array = run.doors if run else [{"kind": &"fight", "reward": &"spell"}]
+	var n := defs.size()
+	for k in n:
+		var col := int(gw * (k + 1) / float(n + 1)) - 1
+		for shift in [0, 1, -1, 2, -2, 3, -3]:
+			var c: int = col + shift
+			if c >= 1 and c + 1 < gw - 1 and tile_at(c, 1) == 0 and tile_at(c + 1, 1) == 0:
+				col = c
+				break
+		doors.append({"col": col, "def": defs[k]})
+
+
+func _compose_waves(kind: StringName) -> Array:
+	var step := run.step if run else 1
+	var budget := (6.0 + step * 2.0) * (1.3 if kind == &"challenge" else 1.0)
+	var roster: Array = EARLY_ROSTER if step <= 2 else ROSTER
+	var out: Array = []
+	var n := 2
+	for w in n:
+		var b := budget / n * (1.2 if w == n - 1 else 0.9)
+		var list: Array = []
+		var guard := 0
+		while b > 0.0 and list.size() < 14 and guard < 40:
+			guard += 1
+			var opts := roster.filter(func(k: StringName) -> bool: return float(Enemy.DEFS[k]["cost"]) <= b + 1.0)
+			if opts.is_empty():
+				break
+			var k: StringName = opts[rng.randi() % opts.size()]
+			b -= float(Enemy.DEFS[k]["cost"])
+			list.append([k, false])
+		out.append(list)
+	if kind == &"challenge":
+		var picks := roster.filter(func(k: StringName) -> bool: return k != &"bugling")
+		out[n - 1].append([picks[rng.randi() % picks.size()], true])
+	return out
+
+
+func _spawn_wave(list: Array) -> void:
+	var socks := sockets.filter(func(p: Vector2) -> bool: return p.distance_to(player.position) > 80.0)
+	if socks.is_empty():
+		socks = sockets.duplicate()
+	_shuffle(socks)
+	for i in list.size():
+		var p: Vector2 = socks[i % socks.size()] + Vector2(rng.randf_range(-8, 8), rng.randf_range(-8, 8))
+		if solid_at(p):
+			p = socks[i % socks.size()]
+		var e := spawn_enemy(list[i][0], p, list[i][1])
+		e.spawn_t = 0.7 + rng.randf() * 0.4
+
+
+func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
+	var e := Enemy.new()
+	_uid += 1
+	var step := run.step if run else 1
+	e.setup(self, kind, pos, _uid, 1.0 + step * 0.07, elite)
+	enemies.append(e)
+	_actors.add_child(e)
+	return e
+
+
+func _spawn_boss() -> void:
+	var b: Boss = BossCopyPaste.new() if room_kind == &"mini" else BossLoop.new()
+	_uid += 1
+	enemies.append(b)
+	_actors.add_child(b)
+	b.setup_boss(self, Vector2(gw * TS / 2.0, gh * TS * 0.35), _uid)
+	boss = b
+	Events.boss_started.emit(b.title, b.subtitle)
+
+
+func _clear_room(reward := true) -> void:
+	cleared = true
+	clear_enemy_bullets()
+	if not reward:
+		_open_doors()
+		return
+	run.stats["rooms"] += 1
+	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
+	Events.room_cleared.emit()
+	var mid := _find_floor(gw / 2, gh / 2)
+	match room_kind:
+		&"mini", &"boss":
+			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
+			if room_kind == &"boss":
+				player.heal(run.max_hp)
+		&"challenge":
+			orb = {"pos": mid, "kind": &"challenge", "t": 0.0}
+		_:
+			var r := StringName(run.room.get("reward", "spell"))
+			match r:
+				&"gold":
+					var g := roundi((18 + run.step * 3) * Relics.gold_mul(run))
+					run.gold += g
+					fx.text(player.position + Vector2(0, -24), "+%d GOLD" % g, Color("#ffd36b"), 10)
+					_open_doors()
+				&"heart":
+					run.max_hp += 15.0
+					player.heal(15.0)
+					fx.text(player.position + Vector2(0, -24), "MAX HP +15", Color("#ff4d6d"), 10)
+					_open_doors()
+				_:
+					orb = {"pos": mid, "kind": r, "t": 0.0}
+	_deco.queue_redraw()
+
+
+func _open_doors() -> void:
+	doors_open = true
+	for d in doors:
+		for dx in 2:
+			grid[int(d["col"]) + dx] = 0
+	_deco.queue_redraw()
+
+
+## Called by main.gd when the reward screen closes (taken or skipped).
+func reward_taken() -> void:
+	orb = {}
+	paused = false
+	_open_doors()
+	SaveGame.save_run(run)
+
+
+## Called by main.gd when a shop or forge screen closes.
+func ui_done() -> void:
+	paused = false
+	SaveGame.save_run(run)
+
+
+func _check_doors() -> void:
+	if not doors_open or player.position.y > TS * 0.9:
+		return
+	for d in doors:
+		var x0 := int(d["col"]) * TS
+		if player.position.x >= x0 - 2 and player.position.x <= x0 + TS * 2 + 2:
+			go_through(d["def"])
+			return
+
+
+func go_through(def: Dictionary) -> void:
+	if StringName(def["kind"]) == &"exit":
+		run.won = true
+		paused = true
+		SaveGame.clear_run()
+		ui_request.emit(&"victory", {})
+		return
+	run.path.append(Chapter.door_key(def))
+	run.room = def
+	run.step += 1
+	run.doors = []
+	run.shop = []
+	enter_room()
+
+
+func _on_player_died() -> void:
+	dead_t = 1.6
+	fx.text(player.position + Vector2(0, -30), "THE GLITCH WINS", Color("#ff3fa4"), 10)
+
+
+# ------------------------------------------------------------------ simulation
+
+func _physics_process(dt: float) -> void:
+	if auto_step:
+		step(dt)
+
+
+func _process(_dt: float) -> void:
+	var frac := Engine.get_physics_interpolation_fraction()
+	bullets.sync(frac)
+	ebullets.sync(frac)
+	_deco.queue_redraw()
+	_top.queue_redraw()
+
+
+func step(dt: float) -> void:
+	if paused or run == null:
+		return
+	time += dt
+	room_time += dt
+	run.stats["time"] += dt
+	shake_amt = maxf(0.0, shake_amt - dt)
+	if dead_t > 0.0:
+		dead_t -= dt
+		fx.update(dt)
+		if dead_t <= 0.0:
+			paused = true
+			SaveGame.clear_run()
+			ui_request.emit(&"defeat", {})
+		return
+	# drop the dead, then index the living for this tick
+	var alive: Array[Enemy] = []
+	for e in enemies:
+		if e.dead:
+			e.queue_free()
+		else:
+			alive.append(e)
+	enemies = alive
+	hash.rebuild(enemies)
+	if bot:
+		_bot_drive()
+	player.tick(dt)
+	for e in enemies:
+		if not e.dead:
+			e.tick(dt)
+	_separate()
+	spells.update(dt)
+	_update_enemy_bullets(dt)
+	_update_room(dt)
+	_check_doors()
+	fx.update(dt)
+
+
+func _update_room(dt: float) -> void:
+	if not cleared:
+		if room_kind == &"mini" or room_kind == &"boss":
+			if boss == null:
+				boss_t -= dt
+				if boss_t <= 0.0:
+					_spawn_boss()
+			elif boss.dead:
+				_clear_room()
+		elif enemies.all(func(e: Enemy) -> bool: return e.dead):
+			if wave_i < waves.size():
+				wave_t -= dt
+				if wave_t <= 0.0:
+					_spawn_wave(waves[wave_i])
+					wave_i += 1
+					wave_t = 0.9
+			else:
+				_clear_room()
+	# the reward orb opens the reward screen on touch
+	if not orb.is_empty():
+		orb["t"] += dt
+		if orb["t"] > 0.5 and player.position.distance_to(orb["pos"]) < 14.0:
+			paused = true
+			var kind: StringName = orb["kind"]
+			ui_request.emit(&"reward", {"kind": kind, "offer": Rewards.offer(run, kind)})
+			return
+	if not npc.is_empty():
+		var near: bool = player.position.distance_to(npc["pos"]) < 18.0
+		if near and not npc["near"]:
+			match npc["kind"]:
+				&"spring":
+					if not npc["used"]:
+						npc["used"] = true
+						player.heal(run.max_hp * 0.6)
+						fx.ring(npc["pos"], 4.0, 50.0, 0.6, Color("#6fb8ff"))
+						Events.toast.emit("The spring restores you")
+				&"shop", &"forge":
+					paused = true
+					ui_request.emit(npc["kind"], {})
+		npc["near"] = near
+
+
+func _separate() -> void:
+	for a in enemies:
+		if a.dead or a.spawn_t > 0.0 or a.heavy:
+			continue
+		for k in hash.query(a.position, a.r + 12.0):
+			var b: Enemy = enemies[k]
+			if b == a or b.dead or b.spawn_t > 0.0:
+				continue
+			var d := b.position - a.position
+			var dist := d.length()
+			var m := a.r + b.r
+			if dist < m and dist > 0.01:
+				a.position = move_body(a.position, a.r, -d * (m - dist) * 0.25 / dist)
+
+
+func _update_enemy_bullets(dt: float) -> void:
+	for b in ebullets.active:
+		if not b.alive:
+			continue
+		b.prev = b.pos
+		b.life -= dt
+		if b.accel != 0.0:
+			b.vel += b.vel.normalized() * b.accel * dt
+		b.pos += b.vel * dt
+		b.spin += dt * 6.0
+		if b.life <= 0.0 or solid_at(b.pos):
+			b.alive = false
+			fx.sparks(b.pos, 3, b.color, 40.0)
+			continue
+		if b.pos.distance_squared_to(player.position + Vector2(0, -4)) < pow(b.r + player.r, 2):
+			b.alive = false
+			player.hurt(b.dmg, b.pos)
+	ebullets.compact()
+
+
+func clear_enemy_bullets() -> void:
+	for b in ebullets.active:
+		if b.alive:
+			b.alive = false
+			fx.sparks(b.pos, 1, b.color, 20.0)
+
+
+func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0) -> void:
+	var b := ebullets.spawn()
+	if b == null:
+		return
+	b.pos = pos
+	b.prev = pos
+	b.vel = Vector2.from_angle(ang) * spd
+	b.life = 4.0
+	b.max_life = 4.0
+	b.dmg = dmg
+	b.r = 2.5
+	b.accel = accel
+	b.color = Color("#ff4a7a")
 
 
 ## A soft point light. Lights brighten what the ambient CanvasModulate darkens.
@@ -293,195 +733,6 @@ func _shuffle(arr: Array) -> void:
 		var tmp: Variant = arr[i]
 		arr[i] = arr[j]
 		arr[j] = tmp
-
-
-func _spawn_wave() -> void:
-	waves_left -= 1
-	var budget := wave_budget
-	var socks := sockets.filter(func(p: Vector2) -> bool: return p.distance_to(player.position) > 70.0)
-	if socks.is_empty():
-		socks = sockets.duplicate()
-	_shuffle(socks)
-	var i := 0
-	var elite_left := 1 if room_kind == &"elite" and waves_left == 0 else 0
-	while budget > 0 and i < 24:
-		var k: StringName = ROSTER[rng.randi() % ROSTER.size()]
-		var cost: int = Enemy.DEFS[k]["cost"]
-		if cost > budget:
-			k = &"slime"
-			cost = 1
-		budget -= cost
-		var p: Vector2 = socks[i % socks.size()] + Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6))
-		spawn_enemy(k, p, elite_left > 0)
-		elite_left = 0
-		i += 1
-
-
-func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
-	var e := Enemy.new()
-	_uid += 1
-	e.setup(self, kind, pos, _uid, 1.0 + room_no * 0.06, elite)
-	enemies.append(e)
-	_actors.add_child(e)
-	return e
-
-
-func _clear_room(reward := true) -> void:
-	cleared = true
-	doors_open = true
-	for d in doors:
-		for dx in 2:
-			grid[int(d["col"]) + dx] = 0
-	if reward:
-		rooms_cleared += 1
-		player.heal(10.0)
-		fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
-		Events.room_cleared.emit()
-	_deco.queue_redraw()
-
-
-func _check_doors() -> void:
-	if not doors_open or player.position.y > TS * 0.9:
-		return
-	for d in doors:
-		var x0 := int(d["col"]) * TS
-		if player.position.x >= x0 and player.position.x <= x0 + TS * 2:
-			enter_door(d["kind"])
-			return
-
-
-func enter_door(kind: StringName) -> void:
-	var tpl: String = FIGHT_ROOMS[rng.randi() % FIGHT_ROOMS.size()]
-	if kind == &"treasure":
-		tpl = "hall"
-	build_room(tpl, kind)
-
-
-func _on_player_died() -> void:
-	dead_t = 2.0
-	fx.text(player.position + Vector2(0, -30), "THE GLITCH WINS", Color("#ff3fa4"), 10)
-
-
-# ------------------------------------------------------------------ simulation
-
-func _physics_process(dt: float) -> void:
-	if auto_step:
-		step(dt)
-
-
-func _process(_dt: float) -> void:
-	var frac := Engine.get_physics_interpolation_fraction()
-	bullets.sync(frac)
-	ebullets.sync(frac)
-	_deco.queue_redraw()
-	_top.queue_redraw()
-
-
-func step(dt: float) -> void:
-	time += dt
-	shake_amt = maxf(0.0, shake_amt - dt)
-	if dead_t > 0.0:
-		dead_t -= dt
-		if dead_t <= 0.0:
-			new_run()
-		fx.update(dt)
-		return
-	# drop the dead, then index the living for this tick
-	var alive: Array[Enemy] = []
-	for e in enemies:
-		if e.dead:
-			e.queue_free()
-		else:
-			alive.append(e)
-	enemies = alive
-	hash.rebuild(enemies)
-	if bot:
-		_bot_drive()
-	player.tick(dt)
-	for e in enemies:
-		if not e.dead:
-			e.tick(dt)
-	_separate()
-	spells.update(dt)
-	_update_enemy_bullets(dt)
-	_update_pickups(dt)
-	# waves
-	if not cleared:
-		var living := 0
-		for e in enemies:
-			if not e.dead:
-				living += 1
-		if living == 0:
-			if waves_left > 0:
-				wave_t -= dt
-				if wave_t <= 0.0:
-					_spawn_wave()
-					wave_t = 0.6
-			else:
-				_clear_room()
-	_check_doors()
-	fx.update(dt)
-
-
-func _separate() -> void:
-	for a in enemies:
-		if a.dead or a.spawn_t > 0.0:
-			continue
-		for k in hash.query(a.position, a.r + 12.0):
-			var b: Enemy = enemies[k]
-			if b == a or b.dead or b.spawn_t > 0.0:
-				continue
-			var d := b.position - a.position
-			var dist := d.length()
-			var m := a.r + b.r
-			if dist < m and dist > 0.01:
-				a.position = move_body(a.position, a.r, -d * (m - dist) * 0.25 / dist)
-
-
-func _update_enemy_bullets(dt: float) -> void:
-	for b in ebullets.active:
-		if not b.alive:
-			continue
-		b.prev = b.pos
-		b.life -= dt
-		b.pos += b.vel * dt
-		b.spin += dt * 6.0
-		if b.life <= 0.0 or solid_at(b.pos):
-			b.alive = false
-			fx.sparks(b.pos, 3, b.color, 40.0)
-			continue
-		if b.pos.distance_squared_to(player.position + Vector2(0, -4)) < pow(b.r + player.r, 2):
-			b.alive = false
-			player.hurt(b.dmg, b.pos)
-	ebullets.compact()
-
-
-func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float) -> void:
-	var b := ebullets.spawn()
-	if b == null:
-		return
-	b.pos = pos
-	b.prev = pos
-	b.vel = Vector2.from_angle(ang) * spd
-	b.life = 4.0
-	b.max_life = 4.0
-	b.dmg = dmg
-	b.r = 2.5
-	b.color = Color("#ff4a7a")
-
-
-func _update_pickups(dt: float) -> void:
-	for i in range(pickups.size() - 1, -1, -1):
-		var p: Dictionary = pickups[i]
-		p["t"] += dt
-		if p["t"] > 0.4 and player.position.distance_to(p["pos"]) < 12.0:
-			var sd := Catalog.spell(p["id"])
-			player.take_spell(p["id"])
-			fx.text(player.position + Vector2(0, -30), sd.title.to_upper(), sd.color, 8)
-			fx.ring(p["pos"], 2.0, 18.0, 0.3, sd.color)
-			Events.toast.emit("Found %s" % sd.title)
-			pickups.remove_at(i)
-			_deco.queue_redraw()
 
 
 # ------------------------------------------------------------------ queries & combat
@@ -587,13 +838,22 @@ func assist_target(p: Vector2, max_d: float) -> Enemy:
 func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: float, dot := false) -> float:
 	if e.dead or e.spawn_t > 0.0:
 		return 0.0
+	if e.forward:
+		e.flash = 0.07
+		return hurt_enemy(e.forward, dmg * e.fwd_mul, from, crit_chance, 0.0, dot)
+	if e is Boss and (e as Boss).invuln > 0.0:
+		return 0.0
 	var crit := crit_chance > 0.0 and rng.randf() < crit_chance
 	if crit:
+		dmg *= 2.0
+	if not dot and run and run.has_relic(&"null_pointer") and e.hp >= e.max_hp:
 		dmg *= 2.0
 	dmg = maxf(1.0, dmg) if not dot else dmg
 	e.hp -= dmg
 	e.flash = 0.07
 	damage_done += dmg
+	if run:
+		run.stats["damage"] += dmg
 	if not e.heavy and kb > 0.0:
 		e.knock += (e.position - from).normalized() * kb * (70.0 if crit else 38.0)
 	if not dot:
@@ -603,13 +863,47 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	return dmg
 
 
+func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
+	if e.dead:
+		return
+	var tgt := e.forward if e.forward else e
+	if burn > 0:
+		var base := tgt.burn_dps if tgt.burn_t > 0.0 else 0.0
+		tgt.burn_t = 2.5
+		tgt.burn_dps = maxf(base, maxf(4.0 + burn * 4.0, dmg * 0.4))
+	if chill > 0 and not (tgt is Boss):
+		tgt.chill_t = 1.2 + chill * 0.4
+		tgt.chill_slow = [0.6, 0.5, 0.4][clampi(chill, 1, 3) - 1]
+
+
+## Explosion size multiplier from relics.
+func area_mul() -> float:
+	return 1.35 if run and run.has_relic(&"blast_radius") else 1.0
+
+
 func kill_enemy(e: Enemy) -> void:
 	if e.dead:
 		return
 	e.dead = true
 	e.visible = false
-	kills += 1
-	gold += int(e.def["gold"]) * (4 if e.elite else 1)
+	if run:
+		run.stats["kills"] += 1
+		run.gold += roundi(int(e.def.get("gold", 1)) * (4 if e.elite else 1) * Relics.gold_mul(run) * 0.5)
+		if run.has_relic(&"garbage_collector"):
+			for w in run.wands:
+				w.mana = minf(w.max_mana(), w.mana + 3.0)
+		if run.has_relic(&"leech_loop"):
+			_kill_streak += 1
+			if _kill_streak % 6 == 0:
+				player.heal(4.0)
+	if e is Boss:
+		(e as Boss).die()
+		run.stats["bosses"] += 1
+		shake(0.8)
+		for k in 6:
+			fx.ring(e.position + Vector2(rng.randf_range(-12, 12), rng.randf_range(-12, 12)), 2.0, 20.0 + k * 6.0, 0.5, [Color("#ff3fa4"), Color("#ffc94a"), Color("#5ce1ff")][k % 3])
+		fx.sparks(e.position, 40, Color("#ffe066"), 180.0)
+		Events.boss_defeated.emit()
 	fx.sparks(e.position + Vector2(0, -4), 14, Color("#c46bff"), 120.0)
 	fx.ring(e.position, 2.0, 12.0, 0.25, Color("#ff3fa4"))
 	shake(0.06)
@@ -617,25 +911,26 @@ func kill_enemy(e: Enemy) -> void:
 
 
 func shake(amount: float) -> void:
-	shake_amt = maxf(shake_amt, amount)
+	shake_amt = maxf(shake_amt, amount * Game.shake_scale)
 
 
 # ------------------------------------------------------------------ bot (tests, demo)
 
-## Keeps a fighting distance from the nearest enemy, collects loot, walks through a door.
+## Keeps a fighting distance from the nearest enemy, collects rewards, walks through the
+## first door. Reward, shop and forge screens are answered by whoever listens to ui_request.
 func _bot_drive() -> void:
 	controls.fire = true
 	var p := player.position
-	if cleared:
-		if not pickups.is_empty():
-			controls.move = (pickups[0]["pos"] - p).normalized()
-			return
+	if not orb.is_empty():
+		var op: Vector2 = orb["pos"]
+		controls.move = (op - p).normalized() if los(p, op) else path_dir(p, op)
+		return
+	if cleared and doors_open:
 		var d: Dictionary = doors[0]
-		var goal := Vector2(int(d["col"]) * TS + TS, -8.0)
-		var to := goal - p
-		# get under the door first, then walk up
-		controls.move = Vector2(signf(to.x) if absf(to.x) > 4.0 else 0.0, -1.0 if absf(to.x) < 24.0 else 0.0)
-		if controls.move == Vector2.ZERO:
+		var below := Vector2(int(d["col"]) * TS + TS, TS * 1.5)
+		if p.distance_to(below) > 10.0 and p.y > TS * 1.2:
+			controls.move = (below - p).normalized() if los(p, below) else path_dir(p, below)
+		else:
 			controls.move = Vector2(0, -1)
 		return
 	var e := nearest_enemy(p, 400.0)
@@ -643,6 +938,10 @@ func _bot_drive() -> void:
 		controls.move = (Vector2(gw * TS / 2.0, gh * TS / 2.0) - p).limit_length(1.0) * 0.5
 		return
 	var to_e := e.position - p
+	if not los(p, e.position):
+		# no line of sight (a wall between us): walk the grid path toward it
+		controls.move = path_dir(p, e.position)
+		return
 	var want := -1.0 if to_e.length() < 70.0 else (1.0 if to_e.length() > 120.0 else 0.0)
 	var mv := to_e.normalized() * want + to_e.normalized().orthogonal() * 0.8
 	# dodge the nearest enemy bullet heading our way
@@ -653,6 +952,45 @@ func _bot_drive() -> void:
 	if hazard_at(p + mv.normalized() * 10.0):
 		mv = -mv
 	controls.move = mv.limit_length(1.0)
+
+
+## Direction along the shortest walkable path from p to goal (breadth-first search over
+## the tile grid, ignoring hazards' damage). Used by the bot; cheap on rooms this small.
+func path_dir(p: Vector2, goal: Vector2) -> Vector2:
+	var start := Vector2i(floori(p.x / TS), floori(p.y / TS))
+	var target := Vector2i(floori(goal.x / TS), floori(goal.y / TS))
+	var dist := PackedInt32Array()
+	dist.resize(gw * gh)
+	dist.fill(-1)
+	var queue: Array[Vector2i] = [target]
+	dist[target.y * gw + target.x] = 0
+	var head := 0
+	var dirs := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	while head < queue.size():
+		var c: Vector2i = queue[head]
+		head += 1
+		if c == start:
+			break
+		for d in dirs:
+			var n: Vector2i = c + d
+			if n.x < 0 or n.y < 0 or n.x >= gw or n.y >= gh:
+				continue
+			var t := grid[n.y * gw + n.x]
+			if (t == 0 or t == 2) and dist[n.y * gw + n.x] < 0:
+				dist[n.y * gw + n.x] = dist[c.y * gw + c.x] + 1
+				queue.append(n)
+	var best := start
+	var bd := dist[start.y * gw + start.x] if start.x >= 0 and start.y >= 0 and start.x < gw and start.y < gh else -1
+	for d in dirs:
+		var n: Vector2i = start + d
+		if n.x < 0 or n.y < 0 or n.x >= gw or n.y >= gh:
+			continue
+		var v := dist[n.y * gw + n.x]
+		if v >= 0 and (bd < 0 or v < bd):
+			bd = v
+			best = n
+	var to := _center(best.x, best.y) - p
+	return to.normalized() if to.length() > 1.0 else (goal - p).normalized()
 
 
 # ------------------------------------------------------------------ drawing
@@ -670,14 +1008,7 @@ func _enemy_bullet_texture() -> Texture2D:
 		return img)
 
 
-const DOOR_ICONS := {
-	&"fight": ["..w...w..", "...w.w...", "....w....", "...w.w...", "..w...w..", ".h.....h."],
-	&"elite": [".wwwwwww.", "w.w...w.w", "wwwwwwwww", ".w.w.w.w.", "..wwwww..", "........."],
-	&"treasure": [".hhhhhhh.", "hwwwwwwwh", "hhhhghhhh", "hwwwgwwwh", "hwwwwwwwh", "hhhhhhhhh"],
-}
-
-
-## Floor-level details that change during the room: spikes, doors, torches, loot.
+## Floor-level details that change during the room: spikes, doors, the reward orb, NPCs.
 func _draw_deco() -> void:
 	var up := spikes_up()
 	for h in hazards:
@@ -687,11 +1018,12 @@ func _draw_deco() -> void:
 				var y := h.y * TS + 4 + (k / 2) * 7
 				_deco.draw_colored_polygon(PackedVector2Array([Vector2(x, y + 2), Vector2(x + 1.5, y - 3), Vector2(x + 3, y + 2)]), Color("#cfd4e0"))
 	for d in doors:
+		var def: Dictionary = d["def"]
 		var x0 := float(int(d["col"]) * TS)
 		var r := Rect2(x0, 0, TS * 2, TS)
+		var c := Chapter.door_color(def)
 		_deco.draw_rect(r, Color("#0c0818"))
 		if doors_open:
-			var c := _door_color(d["kind"])
 			_deco.draw_rect(r.grow(-2), Color(c.r, c.g, c.b, 0.35))
 			_deco.draw_rect(Rect2(x0 + 3, 3, TS * 2 - 6, TS - 3), Color(c.r, c.g, c.b, 0.25))
 		else:
@@ -699,37 +1031,64 @@ func _draw_deco() -> void:
 				_deco.draw_rect(Rect2(x0 + 3 + k * 6, 1, 2, TS - 1), Color("#6a6078"))
 		_deco.draw_rect(Rect2(x0 - 2, 0, 2, TS), Color("#8a7a5a"))
 		_deco.draw_rect(Rect2(x0 + TS * 2, 0, 2, TS), Color("#8a7a5a"))
-		_deco.draw_rect(Rect2(x0 - 2, 0, TS * 2 + 4, 2), Color("#b8a070"))
-		var icon := PixelArt.cached("door_%s" % d["kind"], func() -> Image:
-			return PixelArt.from_rows(PackedStringArray(DOOR_ICONS[d["kind"]]), {"w": "#f2ecff", "h": "#b9851a", "g": "#ffd36b"}, true, false))
-		_deco.draw_texture(icon, Vector2(x0 + TS - icon.get_width() / 2.0, 4).round(), Color(1, 1, 1, 1.0 if doors_open else 0.45))
-	for p in pickups:
-		var sd := Catalog.spell(p["id"])
+		_deco.draw_rect(Rect2(x0 - 2, 0, TS * 2 + 4, 2), c.darkened(0.2))
+		var icon := Icons.door(Chapter.door_key(def))
+		_deco.draw_texture(icon, Vector2(x0 + TS - icon.get_width() / 2.0, 1).round(), Color(1, 1, 1, 1.0 if doors_open else 0.55))
+	if not orb.is_empty():
+		var p: Vector2 = orb["pos"]
 		var bob := sin(time * 3.0) * 2.0
-		_deco.draw_circle(p["pos"] + Vector2(0, 5), 5.0, Color(0, 0, 0, 0.4))
-		_deco.draw_texture(Icons.spell(sd), (p["pos"] - Vector2(7, 11 + bob)).round())
+		_deco.draw_circle(p + Vector2(0, 5), 6.0, Color(0, 0, 0, 0.4))
+		var key := String(orb["kind"])
+		var c := Color(Chapter.INFO.get(key, {"color": "#ffe066"})["color"])
+		_deco.draw_circle(p + Vector2(0, -6 - bob), 7.0, c.darkened(0.3))
+		_deco.draw_circle(p + Vector2(-2, -8 - bob), 2.0, c.lightened(0.5))
+	if not npc.is_empty():
+		_draw_npc(npc)
 
 
-func _door_color(kind: StringName) -> Color:
-	match kind:
-		&"elite":
-			return Color("#ff5a5a")
-		&"treasure":
-			return Color("#ffd36b")
-	return Color("#8fd8ff")
+func _draw_npc(n: Dictionary) -> void:
+	var p: Vector2 = n["pos"]
+	_deco.draw_set_transform(p + Vector2(0, 6), 0.0, Vector2(1.0, 0.45))
+	_deco.draw_circle(Vector2.ZERO, 10.0, Color(0, 0, 0, 0.4))
+	_deco.draw_set_transform(Vector2.ZERO)
+	match n["kind"]:
+		&"spring":
+			_deco.draw_circle(p, 10.0, Color("#3a4a6a"))
+			_deco.draw_circle(p, 8.0, Color("#2a6ab8") if not n["used"] else Color("#223048"))
+			_deco.draw_arc(p, 10.0, 0.0, TAU, 24, Color("#8a9ab8"), 2.0)
+		&"shop":
+			_deco.draw_rect(Rect2(p + Vector2(-14, -4), Vector2(28, 10)), Color("#6a4a2a"))
+			_deco.draw_rect(Rect2(p + Vector2(-14, -4), Vector2(28, 2)), Color("#a07a4a"))
+			_deco.draw_texture(Icons.glyph("coin", Color("#ffd36b")), p + Vector2(-7, -22))
+		&"forge":
+			_deco.draw_rect(Rect2(p + Vector2(-10, -6), Vector2(20, 5)), Color("#5a5a6a"))
+			_deco.draw_rect(Rect2(p + Vector2(-4, -1), Vector2(8, 6)), Color("#3a3a48"))
+			_deco.draw_rect(Rect2(p + Vector2(-9, 5), Vector2(18, 3)), Color("#3a3a48"))
+			_deco.draw_texture(Icons.glyph("anvil", Color("#ff8a3c")), p + Vector2(-7, -24))
 
 
-## Additive glow on top of the actors: torch flames and pickup shine.
+## Additive glow on top of the actors: torch flames, door and orb shine, boss telegraphs.
 func _draw_top() -> void:
 	for tp in torches:
 		var f := 0.8 + sin(time * 9.0 + tp.x) * 0.1 + sin(time * 23.0 + tp.y) * 0.05
-		_top.draw_circle(tp + Vector2(0, -6), 18.0 * f, Color(1.0, 0.55, 0.2, 0.06))
-		_top.draw_circle(tp + Vector2(0, -6), 8.0 * f, Color(1.0, 0.6, 0.25, 0.12))
 		_top.draw_rect(Rect2(tp + Vector2(-1, -2), Vector2(2, 5)), Color("#5a3a22"))
-		_top.draw_rect(Rect2(tp + Vector2(-1.5, -7 - f), Vector2(3, 4)), Color(1.8, 1.0, 0.35))
-		_top.draw_rect(Rect2(tp + Vector2(-0.5, -8 - f * 2.0), Vector2(1, 2)), Color(2.0, 1.8, 1.0))
+		_top.draw_rect(Rect2(tp + Vector2(-1.5, -7 - f), Vector2(3, 4)), Color(1.0, 0.75, 0.3))
+		_top.draw_rect(Rect2(tp + Vector2(-0.5, -8 - f * 2.0), Vector2(1, 2)), Color(1.0, 0.95, 0.7))
 	if doors_open:
 		for d in doors:
-			var c := _door_color(d["kind"])
+			var c := Chapter.door_color(d["def"])
 			var x := int(d["col"]) * TS + TS
 			_top.draw_circle(Vector2(x, 10), 16.0 + sin(time * 4.0) * 2.0, Color(c.r, c.g, c.b, 0.08))
+	if not orb.is_empty():
+		var p: Vector2 = orb["pos"] + Vector2(0, -6 - sin(time * 3.0) * 2.0)
+		_top.draw_circle(p, 12.0 + sin(time * 5.0), Color(1.0, 0.9, 0.5, 0.12))
+		_top.draw_arc(p, 9.0, time * 2.0, time * 2.0 + PI * 1.2, 12, Color(1.0, 0.95, 0.7, 0.8), 1.0)
+	if boss and not boss.dead:
+		var a := 0.35 + 0.25 * sin(time * 20.0)
+		for tl in boss.tele:
+			match tl["k"]:
+				"line":
+					var p: Vector2 = tl["p"]
+					_top.draw_line(p, p + Vector2.from_angle(tl["a"]) * float(tl["len"]), Color(1.0, 0.25, 0.5, a * 0.6), float(tl["w"]))
+				"circle":
+					_top.draw_arc(tl["p"], float(tl["r"]), 0.0, TAU, 40, Color(1.0, 0.25, 0.5, a + 0.2), 2.0)

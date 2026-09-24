@@ -9,17 +9,19 @@ func setup(tree: SceneTree) -> void:
 	Game.god_mode = true
 	Game.inf_mana = false
 	Game.auto_fire = false
+	SaveGame.enabled = false
 	world = World.new()
 	world.auto_step = false
 	tree.root.add_child(world)
 	world.setup(1234)
-	world.new_run()
+	world.start_run(RunState.create(1234))
 
 
 func teardown() -> void:
 	Game.god_mode = false
 	Game.inf_mana = false
 	Game.auto_fire = true
+	SaveGame.enabled = true
 	world.free()
 
 
@@ -42,8 +44,7 @@ func _dummy(pos: Vector2) -> Enemy:
 
 func _range_setup() -> void:
 	# an empty, cleared room so waves do not interfere
-	world.build_room("hall", &"treasure")
-	world.pickups.clear()
+	world.build_room("hall", &"empty")
 	world.player.position = Vector2(208, 216)
 	for p in [Vector2(208, 176), Vector2(208, 150), Vector2(186, 140), Vector2(230, 140)]:
 		_dummy(p)
@@ -52,8 +53,8 @@ func _range_setup() -> void:
 func _fire(ids: Array, wand_id := &"apprentice") -> WandState:
 	var w := WandState.make(Catalog.wand(wand_id))
 	w.set_slots(ids)
-	world.player.wands[0] = w
-	world.player.cur = 0
+	world.run.wands[0] = w
+	world.run.cur = 0
 	world.damage_done = 0.0
 	world.spells.cast_seq = 0
 	world.player.aim = -PI / 2.0
@@ -117,26 +118,37 @@ func test_seed_delivers_burst_where_it_lands() -> void:
 func test_bot_clears_rooms_and_walks_through_doors() -> void:
 	Game.auto_fire = true
 	world.bot = true
+	# the bot takes the first reward and leaves shops, as main.gd's bot answer does
+	world.ui_request.connect(func(kind: StringName, data: Dictionary) -> void:
+		if kind == &"reward":
+			if not data["offer"].is_empty():
+				Rewards.grant(world.run, data["offer"][0])
+			world.reward_taken()
+		elif kind == &"shop" or kind == &"forge":
+			world.ui_done())
 	var t := 0.0
-	while world.rooms_cleared < 3 and t < 200.0:
+	while world.run.step < 3 and t < 360.0:
 		world.step(DT)
 		t += DT
 	world.bot = false
-	ok(world.rooms_cleared >= 3, "bot cleared 3 rooms (got %d in %.0fs, room %d %s)" % [world.rooms_cleared, t, world.room_no, world.room_kind])
-	ok(world.kills > 5, "and killed things (%d)" % world.kills)
+	ok(world.run.step >= 3, "bot walked three doors (step %d in %.0fs, %s)" % [world.run.step, t, world.room_kind])
+	ok(int(world.run.stats["kills"]) > 5, "and killed things (%d)" % world.run.stats["kills"])
+	eq(world.run.path.size(), world.run.step, "every door taken is on the map")
 
 
-func test_player_can_die_and_the_run_restarts() -> void:
+func test_player_can_die_and_the_run_ends() -> void:
 	Game.god_mode = false
+	var got := []
+	world.ui_request.connect(func(kind: StringName, _d: Dictionary) -> void: got.append(kind))
 	world.player.hurt(9999.0, world.player.position)
 	ok(world.player.dead, "player died")
-	_steps(2.2)
-	ok(not world.player.dead and world.player.hp == world.player.max_hp, "a new run started")
-	eq(world.room_no, 1, "back to room 1")
+	_steps(2.0)
+	eq(got, [&"defeat"], "the defeat screen was requested")
+	ok(world.paused, "the world waits for the screen")
 
 
 func test_walls_stop_bodies() -> void:
-	world.build_room("hall", &"treasure")
+	world.build_room("hall", &"empty")
 	var p := world.move_body(Vector2(24, 100), 5.0, Vector2(-40, 0))   # far more than a tick ever moves
 	ok(p.x >= 16.0 + 5.0 - 0.1, "left wall blocks (x=%.2f)" % p.x)
 	ok(world.last_hit_x, "hit flag set")
@@ -155,8 +167,7 @@ func test_bullet_pool_recycles() -> void:
 
 ## 45 enemies and a bullet storm: the sim tick stays well inside a 60 Hz frame.
 func test_stress_tick_budget() -> void:
-	world.build_room("pillars", &"treasure")
-	world.pickups.clear()
+	world.build_room("pillars", &"empty")
 	Game.inf_mana = true
 	for i in 45:
 		var e := world.spawn_enemy(Enemy.DEFS.keys()[i % 4], world.sockets[i % world.sockets.size()] + Vector2(i % 5, i % 3) * 6.0)
@@ -165,7 +176,7 @@ func test_stress_tick_budget() -> void:
 		e.hp = 5000.0
 	var w := WandState.make(Catalog.wand(&"harp"))
 	w.set_slots([&"twin", &"chorus", &"fan", &"moths", &"fan", &"mote", &"fan"])
-	world.player.wands[0] = w
+	world.run.wands[0] = w
 	var worst := 0
 	var total := 0
 	var peak := 0

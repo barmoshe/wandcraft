@@ -8,10 +8,13 @@ var seed_value := 0
 var god_mode := false
 var inf_mana := false
 var auto_fire := true
+var shake_scale := 1.0      # settings: screen shake (0 = off)
+var flash_fx := true        # settings: screen flash effects
 var _fonts: Dictionary = {}
 
 
 func _ready() -> void:
+	apply_settings(SaveGame.load_settings())
 	if DisplayServer.get_name() == "headless":
 		return
 	get_window().size_changed.connect(fit_pixels)
@@ -66,3 +69,13 @@ func font(kind := "small") -> Font:
 			f = ff
 	_fonts[kind] = f
 	return f
+
+
+func settings() -> Dictionary:
+	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx}
+
+
+func apply_settings(d: Dictionary) -> void:
+	auto_fire = bool(d.get("auto_fire", auto_fire))
+	shake_scale = 1.0 if bool(d.get("shake", true)) else 0.0
+	flash_fx = bool(d.get("flash", flash_fx))

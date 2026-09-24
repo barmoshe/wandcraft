@@ -37,6 +37,18 @@ const ENEMY_ART := {
 		"rows": ["h..........h", ".h.oooooo.h.", "..oOOOOOOo..", ".oOOoOOoOOo.", "loOOOOOOOOol", ".oOOoOOoOOo.", "l.ooOOOOoo.l", "..hwhhhhwh..", ".l.hhhhhh.l."],
 		"pal": {"h": "#3a2a1a", "o": "#3f6a2a", "O": "#5c9a3a", "l": "#3f6a2a"},
 	},
+	"bugling": {
+		"rows": [".a.....a.", "..a...a..", ".bBBBBBb.", "bBwBBBwBb", "bBBBBBBBb", ".bBbBbBb.", "b.b...b.b"],
+		"pal": {"a": "#5ce1ff", "b": "#8a2e8a", "B": "#d046c8"},
+	},
+	"puffcap": {
+		"rows": ["..rrrrr..", ".rrwrrwr.", "rrrrrrrrr", "rwrrrrrwr", "rrrrrrrrr", "..sssss..", "..sesess.", "..sssss..", "..sssss..", "..ss.ss.."],
+		"pal": {"r": "#b8469a", "s": "#efe0c8"},
+	},
+	"loop_seg": {
+		"rows": ["...gggg...", "..gGGGGg..", ".gGGyyGGg.", "gGGyYYyGGg", "gGGyYYyGGg", ".gGGyyGGg.", "..gGGGGg..", "...gggg..."],
+		"pal": {"g": "#237a3a", "G": "#3fa85a", "y": "#ffe066", "Y": "#fff3b0"},
+	},
 	"sentry": {
 		"rows": ["...mmmm...", "..mMMMMm..", ".mMrrrrMm.", ".mMrRRrMm.", ".mMrrrrMm.", "..mMMMMm..", ".mmmmmmmm.", "mMMMMMMMMm", "mMmMmMmMMm", "mmmmmmmmmm"],
 		"pal": {"m": "#3a3a4a", "M": "#6a6a82", "r": "#8a1a1a", "R": "#ff5a2c"},
@@ -94,3 +106,18 @@ static func wand_texture() -> Texture2D:
 			"wwwwwwwwgGG",
 			"WWWWWWWWgG.",
 		]), {"w": "#b8834a", "W": "#6e4524", "g": "#8fd8ff", "G": "#e8fbff"}, true, false))
+
+
+const BOSS_ART := {
+	&"loop_head": {
+		"rows": ["....gggggg......", "..ggGGGGGGgg....", ".gGGGGGGGGGGg...", "gGGGyyGGGGGGGg..", "gGGyYeyGGGGGGGgg",
+			"gGGGyyGGGGGGGGGw", "gGGGGGGGGGGGmmmm", "gGGGGGGGGGGGGGGw", ".gGGGGGGGGGGGgg.", "..ggGGGGGGgg....", "....gggggg......"],
+		"pal": {"g": "#237a3a", "G": "#3fa85a", "y": "#ffe066", "Y": "#fff3b0", "e": "#1d1540", "m": "#1d1540", "w": "#ffffff"},
+	},
+}
+
+
+static func boss_texture(id: StringName) -> Texture2D:
+	var art: Dictionary = BOSS_ART[id]
+	return PixelArt.cached("boss_%s" % id, func() -> Image:
+		return PixelArt.from_rows(PackedStringArray(art["rows"]), art["pal"]))

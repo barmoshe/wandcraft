@@ -5,6 +5,8 @@ extends Control
 ## Tapping a wand row in the HUD selects that wand. Multi-touch safe: each finger is
 ## tracked by its index.
 
+signal hud_pressed(id: String)
+
 const STICK_R := 26.0
 const DEAD := 0.18
 
@@ -17,6 +19,7 @@ var _move_pos := Vector2.ZERO
 var _aim_origin := Vector2.ZERO
 var _aim_pos := Vector2.ZERO
 var touched_once := false
+var enabled := true
 
 
 func _ready() -> void:
@@ -24,7 +27,16 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 
+## Drops both sticks (a menu opened, or the app lost focus).
+func release_all() -> void:
+	_move_id = -1
+	_aim_id = -1
+	_apply()
+
+
 func _input(event: InputEvent) -> void:
+	if not enabled:
+		return
 	if event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		touched_once = true
@@ -43,6 +55,10 @@ func _input(event: InputEvent) -> void:
 
 func _press(id: int, p: Vector2) -> void:
 	if hud:
+		var b := hud.hit_button(p)
+		if b != "":
+			hud_pressed.emit(b)
+			return
 		var wi := hud.hit_wand(p)
 		if wi >= 0:
 			controls.select_wand = wi

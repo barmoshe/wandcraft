@@ -1,0 +1,240 @@
+class_name EditorScreen
+extends Screen
+## The wand editor (the game pauses while it is open).
+##   tap a spell        -> it is picked, and the info panel explains it
+##   tap another slot   -> the picked spell moves there (swapping if the slot is full)
+##   drag a spell       -> same, in one gesture
+##   tap a wand's name  -> that wand becomes the one you cast with
+##   REVERT             -> undo everything since the editor opened
+## The info panel always shows the live cast preview of the wand in focus: what each press
+## of the trigger will actually cast, which makes boosts and triggers learnable.
+
+const SOCK := 24.0
+const GAP := 2.0
+
+var sel: Dictionary = {}          # {"w": wand index or -1 for bag, "i": index}
+var focus_wand := 0
+var _snapshot: Dictionary = {}
+var _slots: Array = []            # [Rect2, ref] for drag-and-drop
+var _drag_from: Dictionary = {}
+var _drag_pos := Vector2.ZERO
+var _dragging := false
+
+
+func _opened() -> void:
+	focus_wand = run.cur
+	_snapshot = _snap()
+
+
+func _snap() -> Dictionary:
+	return {"wands": run.wands.map(func(w: WandState) -> Array: return w.slots.duplicate(true)), "bag": run.bag.duplicate(true)}
+
+
+func _restore(s: Dictionary) -> void:
+	for i in run.wands.size():
+		run.wands[i].slots = (s["wands"][i] as Array).duplicate(true)
+		run.wands[i].ptr = 0
+		run.wands[i].acc = Mods.new()
+	run.bag = (s["bag"] as Array).duplicate(true)
+
+
+func _spell_at(ref: Dictionary) -> Variant:
+	if ref.is_empty():
+		return null
+	if ref["w"] < 0:
+		return run.bag[ref["i"]] if ref["i"] < run.bag.size() else null
+	return run.wands[ref["w"]].slots[ref["i"]]
+
+
+func _paint() -> void:
+	dim(0.9)
+	_slots.clear()
+	var sr := safe()
+	var info_w := minf(168.0, sr.size.x * 0.36)
+	var left := Rect2(sr.position, Vector2(sr.size.x - info_w - 8, sr.size.y))
+	text(left.position + Vector2(2, 16), "WANDS", GOLD, 16, "body")
+	text(left.position + Vector2(62, 15), "Tap a spell, then tap where it goes.", MUTED)
+	var y := left.position.y + 26
+	for wi in run.wands.size():
+		y = _wand_row(wi, Vector2(left.position.x, y), left.size.x) + 6
+	# bag
+	text(Vector2(left.position.x + 2, y + 9), "BAG  %d/%d" % [run.bag.size(), RunState.BAG_MAX], MUTED, 8, "bold")
+	y += 13
+	var per_row := maxi(1, int((left.size.x + GAP) / (SOCK + GAP)))
+	per_row = mini(per_row, 12)
+	for i in RunState.BAG_MAX:
+		var p := Vector2(left.position.x + (i % per_row) * (SOCK + GAP), y + (i / per_row) * (SOCK + GAP))
+		_socket(Rect2(p, Vector2(SOCK, SOCK)), {"w": -1, "i": i}, false)
+	# info panel
+	var ir := Rect2(sr.end.x - info_w, sr.position.y + 30, info_w, sr.size.y - 30)
+	button(Rect2(sr.end.x - 70, sr.position.y, 70, 26), "done", "DONE", "primary")
+	button(Rect2(sr.end.x - 146, sr.position.y, 70, 26), "revert", "REVERT", "ghost")
+	_info(ir)
+	# the dragged spell follows the finger
+	if _dragging:
+		var s: Variant = _spell_at(_drag_from)
+		if s != null:
+			icon_at(Icons.spell(Catalog.spell(s["id"])), _drag_pos + Vector2(0, -14), 2.0)
+
+
+func _wand_row(wi: int, at: Vector2, width: float) -> float:
+	var w: WandState = run.wands[wi]
+	var is_cur := wi == run.cur
+	var label := "%s%s" % [w.def.title, "  (in hand)" if is_cur else ""]
+	var lr := Rect2(at, Vector2(width, 12))
+	text(at + Vector2(2, 9), label, GOLD if is_cur else TEXT, 8, "bold")
+	area(Rect2(at - Vector2(0, 4), Vector2(minf(width, 150), 18)), "wand%d" % wi)
+	var n := w.slots.size()
+	var y := at.y + 13
+	var per_row := maxi(1, int((width + GAP) / (SOCK + GAP)))
+	for i in n:
+		var p := Vector2(at.x + (i % per_row) * (SOCK + GAP), y + (i / per_row) * (SOCK + GAP))
+		_socket(Rect2(p, Vector2(SOCK, SOCK)), {"w": wi, "i": i}, is_cur)
+	var rows := ceili(float(n) / per_row)
+	var _unused := lr
+	return y + rows * (SOCK + GAP)
+
+
+func _socket(r: Rect2, ref: Dictionary, lit: bool) -> void:
+	var s: Variant = _spell_at(ref)
+	var picked: bool = not sel.is_empty() and sel["w"] == ref["w"] and sel["i"] == ref["i"]
+	var c := r.get_center()
+	draw_circle(c, SOCK / 2.0, INK)
+	draw_circle(c, SOCK / 2.0 - 1.0, Color("#1a1330") if ref["w"] >= 0 else Color("#15121f"))
+	draw_arc(c, SOCK / 2.0 - 1.0, 0.0, TAU, 24, GOLD if picked else (Color("#6a5a8a") if lit else Color("#3a3050")), 1.0 if not picked else 2.0)
+	if s != null and not (_dragging and _drag_from == ref):
+		icon_at(Icons.spell(Catalog.spell(s["id"])), c, 1.0 if SOCK < 28.0 else 2.0)
+		if int(s["lv"]) > 1:
+			text(c + Vector2(4, 11), "+".repeat(int(s["lv"]) - 1), GOLD)
+	elif not sel.is_empty() and s == null:
+		draw_arc(c, 3.0, 0.0, TAU, 8, Color(1, 1, 1, 0.25), 1.0)
+	area(r, "slot:%d:%d" % [ref["w"], ref["i"]])
+	_slots.append([r, ref])
+
+
+func _info(ir: Rect2) -> void:
+	panel(ir, true)
+	var s: Variant = _spell_at(sel)
+	var y := ir.position.y + 8
+	if s != null:
+		var d := Catalog.spell(s["id"])
+		icon_at(Icons.spell(d), ir.position + Vector2(18, 18), 2.0)
+		text(ir.position + Vector2(34, 16), d.title + "+".repeat(int(s["lv"]) - 1), TEXT, 8, "bold")
+		text(ir.position + Vector2(34, 27), ["Shooting spell", "Boost", "Trigger", "Passive"][d.kind], rarity_color(d.rarity))
+		var used := para(Rect2(ir.position + Vector2(8, 36), Vector2(ir.size.x - 16, 56)), d.desc, MUTED)
+		text(ir.position + Vector2(8, 44 + minf(used, 56)), spell_stats(d.id, int(s["lv"])), Color("#8fd8ff"))
+		y = ir.position.y + 60 + minf(used, 56)
+	else:
+		var used := para(Rect2(ir.position + Vector2(8, 4), Vector2(ir.size.x - 16, 80)), "Spells fire left to right. Boosts change every spell to their right. A trigger makes the spell on its left cast the one on its right.", MUTED)
+		y = ir.position.y + 14 + minf(used, 80)
+	# cast preview of the wand in focus
+	var wi := focus_wand if sel.is_empty() or sel["w"] < 0 else int(sel["w"])
+	var w: WandState = run.wands[clampi(wi, 0, run.wands.size() - 1)]
+	draw_rect(Rect2(ir.position.x + 6, y, ir.size.x - 12, 1), RIM)
+	text(Vector2(ir.position.x + 8, y + 11), "EACH CAST OF %s" % w.def.title.to_upper(), GOLD, 8)
+	y += 16
+	var plans := WandProgram.preview_cycle(w)
+	if plans.is_empty():
+		text(Vector2(ir.position.x + 8, y + 9), "No shooting spell: this wand does nothing.", Color("#ff8a9a"))
+	for pi in mini(plans.size(), 6):
+		var plan: WandProgram.Plan = plans[pi]
+		if y + 14 > ir.end.y - 4:
+			text(Vector2(ir.position.x + 8, y + 8), "...", MUTED)
+			break
+		text(Vector2(ir.position.x + 8, y + 10), "%d." % (pi + 1), MUTED)
+		var x := ir.position.x + 22
+		for g in plan.groups:
+			x = _preview_node(g, Vector2(x, y + 7), ir.end.x - 34)
+			x += 4
+		text(Vector2(ir.end.x - 30, y + 10), "%dmp" % roundi(plan.mana), Color("#4aa8ff"))
+		y += 15
+
+
+## Draws one compiled cast: its spell icon, then "> payload" for triggers and carriers.
+func _preview_node(c: CastNode, at: Vector2, max_x: float) -> float:
+	if at.x > max_x:
+		return at.x
+	icon_at(Icons.spell(c.spell), at + Vector2(6, 0))
+	var x := at.x + 13
+	if c.mods.multi > 0:
+		text(Vector2(x, at.y + 3), "x%d" % (c.mods.multi + 1), GOLD)
+		x += 12
+	if c.payload and x < max_x:
+		text(Vector2(x, at.y + 3), ">", Color("#ffe066"))
+		x = _preview_node(c.payload, Vector2(x + 6, at.y), max_x)
+	return x
+
+
+func _slot_at(p: Vector2) -> Dictionary:
+	for s in _slots:
+		if (s[0] as Rect2).grow(2.0).has_point(p):
+			return s[1]
+	return {}
+
+
+func _on_down(p: Vector2) -> void:
+	var ref := _slot_at(p)
+	if not ref.is_empty() and _spell_at(ref) != null:
+		_drag_from = ref
+		_drag_pos = p
+	else:
+		_drag_from = {}
+	_dragging = false
+
+
+func _on_drag(p: Vector2) -> void:
+	if _drag_from.is_empty():
+		return
+	_drag_pos = p
+	if not _dragging and p.distance_to(_press_pos) > 6.0:
+		_dragging = true
+		sel = {}
+
+
+func _on_up(p: Vector2) -> bool:
+	if not _dragging:
+		_drag_from = {}
+		return false
+	var to := _slot_at(p)
+	if not to.is_empty() and to != _drag_from:
+		_move(_drag_from, to)
+	_dragging = false
+	_drag_from = {}
+	return true
+
+
+func _move(from: Dictionary, to: Dictionary) -> void:
+	# a wand's slots can hold anything; moving into the bag past its end appends
+	if to["w"] < 0 and to["i"] >= run.bag.size():
+		to = {"w": -1, "i": run.bag.size()}
+		if run.bag.size() >= RunState.BAG_MAX and from["w"] >= 0:
+			toast("The bag is full")
+			return
+	run.move_spell(from, to)
+	if to["w"] >= 0:
+		focus_wand = to["w"]
+
+
+func _on_button(id: String) -> void:
+	if id == "done":
+		finished.emit({})
+	elif id == "revert":
+		_restore(_snapshot)
+		sel = {}
+		toast("Changes undone")
+	elif id.begins_with("wand"):
+		run.cur = int(id.substr(4))
+		focus_wand = run.cur
+	elif id.begins_with("slot:"):
+		var parts := id.split(":")
+		var ref := {"w": int(parts[1]), "i": int(parts[2])}
+		if ref["w"] >= 0:
+			focus_wand = ref["w"]
+		if sel.is_empty():
+			if _spell_at(ref) != null:
+				sel = ref
+		elif sel == ref:
+			sel = {}
+		else:
+			_move(sel, ref)
+			sel = {}

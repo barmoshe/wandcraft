@@ -4,7 +4,7 @@
 
 ## Where we are
 - **M0 Foundation: done.**
-  - Project folder, ADRs 0001-0004 and research notes.
+  - Project folder, ADRs 0001-0005 and research notes.
   - Godot 4.7.2 headless toolchain.
   - Test runner (`tools/test.sh`) and a screenshot tool (`tools/shots.sh`, Xvfb plus Mesa, Mobile renderer).
 - **M1 Vertical slice: done. It is playable on desktop, and the touch controls are in.**
@@ -37,21 +37,59 @@
     - Death restarts the run, walls stop bodies, and the pool recycles.
     - Stress: 45 enemies and ~1100 bullets average 6.4 ms per tick on the dev container.
 
+- **v0.2 "World 1, complete": done (ADR 0005). The free tier plays end to end.**
+  - **Research:** `research/run-structure-and-mobile-ux.md`, on Magicraft's run systems (mechanics only) and mobile UX. It led to:
+    - Shorter chapters.
+    - Every reward is a choice of 3.
+    - Tap-to-pick/tap-to-place editing.
+    - Saves at room boundaries.
+  - **Chapter:**
+    - The route is start → 3 chosen rooms → Copy-Paste (mini-boss) → 3 chosen rooms → The Infinite Loop (boss) → exit. The bot finishes a run in about 4 simulated minutes; humans will take longer.
+    - Doors show their reward: spell, relic, gold, max HP, wand, challenge, shop, spring or forge.
+    - The room before a boss always offers a spring or a shop.
+  - **Rewards:**
+    - Every reward is a choice of 3. A tap inspects a card and TAKE confirms it; SKIP pays gold.
+    - Three copies of a spell merge into the next level.
+    - The shop sells spells, a relic, a heal and a wand. The forge upgrades a spell for gold.
+  - **Content (all original):**
+    - 33 spells: new are Glitch Needle, Ember Bolt, Chain Spark, Frost Shard, Heavy/Wide Rune, Linger, Keen Edge, Ember/Frost Coat and Regen Coil. Burn and chill are new statuses.
+    - 7 wands and 22 relics.
+    - 6 enemies: new are Bugling and Puffcap.
+    - 2 bosses, with a telegraph → act → recover framework and HP phases.
+  - **Screens** (`game/scripts/ui/`, drawn immediate-mode at pixel resolution, taps ≥ 32 px):
+    - Title, pause (relics, auto-fire / shake / flash settings, two-tap abandon), reward, shop/forge, victory and defeat.
+    - Wand editor: tap-to-pick/tap-to-place plus drag, a fixed info panel, a live cast preview and REVERT.
+  - **HUD:** the chapter map strip, pause and editor buttons, relics, and the boss bar.
+  - **Saves:**
+    - `user://run.json` is written on room entry, when a reward or shop screen closes, and when the app is paused. The file is written then renamed, so a kill mid-write can't corrupt it.
+    - CONTINUE resumes into the pause menu.
+    - Lifetime stats go in `user://meta.json`.
+  - **Tests:** 43 headless tests pass.
+    - Run state, merges, moves, chapter doors, rewards, relics and the save round trip.
+    - Screen logic.
+    - Both bosses beaten in simulation.
+    - **A bot completes World 1.**
+    - The combo sweep and the stress tick (about 7 ms for 45 enemies and 1300 bullets).
+
 ## Next action
-- **M2 original content:**
-  - About 60 spells, 40 relics, 20 wands, 17 enemies, 10 bosses and 5 worlds, with original names and text and our own balance formulas.
-  - A DPS balance simulation, and a boss framework with all 10 bosses killable in a simulation.
-- **Carried over from M1:**
-  - Crates (`c`) are plain floor for now.
-  - The enemy spawn rune is faint under the ambient tint.
-  - The auto-aim does not lead moving targets.
-  - The camera ignores physics interpolation (fine at 60 Hz; revisit for 120 Hz).
+- **v0.3:** a real-device pass (first TestFlight and Play internal build) and M4 audio and juice (SFX, music, hit-stop).
+  - Balance World 1 for humans: HP, damage and wave budgets. The bot only proves the run can be completed.
+  - Onboarding hints for the first run: move, the first reward, the first editor visit.
+- **M2 breadth:** worlds 2-5, with their enemies and 8 more bosses.
+- **Known gaps:**
+  - Crates are plain floor.
+  - Keys, curses, potions and meta unlocks are deferred (ADR 0005).
+  - Auto-aim does not lead moving targets.
+  - The Loop's head is hard to spot in dark corners.
 
 ## How to look at it
 - Tests: `tools/test.sh`
-- Screenshots: `tools/shots.sh`. For a staged fight: `tools/shots.sh show --showcase --frames=130 --wand=2`
+- Screenshots: `tools/shots.sh`. Useful options (see `game/scripts/main.gd`):
+  - A staged fight: `--showcase --wand=2`.
+  - A boss: `--demo --kind=boss --loadout=strong --frames=480`.
+  - A screen: `--screen=editor|reward|shop|forge|pause|end|title`.
 - Playing on the Mac: open `game/project.godot` in Godot 4.7.2 and press Play.
-  - Controls: WASD to move, hold the mouse button to aim and fire, 1/2 to switch wands, F to toggle auto-fire.
+  - Controls: WASD to move, hold the mouse button to aim and fire, 1/2/3 to switch wands, Tab/E for the wand editor, Esc to pause, F to toggle auto-fire.
 
 ## Waiting on Bar
 - [ ] **Apple:** enroll in the Apple Developer Program ($99/yr). Decide between individual and organization (an organization needs a D-U-N-S number).

@@ -8,3 +8,5 @@ signal player_died
 signal enemy_killed(kind: StringName, pos: Vector2)
 signal wand_cast(slot: int)
 signal toast(text: String)
+signal boss_started(title: String, subtitle: String)
+signal boss_defeated

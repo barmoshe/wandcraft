@@ -66,6 +66,14 @@ static func _build() -> void:
 		"A flutter of moths that home in on the nearest target.")
 	_s("seed", P, "Payload Seed", "#ffe066", {"mp": [1, 2, 3], "dmg": [2, 5, 10], "carry": "seed", "p": {"speed": 190, "radius": 2.0, "life": 0.9}},
 		"Carries the next shooting spell and releases it where it lands. That spell costs 90/80/70% mana.")
+	_s("needle", P, "Glitch Needle", "#e8fbff", {"mp": [2, 3, 4], "dmg": [4, 6, 8], "dl": -0.02, "p": {"speed": 380, "radius": 1.5, "life": 0.6, "pierce": 2}},
+		"A thin, very fast needle that passes through two enemies.")
+	_s("ember", P, "Ember Bolt", "#ff8a3c", {"mp": [6, 8, 11], "dmg": [8, 12, 17], "beh": "bomb", "p": {"speed": 150, "radius": 3.0, "life": 1.0, "area": [18.0, 21.0, 25.0], "burn": 1}},
+		"A slow fireball that explodes where it lands and sets enemies alight.")
+	_s("spark", P, "Chain Spark", "#fff27a", {"rar": 1, "mp": [5, 7, 9], "dmg": [5, 8, 12], "p": {"speed": 240, "radius": 2.0, "life": 0.8, "chain": [2, 3, 5]}},
+		"On a hit, jumps to the next enemy nearby, 2/3/5 times.")
+	_s("frost", P, "Frost Shard", "#9fe8ff", {"mp": [4, 5, 7], "dmg": [5, 7, 10], "p": {"speed": 220, "radius": 2.0, "life": 0.9, "count": [2, 2, 3], "spread": 16.0, "chill": 1}},
+		"Twin shards of ice that slow what they hit.")
 	_s("wheel", P, "Starwheel", "#ffd36b", {"rar": 2, "mp": [12], "dmg": [16], "carry": "wheel", "beh": "wheel", "p": {"speed": 80, "radius": 4.0, "life": 1.6, "pierce": 99}},
 		"A spinning star that sprays the next shooting spell 16 times around it. That spell costs x4 mana and deals x0.5 damage.")
 	# ---- boosts: change every shooting spell to their right until the wand recharges ----
@@ -77,6 +85,12 @@ static func _build() -> void:
 	_s("twin", B, "Twin Cast", "#ffa3c4", {"rar": 1, "mp": [0]}, "Each spell after it is cast 1/2/4 extra times. Costs x1.5 mana.")
 	_s("chorus", B, "Chorus", "#ffc94a", {"mp": [0]}, "Casts 2/3/4 more shooting spells at once, each a little cheaper, with some spread.")
 	_s("shatter", B, "Shatter", "#ffd36b", {"mp": [3]}, "When a spell ends it breaks into 3/5/8 shards at a third of its damage. Costs x1.4 mana.")
+	_s("heavy", B, "Heavy Rune", "#c8a070", {"mp": [4]}, "Damage +60/90/140%, but spells fly 30% slower.")
+	_s("wide", B, "Wide Rune", "#b4f0a0", {"mp": [3]}, "Explosions and bolts are 40/70/110% larger.")
+	_s("linger", B, "Linger", "#a0b8ff", {"mp": [2]}, "Spells last 0.35/0.6/1.0 s longer.")
+	_s("keen", B, "Keen Edge", "#ffe0e0", {"mp": [3]}, "Critical hit chance +15/25/40%. Crits deal double damage.")
+	_s("ember_coat", B, "Ember Coat", "#ff8a3c", {"rar": 1, "mp": [4]}, "Hits set enemies on fire, stronger at higher levels.")
+	_s("frost_coat", B, "Frost Coat", "#9fe8ff", {"rar": 1, "mp": [4]}, "Hits chill enemies: they move and shoot slower.")
 	_s("mirror", B, "Mirror", "#d6d6ff", {"rar": 1, "mp": [2]}, "Copies the next spell: a boost applies twice, a shooting spell is cast twice.")
 	# ---- triggers: sit between two spells, the left one fires the right one ----
 	_s("then", T, "THEN", "#ffe066", {"mp": [4], "t": "then"}, "When the left spell ends, cast the right one. It inherits 30/60/120% of the left spell's damage.")
@@ -85,14 +99,28 @@ static func _build() -> void:
 	_s("fork", T, "Fork Bomb", "#ffe066", {"rar": 1, "mp": [6], "t": "fork"}, "When the left spell ends, the right one forks 4 ways at 35/45/60% damage. Its mana x4.")
 	# ---- passives: work from any slot ----
 	_s("cache", S, "Mana Cache", "#5ce1ff", {}, "Wand max mana +40/80/160%.")
+	_s("regen", S, "Regen Coil", "#7dff9a", {}, "Wand mana regenerates 30/60/120% faster.")
 	_s("heatsink", S, "Heat Sink", "#9b7bff", {}, "Wand recharge x0.6/0.3/0.15.")
 
 	var w := WandDef.new()
 	w.id = &"apprentice"; w.title = "Apprentice Rod"; w.slots = 5; w.max_mana = 80; w.regen = 18; w.cast_delay = 0.15; w.recharge = 0.5; w.scatter = 5
 	_wands[w.id] = w
+	_w(&"birch", "Birch Switch", 0, 4, 60, 16, 0.1, 0.35, 4, 1, false, "#d8c090")
+	_w(&"mirror_rod", "Mirror Rod", 1, 6, 90, 20, 0.14, 0.5, 5, 1, true, "#b8b8ff")
+	_w(&"oak", "Old Oak Staff", 0, 8, 140, 24, 0.2, 0.9, 6, 1, false, "#8a6a3a")
+	_w(&"fork_branch", "Fork Branch", 1, 6, 100, 20, 0.25, 0.6, 22, 2, false, "#9ad06a")
+	_w(&"crystal", "Crystal Wand", 2, 6, 120, 32, 0.12, 0.4, 3, 1, false, "#8ff0ff")
 	w = WandDef.new()
 	w.id = &"harp"; w.title = "Chorus Harp"; w.rarity = 1; w.slots = 7; w.max_mana = 110; w.regen = 20; w.cast_delay = 0.4; w.recharge = 0.5; w.scatter = 60; w.simultaneous = 3; w.color = Color("#6fe3c1")
 	_wands[w.id] = w
+
+
+static func _w(id: StringName, title: String, rar: int, slots: int, mana: float, regen: float, dl: float, rc: float,
+		sc: float, sim: int, rev: bool, col: String) -> void:
+	var w := WandDef.new()
+	w.id = id; w.title = title; w.rarity = rar; w.slots = slots; w.max_mana = mana; w.regen = regen
+	w.cast_delay = dl; w.recharge = rc; w.scatter = sc; w.simultaneous = sim; w.reverse = rev; w.color = Color(col)
+	_wands[id] = w
 
 
 ## Applies a boost to the accumulator.
@@ -107,6 +135,14 @@ static func apply_boost(id: StringName, m: Mods, lv: int) -> void:
 		&"twin":
 			m.multi += [1, 2, 4][i]
 			m.cnt_mp *= 1.5
+		&"heavy":
+			m.dmg *= 1.0 + [0.6, 0.9, 1.4][i]
+			m.spd -= 0.3
+		&"wide": m.area *= 1.0 + [0.4, 0.7, 1.1][i]
+		&"linger": m.dur_add += [0.35, 0.6, 1.0][i]
+		&"keen": m.crit += [0.15, 0.25, 0.4][i]
+		&"ember_coat": m.burn = maxi(m.burn, i + 1)
+		&"frost_coat": m.chill = maxi(m.chill, i + 1)
 		&"shatter":
 			m.shatter = maxi(m.shatter, [3, 5, 8][i])
 			m.cnt_mp *= 1.4

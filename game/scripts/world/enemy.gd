@@ -8,6 +8,10 @@ const DEFS := {
 	&"weaver": {"title": "Hex Weaver", "ai": &"shoot", "hp": 22.0, "spd": 40.0, "r": 6.0, "dmg": 10.0, "cost": 3, "gold": 3,
 		"shot": {"n": 1, "spd": 85.0, "cd": 2.2}},
 	&"ram": {"title": "Thornback", "ai": &"charge", "hp": 34.0, "spd": 30.0, "r": 7.0, "dmg": 14.0, "cost": 3, "gold": 3},
+	&"bugling": {"title": "Bugling", "ai": &"chase", "hp": 7.0, "spd": 62.0, "r": 4.0, "dmg": 6.0, "cost": 1, "gold": 1},
+	&"puffcap": {"title": "Puffcap", "ai": &"turret", "hp": 26.0, "spd": 0.0, "r": 6.0, "dmg": 9.0, "cost": 3, "gold": 3,
+		"shot": {"n": 8, "spd": 62.0, "cd": 3.0, "ring": true}},
+	&"loop_seg": {"title": "Loop Segment", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 6.0, "dmg": 12.0, "cost": 0, "gold": 0},
 	&"sentry": {"title": "Rune Sentry", "ai": &"turret", "hp": 44.0, "spd": 0.0, "r": 7.0, "dmg": 10.0, "cost": 4, "gold": 5,
 		"shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.6}},
 }
@@ -48,6 +52,13 @@ var ph := 0.0
 var burst := 0
 var bcd := 0.0
 var hit_wall := false
+var burn_t := 0.0
+var burn_dps := 0.0
+var chill_t := 0.0
+var chill_slow := 1.0
+var _st_tick := 0.0
+var forward: Enemy          # body parts pass their damage to this (a boss)
+var fwd_mul := 1.0
 var sprite: Sprite2D
 var frames: Array[Texture2D]
 var _mat: ShaderMaterial
@@ -75,14 +86,33 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 2.0)
 	if elite:
 		sprite.scale = Vector2(1.35, 1.35)
-	if _shader == null:
-		_shader = Shader.new()
-		_shader.code = FLASH_SHADER
 	_mat = ShaderMaterial.new()
-	_mat.shader = _shader
+	_mat.shader = _flash_shader()
 	sprite.material = _mat
 	sprite.visible = false
 	add_child(sprite)
+
+
+## Burn ticks damage; chill slows everything the enemy does. Returns the slowed dt.
+func statuses(dt: float) -> float:
+	if burn_t > 0.0:
+		burn_t -= dt
+		_st_tick -= dt
+		if _st_tick <= 0.0:
+			_st_tick = 0.25
+			world.hurt_enemy(self, burn_dps * 0.25, position, 0.0, 0.0, true)
+			world.fx.sparks(position + Vector2(0, -6), 1, Color("#ff8a3c"), 30.0)
+	if chill_t > 0.0:
+		chill_t -= dt
+		return dt * chill_slow
+	return dt
+
+
+static func _flash_shader() -> Shader:
+	if _shader == null:
+		_shader = Shader.new()
+		_shader.code = FLASH_SHADER
+	return _shader
 
 
 func tick(dt: float) -> void:
@@ -93,8 +123,14 @@ func tick(dt: float) -> void:
 			world.fx.ring(position, 2.0, 14.0, 0.25, Color("#c46bff"))
 		queue_redraw()
 		return
+	dt = statuses(dt)
+	if dead:
+		return
 	t += dt
 	flash = maxf(0.0, flash - dt)
+	if ai == &"part":
+		_animate()
+		return
 	var pl := world.player
 	var d := pl.position - position
 	var dd := maxf(1.0, d.length())
@@ -154,9 +190,13 @@ func tick(dt: float) -> void:
 					burst -= 1
 					bcd = shot["cd"]
 			elif cd <= 0.0 and dd < 240.0:
-				burst = shot["burst"]
-				bcd = 0.0
-				cd = shot["bcd"]
+				if shot.has("burst"):
+					burst = shot["burst"]
+					bcd = 0.0
+					cd = shot["bcd"]
+				else:
+					shoot(d.angle())
+					cd = float(shot["cd"]) * world.rng.randf_range(0.85, 1.15)
 	if mv.length() > 1.0:
 		mv = mv.normalized()
 	if state != &"dash":
@@ -177,6 +217,7 @@ func _animate() -> void:
 	sprite.texture = frames[int(t * 4.0 + ph) % 2]
 	sprite.flip_h = face < 0
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
+	sprite.modulate = Color(0.6, 0.85, 1.3) if chill_t > 0.0 else (Color(1.3, 0.85, 0.6) if burn_t > 0.0 else Color.WHITE)
 	var sq := 1.0 + sin(t * 8.0 + ph) * 0.06 if ai != &"turret" else 1.0
 	sprite.scale = Vector2(1.0 / sq, sq) * (1.35 if elite else 1.0)
 	queue_redraw()
@@ -185,8 +226,10 @@ func _animate() -> void:
 func shoot(ang: float) -> void:
 	var shot: Dictionary = def["shot"]
 	var n: int = shot["n"]
+	var off := world.rng.randf() * TAU
 	for i in n:
-		world.enemy_shoot(position + Vector2(0, -4), ang, float(shot["spd"]), dmg * 0.9)
+		var a := off + TAU * i / n if shot.get("ring", false) else ang
+		world.enemy_shoot(position + Vector2(0, -4), a, float(shot["spd"]), dmg * 0.9)
 	world.fx.ring(position + Vector2(0, -4), 1.0, 7.0, 0.15, Color("#ff5a7a"))
 
 

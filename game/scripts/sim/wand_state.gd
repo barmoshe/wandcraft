@@ -12,6 +12,7 @@ var rech_max := 0.5
 var acc := Mods.new()
 var casts := 0
 var flash := -1
+var bonus_mana := 1.0   # relics (Spare Battery)
 
 
 static func make(wand: WandDef, ids: Array = []) -> WandState:
@@ -46,7 +47,7 @@ func passive_level(id: StringName) -> int:
 
 
 func max_mana() -> float:
-	var m := def.max_mana
+	var m := def.max_mana * bonus_mana
 	var cache := passive_level(&"cache")
 	if cache > 0:
 		m *= 1.0 + [0.4, 0.8, 1.6][cache - 1]

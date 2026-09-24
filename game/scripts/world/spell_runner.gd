@@ -53,8 +53,10 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.acc = plan.acc
 	w.casts += 1
 	w.flash = plan.used[plan.used.size() - 1] if not plan.used.is_empty() else -1
-	var dl := maxf(0.03, w.def.cast_delay + plan.delay_add)
-	var rc := maxf(0.03, w.recharge_time() + plan.recharge_add)
+	var run := world.run
+	var oc := 0.85 if run and run.has_relic(&"overclock") else 1.0
+	var dl := maxf(0.03, (w.def.cast_delay + plan.delay_add) * oc)
+	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * oc)
 	w.cd = dl + (rc if plan.wrapped else 0.0)
 	if plan.wrapped:
 		w.rech = rc
@@ -62,10 +64,17 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	var opt := Opt.new()
 	opt.src = w
 	opt.sc = w.def.scatter
+	opt.gm = Relics.dmg_mul(run, world.room_time) if run else 1.0
 	cast_seq += 1
 	casts_fired += 1
 	for g in plan.groups:
 		emit_cast(g, origin, ang, opt)
+	# Echo Crystal: sometimes the whole cast happens again, for free
+	if run and run.has_relic(&"echo") and world.rng.randf() < 0.15:
+		cast_seq += 1
+		var a2 := ang + world.rng.randf_range(-0.25, 0.25)
+		for g in plan.groups:
+			emit_cast(g, origin, a2, opt)
 	world.fx.ring(origin, 1.0, 6.0, 0.12, plan.groups[0].spell.color)
 	Events.wand_cast.emit(w.flash)
 	return true
@@ -76,9 +85,14 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt) -> void:
 	var d := c.spell
 	var m := c.mods
 	var lv := c.level
+	var run := world.run
 	var dmg := (d.damage_at(lv) * m.dmg * opt.gm + opt.add) * opt.mul
-	var crit := d.crit + m.crit
+	if opt.depth > 0 and run and run.has_relic(&"recursion"):
+		dmg *= 1.3
+	var crit := d.crit + m.crit + (0.1 if run and run.has_relic(&"lucky_bit") else 0.0)
 	var base := int(d.param("count", lv, 1))
+	if base > 1 and run and run.has_relic(&"aperture"):
+		base += 1
 	var copies := mini(16, 1 + m.multi)
 	var sc := deg_to_rad(maxf(0.0, opt.sc + m.scatter))
 	var fan := deg_to_rad(float(d.param("spread", lv, 0.0))) if base > 1 else 0.0
@@ -102,7 +116,9 @@ func _emit_one(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, o
 		&"burst":
 			_burst(c, pos + Vector2.from_angle(ang) * 8.0, ang, dmg, crit, opt)
 			return
-	var spd := float(d.param("speed", c.level, 200.0)) * (1.0 + c.mods.spd)
+	var spd := float(d.param("speed", c.level, 200.0)) * maxf(0.3, 1.0 + c.mods.spd)
+	if world.run and world.run.has_relic(&"keen_scope"):
+		spd *= 1.15
 	var b := _spawn(c, pos, ang, spd, dmg, crit, opt)
 	if b == null:
 		return
@@ -124,11 +140,15 @@ func _fill(b: Bullet, c: CastNode, pos: Vector2, ang: float, spd: float, dmg: fl
 	b.vel = Vector2.from_angle(ang) * spd
 	b.dmg = dmg
 	b.crit = crit
-	b.r = float(d.param("radius", lv, 2.0))
+	b.r = float(d.param("radius", lv, 2.0)) * minf(2.5, sqrt(m.area))
+	b.area = m.area
+	b.burn = maxi(int(d.param("burn", lv, 0)), m.burn)
+	b.chill = maxi(int(d.param("chill", lv, 0)), m.chill)
+	b.chain = int(d.param("chain", lv, 0))
 	b.life = float(d.param("life", lv, 1.0)) + m.dur_add
 	b.max_life = b.life
 	b.pierce = int(d.param("pierce", lv, 0)) + m.pierce
-	b.bounce = m.bounce
+	b.bounce = m.bounce + (1 if world.run and world.run.has_relic(&"bounce_core") else 0)
 	b.home = float(d.param("homing", lv, 0.0)) + m.home
 	b.shatter = m.shatter
 	b.color = d.color
@@ -188,6 +208,7 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 		var e: Enemy = h[1]
 		ps.pos = e.position
 		world.hurt_enemy(e, ps.dmg, pos, crit, 0.5)
+		world.apply_status(e, ps.burn, ps.chill, ps.dmg)
 		_on_hit(ps, e)
 		last = e
 		if pierce > 0:
@@ -204,7 +225,7 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 
 ## Rune Burst: an instant blast. Payloads delivered by carriers make it shine.
 func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
-	var r := float(c.spell.param("area", c.level, 30.0)) * c.mods.area
+	var r := float(c.spell.param("area", c.level, 30.0)) * c.mods.area * world.area_mul()
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
 	world.fx.ring(pos, 2.0, r, 0.25, c.spell.color)
 	world.fx.sparks(pos, 14, c.spell.color, 140.0)
@@ -214,9 +235,25 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 			continue
 		if e.position.distance_squared_to(pos) < (r + e.r) * (r + e.r):
 			world.hurt_enemy(e, dmg, pos, crit, 1.3)
+			world.apply_status(e, ps.burn, ps.chill, dmg)
 			_on_hit(ps, e)
 	world.shake(0.1)
 	end_bullet(ps, null)
+
+
+## Ember Bolt and friends: an explosion where the bolt ends. Payload triggers still fire.
+func _blast(b: Bullet, hit_e: Enemy) -> void:
+	var r := float(b.cast.spell.param("area", b.cast.level, 18.0)) * b.area * world.area_mul()
+	world.fx.ring(b.pos, 2.0, r, 0.25, b.color)
+	world.fx.sparks(b.pos, 12, b.color, 120.0)
+	for k in world.hash.query(b.pos, r + 16.0):
+		var e: Enemy = world.enemies[k]
+		if e.dead or e.spawn_t > 0.0 or e == hit_e:
+			continue
+		if e.position.distance_squared_to(b.pos) < (r + e.r) * (r + e.r):
+			world.hurt_enemy(e, b.dmg * 0.7, b.pos, b.crit, 1.2)
+			world.apply_status(e, b.burn, b.chill, b.dmg)
+	world.shake(0.08)
 
 
 func update(dt: float) -> void:
@@ -320,14 +357,37 @@ func _hit_one(b: Bullet, e: Enemy) -> bool:
 	b.hits.append(e.uid)
 	world.fx.sparks(b.pos, 3, b.color, 60.0)
 	world.hurt_enemy(e, b.dmg, b.pos - b.vel * 0.02, b.crit, 1.0)
+	world.apply_status(e, b.burn, b.chill, b.dmg)
 	_on_hit(b, e)
 	if not b.alive:
 		return true
+	if b.chain > 0:
+		var nx := _next_unhit(b, e.position, 110.0)
+		if nx:
+			b.chain -= 1
+			b.vel = (nx.position - b.pos).normalized() * maxf(200.0, b.vel.length())
+			b.life = maxf(b.life, 0.5)
+			b.home = 0.0
+			world.fx.beam(e.position, b.pos, b.color, 1.0)
+			return false
 	if b.pierce > 0:
 		b.pierce -= 1
 		return false
 	end_bullet(b, e)
 	return true
+
+
+func _next_unhit(b: Bullet, p: Vector2, max_d: float) -> Enemy:
+	var best: Enemy = null
+	var bd := max_d * max_d
+	for e in world.enemies:
+		if e.dead or e.spawn_t > 0.0 or b.hits.has(e.uid):
+			continue
+		var d := e.position.distance_squared_to(p)
+		if d < bd:
+			bd = d
+			best = e
+	return best
 
 
 func _on_hit(b: Bullet, e: Enemy) -> void:
@@ -339,6 +399,8 @@ func end_bullet(b: Bullet, hit_e: Enemy) -> void:
 	if not b.alive:
 		return
 	b.alive = false
+	if b.cast and b.cast.spell.behavior == &"bomb" and b.depth <= MAX_DEPTH:
+		_blast(b, hit_e)
 	if b.shatter > 0 and b.depth < MAX_DEPTH:
 		var n := mini(12, b.shatter)
 		var base := b.vel.angle() if b.vel.length_squared() > 0.01 else b.a

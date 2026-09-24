@@ -10,14 +10,23 @@ const AUTO_RANGE := 210.0
 
 var world: World
 var controls: Controls
-var hp := 100.0
-var max_hp := 100.0
 var r := 5.0
 var vel := Vector2.ZERO
 var aim := 0.0
-var wands: Array[WandState] = []
-var cur := 0
-var bag: Array = []            # spare spells: {"id", "lv"}
+# the run owns HP, wands and the bag; these read through to it
+var hp: float:
+	get: return world.run.hp
+	set(v): world.run.hp = v
+var max_hp: float:
+	get: return world.run.max_hp
+	set(v): world.run.max_hp = v
+var wands: Array[WandState]:
+	get: return world.run.wands
+var cur: int:
+	get: return world.run.cur
+	set(v): world.run.cur = v
+var bag: Array:
+	get: return world.run.bag
 var target: Enemy
 var inv := 0.0
 var cast_t := 0.0
@@ -52,16 +61,6 @@ func setup(w: World) -> void:
 	add_child(tip_glow)
 
 
-func new_run() -> void:
-	hp = max_hp
-	dead = false
-	wands.clear()
-	wands.append(WandState.make(Catalog.wand(&"apprentice"), ["seed", "burst", "mote", null, null]))
-	wands.append(WandState.make(Catalog.wand(&"harp"), ["fan", "then", "burst", "moths", null, null, null]))
-	cur = 0
-	bag.clear()
-
-
 func wand() -> WandState:
 	return wands[cur]
 
@@ -81,12 +80,15 @@ func tick(dt: float) -> void:
 		controls.select_wand = -1
 	# movement
 	var mv := controls.move.limit_length(1.0)
-	vel = vel.lerp(mv * SPEED, 1.0 - pow(0.0005, dt))
+	var run := world.run
+	var speed := SPEED * (1.15 if run.has_relic(&"hotkey_boots") else 1.0)
+	vel = vel.lerp(mv * speed, 1.0 - pow(0.0005, dt))
 	position = world.move_body(position, r, vel * dt)
 	if mv.length() > 0.1:
 		walk_t += dt * mv.length()
 	# aim and fire
-	target = world.assist_target(position, AUTO_RANGE)
+	var auto_range := AUTO_RANGE * (1.4 if run.has_relic(&"keen_scope") else 1.0)
+	target = world.assist_target(position, auto_range)
 	var stick := controls.aim
 	var firing := false
 	if stick.length() > 0.3:
@@ -97,14 +99,17 @@ func tick(dt: float) -> void:
 		firing = world.los(position, target.position)
 	elif mv.length() > 0.1:
 		aim = mv.angle()
+	var regen_mul := Relics.mana_regen_mul(run)
 	for w in wands:
-		w.mana = minf(w.max_mana(), w.mana + w.def.regen * dt)
+		var coil := w.passive_level(&"regen")
+		var k: float = regen_mul * (1.0 + ([0.0, 0.3, 0.6, 1.2][coil]))
+		w.mana = minf(w.max_mana(), w.mana + w.def.regen * k * dt)
 		w.cd = maxf(0.0, w.cd - dt)
 		w.rech = maxf(0.0, w.rech - dt)
 	if firing and world.spells.wand_fire(wand(), tip(), aim):
 		cast_t = 0.12
 	# hazards
-	if world.hazard_at(position) and world.spikes_up():
+	if world.hazard_at(position) and world.spikes_up() and not run.has_relic(&"sandbox"):
 		hurt(10.0, position)
 	_animate()
 
@@ -129,8 +134,16 @@ func _assist(ang: float) -> float:
 func hurt(amount: float, from: Vector2) -> void:
 	if dead or inv > 0.0 or Game.god_mode:
 		return
+	var run := world.run
+	if run.has_relic(&"try_catch") and not world.caught:
+		world.caught = true
+		inv = 0.7
+		world.fx.text(position + Vector2(0, -22), "CAUGHT", Color("#9ab0ff"))
+		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
+		return
+	amount *= Relics.damage_taken_mul(run)
 	hp -= amount
-	inv = 0.7
+	inv = 0.7 * (1.5 if run.has_relic(&"afterimage") else 1.0)
 	vel += (position - from).normalized() * 120.0
 	world.fx.text(position + Vector2(0, -22), "-%d" % roundi(amount), Color("#ff5a6a"))
 	world.shake(0.18)
@@ -144,18 +157,6 @@ func hurt(amount: float, from: Vector2) -> void:
 func heal(amount: float) -> void:
 	hp = minf(max_hp, hp + amount)
 	world.fx.text(position + Vector2(0, -22), "+%d" % roundi(amount), Color("#7dff6a"))
-
-
-## Puts a spell into the first empty slot of any wand, else into the bag.
-func take_spell(id: StringName) -> void:
-	for w in wands:
-		for i in w.slots.size():
-			if w.slots[i] == null:
-				w.slots[i] = {"id": id, "lv": 1}
-				w.ptr = 0
-				w.acc = Mods.new()
-				return
-	bag.append({"id": id, "lv": 1})
 
 
 func _animate() -> void:

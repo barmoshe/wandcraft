@@ -1,0 +1,88 @@
+# Run structure and mobile UX — research for v0.2 (2026-09-24)
+
+Two web research passes. We take **mechanics only** from Magicraft (see `decisions/0002`). Anything a source could not confirm is marked **(uncertain)**.
+
+## Magicraft's run structure (reference only)
+- **Chapters:** 5 in 1.0. Chapter 1 runs 6 random rooms, then an elite, then 7 random rooms, then the boss. Runs start from a hub camp.
+- **Doors:** a door is chosen after each room. Its marking shows the reward type. By default there are about 2 doors; relics can add one **(count uncertain)**.
+- **Room types:**
+  - Rewards: spell, gold, relic, max HP.
+  - Services: shop, forge (merges 3 identical spells into the next level, rerolls for coins), spring.
+  - Key-locked side rooms: cursed chests, trap gauntlets, puzzles.
+  - A secret room after a no-damage boss.
+- **Rewards:**
+  - Spell rooms drop a single spell. A meta unlock turns that into a choice of 3.
+  - Relic rooms offer a choice of 3.
+  - Spell levels run 1→3 by merging three copies.
+- **Relics:** about 80 in four rarities, many of them levelled.
+  - Common effect types: damage %, crit, heal on kill, on-kill projectiles, retaliation, auras, dodge, damage reduction, orbiting blockers, mana boosts, extra wand slots, wall-piercing shots, cast duplication, gold interest, extra reward options, hazard immunity, a revive, curse synergies, and glass cannon.
+- **Wands:** you start with 1 wand, and meta upgrades add more. Each wand has its own MP pool, regen, cast interval, cooldown, spread and slot count. The backpack holds 10 spells, upgradable. Potions are one-use items with 1–4 slots.
+- **World 1:**
+  - Elites have about 650 HP: a spider that webs and slows, a charging worm, a mimic that copies your movement, a bouncing eye.
+  - Bosses have about 1500–1700 HP and use charges and homing poison boulders.
+- **Meta:**
+  - Two currencies pay for permanent talents: slots, HP, starting gold, better rooms.
+  - Unlockable spell and relic packs, spell bans (about 15), 9 unlockable starting loadouts and 6 difficulty tiers.
+- **Mobile:** launched in China on 22 Dec 2025 (Bilibili, buy-to-play, about 25 CNY). It has a joystick or gyro, plus aim-assist. Availability outside China is **(uncertain)**.
+- **Player criticisms (these are our opportunities):**
+  - RNG-heavy "gacha" drops.
+  - Spell rooms are weak next to relic, gold and HP rooms.
+  - Difficulty spikes.
+  - Bullet-sponge enemies and runs of about 2 hours.
+  - Downtime.
+  - Dense, math-heavy spell text.
+  - Little control over the build.
+- **Sources:**
+  - Fandom wiki via API (/Rooms, /Curses, /Relics, /Wands, /Monsters_%26_Bosses, /Chests, /Currency).
+  - wiki.biligame.com/magicraft.
+  - rogueliker.com/magicraft-review.
+  - Steam guides 3366776997 and 3075983083.
+  - Steam discussions under app 2103140.
+  - wap.gamersky.com/news/Content-2064100.html (mobile launch).
+
+## Mobile roguelite UX
+- **Editor:**
+  - Support both drag and tap-to-pick/tap-to-place. WCAG 2.5.7 requires a single-pointer alternative to dragging.
+  - Keep inspecting separate from placing: a tap selects a spell and shows it in a fixed info panel, away from the thumb.
+  - Pause while editing, offer an undo or revert, and show a live preview of the cast sequence (as Noita wand simulators do).
+  - Slay the Spire mobile was criticized for accidental plays when players only meant to inspect.
+- **Touch targets:**
+  - 44 pt (Apple) or 48 dp (Material). At our integer scale of about 4x, that is about 32 game px.
+  - The hit area can be larger than the icon.
+  - Dead Cells mobile was criticized for having "far too many tiny buttons".
+- **Runs:**
+  - Aim for runs of 10–20 minutes, in rooms of 2–4 minutes.
+  - Save at stable boundaries (room entered or cleared, reward taken) and on `NOTIFICATION_APPLICATION_PAUSED`.
+  - Swipe-to-kill may never deliver that notification, so the checkpoints carry the load.
+  - Resume at the room entrance with the pause menu open. The lack of a mid-run save is Vampire Survivors' top complaint on mobile.
+- **Onboarding:**
+  - Progressive disclosure, with contextual hints triggered by what the player does.
+  - The first run starts with a ready-made wand, then teaches one editing step.
+- **Rewards:**
+  - Choose 1 of 3 and always offer a skip.
+  - A tap inspects the card and a separate confirm button takes it.
+  - Show rarity with color plus frame shape, for colorblind players.
+- **Bosses:**
+  - Telegraphs of 0.5–1 s on touch.
+  - Every attack gets its own wind-up shape.
+  - Enemy bullets are saturated and outlined.
+- **Accessibility:**
+  - Toggles for camera shake and screen flash.
+  - Keep flashes below 3 per second over large areas, and avoid red flashes.
+- **Layout:**
+  - Frequent actions go at the bottom near the thumbs, and menu and pause go at the top.
+  - Keep taps clear of the safe-area insets, and auto-pause on focus loss.
+  - To stop accidental home swipes, iOS has `preferredScreenEdgesDeferringSystemGestures`. It needs a small plugin (M5).
+- **Sources:**
+  - toucharcade.com (Slay the Spire iOS review).
+  - w3.org WCAG 2.5.7.
+  - noita.wiki.gg/wiki/Wands.
+  - nme.com (Dead Cells mobile review).
+  - m2.material.io accessibility.
+  - forum.godotengine.org (mobile termination handling).
+  - developer.android.com (saving states).
+  - gamedeveloper.com (FTUE and telegraphing).
+  - gdkeys.com (combat design).
+  - gameaccessibilityguidelines.com.
+  - Microsoft XAG 117.
+  - developer.apple.com/videos/play/wwdc2026/358.

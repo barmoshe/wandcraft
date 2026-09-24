@@ -1,23 +1,31 @@
 extends Node2D
-## Builds the game in code: glow environment, world, camera, HUD and touch controls.
+## Builds the game in code (glow environment, world, camera, HUD, touch controls) and runs
+## the app flow: title -> run (room by room) -> reward / shop / forge / editor / pause
+## screens -> victory or defeat -> title.
 ## Desktop testing: WASD/arrows move, hold the left mouse button to aim and fire,
-## 1/2 pick a wand, F toggles auto-fire. Gamepads: sticks, LB/RB switch wands.
+## 1/2/3 pick a wand, Tab/E opens the wand editor, Esc pauses, F toggles auto-fire.
+## Gamepads: sticks, LB/RB switch wands, Start pauses, Select opens the editor.
 ##
 ## Command-line options (after `--`):
-##   --demo              a bot plays (for screenshots and soak runs)
+##   --demo              skip the title; a bot plays (god mode) and answers every screen
+##   --showcase          a staged fight (enemies placed, unlimited mana) for screenshots
 ##   --seed=N            run seed
-##   --room=hall|cross|pillars  --kind=fight|elite|treasure
+##   --step=N --kind=K   start at chapter step N in a room of kind K (fight, shop, boss...)
+##   --loadout=strong    a strong late-run build (for boss screenshots)
+##   --screen=S          open a screen right away: reward, shop, forge, editor, pause, title, end
 ##   --shot=out.png --frames=N   save a screenshot after N frames, then quit
 ##   --touchdemo         draw sample thumbs on the sticks (store screenshots)
 ##   --wand=N            start with wand N selected
-##   --showcase          a staged fight (enemies placed, unlimited mana) for screenshots
 
 var world: World
 var hud: Hud
 var touch: TouchControls
 var cam: Camera2D
+var screen: Screen
+var _screens: CanvasLayer
 var _args: Dictionary = {}
 var _frames := 0
+var _playing := false
 
 
 func _ready() -> void:
@@ -28,17 +36,7 @@ func _ready() -> void:
 	world = World.new()
 	add_child(world)
 	world.setup(int(_args.get("seed", "7")))
-	world.bot = _args.has("demo")
-	if _args.has("demo"):
-		Game.god_mode = true
-	world.new_run()
-	if _args.has("room") or _args.has("kind"):
-		world.room_no = 0
-		world.build_room(_args.get("room", "hall"), StringName(_args.get("kind", "fight")))
-	if _args.has("showcase"):
-		_showcase()
-	if _args.has("wand"):
-		world.player.cur = clampi(int(_args["wand"]) - 1, 0, world.player.wands.size() - 1)
+	world.ui_request.connect(_on_ui_request)
 	cam = Camera2D.new()
 	cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(cam)
@@ -52,7 +50,83 @@ func _ready() -> void:
 	touch = TouchControls.new()
 	touch.controls = world.controls
 	touch.hud = hud
+	touch.hud_pressed.connect(_on_hud)
 	ui.add_child(touch)
+	_screens = CanvasLayer.new()
+	_screens.layer = 20
+	add_child(_screens)
+	var direct := _args.has("demo") or _args.has("showcase") or _args.has("step") or _args.has("kind") or _args.has("screen")
+	if direct and _args.get("screen", "") != "title":
+		_start_from_args()
+	else:
+		_show_title()
+
+
+# ------------------------------------------------------------------ flow
+
+func _show_title() -> void:
+	_playing = false
+	hud.visible = false
+	touch.enabled = false
+	world.visible = false
+	var t := TitleScreen.new()
+	_open(t, func(res: Dictionary) -> void:
+		if res.get("action") == "continue":
+			var r := SaveGame.load_run()
+			if r:
+				_begin(r)
+				_open_pause(true)
+				return
+		_begin(RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1)))
+
+
+func _begin(r: RunState) -> void:
+	world.visible = true
+	hud.visible = true
+	touch.enabled = true
+	_playing = true
+	world.start_run(r)
+	_follow_camera(true)
+
+
+func _start_from_args() -> void:
+	var r := RunState.create(int(_args.get("seed", "7")))
+	if _args.has("demo") or _args.has("showcase"):
+		world.bot = true
+		Game.god_mode = true
+	if _args.get("loadout", "") == "strong":
+		_strong_loadout(r)
+	if _args.has("step"):
+		r.step = clampi(int(_args["step"]), 0, Chapter.PLAN.size() - 1)
+	if _args.has("kind"):
+		r.room = {"kind": StringName(_args["kind"]), "reward": &"spell"}
+		var k := StringName(_args["kind"])
+		if k == &"boss":
+			r.step = Chapter.PLAN.size() - 1
+		elif k == &"mini":
+			r.step = 4
+		elif r.step == 0:
+			r.step = 1
+	_begin(r)
+	if _args.has("showcase"):
+		_showcase()
+	if _args.has("wand"):
+		r.cur = clampi(int(_args["wand"]) - 1, 0, r.wands.size() - 1)
+	match _args.get("screen", ""):
+		"reward":
+			_on_ui_request(&"reward", {"kind": &"spell", "offer": Rewards.offer(r, &"relic" if _args.get("offer", "") == "relic" else &"spell")})
+		"shop":
+			r.shop = Rewards.shop_stock(r)
+			_on_ui_request(&"shop", {})
+		"forge":
+			_on_ui_request(&"forge", {})
+		"editor":
+			_open_editor()
+		"pause":
+			_open_pause(false)
+		"end":
+			world.paused = true
+			_open_end(_args.get("won", "0") == "1")
 	if _args.has("touchdemo"):
 		var v := get_viewport_rect().size
 		touch.touched_once = true
@@ -64,15 +138,134 @@ func _ready() -> void:
 		touch.set("_aim_pos", Vector2(v.x - 96, v.y - 84))
 
 
+## A late-run build for screenshots and boss sims.
+func _strong_loadout(r: RunState) -> void:
+	r.wands[0].set_slots([&"twin", &"spark", &"seed", &"ember", &"moths"])
+	r.add_wand(&"oak")
+	r.wands[1].set_slots([&"empower", &"fan", &"then", &"burst", &"ember_coat", &"needle", &"frost", &"regen"])
+	r.cur = 0
+	r.bag = [{"id": &"shatter", "lv": 1}, {"id": &"loop", "lv": 1}, {"id": &"keen", "lv": 2}]
+	for id in [&"overclock", &"recursion", &"lucky_bit", &"blast_radius", &"cache_line"]:
+		r.add_relic(id)
+	r.gold = 140
+	r.path = [&"spell", &"relic", &"shop", &"mini", &"spell", &"forge", &"relic"]
+
+
+func _open(s: Screen, done: Callable) -> void:
+	if screen:
+		screen.queue_free()
+	screen = s
+	s.run = world.run
+	touch.release_all()
+	touch.enabled = false
+	world.controls.clear()
+	hud.visible = false
+	_screens.add_child(s)
+	s.finished.connect(func(res: Dictionary) -> void:
+		if screen == s:
+			screen = null
+		s.queue_free()
+		touch.enabled = _playing
+		hud.visible = _playing
+		done.call(res))
+
+
+func _on_ui_request(kind: StringName, data: Dictionary) -> void:
+	# the bot (demo runs) answers every screen itself
+	if world.bot:
+		_bot_answer(kind, data)
+		return
+	match kind:
+		&"reward":
+			var s := RewardScreen.new()
+			s.kind = data["kind"]
+			s.offer = data["offer"]
+			_open(s, func(_res: Dictionary) -> void: world.reward_taken())
+		&"shop", &"forge":
+			var s := ShopScreen.new()
+			s.mode = String(kind)
+			_open(s, func(_res: Dictionary) -> void: world.ui_done())
+		&"victory":
+			_open_end(true)
+		&"defeat":
+			_open_end(false)
+
+
+func _bot_answer(kind: StringName, data: Dictionary) -> void:
+	match kind:
+		&"reward":
+			if not data["offer"].is_empty():
+				Rewards.grant(world.run, data["offer"][0])
+			world.reward_taken()
+		&"shop", &"forge":
+			world.ui_done()
+		&"victory", &"defeat":
+			SaveGame.record_run(world.run)
+			_begin(RunState.create(world.run.seed_value + 1))
+
+
+func _open_end(won: bool) -> void:
+	_playing = false
+	SaveGame.record_run(world.run)
+	var s := EndScreen.new()
+	s.won = won
+	_open(s, func(res: Dictionary) -> void:
+		if res.get("action") == "again":
+			_begin(RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1))
+		else:
+			_show_title())
+
+
+func _open_pause(resumed: bool) -> void:
+	if screen or not _playing:
+		return
+	world.paused = true
+	var s := PauseScreen.new()
+	s.resumed = resumed
+	_open(s, func(res: Dictionary) -> void:
+		if res.get("abandon", false):
+			SaveGame.clear_run()
+			world.run.won = false
+			_open_end(false)
+			return
+		world.paused = false)
+
+
+func _open_editor() -> void:
+	if screen or not _playing:
+		return
+	world.paused = true
+	var s := EditorScreen.new()
+	_open(s, func(_res: Dictionary) -> void:
+		world.paused = false
+		SaveGame.save_run(world.run))
+
+
+func _on_hud(id: String) -> void:
+	match id:
+		"pause":
+			_open_pause(false)
+		"edit":
+			_open_editor()
+
+
+## Save when the app goes to the background, and come back paused (never into live combat).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		if _playing and world.run and not world.run.won and not world.player.dead:
+			SaveGame.save_run(world.run)
+			if not world.bot and screen == null:
+				_open_pause(false)
+
+
 func _showcase() -> void:
-	world.bot = true
-	Game.god_mode = true
 	Game.inf_mana = true
-	world.waves_left = 0
+	world.waves = []
+	world.wave_i = 0
 	var c := world.player.position
 	var spots := [[&"slime", Vector2(-70, -60)], [&"weaver", Vector2(40, -110)], [&"ram", Vector2(110, -40)],
-		[&"slime", Vector2(-120, -20)], [&"sentry", Vector2(150, -120)], [&"weaver", Vector2(-40, -130)],
-		[&"slime", Vector2(70, -80)], [&"ram", Vector2(-150, -100)]]
+		[&"bugling", Vector2(-120, -20)], [&"sentry", Vector2(150, -120)], [&"weaver", Vector2(-40, -130)],
+		[&"puffcap", Vector2(70, -80)], [&"ram", Vector2(-150, -100)], [&"bugling", Vector2(20, -60)]]
 	for s in spots:
 		var p: Vector2 = c + s[1]
 		if world.solid_at(p):
@@ -92,7 +285,7 @@ func _build_environment() -> void:
 	env.glow_intensity = 0.9
 	env.glow_strength = 1.0
 	env.glow_bloom = 0.0
-	# LDR glow (hdr_2d is off: it broke 2D lights in the renderer spike, see STATUS.md);
+	# LDR glow (hdr_2d is off: it broke 2D lights in the renderer spike, ADR 0004);
 	# only the brightest pixels (spell cores, flames, sparks) cross the threshold
 	env.glow_hdr_threshold = 0.72
 	env.glow_hdr_scale = 1.6
@@ -113,8 +306,9 @@ func _process(_dt: float) -> void:
 		var img := get_viewport().get_texture().get_image()
 		img.resize(img.get_width() * 2, img.get_height() * 2, Image.INTERPOLATE_NEAREST)
 		img.save_png(_args["shot"])
-		print("shot: room %d %s player %s hp %d visible %s | enemies %s" % [world.room_no, world.room_kind, world.player.position.round(), world.player.hp, world.player.sprite.visible,
-			world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String: return "%s@%s" % [e.kind, e.position.round()])])
+		if world.run:
+			print("shot: step %d %s player %s hp %d | enemies %d boss %s" % [world.run.step, world.room_kind, world.player.position.round(), world.run.hp,
+				world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).size(), str(world.boss.hp) if world.boss else "-"])
 		get_tree().quit()
 
 
@@ -125,7 +319,9 @@ const PAD_BOTTOM := 30.0
 const PAD_SIDE := 10.0
 
 
-func _follow_camera() -> void:
+func _follow_camera(snap := false) -> void:
+	if world.run == null or world.gw == 0:
+		return
 	var view := get_viewport_rect().size
 	var room := world.room_size()
 	var p := world.player.position
@@ -139,11 +335,11 @@ func _follow_camera() -> void:
 			c[ax] = clampf(p[ax], lo[ax] + view[ax] / 2.0, hi[ax] - view[ax] / 2.0)
 	var s := world.shake_amt * 14.0
 	cam.offset = Vector2(randf_range(-s, s), randf_range(-s, s)).round()
-	cam.position = cam.position.lerp(c, 0.2).round() if _frames > 1 else c.round()
+	cam.position = c.round() if snap or _frames <= 1 else cam.position.lerp(c, 0.2).round()
 
 
 func _read_desktop_input() -> void:
-	if world.bot or touch.touched_once:
+	if not _playing or screen or world.bot or touch.touched_once:
 		return
 	var c := world.controls
 	var mv := Vector2(
@@ -152,7 +348,7 @@ func _read_desktop_input() -> void:
 	var pad_move := Vector2(Input.get_joy_axis(0, JOY_AXIS_LEFT_X), Input.get_joy_axis(0, JOY_AXIS_LEFT_Y))
 	var pad_aim := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	c.move = mv.normalized() if mv != Vector2.ZERO else (pad_move if pad_move.length() > 0.2 else Vector2.ZERO)
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and hud.hit_button(get_viewport().get_mouse_position()) == "":
 		c.aim = (world.get_local_mouse_position() - world.player.position).normalized()
 	elif pad_aim.length() > 0.3:
 		c.aim = pad_aim
@@ -161,15 +357,34 @@ func _read_desktop_input() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not _playing:
+		return
+	# real mouse clicks on HUD buttons (emulated-from-touch clicks are handled by TouchControls)
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and event.device != InputEvent.DEVICE_ID_EMULATION:
+		var b := hud.hit_button(event.position)
+		if b != "":
+			_on_hud(b)
+			return
+		var wi := hud.hit_wand(event.position)
+		if wi >= 0:
+			world.controls.select_wand = wi
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
-			KEY_1:
-				world.controls.select_wand = 0
-			KEY_2:
-				world.controls.select_wand = 1
+			KEY_1, KEY_2, KEY_3:
+				world.controls.select_wand = event.physical_keycode - KEY_1
+			KEY_TAB, KEY_E:
+				_open_editor()
+			KEY_ESCAPE, KEY_P:
+				_open_pause(false)
 			KEY_F:
 				Game.auto_fire = not Game.auto_fire
+				SaveGame.save_settings(Game.settings())
 				Events.toast.emit("Auto-fire %s" % ("on" if Game.auto_fire else "off"))
 	elif event is InputEventJoypadButton and event.pressed:
-		if event.button_index in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
-			world.controls.select_wand = (world.player.cur + 1) % world.player.wands.size()
+		match event.button_index:
+			JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
+				world.controls.select_wand = (world.run.cur + 1) % world.run.wands.size()
+			JOY_BUTTON_START:
+				_open_pause(false)
+			JOY_BUTTON_BACK:
+				_open_editor()
