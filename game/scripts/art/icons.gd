@@ -42,7 +42,54 @@ const GLYPHS := {
 
 
 static func spell(d: SpellDef) -> Texture2D:
+	if IconArt.SPELLS.has(d.id):
+		return PixelArt.cached("icon2_%s" % d.id, func() -> Image: return framed(d.kind, IconArt.SPELLS[d.id]))
 	return PixelArt.cached("icon_%s" % d.id, func() -> Image: return _build(d))
+
+
+## A 0.4 icon: a 16x16 frame whose shape tells the kind, with the illustration inside.
+## kind: SpellDef.Kind, or -1 for a relic (a gold-rimmed square medallion).
+static func framed(kind: int, entry: Dictionary) -> Image:
+	var r: Array = Style.RAMPS[entry.get("ramp", "arcane")]
+	var img := PixelArt.blank(16, 16)
+	for j in 16:
+		for i in 16:
+			var x := i + 0.5 - 8.0
+			var y := j + 0.5 - 8.0
+			var inside := false
+			var edge := 0.0   # distance from the rim, in px
+			match kind:
+				SpellDef.Kind.PROJ:
+					var d := sqrt(x * x + y * y)
+					inside = d < 8.0
+					edge = 8.0 - d
+				SpellDef.Kind.BOOST:
+					var m := absf(x) + absf(y)
+					inside = m < 9.5 and absf(x) < 7.6 and absf(y) < 7.6
+					edge = minf(9.5 - m, 7.6 - maxf(absf(x), absf(y)))
+				SpellDef.Kind.TRIG:
+					inside = absf(x) < 8.0 and absf(y) < 7.0 and absf(x) + absf(y) < 13.0
+					edge = minf(minf(8.0 - absf(x), 7.0 - absf(y)), 13.0 - absf(x) - absf(y))
+				_:
+					inside = absf(x) < 7.5 and absf(y) < 7.5 and absf(x) + absf(y) < 13.5
+					edge = minf(7.5 - maxf(absf(x), absf(y)), 13.5 - absf(x) - absf(y))
+			if not inside:
+				continue
+			var col := Color(r[0]).lerp(Style.INK, 0.35)   # recessed field
+			if edge < 1.0:
+				# bevelled rim: lit top-left, shaded bottom-right
+				col = Color(r[3]) if (x + y) < -2.0 else (Color(r[1]) if (x + y) > 2.0 else Color(r[2]))
+				if kind == -1:
+					col = Style.c("gold:3") if (x + y) < -2.0 else (Style.c("gold:1") if (x + y) > 2.0 else Style.c("gold:2"))
+			img.set_pixel(i, j, col)
+	var lg := IconArt.legend(entry)
+	var rows: Array = entry["rows"]
+	for j in rows.size():
+		var row: String = rows[j]
+		for i in row.length():
+			if lg.has(row[i]):
+				img.set_pixel(i + 2, j + 2, lg[row[i]])
+	return PixelArt.outlined(img)
 
 
 static func _build(d: SpellDef) -> Image:
@@ -127,6 +174,8 @@ const DOOR_GLYPH := {
 
 ## A relic: a gold-rimmed round plate with the relic's glyph.
 static func relic(id: StringName) -> Texture2D:
+	if IconArt.RELICS.has(id):
+		return PixelArt.cached("relic2_%s" % id, func() -> Image: return framed(-1, IconArt.RELICS[id]))
 	var d: Dictionary = Relics.DEFS[id]
 	return PixelArt.cached("relic_%s" % id, func() -> Image:
 		return _plate(Color(d["color"]), RELIC_GLYPHS[d["glyph"]], Color("#e0b84e")))

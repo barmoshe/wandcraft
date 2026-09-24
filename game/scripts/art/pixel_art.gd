@@ -47,6 +47,142 @@ static func shade_image(img: Image, k := 1.0) -> void:
 			img.set_pixel(i, j, c.lerp(Color.WHITE, m) if m > 0.0 else c.darkened(-m))
 
 
+# ------------------------------------------------------------------ ramp art (Style)
+
+## Builds an image from ASCII rows whose palette values are Style keys ("arcane:2") or
+## "#hex". Authored art already carries its shading in the step numbers; `rim` adds one step
+## of light on top-facing edges and takes one away on bottom-facing edges, along the pixel's
+## own ramp (never toward white or black). `outline` is the Style sel-out: the darkest step
+## of the neighbouring color on the lit (top/left) sides, INK on the shadow sides.
+static func paint(rows: PackedStringArray, pal: Dictionary, rim := true, outline := true) -> Image:
+	var h := rows.size()
+	var w := 0
+	for r in rows:
+		w = maxi(w, r.length())
+	var img := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	var keys := []   # per pixel: [ramp name, step] or null
+	keys.resize(w * h)
+	for j in h:
+		var row: String = rows[j]
+		for i in row.length():
+			var ch := row[i]
+			if not pal.has(ch):
+				continue
+			var v: Variant = pal[ch]
+			if v is Color:
+				img.set_pixel(i, j, v)
+			elif String(v).begins_with("#"):
+				img.set_pixel(i, j, Color(v))
+			else:
+				var parts := String(v).split(":")
+				keys[j * w + i] = [parts[0], int(parts[1])]
+				img.set_pixel(i, j, Style.c(v))
+	if rim:
+		var src := img.duplicate() as Image
+		for j in h:
+			for i in w:
+				var k: Variant = keys[j * w + i]
+				if k == null:
+					continue
+				var shift := 0
+				if j == 0 or src.get_pixel(i, j - 1).a == 0.0:
+					shift += 1
+				elif j == h - 1 or src.get_pixel(i, j + 1).a == 0.0:
+					shift -= 1
+				if shift != 0:
+					var r: Array = Style.RAMPS[k[0]]
+					img.set_pixel(i, j, Color(r[clampi(int(k[1]) + shift, 0, r.size() - 1)]))
+	return selout(img, keys) if outline else img
+
+
+## Sel-out outline for `paint`: 1px around the shape, tinted on the lit sides.
+static func selout(src: Image, keys: Array = []) -> Image:
+	var sw := src.get_width()
+	var sh := src.get_height()
+	var out := Image.create_empty(sw + 2, sh + 2, false, Image.FORMAT_RGBA8)
+	for j in range(-1, sh + 1):
+		for i in range(-1, sw + 1):
+			if i >= 0 and j >= 0 and i < sw and j < sh and src.get_pixel(i, j).a > 0.0:
+				continue
+			# nearest opaque neighbour, preferring the one this outline pixel sits above/left of
+			var best := Vector2i(-99, -99)
+			var lit := false
+			for d in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+				var q: Vector2i = Vector2i(i, j) + d
+				if q.x < 0 or q.y < 0 or q.x >= sw or q.y >= sh or src.get_pixel(q.x, q.y).a == 0.0:
+					continue
+				best = q
+				lit = d.y > 0 or (d.y == 0 and d.x > 0)
+				break
+			if best.x == -99:
+				continue
+			var col := Style.INK
+			if lit and not keys.is_empty():
+				var k: Variant = keys[best.y * sw + best.x]
+				if k != null:
+					col = Color(Style.RAMPS[k[0]][0]).darkened(0.25)
+			out.set_pixel(i + 1, j + 1, col)
+	out.blend_rect(src, Rect2i(0, 0, sw, sh), Vector2i(1, 1))
+	return out
+
+
+## An empty canvas.
+static func blank(w: int, h: int) -> Image:
+	return Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+
+
+## Alpha-blends `src` onto `dst` with its top-left at `at`.
+static func blit(dst: Image, src: Image, at: Vector2i) -> void:
+	dst.blend_rect(src, Rect2i(Vector2i.ZERO, src.get_size()), at)
+
+
+## Stacks ASCII layers ([rows, offset Vector2i]) that share one palette into one image
+## (before outline), so animated parts (head, arms, legs) can move independently.
+static func layered(w: int, h: int, layers: Array, pal: Dictionary, rim := true, outline := true) -> Image:
+	var rows := PackedStringArray()
+	var grid := []
+	for j in h:
+		var line := []
+		line.resize(w)
+		line.fill(".")
+		grid.append(line)
+	for L in layers:
+		var lr: PackedStringArray = PackedStringArray(L[0])
+		var off: Vector2i = L[1]
+		for j in lr.size():
+			var s: String = lr[j]
+			for i in s.length():
+				var ch := s[i]
+				if ch == "." or ch == " ":
+					continue
+				var x := i + off.x
+				var y := j + off.y
+				if x >= 0 and y >= 0 and x < w and y < h:
+					grid[y][x] = ch
+	for j in h:
+		rows.append("".join(PackedStringArray(grid[j])))
+	return paint(rows, pal, rim, outline)
+
+
+## Filled disc of radius r (in pixels) at center c.
+static func disc(img: Image, c: Vector2, r: float, col: Color) -> void:
+	for j in range(floori(c.y - r), ceili(c.y + r) + 1):
+		for i in range(floori(c.x - r), ceili(c.x + r) + 1):
+			if i >= 0 and j >= 0 and i < img.get_width() and j < img.get_height():
+				if Vector2(i + 0.5, j + 0.5).distance_to(c) <= r:
+					img.set_pixel(i, j, col)
+
+
+## 1px line (Bresenham).
+static func line(img: Image, a: Vector2i, b: Vector2i, col: Color) -> void:
+	var d := b - a
+	var n := maxi(absi(d.x), absi(d.y))
+	for k in n + 1:
+		var p := Vector2(a).lerp(Vector2(b), float(k) / maxf(1.0, n)).round()
+		if p.x >= 0 and p.y >= 0 and p.x < img.get_width() and p.y < img.get_height():
+			img.set_pixel(int(p.x), int(p.y), col)
+
+
 ## Adds a 1px dark outline around every opaque pixel.
 static func outlined(src: Image) -> Image:
 	var w := src.get_width() + 2
