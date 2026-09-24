@@ -62,6 +62,9 @@ var _st_tick := 0.0
 var forward: Enemy          # body parts pass their damage to this (a boss)
 var fwd_mul := 1.0
 var sprite: Sprite2D
+const ELITE_SCALE := 1.25
+## Where shots leave, relative to the feet (half the sprite height).
+var muzzle := Vector2(0, -6)
 var frames: Array[Texture2D]
 var _mat: ShaderMaterial
 
@@ -82,12 +85,13 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	position = pos
 	ph = w.rng.randf() * TAU
 	cd = w.rng.randf_range(0.8, 2.0)
-	frames = Sprites.enemy_frames(String(k))
+	frames = Bestiary.frames(String(k)) if Bestiary.has(String(k)) else Sprites.enemy_frames(String(k))
+	muzzle = Vector2(0, -roundf(frames[0].get_height() * 0.5))
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 2.0)
 	if elite:
-		sprite.scale = Vector2(1.35, 1.35)
+		sprite.scale = Vector2(ELITE_SCALE, ELITE_SCALE)
 	_mat = ShaderMaterial.new()
 	_mat.shader = _flash_shader()
 	sprite.material = _mat
@@ -233,7 +237,7 @@ func _animate() -> void:
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
 	sprite.modulate = Color(0.6, 0.85, 1.3) if chill_t > 0.0 else (Color(1.3, 0.85, 0.6) if burn_t > 0.0 else Color.WHITE)
 	var sq := 1.0 + sin(t * 8.0 + ph) * 0.06 if ai != &"turret" else 1.0
-	sprite.scale = Vector2(1.0 / sq, sq) * (1.35 if elite else 1.0)
+	sprite.scale = Vector2(1.0 / sq, sq) * (ELITE_SCALE if elite else 1.0)
 	queue_redraw()
 
 
@@ -243,8 +247,8 @@ func shoot(ang: float) -> void:
 	var off := world.rng.randf() * TAU
 	for i in n:
 		var a := off + TAU * i / n if shot.get("ring", false) else ang
-		world.enemy_shoot(position + Vector2(0, -4), a, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
-	world.fx.ring(position + Vector2(0, -4), 1.0, 7.0, 0.15, Color("#ff5a7a"))
+		world.enemy_shoot(position + muzzle * sprite.scale.y, a, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
+	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Color("#ff5a7a"))
 
 
 func _draw() -> void:
@@ -255,9 +259,9 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, r + 1.0, Color(0, 0, 0, 0.4))
 	draw_set_transform(Vector2.ZERO)
 	if state == &"tele":
-		draw_line(Vector2(0, -4), Vector2.from_angle(aim_a) * 60.0 + Vector2(0, -4), Color(1, 0.3, 0.3, 0.5), 1.0)
+		draw_line(muzzle, Vector2.from_angle(aim_a) * 60.0 + muzzle, Color(1, 0.3, 0.3, 0.5), 1.0)
 	if hp < max_hp:
 		var w := r * 2.0 + 2.0
-		var y := -float(frames[0].get_height()) - 3.0
+		var y := -float(frames[0].get_height()) * sprite.scale.y - 1.0
 		draw_rect(Rect2(-w / 2.0, y, w, 2.0), Color(0.05, 0.02, 0.08, 0.9))
 		draw_rect(Rect2(-w / 2.0, y, w * hp / max_hp, 2.0), Color("#ff4a5a"))

@@ -8,6 +8,10 @@ const SPEED := 92.0
 const ASSIST_CONE := 0.45      # radians either side of the stick
 const AUTO_RANGE := 210.0
 
+## Where the wand is held and spells leave, relative to the feet (Hero art: hands at
+## the belt, 8 px up). Floating text starts above the hat (`head`, set from the sprite).
+const HAND := Vector2(0, -8)
+var head := Vector2(0, -36)
 var world: World
 var controls: Controls
 var r := 5.0
@@ -44,7 +48,8 @@ var frames: Array[Texture2D]
 func setup(w: World) -> void:
 	world = w
 	controls = w.controls
-	frames = Sprites.wizard_frames()
+	frames = Hero.frames()
+	head = Vector2(0, -frames[0].get_height() - 2.0)
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 1.0)
@@ -53,7 +58,7 @@ func setup(w: World) -> void:
 	wand_sprite.texture = Sprites.wand_texture()
 	wand_sprite.centered = false
 	wand_sprite.offset = Vector2(0, -1)
-	wand_sprite.position = Vector2(0, -8)
+	wand_sprite.position = HAND
 	add_child(wand_sprite)
 	tip_glow = Sprite2D.new()
 	tip_glow.texture = PixelArt.glow_texture(16)
@@ -68,7 +73,7 @@ func wand() -> WandState:
 
 
 func tip() -> Vector2:
-	return position + Vector2(0, -8) + Vector2.from_angle(aim) * 11.0
+	return position + HAND + Vector2.from_angle(aim) * 11.0
 
 
 func tick(dt: float) -> void:
@@ -109,7 +114,7 @@ func tick(dt: float) -> void:
 		firing = true
 	elif target and (controls.fire or Game.auto_fire):
 		# aim from the hand, where the spell leaves the wand (8 px above the feet)
-		var hand := position + Vector2(0, -8)
+		var hand := position + HAND
 		aim = (lead(target) - hand).angle()
 		firing = world.los(hand, target.position)
 	elif mv.length() > 0.1:
@@ -137,7 +142,7 @@ func lead(e: Enemy) -> Vector2:
 	var d := e.position - position
 	var t := minf(0.6, d.length() / BOLT_SPEED)
 	var p := e.position + e.vel * t
-	return p if world.los(position + Vector2(0, -8), p) else e.position
+	return p if world.los(position + HAND, p) else e.position
 
 
 ## Snaps the stick direction onto an enemy inside the assist cone.
@@ -167,7 +172,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	if run.has_relic(&"try_catch") and not world.caught:
 		world.caught = true
 		inv = 0.7
-		world.fx.text(position + Vector2(0, -22), "CAUGHT", Color("#9ab0ff"))
+		world.fx.text(position + head, "CAUGHT", Color("#9ab0ff"))
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
 	amount *= Relics.damage_taken_mul(run)
@@ -175,7 +180,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	hp -= amount
 	inv = 0.9 * (1.5 if run.has_relic(&"afterimage") else 1.0)
 	vel += (position - from).normalized() * 120.0
-	world.fx.text(position + Vector2(0, -22), "-%d" % roundi(amount), Color("#ff5a6a"))
+	world.fx.text(position + head, "-%d" % roundi(amount), Color("#ff5a6a"))
 	world.shake(0.18)
 	world.flash(0.15)
 	Game.buzz(40)
@@ -188,7 +193,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 
 func heal(amount: float) -> void:
 	hp = minf(max_hp, hp + amount)
-	world.fx.text(position + Vector2(0, -22), "+%d" % roundi(amount), Color("#7dff6a"))
+	world.fx.text(position + head, "+%d" % roundi(amount), Color("#7dff6a"))
 
 
 func _animate() -> void:
@@ -202,7 +207,7 @@ func _animate() -> void:
 	wand_sprite.rotation = aim
 	wand_sprite.z_index = -1 if sin(aim) < -0.3 else 0
 	var w := wand()
-	tip_glow.position = Vector2(0, -8) + Vector2.from_angle(aim) * 11.0
+	tip_glow.position = HAND + Vector2.from_angle(aim) * 11.0
 	var c := w.def.color if w.cd > 0.0 else Color("#8fd8ff")
 	tip_glow.modulate = Color(c.r, c.g, c.b, 0.55 + (0.4 if cast_t > 0.0 else 0.0))
 	queue_redraw()
@@ -210,5 +215,5 @@ func _animate() -> void:
 
 func _draw() -> void:
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
-	draw_circle(Vector2.ZERO, 6.0, Color(0, 0, 0, 0.45))
+	draw_circle(Vector2.ZERO, 8.0, Color(0, 0, 0, 0.45))
 	draw_set_transform(Vector2.ZERO)

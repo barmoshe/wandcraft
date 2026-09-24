@@ -10,6 +10,9 @@ extends Node2D
 ## Doors are carved into the top wall and open on clear.
 
 const TS := 16
+## Room ambient light. Bright enough that actors always read (0.4 art direction); torch and
+## player lights add warm pools on top.
+const AMBIENT := Color(0.74, 0.74, 0.86)
 const ROOMS := {
 	"hall": [
 		"##########################",
@@ -236,7 +239,7 @@ func setup(seed_value: int) -> void:
 	fx.rng.seed = seed_value + 7
 	glow_layer.add_child(fx)
 	_ambient = CanvasModulate.new()
-	_ambient.color = Color(0.5, 0.52, 0.66)
+	_ambient.color = AMBIENT
 	add_child(_ambient)
 	_lights = Node2D.new()
 	add_child(_lights)

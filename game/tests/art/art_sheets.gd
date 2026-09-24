@@ -17,6 +17,11 @@ static func chars(s: Node) -> void:
 		var bf: Array = Bestiary.frames(k)
 		for i in bf.size():
 			s.add("%s %d" % [k, i], bf[i])
+	s.add("loop head", Bestiary.loop_head(false))
+	s.add("loop head open", Bestiary.loop_head(true))
+	var cf: Array = Bestiary.clone_frames()
+	for i in [0, 2, 6]:
+		s.add("clone %d" % i, cf[i])
 	s.section("enemies (old)")
 	for k in Sprites.ENEMY_ART:
 		var fr: Array = Sprites.enemy_frames(k)

@@ -8,6 +8,9 @@ extends Boss
 var hist: Array[Vector2] = []
 
 
+## The clone is drawn a little larger than the hero (the hero art is 32 px tall).
+const SCALE := 1.25
+
 func _init_boss() -> void:
 	title = "Copy-Paste"
 	subtitle = "Mini-boss"
@@ -25,11 +28,10 @@ func _init_boss() -> void:
 		{"at": 1.0, "moves": [&"mirror_shot", &"undo", &"dup_row"]},
 		{"at": 0.5, "moves": [&"mirror_shot", &"undo", &"dup_row", &"paste"]},
 	]
-	frames = Sprites.wizard_frames()
+	frames = Bestiary.clone_frames()
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 1.0)
-	sprite.modulate = Color(0.55, 0.9, 1.0)
 	add_child(sprite)
 	_mat = ShaderMaterial.new()
 	_mat.shader = _flash_shader()
@@ -99,7 +101,7 @@ func _animate() -> void:
 	var moving := true
 	sprite.texture = frames[6 if sm == &"act" else (2 + int(t * 8.0) % 4 if moving else 0)]
 	sprite.flip_h = world.player.position.x < position.x
-	sprite.scale = Vector2(1.5, 1.5)
+	sprite.scale = Vector2(SCALE, SCALE)
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
 	# glitch: occasional horizontal jitter
 	sprite.position.x = (world.rng.randf_range(-2, 2) if fmod(t, 1.3) < 0.08 else 0.0)
@@ -112,7 +114,7 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO)
 	# chromatic ghosts behind the body
 	var tex := sprite.texture
-	var sz := tex.get_size() * 1.5
+	var sz := tex.get_size() * SCALE
 	var at := Vector2(-sz.x / 2.0, -sz.y + 1.5)
 	var off := 2.0 + sin(t * 9.0)
 	draw_texture_rect(tex, Rect2(at + Vector2(-off, 0), sz), false, Color(1.0, 0.25, 0.65, 0.35))

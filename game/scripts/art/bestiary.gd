@@ -61,7 +61,214 @@ const ART := {
 		"b_at": Vector2i(0, 6), "a_at": Vector2i(0, 2), "move": "b", "mo": Vector2i(0, -1),
 		"b_under": true,
 	},
+	"ram": {
+		"w": 23, "h": 16,
+		"pal": {"1": "wood:0", "2": "wood:1", "3": "wood:2", "4": "wood:3", "T": "leaf:3", "t": "leaf:2", "u": "leaf:1",
+			"W": "bone:4", "V": "bone:2", "r": "ember:4", "n": "rose:2", "k": "stone:1", "e": "wood:0"},
+		"a": [
+			"....T.....T.....T......",
+			"...TT....TT....TT......",
+			"..uTTu..uTTu..uTTu.....",
+			".233333333333333332....",
+			"23444444444444444322...",
+			"234444444444444443322e.",
+			"2344444444444444433222e",
+			"23444444444444444322r22",
+			"233444444444444443222nn",
+			"2233444444444444332222n",
+			".22333333333333322VWW..",
+			"..222222222222222..VW..",
+			"...1111111111111.......",
+		],
+		"b": [
+			"...kk...kk.....kk..kk..",
+			"...kk...kk.....kk..kk..",
+			"..kkk..kkk....kkk.kkk..",
+		],
+		"b1": [
+			"....kk...kk...kk..kk...",
+			"....kk..kk.....kk..kk..",
+			"...kkk.kkk.....kkk.kkk.",
+		],
+		"b_at": Vector2i(0, 13), "a_at": Vector2i(0, 0), "move": "b", "mo": Vector2i.ZERO,
+	},
+	"bugling": {
+		"w": 14, "h": 11,
+		"pal": {"1": "glitch:1", "2": "glitch:2", "3": "glitch:3", "4": "glitch:4", "w": "#ffffff",
+			"c": "cyan:3", "C": "cyan:4", "o": "night:0", "k": "violet:2"},
+		"a": [
+			".........C..C.",
+			"..........cc..",
+			"...222222.33..",
+			"..23344w323o3.",
+			".234444323333.",
+			".2344443233...",
+			".233333222....",
+			"..1111111.....",
+		],
+		"b": [
+			".k..k..k..k...",
+			"k..k..k..k....",
+			"..............",
+		],
+		"b1": [
+			"k..k..k..k....",
+			".k..k..k..k...",
+			"..............",
+		],
+		"b_at": Vector2i(0, 8), "a_at": Vector2i(0, 0), "move": "b", "mo": Vector2i.ZERO,
+	},
+	"puffcap": {
+		"w": 16, "h": 17,
+		"pal": {"1": "rose:1", "2": "rose:2", "3": "rose:3", "4": "rose:4", "W": "bone:4",
+			"s": "bone:3", "S": "bone:2", "o": "night:0", "n": "blood:2", "l": "wood:1"},
+		"a": [
+			".....222222.....",
+			"...2234433322...",
+			"..23WW44443WW2..",
+			".234WW44444WW32.",
+			".2344444WW44432.",
+			"23444444WW444432",
+			"2333333333333332",
+			".11.11111111.11.",
+			".....SssssS.....",
+			".....SsosoS.....",
+			".....SssssS.....",
+			".....SsnnsS.....",
+			".....SsssSS.....",
+		],
+		"b": [
+			"....ll....ll....",
+			"...lll....lll...",
+		],
+		"b1": [
+			".....ll..ll.....",
+			"....lll..lll....",
+		],
+		"b_at": Vector2i(0, 13), "a_at": Vector2i(0, 0), "move": "a", "mo": Vector2i(0, 1),
+	},
+	"sentry": {
+		"w": 16, "h": 17,
+		"pal": {"1": "stone:1", "2": "stone:2", "3": "stone:3", "4": "stone:4", "r": "ember:2", "R": "ember:3",
+			"y": "ember:4", "w": "#fff4e0", "m": "moss:3"},
+		"a": [
+			"......1111......",
+			"....11222211....",
+			"...1223333221...",
+			"..122333333221..",
+			"..12333333332...",
+			"..12233333322...",
+			"...1223333221...",
+			"..11112222111m..",
+			"..12333333332m..",
+			"...123433321....",
+			"...122333221....",
+			"..m1223333221...",
+			".11222222222211.",
+			".11111111111111.",
+		],
+		"b": [
+			".rRRRr..",
+			"rRywyRr.",
+			".rRRRr..",
+		],
+		"b1": [
+			".rrrrr..",
+			"rRRyRRr.",
+			".rrrrr..",
+		],
+		"b_at": Vector2i(4, 3), "a_at": Vector2i(0, 0), "move": "b", "mo": Vector2i.ZERO,
+	},
+	"loop_seg": {
+		"w": 14, "h": 12,
+		"pal": {"1": "leaf:1", "2": "leaf:2", "3": "leaf:3", "4": "leaf:4", "y": "gold:3", "Y": "gold:4", "w": "#fffbe0"},
+		"a": [
+			"....222222....",
+			"..2233443322..",
+			".233444444332.",
+			".234yyyyyy432.",
+			"2344yYwwYy4432",
+			"2344yYYYYy4432",
+			"2334yyyyyy4332",
+			".233344443332.",
+			".223333333322.",
+			"..2222222222..",
+			"....111111....",
+		],
+		"b": [],
+		"b_at": Vector2i.ZERO, "a_at": Vector2i.ZERO, "move": "a", "mo": Vector2i(0, 1),
+	},
 }
+
+
+## The Loop's head (a serpent, facing right): frame 0 closed, frame 1 jaw open (telegraph).
+const LOOP_HEAD := {
+	"pal": {"1": "leaf:1", "2": "leaf:2", "3": "leaf:3", "4": "leaf:4", "y": "gold:3", "Y": "gold:4",
+		"o": "night:0", "m": "blood:1", "M": "blood:2", "W": "bone:4", "V": "bone:3", "c": "toxic:3"},
+	"top": [
+		"......222222............",
+		"....2233443322..........",
+		"...233444444433222......",
+		"..23444c44c444443332....",
+		".2344444444444444433322.",
+		"234yyy444444444444444332",
+		"234yYoy44444444444444433",
+		"234yyy44444444444444433.",
+		"2334444444444444444332..",
+	],
+	"jaw": [
+		"2333444444433332WV.W.V..",
+		".22333333333322222......",
+		"..222222222222..........",
+	],
+	"jaw_open": [
+		"23334444444mmmmmmmm.....",
+		".2233333MMMMMMMM........",
+		"..2233333333332WV.W.V...",
+		"...222222222222222......",
+	],
+}
+
+
+static func loop_head(open: bool) -> Texture2D:
+	return PixelArt.cached("bx_loop_head_%d" % int(open), func() -> Image:
+		var d := LOOP_HEAD
+		return PixelArt.layered(24, 14, [[d["top"], Vector2i(0, 0)], [d["jaw_open"] if open else d["jaw"], Vector2i(0, 9)]], d["pal"]))
+
+
+## Copy-Paste: a glitched copy of the hero. Magenta and night palette, and scan-line tears
+## (rows shifted sideways) that move from frame to frame.
+static func clone_frames() -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var src: Array = Hero.frames()
+	for i in src.size():
+		out.append(PixelArt.cached("bx_clone_%d" % i, func() -> Image:
+			var img: Image = (src[i] as Texture2D).get_image()
+			img.convert(Image.FORMAT_RGBA8)
+			var w := img.get_width()
+			var h := img.get_height()
+			var ramp_hi: Array = Style.RAMPS["glitch"]
+			var ramp_lo: Array = Style.RAMPS["night"]
+			for j in h:
+				for x in w:
+					var c := img.get_pixel(x, j)
+					if c.a == 0.0:
+						continue
+					var v := c.get_luminance()
+					var k := clampi(int(v * 5.0), 0, 4)
+					var nc := Color(ramp_hi[k]) if (c.b > c.r + 0.1) else Color(ramp_lo[mini(k + 1, 4)]).lerp(Color(ramp_hi[k]), 0.35)
+					if c.r > 0.9 and c.g > 0.85:
+						nc = Color("#dffcff")   # beard and highlights go cyan-white
+					img.set_pixel(x, j, Color(nc.r, nc.g, nc.b, c.a))
+			# scan-line tears: two bands shifted by 2px, position depends on the frame
+			var tear := img.duplicate() as Image
+			for band in [[6 + i * 3 % 12, 2, 2], [18 + i * 5 % 9, 1, -2]]:
+				for j in range(band[0], mini(h, band[0] + band[1])):
+					for x in w:
+						var sx := x - int(band[2])
+						tear.set_pixel(x, j, img.get_pixel(sx, j) if sx >= 0 and sx < w else Color(0, 0, 0, 0))
+			return tear))
+	return out
 
 
 static func has(kind: String) -> bool:
@@ -77,13 +284,14 @@ static func frame(kind: String, step: int) -> Image:
 			off_a += d["mo"]
 		else:
 			off_b += d["mo"]
+	var rows_b: Array = d["b1"] if step == 1 and d.has("b1") else d["b"]
 	var layers := []
 	if d.get("b_under", false):
-		layers.append([d["b"], off_b])
+		layers.append([rows_b, off_b])
 		layers.append([d["a"], off_a])
 	else:
 		layers.append([d["a"], off_a])
-		layers.append([d["b"], off_b])
+		layers.append([rows_b, off_b])
 	return PixelArt.layered(d["w"], d["h"], layers, d["pal"])
 
 

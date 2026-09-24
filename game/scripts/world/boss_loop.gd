@@ -37,7 +37,7 @@ func _init_boss() -> void:
 	]
 	center = world.room_size() / 2.0 + Vector2(0, 6)
 	radius = minf(world.room_size().x * 0.3, 96.0)
-	frames = [Sprites.boss_texture(&"loop_head")]
+	frames = [Bestiary.loop_head(false), Bestiary.loop_head(true)]
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	add_child(sprite)
@@ -126,6 +126,7 @@ func _end(m: StringName) -> void:
 
 
 func _animate() -> void:
+	sprite.texture = frames[1 if sm == &"tele" or sm == &"act" else 0]
 	sprite.rotation = (trail[0] - trail[mini(3, trail.size() - 1)]).angle() if trail.size() > 3 else 0.0
 	sprite.flip_v = cos(sprite.rotation) < 0.0
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))

@@ -6,7 +6,7 @@ extends Node2D
 
 const MAX_SPARKS := 500
 const MAX_TEXTS := 40
-const MAX_SHARDS := 400
+const MAX_SHARDS := 700
 
 var rings: Array = []    # [pos, r0, r1, t, life, color]
 var beams: Array = []    # [a, b, color, width, t, life]
@@ -52,7 +52,7 @@ func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> v
 		return
 	var w := img.get_width()
 	var h := img.get_height()
-	var step := 1 if w * h <= 220 else 2
+	var step := 1 if w * h <= 420 else 2
 	for y in range(0, h, step):
 		for x in range(0, w, step):
 			if _shards.size() >= MAX_SHARDS:
