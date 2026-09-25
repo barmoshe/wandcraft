@@ -54,3 +54,4 @@ from the Linux container, the stress roster pinned.
 - `2971dfc` D6.1: RigDef + RigBaker (squash rows, lag, tears, crumble, RotSprite-style rotation).
 - `1aed2dd` D6.2: hero rig, 2 facings x 25 frames, wand at 16 angles, player drives clips; 154/154.
 - `dc493bc` D6.3: 12 enemy rigs (move/tele/attack), AI-driven clips, death poof; stress 8.5-8.8 ms.
+- `d8b9640` D6.4: Loop head rig (12 frames x 16 headings), Copy-Paste on glitched hero clips; 154/154.
