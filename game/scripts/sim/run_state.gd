@@ -37,6 +37,7 @@ var won := false
 var tutorial := false               # D9: the first run's curriculum (Tutorial)
 var lesson_target: Array = []       # D9: the wand layout the editor coach is walking toward
 var heat := 0                       # D9: Bug Reports tier (0-5), chosen on the title
+var daily := ""                     # design v2: the date of a daily run ("" for a normal run)
 
 
 ## Heroes (design v2): a starting wand with a clear identity plus one twist, so runs start
@@ -321,7 +322,7 @@ func to_dict() -> Dictionary:
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
-		"uptime": uptime, "tutorial": tutorial, "heat": heat, "hero": String(hero), "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
+		"uptime": uptime, "tutorial": tutorial, "daily": daily, "heat": heat, "hero": String(hero), "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
 		"map": map.map(func(step: Array) -> Array: return step.map(_dict_out)), "lane": lane,
 	}
 
@@ -357,6 +358,7 @@ static func from_dict(d: Dictionary) -> RunState:
 	r.won = bool(d.get("won", false))
 	r.tutorial = bool(d.get("tutorial", false))
 	r.heat = int(d.get("heat", 0))
+	r.daily = String(d.get("daily", ""))
 	r.hero = LOADOUT_ALIAS.get(StringName(d.get("hero", "apprentice")), StringName(d.get("hero", "apprentice")))
 	for x in d.get("lesson_target", []):
 		r.lesson_target.append(StringName(x) if x != null else null)

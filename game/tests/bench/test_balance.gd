@@ -13,6 +13,7 @@ extends "res://tests/unit/test_helpers.gd"
 
 const DT := 1.0 / 60.0
 const SEEDS := [11, 22, 33, 44, 55, 66, 77, 88, 99, 110]
+const ONLY := []   # debugging: set to e.g. [99] to bench one seed
 
 
 func _play(seed_value: int, edits := true) -> Dictionary:
@@ -53,6 +54,12 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 	res["time"] = t
 	res["rooms"] = int(world.run.stats["rooms"])
 	res["path"] = world.run.path
+	if t >= 1200.0:
+		res["alive"] = world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String:
+			return "%s hp%.0f sh%d ward%d arm%.0f @%s" % [e.kind, e.hp, e.shield_hp, e.ward_n, e.armor, e.position.round()])
+		res["room"] = world.run.room
+		res["wand"] = world.run.wand().slots.map(func(x: Variant) -> String: return "-" if x == null else String(x["id"]))
+		print("    STALL seed %d: room %s, wand %s, alive %s" % [world.run.seed_value, res["room"], res["wand"], res["alive"]])
 	var w_ref := world
 	world = null
 	w_ref.free()
@@ -78,7 +85,7 @@ func _bench(edits: bool) -> float:
 	var bosses: Array = []
 	print("\n    %s bot" % ("EDITING" if edits else "NEVER-EDITING"))
 	print("    seed  result   step  time   hp_lost  rooms  mini   boss")
-	for s in SEEDS:
+	for s in (ONLY if not ONLY.is_empty() else SEEDS):
 		var r := _play(s, edits)
 		if r["won"]:
 			wins += 1

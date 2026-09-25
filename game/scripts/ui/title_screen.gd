@@ -96,6 +96,17 @@ func _paint() -> void:
 		button(Rect2(cx - 70, by, 140, 28), "new", "NEW RUN")
 	else:
 		button(Rect2(cx - 70, by, 140, 32), "new", "NEW RUN", "primary")
+	# design v2: the daily run, once the first run (the lessons) is done
+	var below := by + (28 if has_save else 32)
+	if int(meta.get("runs", 0)) > 0:
+		var dy := below + 6
+		button(Rect2(cx - 70, dy, 140, 26), "daily", "DAILY RUN", "ghost")
+		below = dy + 26
+		var dl: Dictionary = meta.get("daily", {})
+		var d := Time.get_date_dict_from_system()
+		if dl.get("date", "") == "%04d-%02d-%02d" % [d["year"], d["month"], d["day"]]:
+			text_center(cx, below + 10, "Today's best: %s" % ("a win" if dl.get("won", false) else "room %d" % int(dl.get("step", 0))), MUTED)
+			below += 12
 	button(Rect2(sr.end.x - 64, sr.end.y - 26, 64, 24), "credits", "CREDITS", "ghost")
 	button(Rect2(sr.end.x - 134, sr.end.y - 26, 66, 24), "codex", "CODEX", "ghost")
 	if int(meta.get("runs", 0)) > 0:
@@ -110,7 +121,7 @@ func _paint() -> void:
 	var max_heat := mini(5, int(meta.get("wins", 0)))
 	if max_heat > 0:
 		heat = clampi(heat, 0, max_heat)
-		var hy := by + 36
+		var hy := below + 6
 		button(Rect2(cx - 70, hy, 26, 22), "heat_down", "-", "ghost", heat > 0)
 		text_center(cx, hy + 15, "BUG REPORTS  %d" % heat, Style.c("threat:4") if heat > 0 else MUTED, 8, "bold")
 		button(Rect2(cx + 44, hy, 26, 22), "heat_up", "+", "ghost", heat < max_heat)
@@ -132,5 +143,5 @@ func _on_button(id: String) -> void:
 		heat += 1
 	elif id == "heat_down":
 		heat -= 1
-	elif id == "continue" or id == "new":
+	elif id == "continue" or id == "new" or id == "daily":
 		finished.emit({"action": id, "heat": heat})

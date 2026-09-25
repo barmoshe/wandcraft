@@ -14,6 +14,9 @@ func _paint() -> void:
 	text_center(cx, y, "WORLD 1 CLEARED" if won else "THE GLITCH WINS", GOLD if won else Color("#ff3fa4"), 16, "body")
 	y += 14
 	text_center(cx, y, "The Infinite Loop is broken. For now." if won else "Your run ends in room %d of %d." % [run.step, Chapter.PLAN.size() - 1], MUTED)
+	if run.daily != "":
+		var dl: Dictionary = SaveGame.load_meta().get("daily", {})
+		text_center(cx, y + 11, "DAILY RUN %s  -  best today: %s" % [run.daily, "a win" if dl.get("won", false) else "room %d" % int(dl.get("step", 0))], GOLD)
 	y += 14
 	# the route taken
 	var n := Chapter.PLAN.size()

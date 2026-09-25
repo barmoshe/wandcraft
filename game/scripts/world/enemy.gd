@@ -117,6 +117,7 @@ var stun_t := 0.0              # a rune pylon's pulse (D5)
 var armor := 0.0               # soaks damage; Blast hits it x3, everything else x0.35
 var max_armor := 0.0
 var ward_n := 0                # hits a ward swallows whole; Shock strips it at once
+var brood := 10                # Brood Stump: buglings it has left to summon
 var shield_hp := 0             # frontal shield: Pierce breaks it, other hits wear it down
 var affix: StringName = &""
 var haste := 1.0
@@ -388,9 +389,10 @@ func tick(dt: float) -> void:
 						if pl.position.distance_to(position) < SLAM_R + pl.r:
 							pl.hurt(dmg, position, "slam:%s" % kind)
 		&"summon":
-			# the Brood Stump: two buglings every few seconds, never more than four of its own
+			# the Brood Stump: two buglings every few seconds, never more than four of its own,
+			# and ten in all (design v2: a weak wand that only reaches the brood still ends the room)
 			cd -= adt
-			if cd <= 0.0:
+			if cd <= 0.0 and brood > 0:
 				cd = 5.0
 				atk_t = 0.25
 				Audio.sfx("summon", 0.08, -3.0)
@@ -398,6 +400,7 @@ func tick(dt: float) -> void:
 				for k in mini(2, 4 - mine):
 					var e := world.spawn_enemy(&"bugling", position + Vector2.from_angle(ph + k * PI) * (r + 6.0))
 					e.parent_uid = uid
+					brood -= 1
 					e.spawn_t = 0.4
 				world.fx.ring(position, 2.0, 14.0, 0.3, Style.c("glitch:3"))
 		&"fuse":

@@ -73,6 +73,14 @@ static func record_run(run: RunState) -> void:
 	m["kills"] = int(m["kills"]) + int(run.stats["kills"])
 	if run.tutorial:
 		m["tutorial_done"] = true
+	if run.daily != "":
+		# the best daily result for that date: furthest room, then a win, then the faster time
+		var best: Dictionary = m.get("daily", {})
+		var mine := {"date": run.daily, "step": run.step, "won": run.won, "time": roundi(float(run.stats["time"]))}
+		var better: bool = best.get("date", "") != run.daily or run.step > int(best.get("step", 0)) \
+			or (run.step == int(best.get("step", 0)) and run.won and int(mine["time"]) < int(best.get("time", 99999)))
+		if better:
+			m["daily"] = mine
 	_write(META_PATH, m)
 	# design v2: goals the finished run met (the end screen lists them)
 	var got := Meta.check(run).map(func(g: Dictionary) -> String: return g["id"])

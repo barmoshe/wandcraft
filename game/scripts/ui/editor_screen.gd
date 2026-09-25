@@ -98,6 +98,7 @@ func _paint() -> void:
 	button(Rect2(sr.end.x - 164, sr.position.y, 28, 26), "gloss", "?", "ghost")
 	_info(ir)
 	_drop_marker()
+	_ghost_hand()
 	# the dragged spell follows the finger
 	if _dragging:
 		var s: Variant = _spell_at(_drag_from)
@@ -213,6 +214,38 @@ func _socket(r: Rect2, ref: Dictionary, lit: bool, firing := false) -> void:
 			draw_arc(c, 3.0, 0.0, TAU, 8, Color(1, 1, 1, 0.25), 1.0)
 	area(r, "slot:%d:%d" % [ref["w"], ref["i"]])
 	_slots.append([r, ref])
+
+
+## Design v2 onboarding: show, don't tell. While the coach waits, a ghost of the spell rides
+## a pointing hand from where it is to the lit slot, again and again, until the player does it.
+func _ghost_hand() -> void:
+	if coach.is_empty() or _dragging or not sel.is_empty():
+		return
+	var a := Vector2.INF
+	var b := Vector2.INF
+	for sl in _slots:
+		var ref: Dictionary = sl[1]
+		if ref["w"] == coach["from"]["w"] and ref["i"] == coach["from"]["i"]:
+			a = (sl[0] as Rect2).get_center()
+		if ref["w"] == coach["to"]["w"] and ref["i"] == coach["to"]["i"]:
+			b = (sl[0] as Rect2).get_center()
+	if a == Vector2.INF or b == Vector2.INF:
+		return
+	var s: Variant = _spell_at(coach["from"])
+	if s == null:
+		return
+	# 0.3 s press, 0.9 s glide, 0.4 s hold, then fade and start over
+	var t := fmod(_age, 1.9)
+	var k := smoothstep(0.3, 1.2, t)
+	var p := a.lerp(b, k)
+	var alpha := 1.0 if t < 1.6 else 1.0 - (t - 1.6) / 0.3
+	icon_at(Icons.spell(Catalog.spell(s["id"])), p + Vector2(0, -3), 1.0, Color(1, 1, 1, 0.55 * alpha))
+	# the hand: a white fingertip with a pressed ring while it holds
+	var tip := p + Vector2(4, 6)
+	if t < 0.3 or (t > 1.2 and t < 1.6):
+		draw_arc(tip, 5.0, 0.0, TAU, 12, Color(1, 1, 1, 0.5 * alpha), 1.0)
+	draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(3, 8), tip + Vector2(1, 8), tip + Vector2(0, 12),
+		tip + Vector2(-2, 11), tip + Vector2(-1, 7), tip + Vector2(-3, 7)]), Color(1, 0.96, 0.88, 0.9 * alpha))
 
 
 ## While dragging: where the spell would land. A gold bar on the left of a spell means it

@@ -106,7 +106,22 @@ func _show_title() -> void:
 				_begin(r)
 				_open_pause(true)
 				return
+		if res.get("action") == "daily":
+			_begin(_daily_run())
+			return
 		_begin(_new_run()))
+
+
+## Design v2: the daily run. Today's date is the seed, so everyone plays the same map and
+## offers; no tutorial, no Bug Reports. The best result per day is kept (SaveGame).
+func _daily_run() -> RunState:
+	var d := Time.get_date_dict_from_system()
+	var day := "%04d-%02d-%02d" % [d["year"], d["month"], d["day"]]
+	var r := RunState.create(int(day.replace("-", "")))
+	r.daily = day
+	for k in Meta.extra_slots():
+		r.wands[0].add_slot()
+	return r
 
 
 ## A fresh run. A player's very first run is the curriculum (D9, Tutorial).
@@ -311,6 +326,11 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 		return
 	match kind:
 		&"reward":
+			# design v2: a start with one hero to take is not a choice; take it and walk on
+			if data["kind"] == &"start" and (data["offer"] as Array).size() == 1 and not data["offer"][0].get("locked", false):
+				Rewards.grant(world.run, data["offer"][0])
+				world.reward_taken()
+				return
 			var s := RewardScreen.new()
 			s.kind = data["kind"]
 			s.offer = data["offer"]
