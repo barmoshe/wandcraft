@@ -161,9 +161,8 @@ func _text(p: Vector2, s: String, c: Color, size := 8, kind := "small", align :=
 
 
 ## A small square HUD button with a glyph; its hit area is padded to 32 px.
-func _button(id: String, r: Rect2, glyph: String, c: Color) -> void:
+func _button(id: String, r: Rect2, ic: Texture2D) -> void:
 	_panel(r)
-	var ic := Icons.glyph(glyph, c)
 	draw_texture(ic, (r.get_center() - ic.get_size() / 2.0).round())
 	var pad := maxf(0.0, (32.0 - r.size.x) / 2.0)
 	buttons[id] = r.grow(pad)
@@ -184,10 +183,9 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		_panel(row, sel)
 		var badge := Rect2(row.position + Vector2(3, 3), Vector2(18, SOCKET + 2))
 		draw_rect(badge, Color(0.13, 0.09, 0.2) if sel else Color(0.09, 0.07, 0.14))
-		var wt := Sprites.wand_texture()
-		draw_set_transform(badge.get_center() + Vector2(-6, 5), -PI / 4.0, Vector2.ONE)
-		draw_texture(wt, Vector2(0, -1), w.def.color.lightened(0.3) if sel else Color(0.6, 0.6, 0.7))
-		draw_set_transform(Vector2.ZERO)
+		# the wand pre-rotated to 45 degrees (never rotated at draw time), its gem in its colour
+		var wt: Texture2D = Hero.wand_angles(Hero.gem_ramp(w.def.color))[14]
+		draw_texture(wt, (badge.get_center() + Vector2(2, 2) - wt.get_size() / 2.0).round(), Color.WHITE if sel else Color(0.62, 0.6, 0.7))
 		_text(badge.position + Vector2(1, 7), str(wi + 1), GOLD if sel else Color(0.55, 0.5, 0.65), 8, "bold")
 		for i in n:
 			var c := row.position + Vector2(23 + i * (SOCKET + 1) + SOCKET / 2.0, 3 + SOCKET / 2.0 + 1)
@@ -221,7 +219,7 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		y = row.end.y + 2
 	# the editor button sits under the rows, with the bag count
 	var er := Rect2(origin.x, y, BTN, BTN)
-	_button("edit", er, "bag", Color("#c9a8ff"))
+	_button("edit", er, HudIcons.bag())
 	if not run.bag.is_empty():
 		_text(er.position + Vector2(BTN + 4, 17), "%d in bag" % run.bag.size(), Color(0.75, 0.7, 0.85), 8)
 
@@ -254,18 +252,24 @@ func _draw_vitals(bl: Vector2, run: RunState) -> void:
 	var w := run.wand()
 	var panel := Rect2(bl.x, bl.y - 30, 128, 30)
 	_panel(panel)
-	_bar(Rect2(panel.position + Vector2(4, 4), Vector2(120, 11)), run.hp / run.max_hp, Style.c("blood:2"), "%d/%d" % [roundi(run.hp), roundi(run.max_hp)])
+	# a heart and a mana drop label the bars (D6 HUD icons)
+	var hi := HudIcons.heart()
+	var di := HudIcons.drop()
+	draw_texture(hi, (panel.position + Vector2(8 - hi.get_width() / 2.0, 9.5 - hi.get_height() / 2.0)).round())
+	draw_texture(di, (panel.position + Vector2(8 - di.get_width() / 2.0, 21.5 - di.get_height() / 2.0)).round())
+	_bar(Rect2(panel.position + Vector2(15, 4), Vector2(109, 11)), run.hp / run.max_hp, Style.c("blood:2"), "%d/%d" % [roundi(run.hp), roundi(run.max_hp)])
 	if world.player.shield > 0.0:
 		var sk := world.player.shield / 30.0
-		draw_rect(Rect2(panel.position + Vector2(5, 5), Vector2(118 * sk, 2)), Style.c("frost:3"))
-	_bar(Rect2(panel.position + Vector2(4, 17), Vector2(120, 9)), w.mana / w.max_mana(), Style.c("arcane:3"), "%d" % roundi(w.mana))
+		draw_rect(Rect2(panel.position + Vector2(16, 5), Vector2(107 * sk, 2)), Style.c("frost:3"))
+	_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), w.mana / w.max_mana(), Style.c("arcane:3"), "%d" % roundi(w.mana))
 
 
 func _draw_top_right(tr: Vector2, run: RunState) -> void:
-	_button("pause", Rect2(tr.x - BTN, tr.y, BTN, BTN), "pause", Color("#e8e4ff"))
+	_button("pause", Rect2(tr.x - BTN, tr.y, BTN, BTN), HudIcons.pause())
 	var gr := Rect2(tr.x - BTN - 62, tr.y, 58, BTN)
 	_panel(gr)
-	draw_texture(Icons.glyph("coin", Color("#ffd36b")), gr.position + Vector2(4, 6))
+	var coin := HudIcons.coin()
+	draw_texture(coin, (gr.position + Vector2(4, (BTN - coin.get_height()) / 2.0)).round())
 	_text(gr.position + Vector2(20, 17), str(run.gold), GOLD, 8, "bold")
 	# relics, a compact column under the gold
 	for i in run.relics.size():
@@ -278,8 +282,9 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 			continue
 		var at := p + Vector2(5, 5)
 		if pip[0] != "":
-			draw_rect(Rect2(at - Vector2(1, 5), Vector2(4 + 4 * pip[0].length(), 7)), INK)
-			_text(at + Vector2(0, 1), pip[0], GOLD if pip[1] else Color(0.75, 0.7, 0.85), 8)
+			# a 3x5 counter tucked into the icon's bottom-right corner, inside its own cell
+			var dw := HudIcons.digits_width(pip[0])
+			HudIcons.draw_digits(self, (p + Vector2(6 - dw, 2)).round(), pip[0], GOLD if pip[1] else Color(0.75, 0.7, 0.85))
 		else:
 			draw_circle(at, 2.5, INK)
 			draw_circle(at, 1.5, Style.c("leaf:4") if pip[1] else Style.c("night:4"))

@@ -168,7 +168,9 @@ const L_PASS := 3
 
 static var _rigs := {}
 static var _clips := {}
-static var _wand: Array[Texture2D] = []
+static var _wand := {}
+## The held wand, pointing right: a wooden shaft and a gem.
+const WAND := ["........gG.", "wwwwwwwwgGG", "WWWWWWWWgG."]
 
 
 ## The hero as a rig (design-plan §8: idle 4, run 6, cast 3, dash 4, hurt 2, death 6 per
@@ -254,9 +256,33 @@ static func frames() -> Array[Texture2D]:
 
 ## The held wand pre-rotated to 16 angles (design-plan §7), pivot at the grip: index k
 ## points along TAU * k / 16. Drawn centred on the hand.
-static func wand_angles() -> Array[Texture2D]:
-	if _wand.is_empty():
+## `gem` is the Style ramp of the gem, so each wand shows its own colour (the HUD badge and
+## the hand agree).
+static func wand_angles(gem := "frost") -> Array[Texture2D]:
+	if not _wand.has(gem):
+		var out: Array[Texture2D] = []
+		var src := PixelArt.paint(PackedStringArray(WAND), {"w": "wood:3", "W": "wood:1", "g": gem + ":3", "G": gem + ":4"})
 		# the grip is the outlined sprite's pixel (1, 2)
-		for img in RigBaker.rotations(Sprites.wand_texture().get_image(), Vector2(1.5, 2.5), 16):
-			_wand.append(PixelArt.tex(img))
-	return _wand
+		for img in RigBaker.rotations(src, Vector2(1.5, 2.5), 16):
+			out.append(PixelArt.tex(img))
+		_wand[gem] = out
+	return _wand[gem]
+
+
+## The gem ramp for a wand colour: the nearest of the bright ramps (a brown wand's gem is
+## never a dull wood or stone; it falls back to frost).
+const GEMS := ["arcane", "violet", "glitch", "cyan", "frost", "leaf", "ember", "gold", "rose", "toxic"]
+
+
+static func gem_ramp(c: Color) -> String:
+	if c.s < 0.35:
+		return "frost"
+	var best := "frost"
+	var bd := INF
+	for k in GEMS:
+		var m := Color(Style.RAMPS[k][3])
+		var d := absf(angle_difference(m.h * TAU, c.h * TAU)) + absf(m.v - c.v) * 0.5
+		if d < bd:
+			bd = d
+			best = k
+	return best

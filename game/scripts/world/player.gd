@@ -56,6 +56,7 @@ var clip := "idle"
 var clip_t := 0.0
 var back := false          # aiming up: the hero turns away from the camera
 var hurt_t := 0.0          # seconds of the hurt clip left
+var _gem := "frost"        # the held wand's gem ramp (follows the wand in hand)
 
 
 func setup(w: World) -> void:
@@ -279,6 +280,10 @@ func _animate() -> void:
 	sprite.visible = inv <= 0.0 or fmod(inv, 0.12) > 0.05
 	# the wand is drawn pre-rotated (16 angles), never rotated as a sprite
 	var k := posmod(roundi(aim / (TAU / 16.0)), 16)
+	var gem := Hero.gem_ramp(wand().def.color)
+	if gem != _gem:
+		_gem = gem
+		wand_tex = Hero.wand_angles(gem)
 	wand_sprite.texture = wand_tex[k]
 	wand_sprite.visible = true
 	tip_glow.visible = true

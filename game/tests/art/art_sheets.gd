@@ -153,8 +153,17 @@ static func fx(s: Node) -> void:
 	s.add("atlas", Projectiles.atlas())
 
 
-static func ui(_s: Node) -> void:
-	pass
+## D6: the HUD's own icons and the wand badge in every gem colour.
+static func ui(s: Node) -> void:
+	s.section("hud icons")
+	s.add("coin", HudIcons.coin())
+	s.add("pause", HudIcons.pause())
+	s.add("bag", HudIcons.bag())
+	s.add("heart", HudIcons.heart())
+	s.add("drop", HudIcons.drop())
+	s.section("wand badge by gem")
+	for g in Hero.GEMS:
+		s.add(g, Hero.wand_angles(g)[14])
 
 
 ## The 0.4 style frames sent to Bar: new art next to the old.
