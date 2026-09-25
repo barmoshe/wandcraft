@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wandcraft</title>
+<meta name="description" content="A pixel art roguelite where your wand is a tiny program. Free on iPhone, no ads, no purchases.">
+<link rel="icon" href="icon.png">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0718; color: #f4eeff; font: 16px/1.6 system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 40px 20px 64px; }
+  header { display: flex; align-items: center; gap: 16px; }
+  header img { width: 72px; height: 72px; border-radius: 16px; image-rendering: pixelated; }
+  h1 { color: #ffd05e; font-size: 40px; margin: 0; letter-spacing: 1px; }
+  .tag { color: #a89cc8; margin: 2px 0 0; }
+  p { color: #d8d0ee; max-width: 640px; }
+  .shots { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 28px 0; }
+  .shots img { width: 100%; border-radius: 10px; image-rendering: pixelated; border: 1px solid #3d3260; }
+  @media (min-width: 720px) { .shots { grid-template-columns: 1fr 1fr; } }
+  .soon { display: inline-block; padding: 10px 16px; border: 1px solid #ffd05e; border-radius: 10px; color: #ffd05e; font-weight: 600; }
+  footer { margin-top: 40px; color: #a89cc8; font-size: 14px; }
+  a { color: #86d8ff; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <img src="icon.png" alt="Wandcraft app icon">
+  <div>
+    <h1>Wandcraft</h1>
+    <p class="tag">Code your wand, beat the bug.</p>
+  </div>
+</header>
+
+<p>A pixel art roguelite where your wand is a tiny program. Spells fire left to right, boosts power up the spells to their right, and triggers join two spells into one. Every reward is a part; the wand editor is where a run is won.</p>
+<p>Free on iPhone. No ads, no purchases, no account, no tracking. It plays offline.</p>
+<p><span class="soon">Coming soon to the App Store</span></p>
+
+<div class="shots">
+  <img src="shots/1-combat.png" alt="A fight in the Mossy Root Cellar">
+  <img src="shots/2-boss.png" alt="The Infinite Loop boss">
+  <img src="shots/3-editor.png" alt="The wand editor">
+  <img src="shots/4-copy-paste.png" alt="Copy-Paste, the mini-boss that copies your wand">
+</div>
+
+<footer>
+  Made by Bar Moshe. All art is drawn in code and all music and sound are generated in code.<br>
+  <a href="support.html">Support</a> &middot; <a href="privacy.html">Privacy policy</a>
+</footer>
+</main>
+</body>
+</html>

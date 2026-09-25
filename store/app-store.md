@@ -25,7 +25,7 @@ Copy rules: plain, no em dashes, no counts of spells or relics (they grow), no c
 | Category | Games; subcategories Action, Role Playing |
 | Content rights | Does not contain, show or access third-party content |
 | Age rating | See the questionnaire below (expected: 9+) |
-| Privacy policy URL | the hosted `privacy.html` (see store/privacy.html) |
+| Privacy policy URL | https://wandcraft-plum.vercel.app/privacy.html |
 
 ### Age rating questionnaire
 - Cartoon or Fantasy Violence: **Frequent/Intense** (it is combat the whole way, pixel creatures that burst into pixels, no blood)
@@ -78,8 +78,8 @@ Made by one developer. All art is drawn in code and all music and sound are gene
 **Keywords (100)**
 roguelite,roguelike,twin stick,pixel,wand,spells,magic,shooter,bullet hell,programming,code,offline
 
-**Support URL**: the hosted `support.html` (see store/support.html)
-**Marketing URL**: optional, leave empty for now
+**Support URL**: https://wandcraft-plum.vercel.app/support.html
+**Marketing URL**: https://wandcraft-plum.vercel.app (optional)
 **Copyright**: 2026 Bar Moshe
 
 **Screenshots**: `store/screenshots/` (6.9-inch iPhone, 2868 x 1320 landscape, made by
