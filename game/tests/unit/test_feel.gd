@@ -29,9 +29,10 @@ func test_every_sound_the_game_asks_for_exists() -> void:
 	names.append_array(Audio.CAST.values())
 	for n in names:
 		ok(ResourceLoader.exists("res://assets/audio/sfx_%s.wav" % n), "sfx_%s exists" % n)
-	for m in ["title", "grove", "boss"]:
-		var s: AudioStreamWAV = load("res://assets/audio/music_%s.wav" % m)
-		ok(s != null and s.get_length() > 8.0, "music %s is a real loop (%.1fs)" % [m, s.get_length() if s else 0.0])
+	for t in Audio.TRACKS:
+		for m in Audio.TRACKS[t]["stems"]:
+			var s: AudioStreamWAV = load("res://assets/audio/%s.wav" % m)
+			ok(s != null and s.get_length() > 7.0, "%s is a real loop (%.1fs)" % [m, s.get_length() if s else 0.0])
 	for id in Catalog.spells():
 		if Catalog.spell(id).kind == SpellDef.Kind.PROJ:
 			ok(Audio.CAST.has(id), "%s has a cast sound" % id)
