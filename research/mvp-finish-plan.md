@@ -53,3 +53,4 @@ from the Linux container, the stress roster pinned.
 - `33605c6` step 0: tools run on macOS with Godot 4.7.2; stress roster pinned; 154/154 tests, stress 8.6 ms.
 - `2971dfc` D6.1: RigDef + RigBaker (squash rows, lag, tears, crumble, RotSprite-style rotation).
 - `1aed2dd` D6.2: hero rig, 2 facings x 25 frames, wand at 16 angles, player drives clips; 154/154.
+- `dc493bc` D6.3: 12 enemy rigs (move/tele/attack), AI-driven clips, death poof; stress 8.5-8.8 ms.
