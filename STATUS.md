@@ -111,6 +111,7 @@
     - iPhone only, free, Individual seller, `com.barbuilds.wandcraft`.
   - **Paused (2026-09-25):** Bar is not paying for the Apple ($99/yr) or Google Play ($25) accounts for now. Sharing stays free: the sideload APK (`build/wandcraft-0.14.0.apk`) and the web build. The simulator build works (`tools/release_ios.sh --sim`).
   - **Layout fixes (2026-09-25):** the title's stats and version no longer sit under the buttons and the wizard (`97861a5`); the web sound diagnostic on the pause screen no longer covers the bottom buttons (`503b269`). Web live at `503b269`; the 0.14.0 APK rebuilt.
+  - **Copy and slot direction (2026-09-25):** every spell and relic text rewritten short and concrete, showing only the current level's numbers; reward cards fit their text at every size (`test_copy` guards it). As in Magicraft, the start spell sits in the last slot with room for boosts on its left, new slots open on the left, and chevrons show the cast direction (`eadbc70`). Web live at `eadbc70`; the 0.14.0 APK rebuilt. The macOS taptest fails 6/5 in landscape and ios modes, the same at `98d0606` (a harness issue, not this change).
   - **Next up, when Bar resumes:** his steps in `store/ios-release.md` (enrolment, Xcode sign-in, Team ID, app record; disk space is done), then TestFlight and review on his word. For Android: the Play Console account, a release keystore, the AAB build and a closed test.
 
 ## Where we are (POC history)
