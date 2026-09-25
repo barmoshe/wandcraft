@@ -257,12 +257,12 @@
   - Controls: WASD to move, hold the mouse button to aim and fire, 1/2/3 to switch wands, Tab/E for the wand editor, Esc to pause, F to toggle auto-fire.
 
 ## Waiting on Bar
-- [ ] **Apple:** enroll in the Apple Developer Program ($99/yr). Decide between individual and organization (an organization needs a D-U-N-S number).
+- [ ] **Apple:** enroll in the Apple Developer Program ($99/yr) as an **Individual** (decided 2026-09-25; the store shows Bar's name as the seller). Enrollment usually takes up to 48 hours.
 - [ ] **Google:** open a Google Play Console account ($25, identity verification). If it's a personal account, plan the closed test (about 12 testers for 14 days).
 - [ ] **Mac:** install Xcode 26 on the Mac.
-- [ ] **Pricing:** choose the unlock price (around $4.99 suggested).
+- [x] **Pricing:** free, no in-app purchases (decided 2026-09-25).
 - [ ] **Title:** confirm "Wandcraft", or pick a new one. It still needs a store and trademark check.
-- [ ] **App id:** choose the final bundle / package id (placeholder `com.barbuilds.wandcraft`). It can't change after the first store upload.
+- [x] **App id:** `com.barbuilds.wandcraft` for iOS and Android (decided 2026-09-25; permanent after the first upload).
 - [ ] **Test on devices:** Android sideload (`store/android-sideload.md`), and the iPhone.
   - For a test-only build a free Apple ID is enough. Follow `store/ios-test.md`, then run `tools/export_ios.sh` on the Mac and press Run in Xcode.
   - TestFlight for friends needs the $99 account.

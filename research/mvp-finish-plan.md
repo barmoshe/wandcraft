@@ -44,10 +44,14 @@ from the Linux container, the stress roster pinned.
 4. Bug Reports heat tiers.
 5. Re-check the never-editing bot (target 15–30%); close-out.
 
-**Store prep (0.14.0, ADR 0021)**
-1. Listings, privacy policy, screenshots in `store/`.
-2. CI in this repo: tests on every push.
-3. Final STATUS and HANDOFF for the betas (they wait on Bar's Apple and Google accounts).
+**Store prep and the iOS release (0.14.0, ADR 0021)**
+Bar, 2026-09-25: finish D9 first, then publish on iOS. Free, no in-app purchases; an
+Individual Apple Developer account (Bar buys it); bundle id `com.barbuilds.wandcraft`.
+1. Listings, a hosted privacy policy, screenshots at the App Store sizes, age rating answers.
+2. A release script, `tools/release_ios.sh`: build and upload through the Apple ID Bar signs
+   in to Xcode himself (the agent never types his Apple ID or password); export compliance set.
+3. CI in this repo: tests on every push.
+4. TestFlight, then App Store review, each after Bar says go (an outward action).
 
 ## EXECUTION LOG
 - `33605c6` step 0: tools run on macOS with Godot 4.7.2; stress roster pinned; 154/154 tests, stress 8.6 ms.
