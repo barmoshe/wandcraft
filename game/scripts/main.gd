@@ -82,6 +82,9 @@ func _show_title() -> void:
 	Audio.music("title")
 	var t := TitleScreen.new()
 	_open(t, func(res: Dictionary) -> void:
+		if res.get("action") == "credits":
+			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: _show_title())
+			return
 		if res.get("action") == "continue":
 			var r := SaveGame.load_run()
 			if r:
@@ -149,6 +152,8 @@ func _start_from_args() -> void:
 			_open_map()
 		"pause":
 			_open_pause(false)
+		"credits":
+			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: pass)
 		"end":
 			world.paused = true
 			_open_end(_args.get("won", "0") == "1")
@@ -241,7 +246,9 @@ func _open(s: Screen, done: Callable) -> void:
 	world.controls.clear()
 	hud.visible = false
 	_screens.add_child(s)
+	Audio.sfx("ui_open", 0.0)
 	s.finished.connect(func(res: Dictionary) -> void:
+		Audio.sfx("ui_close", 0.0)
 		if screen == s:
 			screen = null
 		s.queue_free()
@@ -291,7 +298,7 @@ func _open_end(won: bool) -> void:
 	_playing = false
 	SaveGame.record_run(world.run)
 	Audio.music("")
-	Audio.sfx("win" if won else "lose", 0.0)
+	Audio.sting("victory" if won else "defeat")
 	var s := EndScreen.new()
 	s.won = won
 	_open(s, func(res: Dictionary) -> void:

@@ -2,6 +2,7 @@
 // what a tester would notice first. Run through tools/webtest.sh.
 //   1. the canvas fills the window          2. no page errors
 //   3. after a first tap (an iPhone-style touch id), sound really comes out: every connection to an AudioContext's destination is also
+//   4. the Music bus itself plays (D8: window.wandcraftMusicPeak from the Audio autoload)
 //      tapped into an AnalyserNode and the peak level measured (a "running" context alone
 //      proves nothing: 0.4.1's first web builds were silent while reporting "running").
 const PW = process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -56,6 +57,15 @@ for (let i = 0; i < 30; i++) {
 	peak = Math.max(peak, await page.evaluate(() => window.__peak()));
 }
 check(peak > 0.01, `sound comes out (peak level ${peak.toFixed(3)})`);
+// D8: the music bus itself, once the run's first room has started its area music
+let music = -200;
+let track = '';
+for (let i = 0; i < 20; i++) {
+	await page.waitForTimeout(250);
+	music = Math.max(music, await page.evaluate(() => (typeof window.wandcraftMusicPeak === 'number' ? window.wandcraftMusicPeak : -200)));
+	track = await page.evaluate(() => window.wandcraftMusicTrack || '');
+}
+check(music > -60 && track !== '', `the music bus plays (${track}, peak ${music.toFixed(1)} dB)`);
 const state = await page.evaluate(() => (window.wandcraftAudioState ? window.wandcraftAudioState() : 'none'));
 check(/worklet ok/.test(state), `audio report: ${state}`);
 check(errors.length === 0, `no page errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

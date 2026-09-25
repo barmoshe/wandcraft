@@ -97,6 +97,7 @@ func _paint() -> void:
 		button(Rect2(cx - 70, by, 140, 32), "new", "NEW RUN", "primary")
 	if int(meta.get("runs", 0)) > 0:
 		text_center(cx, sr.end.y - 6, "Runs %d   Wins %d   Enemies defeated %d" % [meta["runs"], meta["wins"], meta["kills"]], MUTED)
+	button(Rect2(sr.end.x - 64, sr.end.y - 26, 64, 24), "credits", "CREDITS", "ghost")
 	var ver := "v" + str(ProjectSettings.get_setting("application/config/version", ""))
 	var build := Game.web_build()
 	if build != "":
@@ -105,5 +106,7 @@ func _paint() -> void:
 
 
 func _on_button(id: String) -> void:
-	if id == "continue" or id == "new":
+	if id == "credits":
+		finished.emit({"action": "credits"})
+	elif id == "continue" or id == "new":
 		finished.emit({"action": id})
