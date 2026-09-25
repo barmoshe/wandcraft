@@ -789,7 +789,9 @@ func update(dt: float) -> void:
 					if b.trig == &"wheel" and b.wheel_t <= 0.0 and b.wheel_n < WHEEL_SHOTS:
 						b.wheel_t = b.max_life / (WHEEL_SHOTS + 1)
 						b.wheel_n += 1
-						fire_carry(b, &"nova", null, b.spin + b.wheel_n * 2.4)
+						# a steady eighth of a turn per shot: 16 shots draw two turns of a spiral
+						# (2.4 rad, the golden angle, scattered them evenly and read as random)
+						fire_carry(b, &"nova", null, b.a + b.wheel_n * TAU / 8.0)
 				&"boomerang":
 					b.spin += dt * 18.0
 					if not b.ret and b.t >= b.max_life * 0.45:

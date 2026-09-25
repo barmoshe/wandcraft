@@ -418,6 +418,10 @@ func _on_hud(id: String) -> void:
 			world.controls.dash = true
 		"swap":
 			world.controls.select_wand = (world.run.cur + 1) % world.run.wands.size()
+		_:
+			if id.begins_with("relic"):
+				var rid: StringName = world.run.relics[int(id.substr(5))]
+				Events.toast.emit("%s: %s" % [Relics.DEFS[rid]["title"], Rewards.item_desc({"t": &"relic", "id": rid})])
 
 
 func _open_map() -> void:

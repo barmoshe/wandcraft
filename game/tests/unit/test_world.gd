@@ -48,6 +48,28 @@ func test_starwheel_sprays_its_payload_16_times() -> void:
 	eq(world.spells.cast_seq, 1 + 16, "one cast plus 16 sprays")
 
 
+func test_starwheel_sprays_in_a_spiral() -> void:
+	# each spray turns the same eighth of a turn from the last (a spiral, not a scatter)
+	_range_setup()
+	Game.inf_mana = true
+	for e in world.enemies:
+		e.queue_free()
+	world.enemies.clear()
+	_fire([&"wheel", &"mote"], &"apprentice", 0.0)
+	var order: Array = []
+	for i in 120:
+		world.step(DT)
+		# a bullet in its first tick is a new spray (pooled bullets are reused)
+		for bl in world.spells.bullets.active:
+			if bl.alive and bl.beh != &"wheel" and bl.t <= DT * 1.01:
+				order.append(bl.a)
+	Game.inf_mana = false
+	ok(order.size() >= 8, "sprays seen (%d)" % order.size())
+	for k in range(1, mini(order.size(), 8)):
+		var step := wrapf(float(order[k]) - float(order[k - 1]), -PI, PI)
+		ok(absf(step - TAU / 8.0) < 0.2, "spray %d turns an eighth (%.2f rad)" % [k, step])
+
+
 func test_seed_delivers_burst_where_it_lands() -> void:
 	_range_setup()
 	_fire([&"seed", &"burst"])

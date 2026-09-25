@@ -39,7 +39,7 @@ func _ready() -> void:
 	Events.room_entered.connect(_on_room)
 	Events.toast.connect(func(s: String) -> void:
 		toast = s
-		toast_t = 2.2)
+		toast_t = 2.2 + minf(2.5, s.length() / 40.0))
 	Events.room_cleared.connect(func() -> void:
 		banner = "ROOM CLEAR"
 		banner_sub = ""
@@ -296,6 +296,21 @@ func _draw_dash(sr: Rect2) -> void:
 		buttons["swap"] = Rect2(sc - Vector2(16, 16), Vector2(32, 32))
 
 
+func _wrap_lines(f: Font, s: String, width: float) -> PackedStringArray:
+	var out := PackedStringArray()
+	var line := ""
+	for word in s.split(" "):
+		var t := word if line == "" else line + " " + word
+		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x > width and line != "":
+			out.append(line)
+			line = word
+		else:
+			line = t
+	if line != "":
+		out.append(line)
+	return out
+
+
 func _draw_vitals(bl: Vector2, run: RunState) -> void:
 	var w := run.wand()
 	var panel := Rect2(bl.x, bl.y - 30, 128, 30)
@@ -324,6 +339,7 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 		var p := Vector2(tr.x - 9 - (i % 6) * 19, tr.y + BTN + 12 + (i / 6) * 19)
 		var ic := Icons.relic(run.relics[i])
 		draw_texture(ic, (p - ic.get_size() / 2.0).round())
+		buttons["relic%d" % i] = Rect2(p - Vector2(10, 10), Vector2(20, 20))   # design v2: tap to read
 		# counter pips (D3): a count, or a lit dot when the relic is ready right now
 		var pip := relic_pip(run.relics[i])
 		if pip.is_empty():
@@ -420,7 +436,15 @@ func _draw_banner(sr: Rect2) -> void:
 			var sw := sf.get_string_size(banner_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 			_text(Vector2(cx - sw / 2.0, r.position.y + 26), banner_sub, Color(0.75, 0.7, 0.85, a), 8)
 	if toast_t > 0.0:
+		# wrapped on a panel (goals and relic taps can run long)
 		var a := clampf(toast_t * 2.0, 0.0, 1.0)
 		var f := Game.font("small")
-		var wdt := f.get_string_size(toast, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-		_text(Vector2(cx - wdt / 2.0, sr.position.y + 86), toast, Color(0.9, 0.95, 1.0, a), 8)
+		var lines := _wrap_lines(f, toast, minf(320.0, sr.size.x - 40.0))
+		var wdt := 0.0
+		for ln in lines:
+			wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+		var tr := Rect2(cx - wdt / 2.0 - 8, sr.position.y + 76, wdt + 16, lines.size() * 10 + 8)
+		draw_rect(tr, Color(0.07, 0.05, 0.13, 0.85 * a))
+		for k in lines.size():
+			var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+			_text(Vector2(cx - lw / 2.0, tr.position.y + 12 + k * 10), lines[k], Color(0.9, 0.95, 1.0, a), 8)
