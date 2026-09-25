@@ -10,10 +10,14 @@ const META_PATH := "user://meta.json"
 
 ## Tests switch saving off so they never touch the real save.
 static var enabled := true
+## Screenshot runs (main.gd --shot): a fresh save held in memory, so tools never write the
+## player's files and every shot starts from a first-time player's state.
+static var in_memory := false
+static var _mem := {}
 
 
 static func save_run(run: RunState) -> void:
-	if not enabled or run == null or run.won:
+	if not enabled or in_memory or run == null or run.won:
 		return
 	_write(RUN_PATH, run.to_dict())
 
@@ -26,7 +30,7 @@ static func load_run() -> RunState:
 
 
 static func has_run() -> bool:
-	return enabled and FileAccess.file_exists(RUN_PATH)
+	return enabled and not in_memory and FileAccess.file_exists(RUN_PATH)
 
 
 static func clear_run() -> void:
@@ -69,14 +73,18 @@ static func record_run(run: RunState) -> void:
 	m["kills"] = int(m["kills"]) + int(run.stats["kills"])
 	if run.tutorial:
 		m["tutorial_done"] = true
-	# D9: Source Fragments for the Codex
-	var got := Meta.earned(run)
-	m["fragments"] = int(m.get("fragments", 0)) + got
-	m["last_fragments"] = got
+	_write(META_PATH, m)
+	# design v2: goals the finished run met (the end screen lists them)
+	var got := Meta.check(run).map(func(g: Dictionary) -> String: return g["id"])
+	m = load_meta()
+	m["last_goals"] = got
 	_write(META_PATH, m)
 
 
 static func _write(path: String, d: Dictionary) -> void:
+	if in_memory:
+		_mem[path] = d.duplicate(true)
+		return
 	var tmp := path + ".tmp"
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
@@ -89,6 +97,8 @@ static func _write(path: String, d: Dictionary) -> void:
 
 
 static func _read(path: String) -> Variant:
+	if in_memory:
+		return _mem.get(path, null)
 	if not FileAccess.file_exists(path):
 		return null
 	var f := FileAccess.open(path, FileAccess.READ)

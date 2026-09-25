@@ -19,6 +19,7 @@ var lit_at := -9.0
 var dry_at := -9.0
 var bonus_mana := 1.0   # max mana multiplier (none since D3 cut Spare Battery; kept for saves)
 var rune_mul := 1.0     # Root Access makes Debugger runes free (RunState.apply_relics)
+var trig_mul := 1.0     # design v2: the Tinkerer's triggers (and what they release) cost less
 var depth_cap := 3      # Stack Overflow lets payloads nest deeper
 var fresh := false      # the wand just recharged (Cold Start)
 var idle := 0.0         # seconds since this wand last cast (Watchdog)

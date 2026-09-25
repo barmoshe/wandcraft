@@ -574,6 +574,13 @@ func _clear_room(reward := true) -> void:
 		return
 	run.stats["rooms"] += 1
 	run.uptime = 0 if hit_in_room else mini(10, run.uptime + 1)
+	# design v2 goals (Meta.GOALS): what this room counted toward
+	if not hit_in_room:
+		run.stats["clean"] = int(run.stats.get("clean", 0)) + 1
+	var trig := run.wand().slots.filter(func(s: Variant) -> bool: return s != null and Screen.fam(Catalog.spell(s["id"])) == Screen.Fam.TRIGGER).size()
+	if trig >= 2:
+		run.stats["trigger_rooms"] = int(run.stats.get("trigger_rooms", 0)) + 1
+	run.stats["max_gold"] = maxi(int(run.stats.get("max_gold", 0)), run.gold)
 	player.heal(8.0)
 	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
 	Events.room_cleared.emit()
@@ -1277,6 +1284,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	damage_done += dmg
 	if run:
 		run.stats["damage"] += dmg
+		if not dot and dmg > float(run.stats.get("max_hit", 0.0)):
+			run.stats["max_hit"] = dmg
 	if not e.heavy and kb > 0.0:
 		e.knock += (e.position - from).normalized() * kb * (70.0 if crit else 38.0)
 	if crit and time - _last_stop > 0.25:
@@ -1334,8 +1343,10 @@ func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 			return
 	if burn > 0:
 		var base := tgt.burn_dps if tgt.burn_t > 0.0 else 0.0
-		tgt.burn_t = 2.5
-		tgt.burn_dps = maxf(base, maxf(4.0 + burn * 4.0, dmg * 0.4))
+		# design v2: the Pyromancer's burns last 50% longer and hurt 25% more
+		var pyro := run != null and run.hero == &"pyromancer"
+		tgt.burn_t = 2.5 * (1.5 if pyro else 1.0)
+		tgt.burn_dps = maxf(base, maxf(4.0 + burn * 4.0, dmg * 0.4) * (1.25 if pyro else 1.0))
 	if chill > 0 and not (tgt is Boss):
 		tgt.chill_t = 1.2 + chill * 0.4
 		tgt.chill_slow = [0.6, 0.5, 0.4][clampi(chill, 1, 3) - 1]

@@ -1,43 +1,64 @@
 class_name Meta
 extends RefCounted
-## D9: meta progression, Dead Cells style (design-plan §6). Every run earns Source Fragments;
-## the Codex spends them to add content to the pool: spells, the Debugger runes, relics,
-## wands and the second starter loadout. The only stat upgrade is one extra starting slot.
-## A new player starts with a smaller pool, which also keeps the first runs readable.
+## Design v2 (R3 + R7): what a new player meets, and goals that open the rest.
+##   - The CORE pool is the game a first-time player sees: 26 spells, 24 relics, 6 wands,
+##     the Apprentice. Fewer, plainer, each with a job (research/design-v2.md §3).
+##   - Everything else stays in the game and comes back through GOALS: short, concrete
+##     things to do in a run ("Defeat Copy-Paste", "Clear a room with 2 triggers in your
+##     wand"), each opening a named bundle (a hero, spells, relics, a wand). This replaces
+##     the D9 Source Fragments shop: the audit found its 366-fragment tax added complexity,
+##     not reasons to play. The end screen always names the next goal.
 ##
-## Stored in user://meta.json beside the lifetime numbers ("fragments", "unlocked").
-## Locking applies only in the running game (main.gd sets `active`), never in tests or the
-## balance bench, which keep measuring the full game and never read this machine's save.
+## Stored in user://meta.json beside the lifetime numbers ("goals": done ids; "unlocked":
+## ids bought with fragments before v2 stay unlocked). Locking applies only in the running
+## game (main.gd sets `active`) and in tests that set `test_meta`, never in the balance
+## bench unless it asks for the core pool (`core_only`).
 
-## In the order the Codex lists them. "t": spell | rune | relic | wand | loadout | slot.
-const UNLOCKS := [
-	{"id": &"stub", "t": &"loadout", "cost": 6},
-	{"id": &"pipeline", "t": &"spell", "cost": 8},
-	{"id": &"fork", "t": &"spell", "cost": 8},
-	{"id": &"hexcursor", "t": &"spell", "cost": 10},
-	{"id": &"bitrot", "t": &"spell", "cost": 10},
-	{"id": &"rot_coat", "t": &"spell", "cost": 10},
-	{"id": &"siphon", "t": &"spell", "cost": 10},
-	{"id": &"duck", "t": &"spell", "cost": 10},
-	{"id": &"finally", "t": &"spell", "cost": 10},
-	{"id": &"race_condition", "t": &"relic", "cost": 12},
-	{"id": &"force_push", "t": &"relic", "cost": 12},
-	{"id": &"legacy_code", "t": &"relic", "cost": 12},
-	{"id": &"ping", "t": &"spell", "cost": 12},
-	{"id": &"gravity", "t": &"spell", "cost": 12},
-	{"id": &"daemon", "t": &"spell", "cost": 12},
-	{"id": &"turret", "t": &"spell", "cost": 12},
-	{"id": &"head", "t": &"rune", "cost": 14},
-	{"id": &"memory_leak", "t": &"relic", "cost": 14},
-	{"id": &"swarm_protocol", "t": &"relic", "cost": 14},
-	{"id": &"zero_day", "t": &"relic", "cost": 14},
-	{"id": &"daemon_rod", "t": &"wand", "cost": 16},
-	{"id": &"ifelse", "t": &"rune", "cost": 16},
-	{"id": &"goto", "t": &"rune", "cost": 16},
-	{"id": &"crystal", "t": &"wand", "cost": 18},
-	{"id": &"include", "t": &"rune", "cost": 18},
-	{"id": &"debug_build", "t": &"wand", "cost": 20},
-	{"id": &"slot", "t": &"slot", "cost": 40},
+const CORE_SPELLS: Array[StringName] = [
+	&"mote", &"needle", &"lance", &"fan", &"moths", &"ember", &"frost", &"spark", &"burst",
+	&"turret", &"daemon",
+	&"empower", &"twin", &"keen", &"seek", &"phase", &"wide", &"ember_coat", &"frost_coat", &"static_coat",
+	&"then", &"callback", &"loop", &"seed",
+	&"mana_well", &"heatsink",
+]
+const CORE_RELICS: Array[StringName] = [
+	&"hot_patch", &"garbage_collector", &"interest", &"leech_loop", &"buffer_overflow", &"try_catch",
+	&"recursion", &"aperture", &"null_pointer", &"cascade_failure", &"wildfire", &"cold_boot",
+	&"event_loop", &"off_by_one", &"tail_call", &"loop_counter", &"stack_trace", &"surge_protector",
+	&"race_condition", &"memory_leak", &"force_push", &"legacy_code",
+	&"thermal_throttle", &"zero_day",
+]
+const CORE_WANDS: Array[StringName] = [&"twig", &"stub", &"oak", &"crystal", &"harp", &"daemon_rod"]
+
+## In the order the Codex lists them. "check" names what Meta.done() tests (see _met).
+const GOALS := [
+	{"id": "room", "text": "Clear a room", "check": "rooms>=1",
+		"unlocks": [&"chorus", &"ricochet"]},
+	{"id": "clean", "text": "Clear a room without getting hit", "check": "clean>=1",
+		"unlocks": [&"heavy", &"deadline"]},
+	{"id": "mini", "text": "Defeat Copy-Paste", "check": "bosses>=1",
+		"unlocks": [&"pyromancer", &"firewall", &"cold_start"]},
+	{"id": "triggers", "text": "Clear a room with 2 triggers in your wand", "check": "trigger_rooms>=1",
+		"unlocks": [&"finally", &"sleep", &"ping"]},
+	{"id": "big_hit", "text": "Deal 60 damage in one hit", "check": "max_hit>=60",
+		"unlocks": [&"quicken", &"busy_wait", &"null_orb"]},
+	{"id": "rich", "text": "Hold 150 gold", "check": "max_gold>=150",
+		"unlocks": [&"siphon", &"low_battery", &"heap_overflow"]},
+	{"id": "duo", "text": "Own a Duo relic", "check": "duos>=1",
+		"unlocks": [&"bug_bounty", &"swarm_protocol", &"version_control"]},
+	{"id": "compile", "text": "Compile a spell at the forge", "check": "compiled>=1",
+		"unlocks": [&"hexcursor", &"mine", &"bitrot", &"rot_coat", &"rot_index"]},
+	{"id": "boss", "text": "Reach the Infinite Loop", "check": "reached_boss>=1",
+		"unlocks": [&"gravity", &"orbit", &"cornered", &"uptime"]},
+	{"id": "win", "text": "Win a run", "check": "won>=1",
+		"unlocks": [&"tinkerer", &"pipeline", &"fork", &"wheel"]},
+	{"id": "runs3", "text": "Play 3 runs", "check": "runs>=3",
+		"unlocks": [&"slot", &"disc", &"static", &"duck", &"watchdog", &"mirror", &"split", &"reverse",
+			&"empty_set", &"birch", &"fork_branch"]},
+	{"id": "heat1", "text": "Win with Bug Reports 1 or higher", "check": "heat_win>=1",
+		"unlocks": [&"head", &"ifelse", &"debug_build", &"root_access"]},
+	{"id": "heat3", "text": "Win with Bug Reports 3 or higher", "check": "heat_win>=3",
+		"unlocks": [&"goto", &"include", &"stack_overflow", &"mirror_rod"]},
 ]
 
 ## Bug Reports (design-plan §6): heat tiers that stack, unlocked one per win (up to five).
@@ -50,23 +71,30 @@ const HEAT := [
 	"Hotfix denied: bosses have 25% more HP",
 ]
 
-static var _locked_ids := {}
 ## Tests: an in-memory meta record used instead of user://meta.json (and locking applies).
 static var test_meta: Variant = null
 ## Set by main.gd when the game runs for real.
 static var active := false
+## The balance bench: measure the core pool (the game a new player gets).
+static var core_only := false
+static var _goal_of := {}
 
 
-## Everything that can be locked, by id.
-static func lockable() -> Dictionary:
-	if _locked_ids.is_empty():
-		for u in UNLOCKS:
-			_locked_ids[u["id"]] = u
-	return _locked_ids
+## The goal that unlocks an id ({} for core content).
+static func goal_for(id: StringName) -> Dictionary:
+	if _goal_of.is_empty():
+		for g in GOALS:
+			for u in g["unlocks"]:
+				_goal_of[u] = g
+	return _goal_of.get(id, {})
+
+
+static func is_core(id: StringName) -> bool:
+	return goal_for(id).is_empty()
 
 
 static func enforced() -> bool:
-	return test_meta != null or (active and SaveGame.enabled)
+	return core_only or test_meta != null or (active and SaveGame.enabled)
 
 
 static func _load() -> Dictionary:
@@ -80,61 +108,84 @@ static func _store(m: Dictionary) -> void:
 		SaveGame.save_meta(m)
 
 
+static func goals_done() -> Array:
+	return [] if core_only else _load().get("goals", [])
+
+
+## Ids bought with Source Fragments before design v2: they stay unlocked.
 static func unlocked() -> Array:
-	return _load().get("unlocked", [])
+	return [] if core_only else _load().get("unlocked", [])
 
 
-## True when `id` is in the unlock pool and not bought yet (and saving is on).
+## True when `id` waits on a goal (and locking applies here).
 static func is_locked(id: StringName) -> bool:
-	if not enforced() or not lockable().has(id):
+	if not enforced() or is_core(id):
 		return false
-	return not unlocked().has(String(id))
-
-
-static func fragments() -> int:
-	return int(_load().get("fragments", 0))
-
-
-## Fragments a run earns: one per room cleared, three per mini-boss, five per boss, five more
-## for a win, and +20% per Bug Reports tier.
-static func earned(run: RunState) -> int:
-	var f := int(run.stats.get("rooms", 0)) + 3 * mini(1, int(run.stats.get("bosses", 0))) \
-		+ 5 * maxi(0, int(run.stats.get("bosses", 0)) - 1) + (5 if run.won else 0)
-	return roundi(f * (1.0 + 0.2 * run.heat))
-
-
-## Spends fragments on an unlock. False when it is unknown, owned, or too dear.
-static func buy(id: StringName) -> bool:
-	if not lockable().has(id):
+	if unlocked().has(String(id)):
 		return false
+	return not goals_done().has(goal_for(id)["id"])
+
+
+## The next goals to show (not done yet), in Codex order.
+static func open_goals() -> Array:
+	var done := goals_done()
+	return GOALS.filter(func(g: Dictionary) -> bool: return not done.has(g["id"]))
+
+
+## Checks every goal against this run (and the lifetime record), stores the new ones, and
+## returns them. Called at each room clear and when a run ends.
+static func check(run: RunState) -> Array:
 	var m := _load()
-	var owned: Array = m.get("unlocked", [])
-	var cost := int(lockable()[id]["cost"])
-	if owned.has(String(id)) or int(m.get("fragments", 0)) < cost:
-		return false
-	m["fragments"] = int(m.get("fragments", 0)) - cost
-	owned.append(String(id))
-	m["unlocked"] = owned
-	_store(m)
-	return true
+	var done: Array = m.get("goals", [])
+	var got: Array = []
+	for g in GOALS:
+		if done.has(g["id"]):
+			continue
+		if _met(String(g["check"]), run, m):
+			done.append(g["id"])
+			got.append(g)
+	if not got.is_empty():
+		m["goals"] = done
+		_store(m)
+	return got
 
 
-## The one stat upgrade: extra empty slots on the starting wand.
+static func _met(check: String, run: RunState, m: Dictionary) -> bool:
+	var parts := check.split(">=")
+	var need := float(parts[1])
+	var st := run.stats
+	var v := 0.0
+	match parts[0]:
+		"rooms": v = float(st.get("rooms", 0))
+		"clean": v = float(st.get("clean", 0))
+		"bosses": v = float(st.get("bosses", 0))
+		"trigger_rooms": v = float(st.get("trigger_rooms", 0))
+		"max_hit": v = float(st.get("max_hit", 0.0))
+		"max_gold": v = float(maxi(run.gold, int(st.get("max_gold", 0))))
+		"duos": v = float(run.relics.filter(func(r: StringName) -> bool: return Relics.DEFS.get(r, {}).has("duo")).size())
+		"compiled": v = float(st.get("compiled", 0))
+		"reached_boss": v = 1.0 if run.step >= Chapter.PLAN.size() - 1 else 0.0
+		"won": v = 1.0 if run.won else 0.0
+		"runs": v = float(m.get("runs", 0))
+		"heat_win": v = float(run.heat) if run.won else -1.0
+	return v >= need
+
+
+## The one stat unlock: an extra empty slot on the starting wand.
 static func extra_slots() -> int:
-	return 0 if is_locked(&"slot") or not enforced() else 1
+	return 0 if not enforced() or is_locked(&"slot") or core_only else 1
 
 
-## Display name of an unlock.
-static func title(u: Dictionary) -> String:
-	match u["t"]:
-		&"spell", &"rune":
-			return Catalog.spell(u["id"]).title
-		&"relic":
-			return String(Relics.DEFS[u["id"]]["title"])
-		&"wand":
-			return Catalog.wand(u["id"]).title
-		&"loadout":
-			return "%s start" % Catalog.wand(u["id"]).title
-		&"slot":
-			return "+1 starting slot"
-	return String(u["id"])
+## Display name of an unlockable id.
+static func title(id: StringName) -> String:
+	if RunState.LOADOUTS.has(id):
+		return "%s (hero)" % RunState.LOADOUTS[id]["title"]
+	if id == &"slot":
+		return "+1 starting slot"
+	if Catalog.spells().has(id):
+		return Catalog.spell(id).title
+	if Relics.DEFS.has(id):
+		return String(Relics.DEFS[id]["title"])
+	if Catalog.wands().has(id):
+		return Catalog.wand(id).title
+	return String(id)

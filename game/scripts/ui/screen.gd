@@ -469,7 +469,7 @@ static func kind_label(item: Dictionary) -> String:
 		&"wand":
 			return "Wand"
 		&"loadout":
-			return "Starting wand"
+			return "Hero"
 		&"slot":
 			return "Wand upgrade"
 		&"compile":

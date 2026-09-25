@@ -29,25 +29,41 @@ func _paint() -> void:
 			icon_at(Icons.door(key), p)
 		else:
 			draw_arc(p, 5.0, 0.0, TAU, 12, Color(0.4, 0.35, 0.5), 1.0)
-	y += 30
-	var r := Rect2(cx - 110, y, 220, 88)
+	y += 26
+	# the numbers on the left, the goals on the right
+	var r := Rect2(cx - 222, y, 214, 76)
 	panel(r, won)
 	var st := run.stats
 	var rows := [
 		["Rooms cleared", str(st["rooms"])],
 		["Enemies defeated", str(st["kills"])],
-		["Damage dealt", str(roundi(float(st["damage"])))],
+		["Best hit", str(roundi(float(st.get("max_hit", 0.0))))],
 		["Time", "%d:%02d" % [int(st["time"]) / 60, int(st["time"]) % 60]],
 		["Relics / gold", "%d / %d" % [run.relics.size(), run.gold]],
-		["Source Fragments", "+%d  (%d to spend)" % [int(SaveGame.load_meta().get("last_fragments", Meta.earned(run))), Meta.fragments()]],
 	]
 	for i in rows.size():
 		text(r.position + Vector2(10, 14 + i * 12), rows[i][0], MUTED)
 		text_right(r.end.x - 10, r.position.y + 14 + i * 12, rows[i][1], TEXT, 8, "bold")
+	var gr := Rect2(cx + 8, y, 214, 76)
+	panel(gr, true)
+	var got: Array = SaveGame.load_meta().get("last_goals", [])
+	var gy := gr.position.y + 14
+	if not got.is_empty():
+		text(Vector2(gr.position.x + 10, gy), "GOALS DONE", Style.UI_GOOD, 8, "bold")
+		for gid in got.slice(0, 2):
+			var g: Dictionary = Meta.GOALS.filter(func(x: Dictionary) -> bool: return x["id"] == gid)[0]
+			gy += 11
+			text(Vector2(gr.position.x + 10, gy), "%s: %s" % [g["text"], Meta.title(g["unlocks"][0])], TEXT)
+		gy += 14
+	var nxt := Meta.open_goals()
+	if nxt.is_empty():
+		text(Vector2(gr.position.x + 10, gy), "Every goal done. Try Bug Reports.", GOLD)
+	else:
+		text(Vector2(gr.position.x + 10, gy), "NEXT GOAL", GOLD, 8, "bold")
+		para(Rect2(gr.position.x + 10, gy + 2, gr.size.x - 20, 22), nxt[0]["text"], TEXT)
+		var names: Array = (nxt[0]["unlocks"] as Array).map(func(id: StringName) -> String: return Meta.title(id))
+		para(Rect2(gr.position.x + 10, gy + 13, gr.size.x - 20, 22), "Unlocks " + ", ".join(names.slice(0, 2)), MUTED)
 	y = r.end.y + 10
-	if won:
-		text_center(cx, y + 4, "Worlds 2-5 are coming in the full game.", Color("#ffe066"))
-		y += 12
 	button(Rect2(cx - 116, y, 110, 30), "again", "NEW RUN", "primary")
 	button(Rect2(cx + 6, y, 110, 30), "title", "TITLE", "ghost")
 

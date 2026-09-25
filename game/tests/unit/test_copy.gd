@@ -47,8 +47,8 @@ func test_every_text_fits_the_smallest_card() -> void:
 	for id in Catalog.wands():
 		var t := Rewards.wand_desc(Catalog.wand(id))
 		ok(_lines(t) <= MAX_LINES, "%s fits (%d lines)" % [id, _lines(t)])
-	for id in Rewards.LOADOUT_TEXT:
-		ok(_lines(Rewards.LOADOUT_TEXT[id]) <= MAX_LINES, "%s start fits" % id)
+	for id in RunState.LOADOUTS:
+		ok(_lines(Rewards.hero_text(id)) <= MAX_LINES, "%s hero fits (%d lines)" % [id, _lines(Rewards.hero_text(id))])
 
 
 func test_a_copy_you_hold_shows_the_merged_level() -> void:
@@ -82,6 +82,10 @@ func _player_texts() -> Array:
 		out.append(Tutorial.COACH[k])
 	for k in Hints.TIPS:
 		out.append_array(Hints.TIPS[k])
+	for id in RunState.LOADOUTS:
+		out.append(Rewards.hero_text(id))
+	for g in Meta.GOALS:
+		out.append(g["text"])
 	return out
 
 

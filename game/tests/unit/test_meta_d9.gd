@@ -1,5 +1,5 @@
 extends "res://tests/unit/test_helpers.gd"
-## D9: Source Fragments, the unlock pool, the starting slot, and the Bug Reports tiers.
+## Design v2: the core pool, goals and heroes; D9's Bug Reports tiers.
 
 
 func teardown() -> void:
@@ -11,57 +11,76 @@ func test_nothing_is_locked_when_saving_is_off() -> void:
 	ok(not Meta.is_locked(&"include"), "tests and the bench see the whole game")
 
 
-func test_locked_content_is_never_offered_until_bought() -> void:
-	Meta.test_meta = {"fragments": 0, "unlocked": []}
-	ok(Meta.is_locked(&"include") and Meta.is_locked(&"stub"), "a new player's pool leaves the runes and the Stub start out")
+func test_a_new_player_meets_only_the_core() -> void:
+	Meta.test_meta = {"goals": [], "unlocked": []}
+	ok(Meta.is_locked(&"include") and Meta.is_locked(&"pyromancer"), "runes and later heroes wait on goals")
+	ok(not Meta.is_locked(&"mote") and not Meta.is_locked(&"apprentice"), "the core is open")
 	var run := RunState.create(7)
 	var seen := {}
 	for i in 400:
 		seen[Rewards.roll_spell(run)] = true
-	for u in Meta.UNLOCKS:
-		if u["t"] == &"spell" or u["t"] == &"rune":
-			ok(not seen.has(u["id"]), "%s is not offered while locked" % u["id"])
-	var starts: Array = Rewards.offer(run, &"start")
-	var free: Array = starts.filter(func(o: Dictionary) -> bool: return not o["locked"]).map(func(o: Dictionary) -> StringName: return o["id"])
-	ok(free == [&"twig"], "only the Twig start can be taken until the Stub is bought (%s)" % [free])
-	ok(starts.size() == 2, "the locked Stub start is still shown, greyed")
-	var stub: Dictionary = starts.filter(func(o: Dictionary) -> bool: return o["id"] == &"stub")[0]
-	ok(not Rewards.grant(run, stub), "a locked start cannot be taken")
+	for id in seen:
+		ok(Meta.CORE_SPELLS.has(id), "%s offered from the core" % id)
 	for k in 60:
 		for r in Rewards.roll_relics(run, 3):
-			ok(not Meta.is_locked(r), "%s is not offered while locked" % r)
+			ok(Meta.CORE_RELICS.has(r), "%s offered from the core" % r)
+	var starts: Array = Rewards.offer(run, &"start")
+	var free: Array = starts.filter(func(o: Dictionary) -> bool: return not o["locked"]).map(func(o: Dictionary) -> StringName: return o["id"])
+	eq(free, [&"apprentice"], "only the Apprentice until a goal opens more")
+	var pyro: Dictionary = starts.filter(func(o: Dictionary) -> bool: return o["id"] == &"pyromancer")[0]
+	ok(not Rewards.grant(run, pyro), "a locked hero cannot be taken")
+	run.tutorial = true
+	eq(Rewards.offer(run, &"start").size(), 1, "the first run (a lesson) offers only the Apprentice")
 
 
-func test_fragments_buy_unlocks() -> void:
-	Meta.test_meta = {"fragments": 10, "unlocked": []}
-	ok(not Meta.buy(&"include"), "too dear")
-	ok(Meta.buy(&"stub"), "the Stub start costs 6")
-	ok(Meta.fragments() == 4 and not Meta.is_locked(&"stub"), "fragments spent, the Stub is in the pool")
-	ok(not Meta.buy(&"stub"), "an unlock is bought once")
+func test_every_locked_thing_has_a_goal() -> void:
+	for id in Catalog.spells():
+		if not Catalog.is_evolved(id) and id != &"apprentice":
+			ok(Meta.CORE_SPELLS.has(id) or not Meta.goal_for(id).is_empty(), "spell %s: core or a goal" % id)
+	for id in Relics.DEFS:
+		ok(Meta.CORE_RELICS.has(id) or not Meta.goal_for(id).is_empty(), "relic %s: core or a goal" % id)
+	for id in Catalog.wands():
+		if id != &"apprentice":
+			ok(Meta.CORE_WANDS.has(id) or not Meta.goal_for(id).is_empty(), "wand %s: core or a goal" % id)
+	for id in Meta.CORE_SPELLS + Meta.CORE_RELICS + Meta.CORE_WANDS:
+		ok(Meta.goal_for(id).is_empty(), "%s is core and never behind a goal" % id)
 
 
-func test_what_a_run_earns() -> void:
+func test_goals_unlock_their_bundles() -> void:
+	Meta.test_meta = {"goals": [], "unlocked": [], "runs": 0}
 	var run := RunState.create(7)
-	run.stats["rooms"] = 6
+	eq(Meta.check(run).size(), 0, "a fresh run met nothing")
+	run.stats["rooms"] = 1
+	run.stats["clean"] = 1
+	var got := Meta.check(run).map(func(g: Dictionary) -> String: return g["id"])
+	ok(got.has("room") and got.has("clean"), "a clean first room meets two goals (%s)" % [got])
+	ok(not Meta.is_locked(&"chorus") and not Meta.is_locked(&"deadline"), "their bundles open")
+	eq(Meta.check(run).size(), 0, "a goal is met once")
 	run.stats["bosses"] = 1
-	ok(Meta.earned(run) == 9, "six rooms and the mini-boss: 6 + 3 (%d)" % Meta.earned(run))
-	run.stats["bosses"] = 2
-	run.won = true
-	run.stats["rooms"] = 8
-	ok(Meta.earned(run) == 21, "a win: 8 + 3 + 5 + 5 (%d)" % Meta.earned(run))
-	run.heat = 2
-	ok(Meta.earned(run) == roundi(21 * 1.4), "Bug Reports add 20%% a tier (%d)" % Meta.earned(run))
+	Meta.check(run)
+	ok(not Meta.is_locked(&"pyromancer"), "beating Copy-Paste opens the Pyromancer")
+	eq(Meta.open_goals()[0]["id"], "triggers", "the next goal to show")
 
 
 func test_the_starting_slot_upgrade() -> void:
-	Meta.test_meta = {"fragments": 40, "unlocked": []}
-	ok(Meta.extra_slots() == 0, "no extra slot before buying it")
-	Meta.buy(&"slot")
-	ok(Meta.extra_slots() == 1, "one extra slot after")
+	Meta.test_meta = {"goals": [], "unlocked": [], "runs": 3}
+	ok(Meta.extra_slots() == 0, "no extra slot before its goal")
+	Meta.check(RunState.create(7))
+	ok(Meta.extra_slots() == 1, "three runs played: one extra slot")
 	var run := RunState.create(7)
 	var n := run.wand().slots.size()
-	run.set_loadout(&"twig")
-	ok(run.wand().slots.size() == n + 1, "the start room's loadout keeps the extra slot")
+	run.set_loadout(&"apprentice")
+	ok(run.wand().slots.size() == n + 1, "the start room's hero keeps the extra slot")
+
+
+func test_heroes_start_different() -> void:
+	var a := RunState.create(1, &"apprentice")
+	eq(a.max_hp, 140.0, "the Apprentice has 20 more max HP")
+	var t := RunState.create(1, &"tinkerer")
+	eq(t.wand().trig_mul, 0.7, "the Tinkerer's triggers cost less")
+	eq(t.wand().slots.map(func(x: Variant) -> Variant: return x["id"] if x != null else null), [null, &"seed", &"burst"], "Carry and Rune Burst")
+	var old := RunState.create(1, &"stub")
+	eq(old.hero, &"pyromancer", "an old save's Stub start is the Pyromancer")
 
 
 func test_bug_reports_add_elites_and_raise_prices() -> void:

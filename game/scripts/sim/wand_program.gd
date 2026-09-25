@@ -302,11 +302,11 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 						f = 4.0
 					elif d.carrier == &"daemon":
 						f = 0.0   # the daemon pays for each shot as it fires
-					mana = r[2] + r[1] * f * reps
+					mana = r[2] + r[1] * f * reps * wand.trig_mul
 					c.trig = d.carrier
 					c.trig_level = lv
 					c.payload = pl
-					c.pay_mana = r[1]
+					c.pay_mana = r[1] * wand.trig_mul
 			else:
 				var j := _peek()
 				if j >= 0 and _spell_at(j).kind == SpellDef.Kind.TRIG:
@@ -314,24 +314,27 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 					var td := _spell_at(ti)
 					var tlv := _level_at(ti)
 					used.append(ti)
-					mana += td.mana_at(tlv)
+					mana += td.mana_at(tlv) * wand.trig_mul
 					var r := _draw_payload(depth)
 					var pl: CastNode = r[0]
 					if pl != null:
 						var pm: float = r[1]
 						var m0: float = r[2]
+						var tm := wand.trig_mul   # the Tinkerer's triggers cost less
 						if td.trig == &"callback" or td.trig == &"loop":
 							mana = m0   # paid each time it fires
 						elif td.trig == &"fork":
-							mana = m0 + pm * 4.0
+							mana = m0 + pm * 4.0 * tm
+						else:
+							mana = m0 + pm * tm
 						c.trig = td.trig
 						c.trig_level = tlv
 						c.payload = pl
 						if td.trig == &"callback":
-							c.pay_mana = pm * [0.8, 0.65, 0.5][tlv - 1]
+							c.pay_mana = pm * [0.8, 0.65, 0.5][tlv - 1] * tm
 						elif td.trig == &"loop":
-							c.pay_mana = pm * [0.7, 0.55, 0.4][tlv - 1]
+							c.pay_mana = pm * [0.7, 0.55, 0.4][tlv - 1] * tm
 						else:
-							c.pay_mana = pm
+							c.pay_mana = pm * tm
 		return c
 	return null

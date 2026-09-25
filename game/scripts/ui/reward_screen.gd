@@ -6,7 +6,7 @@ extends Screen
 ## Result: {"taken": item or null, "equip": bool}.
 
 const TITLES := {
-	&"start": ["BEFORE YOU GO", "Pick your wand"],
+	&"start": ["BEFORE YOU GO", "Pick your hero"],
 	&"spell": ["SPELL", "Pick one spell"],
 	&"relic": ["RELIC", "Pick one relic"],
 	&"challenge": ["CHALLENGE CLEARED", "Pick your prize"],
@@ -163,8 +163,8 @@ func _footer(item: Dictionary, lv: int) -> Array:
 			return [st, "  ".join(st.split("  ").slice(0, 2)), cyan]   # short: mana and damage only
 		&"loadout":
 			if item.get("locked", false):
-				var cost := int(Meta.lockable()[item["id"]]["cost"])
-				return ["IN THE CODEX: %d FRAGMENTS" % cost, "CODEX: %d FRAGMENTS" % cost, GOLD]
+				var goal := String(Meta.goal_for(item["id"]).get("text", "")).to_upper()
+				return ["UNLOCK: " + goal, "LOCKED", GOLD]
 			var wd := Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"])
 			return ["%d SLOTS  %d MANA" % [wd.slots, int(wd.max_mana)], "%d SLOTS  %d MP" % [wd.slots, int(wd.max_mana)], cyan]
 	return ["", "", cyan]
@@ -193,7 +193,7 @@ func _on_button(id: String) -> void:
 		var i := int(id.substr(4))
 		if offer[i].get("locked", false):
 			Audio.sfx("deny", 0.0)
-			toast("Unlock it in the Codex with Source Fragments")
+			toast("Unlock: %s" % Meta.goal_for(offer[i]["id"]).get("text", ""))
 			return
 		sel = -1 if sel == i else i
 		Audio.sfx("ui", 0.05)

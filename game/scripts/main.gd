@@ -35,6 +35,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
+	if _args.has("shot"):
+		SaveGame.in_memory = true   # screenshots never touch the player's save
 	if _args.has("resethints"):
 		Hints.reset()
 	_build_environment()
@@ -58,6 +60,13 @@ func _ready() -> void:
 	touch.hud_pressed.connect(_on_hud)
 	ui.add_child(touch)
 	_build_shockwave()
+	# design v2: goals are checked at every room clear; a new one says what it unlocked
+	Events.room_cleared.connect(func() -> void:
+		if world.run == null or world.bot:
+			return
+		for g in Meta.check(world.run):
+			var names: Array = (g["unlocks"] as Array).map(func(id: StringName) -> String: return Meta.title(id))
+			Events.toast.emit("Goal: %s. Unlocked %s" % [g["text"], ", ".join(names.slice(0, 3))]))
 	Events.shockwave.connect(_on_shockwave)
 	_screens = CanvasLayer.new()
 	_screens.layer = 20

@@ -8,10 +8,6 @@ const SKIP_GOLD := 8
 const SLOT_PRICE := 60        # Forge: +1 slot on the wand in hand (D2)
 const SLOT_MAX := 10
 const ALTAR_COST := 0.15      # share of max HP an Altar pick costs (D5)
-const LOADOUT_TEXT := {
-	&"twig": "Quick and light. An Arcane Mote in the last slot, and two empty slots on its left for boosts.",
-	&"stub": "Slow, with a deep mana pool. An Ember Bolt in the last slot, and one empty slot on its left.",
-}
 
 
 ## Spell pool for drops: every spell with a rarity weight, passives and boosts included.
@@ -139,8 +135,10 @@ static func offer(run: RunState, kind: StringName) -> Array:
 		return Tutorial.offer(run)
 	match kind:
 		&"start":
-			# a start still locked in the Codex is shown, greyed, so the player knows it exists
-			return RunState.LOADOUTS.keys().map(func(id: StringName) -> Dictionary:
+			# heroes: a locked one is shown greyed with the goal that opens it (a reason to
+			# play on); the first run, a lesson, only offers the Apprentice
+			var ids: Array = [&"apprentice"] if run.tutorial else RunState.LOADOUTS.keys()
+			return ids.map(func(id: StringName) -> Dictionary:
 				return {"t": &"loadout", "id": id, "locked": Meta.is_locked(id)})
 		&"spell":
 			return _with_counter(run, _spells(run, [0, 0, 1]))
@@ -253,7 +251,7 @@ static func item_title(item: Dictionary) -> String:
 		&"heal":
 			return "Heal %d" % int(item.get("v", 0))
 		&"loadout":
-			return Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"]).title
+			return String(RunState.LOADOUTS[item["id"]]["title"])
 		&"compile":
 			return Catalog.spell(item["id"]).title
 		&"slot":
@@ -291,7 +289,7 @@ static func _desc(item: Dictionary, lv := 1) -> String:
 		&"heal":
 			return "Restores %d HP right away." % int(item.get("v", 0))
 		&"loadout":
-			return LOADOUT_TEXT.get(item["id"], "")
+			return hero_text(item["id"])
 		&"compile":
 			var ev: Dictionary = Catalog.EVOLUTIONS[item["id"]]
 			var cat: String = Relics.DEFS[ev["cat"]]["title"] if ev["cat_t"] == &"relic" else Catalog.spell(ev["cat"]).title
@@ -300,6 +298,13 @@ static func _desc(item: Dictionary, lv := 1) -> String:
 		&"slot":
 			return "Adds one empty slot to the left end of the wand in your hand (up to %d)." % SLOT_MAX
 	return ""
+
+
+## A hero's card: the twist, then the wand and its start spell.
+static func hero_text(id: StringName) -> String:
+	var lo: Dictionary = RunState.LOADOUTS[id]
+	var names: Array = (lo["spells"] as Array).filter(func(x: Variant) -> bool: return x != null).map(func(x: StringName) -> String: return Catalog.spell(x).title)
+	return "%s %s with %s." % [lo["twist"], Catalog.wand(lo["wand"]).title, " and ".join(names)]
 
 
 ## "Quick and light. 3 slots, 50 mana. Casts every 0.1 s, recharges in 0.35 s."
@@ -390,6 +395,7 @@ static func compile_evo(run: RunState, evo: StringName) -> bool:
 	for w in run.wands:
 		w.ptr = 0
 		w.acc = Mods.new()
+	run.stats["compiled"] = int(run.stats.get("compiled", 0)) + 1
 	return true
 
 

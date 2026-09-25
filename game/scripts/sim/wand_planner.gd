@@ -191,7 +191,7 @@ static func pick(run: RunState, offer: Array) -> int:
 		var v := 0.0
 		match it["t"]:
 			&"loadout":
-				v = 1.0 if it["id"] == &"twig" else 0.5
+				v = 1.0 if it["id"] == &"apprentice" else 0.5
 			&"relic":
 				v = 1000.0
 			&"wand":

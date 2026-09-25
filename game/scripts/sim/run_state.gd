@@ -39,23 +39,45 @@ var lesson_target: Array = []       # D9: the wand layout the editor coach is wa
 var heat := 0                       # D9: Bug Reports tier (0-5), chosen on the title
 
 
-## Starter loadouts (D2): a small wand with a clear identity, so the first rewards are
-## choices about what to put in the empty slots.
+## Heroes (design v2): a starting wand with a clear identity plus one twist, so runs start
+## different. The start spell sits in the last slot (as in Magicraft): the empty slots on
+## its left are where boosts go, since a boost powers up every spell on its right.
+## Meta.GOALS unlock the Pyromancer and the Tinkerer.
 const LOADOUTS := {
-	# the start spell sits in the last slot (as in Magicraft): the empty slots on its left are
-	# where boosts go, since a boost powers up every spell on its right
-	&"twig": {"wand": &"twig", "spells": [null, null, &"mote"]},
-	&"stub": {"wand": &"stub", "spells": [null, &"ember"]},
+	&"apprentice": {"title": "Apprentice", "wand": &"twig", "spells": [null, null, &"mote"], "hp": 20,
+		"twist": "Starts with 20 more max HP."},
+	&"pyromancer": {"title": "Pyromancer", "wand": &"stub", "spells": [null, &"ember"],
+		"twist": "Burns last 50% longer and hurt 25% more."},
+	&"tinkerer": {"title": "Tinkerer", "wand": &"twig", "spells": [null, &"seed", &"burst"],
+		"twist": "Triggers, and the spells they release, cost 30% less mana."},
 }
+## Saves from before heroes named their loadout by its wand.
+const LOADOUT_ALIAS := {&"twig": &"apprentice", &"stub": &"pyromancer"}
+
+var hero: StringName = &"apprentice"
 
 
-static func create(seed_value_: int, loadout := &"twig") -> RunState:
+static func create(seed_value_: int, loadout := &"apprentice") -> RunState:
 	var r := RunState.new()
 	r.seed_value = seed_value_
 	r.rng.seed = seed_value_
-	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
-	r.wands.append(WandState.make(Catalog.wand(lo["wand"]), lo["spells"]))
+	r._start_as(loadout)
 	return r
+
+
+func _start_as(loadout: StringName) -> void:
+	hero = LOADOUT_ALIAS.get(loadout, loadout)
+	if not LOADOUTS.has(hero):
+		hero = &"apprentice"
+	var lo: Dictionary = LOADOUTS[hero]
+	var w := WandState.make(Catalog.wand(lo["wand"]), lo["spells"])
+	if wands.is_empty():
+		wands.append(w)
+	else:
+		wands[0] = w
+	max_hp = 120.0 + float(lo.get("hp", 0))
+	hp = max_hp
+	apply_relics()
 
 
 ## Pushes relic stats down to the wands (rune cost, nesting depth). Called whenever the
@@ -65,13 +87,13 @@ func apply_relics() -> void:
 	var depth := int(Relics.stat(self, "depth"))
 	for w in wands:
 		w.rune_mul = rune
+		w.trig_mul = 0.7 if hero == &"tinkerer" else 1.0
 		w.depth_cap = depth
 
 
 ## Swaps the starting wand for another loadout (the start room's choice).
 func set_loadout(loadout: StringName) -> void:
-	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
-	wands[0] = WandState.make(Catalog.wand(lo["wand"]), lo["spells"])
+	_start_as(loadout)
 	for k in int(Relics.stat(self, "slots")) + Meta.extra_slots():
 		wands[0].add_slot()
 	cur = 0
@@ -299,7 +321,7 @@ func to_dict() -> Dictionary:
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
-		"uptime": uptime, "tutorial": tutorial, "heat": heat, "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
+		"uptime": uptime, "tutorial": tutorial, "heat": heat, "hero": String(hero), "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
 		"map": map.map(func(step: Array) -> Array: return step.map(_dict_out)), "lane": lane,
 	}
 
@@ -335,6 +357,7 @@ static func from_dict(d: Dictionary) -> RunState:
 	r.won = bool(d.get("won", false))
 	r.tutorial = bool(d.get("tutorial", false))
 	r.heat = int(d.get("heat", 0))
+	r.hero = LOADOUT_ALIAS.get(StringName(d.get("hero", "apprentice")), StringName(d.get("hero", "apprentice")))
 	for x in d.get("lesson_target", []):
 		r.lesson_target.append(StringName(x) if x != null else null)
 	for b in d.get("banned", []):
