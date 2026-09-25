@@ -197,6 +197,20 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	add_child(sprite)
 
 
+## The ground ring's colour (transparent for body parts and bosses, which have their own art).
+func role_color() -> Color:
+	if affix != &"":
+		return Color(Style.c(AFFIXES[affix]["col"]), 0.85)
+	match StringName(def.get("role", &"")):
+		&"anchor":
+			return Color(Style.c("ember:3"), 0.7)
+		&"pressure":
+			return Color(Style.c("bone:3"), 0.45)
+		&"support":
+			return Color(Style.c("gold:4"), 0.7)
+	return Color(0, 0, 0, 0)
+
+
 ## Design v2: a plain enemy that carries a ward (the room's door asked for Shock).
 func make_warded() -> void:
 	affix = &"warded"
@@ -629,9 +643,13 @@ func telegraph() -> Dictionary:
 func _draw() -> void:
 	if spawn_t > 0.0:
 		return   # the spawn rune is drawn by World on the glow layer
-	# contact shadow
+	# contact shadow, and (design v3) a ground ring in the enemy's role colour so a crowd
+	# reads at phone size: anchors warm, pressure pale, support gold, elites their affix
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, r + 1.0, Color(0, 0, 0, 0.4))
+	var rc := role_color()
+	if rc.a > 0.0:
+		draw_arc(Vector2.ZERO, r + 3.0, 0.0, TAU, 20, rc, 2.0 if elite else 1.0)
 	draw_set_transform(Vector2.ZERO)
 	# defences: a ward ring, a shield arc facing the player
 	if ward_n > 0:

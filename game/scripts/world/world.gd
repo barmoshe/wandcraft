@@ -949,7 +949,7 @@ func body_solid_at(p: Vector2) -> bool:
 
 
 func biome() -> int:
-	return 1 if run and run.step >= 5 else 0
+	return 1 if run and run.step >= Chapter.AREAS[1]["from"] else 0
 
 
 func _repaint() -> void:
@@ -1535,6 +1535,10 @@ func kill_enemy(e: Enemy) -> void:
 		hitstop(0.08)
 		shake(0.25)
 		Game.haptic("elite_kill")
+	elif not (e is Boss) and time - _last_stop > 0.15:
+		# design v3 (Vlambeer's "sleep"): two frames on a kill, three on a heavy one; spaced so
+		# a swarm dying at once reads as punches, not a stutter
+		hitstop(0.05 if e.heavy else 0.033)
 	if e is Boss:
 		(e as Boss).die()
 		run.stats["bosses"] += 1
@@ -1921,7 +1925,7 @@ func _draw_deco() -> void:
 				4:
 					_deco.draw_texture(crate, Vector2(x * TS, y * TS) + Vector2(1, 0))
 				6:
-					_deco.draw_texture(Props.bramble(), Vector2(x * TS, y * TS + 1))
+					_deco.draw_texture(Props.bramble(biome()), Vector2(x * TS, y * TS + 1))
 				8:
 					_deco.draw_texture(Props.pod(), Vector2(x * TS + 2, y * TS + 3))
 				9:

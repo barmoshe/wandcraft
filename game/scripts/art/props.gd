@@ -201,8 +201,9 @@ static func _familiar(kind: StringName, f: int) -> Image:
 
 ## D5 room features, drawn over the floor like crates.
 ## A bramble clump (burn clears it). 16x14.
-static func bramble() -> Texture2D:
-	return PixelArt.cached("bramble", func() -> Image:
+## Design v3: the Grove's brambles are corrupted thorns (biome 1), the Cellar's green briars.
+static func bramble(biome := 0) -> Texture2D:
+	return PixelArt.cached("bramble%d" % biome, func() -> Image:
 		return PixelArt.paint(PackedStringArray([
 			"....w......w....",
 			"...22.2..2.22...",
@@ -217,7 +218,7 @@ static func bramble() -> Texture2D:
 			".211..2112..112.",
 			"..1122111122211.",
 			"...1111111111...",
-		]), {"1": "wood:1", "2": "leaf:2", "w": "bone:3"}))
+		]), {"1": "wood:1", "2": "leaf:2", "w": "bone:3"} if biome == 0 else {"1": "violet:1", "2": "glitch:2", "w": "glitch:4"}))
 
 
 ## A spore pod (a blast, or any hit, sets it off; pods chain). 12x12.

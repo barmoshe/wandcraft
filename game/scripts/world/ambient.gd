@@ -17,6 +17,10 @@ var tufts: Array = []     # [pos, lean -1..1, settle timer]
 var motes: Array = []     # [pos, phase, torch]
 var leaves: Array = []    # [pos, vel, phase]
 var glow: Node2D          # the additive child the motes draw on
+## Design v3: the Grove's corruption veins pulse (RoomPainter.veins, the same lines the floor
+## bakes dark), and its tufts, spores and motes take the Grove's colours.
+var veins: Array = []
+var grove := false
 var _acc := 0.0
 var _t := 0.0
 
@@ -33,6 +37,8 @@ func setup(w: World) -> void:
 ## A new room: scatter tufts on open floor and motes around the torches.
 func reset(seed_value: int) -> void:
 	rng.seed = seed_value
+	grove = world.biome() == 1
+	veins = RoomPainter.veins(world.grid, world.gw, world.gh, seed_value) if grove else []
 	tufts.clear()
 	motes.clear()
 	leaves.clear()
@@ -92,8 +98,8 @@ func _process(dt: float) -> void:
 
 
 func _draw() -> void:
-	var dark := Style.c("moss:2")
-	var lit := Style.c("moss:3")
+	var dark := Style.c("violet:2" if grove else "moss:2")
+	var lit := Style.c("violet:3" if grove else "moss:3")
 	for tf in tufts:
 		var p := (tf[0] as Vector2).round()
 		var lean := int(tf[1])
@@ -104,6 +110,8 @@ func _draw() -> void:
 		draw_rect(Rect2(p + Vector2(-1 + lean, -2), Vector2.ONE), lit)
 		draw_rect(Rect2(p + Vector2(lean, -3), Vector2.ONE), lit)
 		draw_rect(Rect2(p + Vector2(1 + lean, -2), Vector2.ONE), dark)
+	if grove:
+		return   # the Grove's spores glow (drawn on the additive layer)
 	for lf in leaves:
 		var p := (lf[0] as Vector2).round()
 		var flip := sin(lf[2]) > 0.0
@@ -115,4 +123,20 @@ func _draw_motes() -> void:
 	for m in motes:
 		var p := (m[0] as Vector2).round()
 		var tw := 0.35 + 0.25 * sin(m[1] * 3.0)
-		glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * tw, 0.75 * tw, 0.45 * tw))
+		glow.draw_rect(Rect2(p, Vector2.ONE), Color(0.9 * tw, 0.35 * tw, 0.8 * tw) if grove else Color(1.0 * tw, 0.75 * tw, 0.45 * tw))
+	if not grove:
+		return
+	# spores drifting down, pink and faintly lit
+	for lf in leaves:
+		var p := (lf[0] as Vector2).round()
+		var k := 0.5 + 0.3 * sin(lf[2] * 2.0)
+		glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * k, 0.35 * k, 0.8 * k))
+	# a slow pulse travels along each vein, from its root outward
+	for vi in veins.size():
+		var line: PackedVector2Array = veins[vi]
+		for i in line.size():
+			var w := sin(_t * 2.2 - i * 0.18 + vi * 1.7)
+			if w <= 0.4:
+				continue
+			var a := (w - 0.4) / 0.6 * 0.55
+			glow.draw_rect(Rect2(line[i], Vector2.ONE), Color(0.95 * a, 0.25 * a, 0.75 * a))

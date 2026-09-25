@@ -66,7 +66,7 @@ func test_loop_body_breaks_in_phase_two() -> void:
 	var n := b.parts.size()
 	for i in 3:
 		world.hurt_enemy(b.parts[b.parts.size() - 1], 999.0, b.position, 0.0, 0.0)
-		world.step(DT)
+		_steps(0.1)   # past the kill's hit-stop
 	eq(b.parts.size(), n - 3, "three segments broke off")
 	ok(world.enemies.any(func(e: Enemy) -> bool: return e.kind == &"loop_jr" and not e.dead), "and a Loop Jr. hunts on its own")
 
