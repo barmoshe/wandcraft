@@ -166,7 +166,9 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 		frames = clips["move"]
 	else:
 		frames = Sprites.enemy_frames(art)
-	muzzle = Vector2(0, -roundf(frames[0].get_height() * 0.5))
+	# the rig's headroom is empty sky: shots leave from half the body, as before D6
+	var body_h := frames[0].get_height() - (Bestiary.HEADROOM if rig else 0)
+	muzzle = Vector2(0, -roundf(body_h * 0.5))
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 2.0)
