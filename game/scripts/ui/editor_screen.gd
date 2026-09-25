@@ -20,6 +20,10 @@ var _slots: Array = []            # [Rect2, ref] for drag-and-drop
 var _drag_from: Dictionary = {}
 var _drag_pos := Vector2.ZERO
 var _dragging := false
+## D9: the tutorial coach: {"text", "from": ref, "to": ref}. Rings pulse on both sockets until
+## the spell has left the bag for a wand slot.
+var coach: Dictionary = {}
+var lesson := -1                  # the lesson step the coach follows (Tutorial.coach)
 
 
 func _opened() -> void:
@@ -54,7 +58,14 @@ func _paint() -> void:
 	var info_w := minf(168.0, sr.size.x * 0.36)
 	var left := Rect2(sr.position, Vector2(sr.size.x - info_w - 8, sr.size.y))
 	text(left.position + Vector2(2, 16), "WANDS", GOLD, 16, "body")
-	text(left.position + Vector2(62, 15), "Tap a spell, then tap where it goes.", MUTED)
+	if lesson >= 0:
+		var was := not coach.is_empty()
+		coach = Tutorial.coach(run, lesson)
+		if was and coach.is_empty():
+			lesson = -1
+			toast("Nice. Press DONE and try it out")
+	if coach.is_empty():
+		text(left.position + Vector2(62, 15), "Tap a spell, then tap where it goes.", MUTED)
 	var y := left.position.y + 26
 	for wi in run.wands.size():
 		y = _wand_row(wi, Vector2(left.position.x, y), left.size.x) + 6
@@ -71,6 +82,8 @@ func _paint() -> void:
 	button(Rect2(sr.end.x - 70, sr.position.y, 70, 26), "done", "DONE", "primary")
 	button(Rect2(sr.end.x - 146, sr.position.y, 70, 26), "revert", "REVERT", "ghost")
 	_info(ir)
+	if not coach.is_empty():
+		_draw_coach(ir)
 	# the dragged spell follows the finger
 	if _dragging:
 		var s: Variant = _spell_at(_drag_from)
@@ -285,3 +298,24 @@ func _on_button(id: String) -> void:
 		else:
 			_move(sel, ref)
 			sel = {}
+
+
+## The coach takes the info panel while nothing is picked, and rings pulse on the spell to
+## move and the slot to drop it in.
+func _draw_coach(ir: Rect2) -> void:
+	if sel.is_empty():
+		var r := Rect2(ir.position + Vector2(2, 2), Vector2(ir.size.x - 4, 96))
+		draw_rect(r, Color(0.07, 0.05, 0.13))
+		draw_rect(r, GOLD, false, 1.0)
+		text(r.position + Vector2(6, 12), "TRY THIS", GOLD, 8, "bold")
+		var f := Game.font("small")
+		var at := (r.position + Vector2(6, 25)).round()
+		draw_multiline_string_outline(f, at, coach["text"], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 12, 8, 5, 2, INK)
+		draw_multiline_string(f, at, coach["text"], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 12, 8, 5, TEXT)
+	var pulse := 0.5 + 0.5 * sin(_age * 6.0)
+	for key in ["from", "to"]:
+		for sl in _slots:
+			var ref: Dictionary = sl[1]
+			if ref["w"] == coach[key]["w"] and ref["i"] == coach[key]["i"]:
+				var c := (sl[0] as Rect2).get_center()
+				draw_arc(c, SOCK / 2.0 + 2.0 + pulse * 2.0, 0.0, TAU, 28, Color(GOLD, 0.5 + 0.5 * pulse), 2.0)

@@ -32,8 +32,10 @@ var deprecated_here := false        # one Deprecate per shop visit
 var map: Array = []                # D5: the 3-lane map (Chapter.make_map), per step an Array of nodes
 var lane := 1                       # the lane the player is on
 var uptime := 0                     # Uptime relic: rooms in a row cleared without a hit
-var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0}
+var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0, "first_edit": -1.0, "first_trigger": -1.0}
 var won := false
+var tutorial := false               # D9: the first run's curriculum (Tutorial)
+var lesson_target: Array = []       # D9: the wand layout the editor coach is walking toward
 
 
 ## Starter loadouts (D2): a small wand with a clear identity, so the first rewards are
@@ -178,6 +180,13 @@ func move_spell(from: Dictionary, to: Dictionary) -> void:
 		w.ptr = 0
 		w.acc = Mods.new()
 		w.cd = 0.0
+	mark_edit()
+
+
+## D9: the moment of the run's first wand edit (the onboarding test reads it).
+func mark_edit() -> void:
+	if float(stats.get("first_edit", -1.0)) < 0.0:
+		stats["first_edit"] = stats["time"]
 
 
 func _ref_get(r: Dictionary) -> Variant:
@@ -236,7 +245,7 @@ func to_dict() -> Dictionary:
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
-		"uptime": uptime,
+		"uptime": uptime, "tutorial": tutorial, "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
 		"map": map.map(func(step: Array) -> Array: return step.map(_dict_out)), "lane": lane,
 	}
 
@@ -270,6 +279,9 @@ static func from_dict(d: Dictionary) -> RunState:
 	for k in d["stats"]:
 		r.stats[k] = d["stats"][k]
 	r.won = bool(d.get("won", false))
+	r.tutorial = bool(d.get("tutorial", false))
+	for x in d.get("lesson_target", []):
+		r.lesson_target.append(StringName(x) if x != null else null)
 	for b in d.get("banned", []):
 		r.banned.append(StringName(b))
 	r.rare_offset = float(d.get("rare_offset", -0.05))

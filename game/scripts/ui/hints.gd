@@ -11,6 +11,11 @@ const TIPS := {
 	"doors": ["Each door shows what is behind it. Pick your path", "Each door shows what is behind it. Pick your path"],
 	"editor": ["Tap the bag button to arrange the spells in your wand", "Press Tab (or the bag button) to arrange your spells"],
 	"boss": ["Red lines and circles show where the boss will strike", "Red lines and circles show where the boss will strike"],
+	# D9: the counters, taught the first time each defence stops you (any run)
+	"shield": ["Shields block hits from the front. PIERCE spells break them", "Shields block hits from the front. PIERCE spells break them"],
+	"armor": ["Armour soaks damage. BLAST spells tear it off", "Armour soaks damage. BLAST spells tear it off"],
+	"ward": ["Wards swallow whole hits. SHOCK spells strip them", "Wards swallow whole hits. SHOCK spells strip them"],
+	"dash": ["Tap DASH to slip through bullets", "Press Space to dash through bullets"],
 }
 
 static var _seen: Dictionary = {}

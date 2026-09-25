@@ -176,6 +176,8 @@ static func improve(run: RunState, passes := 3) -> bool:
 	run.bag = run.bag.filter(func(s: Variant) -> bool: return s != null)
 	w.ptr = 0
 	w.acc = Mods.new()
+	if changed:
+		run.mark_edit()
 	return changed
 
 

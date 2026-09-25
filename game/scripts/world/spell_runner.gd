@@ -1079,6 +1079,8 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 	var pl := b.payload
 	if pl == null or b.depth >= max_depth:
 		return
+	if world.run and float(world.run.stats.get("first_trigger", -1.0)) < 0.0:
+		world.run.stats["first_trigger"] = world.run.stats["time"]
 	var n := 1
 	var radial := false
 	var mul := 1.0

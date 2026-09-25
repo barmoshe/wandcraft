@@ -67,6 +67,8 @@ static func record_run(run: RunState) -> void:
 	m["wins"] = int(m["wins"]) + (1 if run.won else 0)
 	m["best_step"] = maxi(int(m["best_step"]), run.step)
 	m["kills"] = int(m["kills"]) + int(run.stats["kills"])
+	if run.tutorial:
+		m["tutorial_done"] = true
 	_write(META_PATH, m)
 
 

@@ -13,6 +13,7 @@ extends Node2D
 ##   --step=N --kind=K   start at chapter step N in a room of kind K (fight, shop, boss...)
 ##   --loadout=strong    a strong late-run build (for boss screenshots)
 ##   --screen=S          open a screen right away: reward, shop, forge, editor, pause, title, end
+##   --coach=N           with --screen=editor: the tutorial coach for lesson N (1-3)
 ##   --shot=out.png --frames=N   save a screenshot after N frames, then quit
 ##   --touchdemo         draw sample thumbs on the sticks (store screenshots)
 ##   --wand=N            start with wand N selected
@@ -91,7 +92,15 @@ func _show_title() -> void:
 				_begin(r)
 				_open_pause(true)
 				return
-		_begin(RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1)))
+		_begin(_new_run()))
+
+
+## A fresh run. A player's very first run is the curriculum (D9, Tutorial).
+func _new_run() -> RunState:
+	var r := RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1)
+	var m := SaveGame.load_meta()
+	r.tutorial = int(m.get("runs", 0)) == 0 and not bool(m.get("tutorial_done", false))
+	return r
 
 
 func _begin(r: RunState) -> void:
@@ -105,6 +114,7 @@ func _begin(r: RunState) -> void:
 
 func _start_from_args() -> void:
 	var r := RunState.create(int(_args.get("seed", "7")))
+	r.tutorial = _args.has("tutorial")
 	if _args.has("demo") or _args.has("showcase"):
 		world.bot = true
 		Game.god_mode = true
@@ -147,7 +157,18 @@ func _start_from_args() -> void:
 		"forge":
 			_on_ui_request(&"forge", {})
 		"editor":
-			_open_editor()
+			if _args.has("coach"):
+				# screenshots: a lesson prize in the bag and the coached editor (--tutorial --coach=N)
+				var lesson := int(_args["coach"])
+				r.tutorial = true
+				r.step = lesson
+				if lesson >= 2:
+					r.wand().set_slots([&"empower", &"mote", &"needle"] if lesson == 3 else [&"empower", &"mote", null])
+				r.bag.append({"id": Tutorial.STEPS[lesson]["offer"][0], "lv": 1})
+				Tutorial.on_prize(r, lesson)
+				_open_editor(lesson)
+			else:
+				_open_editor()
 		"map":
 			_open_map()
 		"pause":
@@ -267,9 +288,14 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 			var s := RewardScreen.new()
 			s.kind = data["kind"]
 			s.offer = data["offer"]
+			var lesson := world.run.step
 			_open(s, func(res: Dictionary) -> void:
 				world.reward_taken()
-				if res.get("equip", false):
+				# a lesson prize always opens the editor, with the coach on what to move where
+				Tutorial.on_prize(world.run, lesson)
+				if not Tutorial.coach(world.run, lesson).is_empty():
+					_open_editor.call_deferred(lesson)
+				elif res.get("equip", false):
 					_open_editor.call_deferred())
 		&"shop", &"forge":
 			var s := ShopScreen.new()
@@ -303,7 +329,7 @@ func _open_end(won: bool) -> void:
 	s.won = won
 	_open(s, func(res: Dictionary) -> void:
 		if res.get("action") == "again":
-			_begin(RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1))
+			_begin(_new_run())
 		else:
 			_show_title())
 
@@ -323,11 +349,12 @@ func _open_pause(resumed: bool) -> void:
 		world.paused = false)
 
 
-func _open_editor() -> void:
+func _open_editor(lesson := -1) -> void:
 	if screen or not _playing:
 		return
 	world.paused = true
 	var s := EditorScreen.new()
+	s.lesson = lesson
 	_open(s, func(_res: Dictionary) -> void:
 		world.paused = false
 		SaveGame.save_run(world.run))

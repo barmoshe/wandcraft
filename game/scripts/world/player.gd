@@ -239,6 +239,8 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 			return
 	last_hurt_by = by
 	hurt_t = 0.2
+	if by.begins_with("shot"):
+		Hints.show("dash")
 	hp -= amount
 	world.hit_in_room = true
 	inv = 0.9

@@ -487,6 +487,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 func _room_title(kind: StringName) -> String:
 	if puzzle != &"":
 		return "PUZZLE: " + String(Encounter.PUZZLES[puzzle]["title"])
+	if Tutorial.active(run) and kind == &"fight":
+		return Tutorial.title(run).to_upper()
 	match kind:
 		&"start":
 			return "THE RUINED GROVE"
@@ -514,6 +516,9 @@ func _place_doors() -> void:
 
 
 func _compose_waves(kind: StringName) -> Array:
+	if Tutorial.active(run) and kind == &"fight":
+		puzzle = &""
+		return Tutorial.waves(run)
 	puzzle = Encounter.puzzle_for(run, kind, rng)
 	return Encounter.compose(run, kind, rng, puzzle)
 
@@ -1238,6 +1243,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		if not dot:
 			fx.sparks(e.position + Vector2(0, -6), 2, Style.c("steel:4"), 50.0)
 			Audio.sfx("hit_armor", 0.08, -4.0)
+			Hints.show("armor")
 		if e.armor <= 0.0:
 			e.armor = 0.0
 			fx.text(e.position + Vector2(0, -18), "ARMOR BROKEN", Style.c("steel:4"))
@@ -1373,6 +1379,7 @@ func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
 			fx.ring(e.position + Vector2(0, -6), 2.0, e.r + 6.0, 0.25, Style.c("cyan:4"))
 		else:
 			e.ward_n -= 1
+			Hints.show("ward")
 			Audio.sfx("hit_ward", 0.08, -3.0)
 			fx.ring(e.position + Vector2(0, -6), 1.0, e.r + 4.0, 0.15, Style.c("cyan:4"))
 			if e._def_fx <= 0.0:
@@ -1391,6 +1398,7 @@ func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
 				shake(0.1)
 			else:
 				e.shield_hp -= 1
+				Hints.show("shield")
 				Audio.sfx("hit_shield", 0.08, -3.0)
 				fx.sparks(from, 3, Style.c("steel:4"), 60.0)
 				if e._def_fx <= 0.0:

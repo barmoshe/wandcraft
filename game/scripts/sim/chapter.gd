@@ -92,6 +92,9 @@ static func make_map(run: RunState) -> Array:
 			&"boss":
 				out.append([{"kind": &"boss", "reward": &"wand"}])
 				continue
+		if run.tutorial and Tutorial.STEPS.has(step):
+			out.append([Tutorial.map_node(step)])
+			continue
 		var nodes: Array = []
 		for lane in LANES:
 			var prev: Dictionary = out[step - 1][mini(lane, out[step - 1].size() - 1)]

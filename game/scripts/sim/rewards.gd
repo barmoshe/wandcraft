@@ -135,6 +135,8 @@ static func _spells(run: RunState, biases: Array) -> Array:
 
 
 static func offer(run: RunState, kind: StringName) -> Array:
+	if kind == &"spell" and Tutorial.active(run):
+		return Tutorial.offer(run)
 	match kind:
 		&"start":
 			return RunState.LOADOUTS.keys().map(func(id: StringName) -> Dictionary: return {"t": &"loadout", "id": id})
