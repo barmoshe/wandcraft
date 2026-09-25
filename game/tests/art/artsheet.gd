@@ -71,6 +71,8 @@ func _collect() -> void:
 		ArtSheets.fx(self)
 	if want.call("ui"):
 		ArtSheets.ui(self)
+	if want.call("anim"):
+		ArtSheets.anim(self)
 	if sheet == "style":
 		ArtSheets.style(self)
 	if sheet == "check":

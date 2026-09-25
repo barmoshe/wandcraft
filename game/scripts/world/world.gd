@@ -647,6 +647,7 @@ func step(dt: float) -> void:
 	trauma = maxf(0.0, trauma - TRAUMA_DECAY * dt)
 	if dead_t > 0.0:
 		dead_t -= dt
+		player.death_tick(dt)
 		fx.update(dt)
 		if dead_t <= 0.0:
 			paused = true

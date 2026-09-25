@@ -38,6 +38,21 @@ static func check(s: Node) -> void:
 		s.add("shape", ImageTexture.create_from_image(sil))
 
 
+## D6: every rig clip as a strip (frames left to right), the wand's 16 angles.
+static func anim(s: Node) -> void:
+	for back in [false, true]:
+		var c := Hero.clips(back)
+		for k in c:
+			s.section("hero %s: %s" % ["back" if back else "front", k])
+			var fr: Array = c[k]
+			for i in fr.size():
+				s.add("%d" % i, fr[i])
+	s.section("wand, 16 angles")
+	var wa := Hero.wand_angles()
+	for i in wa.size():
+		s.add("%d" % i, wa[i])
+
+
 static func chars(s: Node) -> void:
 	s.section("hero (0.4)")
 	var hf: Array = Hero.frames()

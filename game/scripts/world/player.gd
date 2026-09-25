@@ -48,21 +48,30 @@ var sprite: Sprite2D
 var wand_sprite: Sprite2D
 var tip_glow: Sprite2D
 var frames: Array[Texture2D]
+## D6: the rig's clips, front and back facing (Hero.rig), and the wand's 16 angles.
+var clips_front: Dictionary
+var clips_back: Dictionary
+var wand_tex: Array[Texture2D]
+var clip := "idle"
+var clip_t := 0.0
+var back := false          # aiming up: the hero turns away from the camera
+var hurt_t := 0.0          # seconds of the hurt clip left
 
 
 func setup(w: World) -> void:
 	world = w
 	controls = w.controls
 	frames = Hero.frames()
+	clips_front = Hero.clips(false)
+	clips_back = Hero.clips(true)
+	wand_tex = Hero.wand_angles()
 	head = Vector2(0, -frames[0].get_height() - 2.0)
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 1.0)
 	add_child(sprite)
 	wand_sprite = Sprite2D.new()
-	wand_sprite.texture = Sprites.wand_texture()
-	wand_sprite.centered = false
-	wand_sprite.offset = Vector2(0, -1)
+	wand_sprite.texture = wand_tex[0]
 	wand_sprite.position = HAND
 	add_child(wand_sprite)
 	tip_glow = Sprite2D.new()
@@ -134,6 +143,7 @@ func tick(dt: float) -> void:
 		w.rech = maxf(0.0, w.rech - dt)
 	if firing and world.spells.wand_fire(wand(), tip(), aim):
 		cast_t = 0.12
+		clip_t = 0.0   # each shot replays the cast clip from its anticipation frame
 		recoil = 2.0
 		world.fx.muzzle(tip(), aim, wand().def.color)
 	# hazards
@@ -195,6 +205,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 			inv = 0.4
 			return
 	last_hurt_by = by
+	hurt_t = 0.2
 	hp -= amount
 	world.hit_in_room = true
 	inv = 0.9
@@ -219,18 +230,61 @@ func heal(amount: float) -> void:
 	world.fx.text(position + head, "+%d" % roundi(amount), Color("#7dff6a"))
 
 
+## The clip the hero should show now, most urgent first (design-plan §8).
+func pick_clip() -> String:
+	if dead:
+		return "death"
+	if hurt_t > 0.0:
+		return "hurt"
+	if cast_t > 0.0:
+		return "cast"
+	return "run" if vel.length() > 12.0 else "idle"
+
+
+## Plays the death clip while the world counts down to the retry prompt.
+func death_tick(dt: float) -> void:
+	if clip != "death":
+		clip = "death"
+		clip_t = 0.0
+	clip_t += dt
+	var fr: Array = (clips_back if back else clips_front)["death"]
+	sprite.texture = fr[Hero.rig(back).frame_at("death", clip_t)]
+	sprite.visible = true
+	wand_sprite.visible = false
+	tip_glow.visible = false
+
+
 func _animate() -> void:
-	var moving := vel.length() > 12.0
+	var dt := get_physics_process_delta_time()
+	hurt_t = maxf(0.0, hurt_t - dt)
 	if absf(cos(aim)) > 0.2:
 		face = 1 if cos(aim) > 0.0 else -1
-	var f := 6 if cast_t > 0.0 else (2 + int(walk_t * 9.0) % 4 if moving else int(world.time * 2.0) % 2)
-	sprite.texture = frames[f]
+	# aiming up turns the hero's back to the camera (with a little hysteresis)
+	var up := -sin(aim)
+	if up > 0.6:
+		back = true
+	elif up < 0.4:
+		back = false
+	var want := pick_clip()
+	if want != clip:
+		# a cast restarts on every shot; the walk keeps its phase from the distance walked
+		clip = want
+		clip_t = 0.0
+	clip_t += dt
+	var rig := Hero.rig(back)
+	var t := walk_t * 0.75 if clip == "run" else clip_t
+	var fr: Array = (clips_back if back else clips_front)[clip]
+	sprite.texture = fr[rig.frame_at(clip, t)]
 	sprite.flip_h = face < 0
 	sprite.visible = inv <= 0.0 or fmod(inv, 0.12) > 0.05
-	wand_sprite.rotation = aim
+	# the wand is drawn pre-rotated (16 angles), never rotated as a sprite
+	var k := posmod(roundi(aim / (TAU / 16.0)), 16)
+	wand_sprite.texture = wand_tex[k]
+	wand_sprite.visible = true
+	tip_glow.visible = true
 	recoil = maxf(0.0, recoil - 0.5)
-	wand_sprite.position = HAND - Vector2.from_angle(aim) * roundf(recoil)
-	wand_sprite.z_index = -1 if sin(aim) < -0.3 else 0
+	wand_sprite.position = (HAND - Vector2.from_angle(aim) * roundf(recoil)).round()
+	wand_sprite.z_index = -1 if back or sin(aim) < -0.3 else 0
 	var w := wand()
 	tip_glow.position = HAND + Vector2.from_angle(aim) * 11.0
 	var c := w.def.color if w.cd > 0.0 else Color("#8fd8ff")
