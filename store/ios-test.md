@@ -27,9 +27,8 @@ This installs the game on **your own iPhone**, straight from your Mac over a cab
 
 3. **The project:**
    ```bash
-   git clone https://github.com/barmoshe/bar_builds.git
-   cd bar_builds
-   git checkout claude/artifact-short-game-6qq646
+   git clone https://github.com/barmoshe/wandcraft.git
+   cd wandcraft
    ```
 
 4. **Your Apple ID in Xcode:** go to **Xcode → Settings → Accounts → + → Apple ID** and sign in.
@@ -37,7 +36,7 @@ This installs the game on **your own iPhone**, straight from your Mac over a cab
    - Its **Team ID** is a 10-character code. It is also shown when you pick the team under Signing in step 2 of "Every new version".
 
 5. **The Team ID in Godot:**
-   - Open `projects/wandcraft/game/project.godot` in Godot. The first import takes about a minute.
+   - Open `game/project.godot` in Godot. The first import takes about a minute.
    - Go to **Project → Export → iOS**, paste it into **App Store Team ID**, then close the dialog.
    - If git later shows that line as changed, don't commit it. It is local to your Mac.
 
@@ -47,10 +46,10 @@ This installs the game on **your own iPhone**, straight from your Mac over a cab
 
 ## Every new version
 
-1. In Terminal, inside `bar_builds`:
+1. In Terminal, inside `wandcraft`:
    ```bash
    git pull
-   projects/wandcraft/tools/export_ios.sh
+   tools/export_ios.sh
    ```
    The script checks that everything is installed, writes the Xcode project to `~/wandcraft-ios` (outside the repo), and opens it in Xcode.
 

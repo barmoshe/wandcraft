@@ -14,9 +14,8 @@ iOS apps can only be built and signed on a Mac with Xcode. Everything else (game
 
 ## 1. Get the project
 ```bash
-git clone <bar_builds repo> && cd bar_builds
-git checkout claude/artifact-short-game-6qq646   # until it is merged
-open -a Godot projects/wandcraft/game/project.godot
+git clone https://github.com/barmoshe/wandcraft.git && cd wandcraft
+open -a Godot game/project.godot
 ```
 The first open takes a minute while Godot imports the art and audio.
 

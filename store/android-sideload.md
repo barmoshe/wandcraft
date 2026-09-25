@@ -20,7 +20,7 @@ With a cable and `adb` instead: `adb install -r build/wandcraft-0.3.1.apk`.
 
 ## Rebuilding
 ```bash
-cd projects/wandcraft
+cd wandcraft
 tools/build_android.sh
 ```
 The first run downloads the Godot export templates and the Android SDK (about 2 GB, cached in `~/.cache/wandcraft-build`).
