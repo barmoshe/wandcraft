@@ -3,6 +3,7 @@
 # Usage: tools/artsheet.sh [chars|icons|tiles|fx|ui|all] [-- --only=label --scale=8]
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/platform.sh"
 GAME="$HERE/../game"
 OUT="$(cd "$HERE/.." && pwd)/shots"
 mkdir -p "$OUT"
@@ -16,7 +17,7 @@ for a in "$@"; do
 done
 [ ${#SHEETS[@]} -eq 0 ] && SHEETS=(all)
 for s in "${SHEETS[@]}"; do
-  xvfb-run -a -s "-screen 0 1920x2400x24" \
+  with_display -s "-screen 0 1920x2400x24" \
     "$HERE/godot.sh" --path "$GAME" --resolution 1800x2300 --rendering-method mobile \
-    res://tests/art/artsheet.tscn -- --sheet="$s" --out="$OUT" "${EXTRA[@]}" 2>&1 | grep -E "artsheet:|SCRIPT ERROR|Parse Error" || true
+    res://tests/art/artsheet.tscn -- --sheet="$s" --out="$OUT" ${EXTRA[@]+"${EXTRA[@]}"} 2>&1 | grep -E "artsheet:|SCRIPT ERROR|Parse Error" || true
 done

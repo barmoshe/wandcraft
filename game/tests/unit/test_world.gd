@@ -107,11 +107,16 @@ func test_bullet_pool_recycles() -> void:
 
 
 ## 45 enemies and a bullet storm: the sim tick stays well inside a 60 Hz frame.
+## Pinned so new DEFS entries cannot silently change the storm (D4 swapped buglings for
+## slimelets through `DEFS.keys()[i % 4]`).
+const STRESS_ROSTER: Array[StringName] = [&"slime", &"weaver", &"ram", &"bugling"]
+
+
 func test_stress_tick_budget() -> void:
 	world.build_room("pillars", &"empty")
 	Game.inf_mana = true
 	for i in 45:
-		var e := world.spawn_enemy(Enemy.DEFS.keys()[i % 4], world.sockets[i % world.sockets.size()] + Vector2(i % 5, i % 3) * 6.0)
+		var e := world.spawn_enemy(STRESS_ROSTER[i % 4], world.sockets[i % world.sockets.size()] + Vector2(i % 5, i % 3) * 6.0)
 		e.spawn_t = 0.0
 		e.max_hp = 5000.0
 		e.hp = 5000.0

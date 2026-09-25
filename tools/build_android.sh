@@ -14,13 +14,14 @@
 # never touches this repo (CLAUDE.md: secrets stay off git).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/platform.sh"
 GAME="$HERE/../game"
 OUT="$HERE/../build"
 CACHE="${WANDCRAFT_BUILD_CACHE:-$HOME/.cache/wandcraft-build}"
 GODOT_VER="4.7.2"
-TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VER}.stable"
+TPL_DIR="$GODOT_TPL_ROOT/${GODOT_VER}.stable"
 SDK="$CACHE/android-sdk"
-CMDLINE_ZIP="commandlinetools-linux-11076708_latest.zip"
+CMDLINE_ZIP="commandlinetools-$([ "$(uname)" = Darwin ] && echo mac || echo linux)-11076708_latest.zip"
 BUILD_TOOLS="35.0.0"
 KEYSTORE="$CACHE/debug.keystore"
 mkdir -p "$CACHE" "$OUT"
@@ -63,8 +64,10 @@ setup_keystore() {
 
 ## Points the Godot editor settings at the SDK and JDK (the headless export reads them).
 setup_editor_settings() {
-  local jdk; jdk="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
-  local dir="$HOME/.config/godot"
+  local jdk
+  if [ -x /usr/libexec/java_home ]; then jdk="$(/usr/libexec/java_home)"
+  else jdk="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"; fi
+  local dir="$GODOT_CFG_DIR"
   local f="$dir/editor_settings-4.7.tres"
   mkdir -p "$dir"
   if [ ! -f "$f" ]; then
@@ -101,8 +104,8 @@ GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android \
   "$HERE/godot.sh" --headless --path "$GAME" "--export-$MODE" "Android" "$APK" 2>&1 | tee "$OUT/export.log" | grep -E "ERROR|error|Export" || true
 if [ -f "$APK" ]; then
   "$SDK/build-tools/$BUILD_TOOLS/apksigner" verify "$APK" 2>/dev/null || { log "signature check FAILED"; exit 1; }
-  log "done: $APK ($(stat -c %s "$APK") bytes)"
-  log "sha256: $(sha256sum "$APK" | cut -d' ' -f1)"
+  log "done: $APK ($(file_size "$APK") bytes)"
+  log "sha256: $(sha256 "$APK")"
   "$SDK/build-tools/$BUILD_TOOLS/aapt" dump badging "$APK" 2>/dev/null | grep -E "^package|sdkVersion|targetSdk|launchable" || true
 else
   log "export failed, see $OUT/export.log"

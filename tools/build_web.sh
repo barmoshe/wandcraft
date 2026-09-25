@@ -5,10 +5,11 @@
 # (outside the repo). Hosting: see store/web-test.md (Vercel, static, no build step).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/platform.sh"
 GAME="$HERE/../game"
 OUT="$HERE/../build/web"
 VER="4.7.2"
-TPL_DIR="$HOME/.local/share/godot/export_templates/${VER}.stable"
+TPL_DIR="$GODOT_TPL_ROOT/${VER}.stable"
 CACHE="${WANDCRAFT_BUILD_CACHE:-$HOME/.cache/wandcraft-build}"
 
 log() { echo "[build_web] $*"; }
@@ -35,7 +36,7 @@ cp "$HERE/web/index.manifest.json" "$HERE/web/index.service.worker.js" "$OUT/"
 for n in 144 180 512; do cp "$GAME/assets/icon/pwa_$n.png" "$OUT/index.${n}x${n}.png"; done
 STAMP="$(git -C "$HERE" rev-parse --short HEAD 2>/dev/null || echo dev)"
 git -C "$HERE" diff --quiet HEAD -- "$GAME" 2>/dev/null || STAMP="$STAMP+"
-sed -i "s|__WANDCRAFT_BUILD__|$STAMP|" "$OUT/index.html"
+sed_inplace "s|__WANDCRAFT_BUILD__|$STAMP|" "$OUT/index.html"
 grep -q "wandcraftBuild = '$STAMP'" "$OUT/index.html" || { log "build stamp missing from index.html"; exit 1; }
 log "build stamp: $STAMP"
 log "done:"

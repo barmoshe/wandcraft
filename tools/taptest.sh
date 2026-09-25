@@ -4,13 +4,14 @@
 # ids (large and new per touch, not 0). Needs xvfb-run.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/platform.sh"
 GAME="$HERE/../game"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1
 code=0
 for mode in "" "--rotate" "--ios"; do
   echo "== taptest ${mode:-landscape}"
   LOG="$(mktemp)"
-  xvfb-run -a -s "-screen 0 2400x2400x24" \
+  with_display -s "-screen 0 2400x2400x24" \
     "$HERE/godot.sh" --path "$GAME" --resolution 2340x1080 --rendering-method mobile \
     res://tests/input/tap_test.tscn -- $mode 2>&1 | tee "$LOG" | grep -E "TAPTEST|  ok|  FAIL|window|SCRIPT ERROR|ERROR"
   grep -q "TAPTEST: PASS" "$LOG" || code=1
