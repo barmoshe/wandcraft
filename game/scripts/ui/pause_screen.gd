@@ -53,8 +53,20 @@ func _paint() -> void:
 	button(Rect2(cx + 6, y, 140, 26), "abandon", "TAP AGAIN TO ABANDON" if confirm_abandon else "ABANDON RUN", "danger")
 	var diag := Game.web_sound()
 	if diag != "":
-		# web only: lets a tester report why a phone is silent without a Mac inspector
-		text_center(cx, sr.end.y - 2, "web %s  -  sound: %s" % [Game.web_build(), diag], MUTED.darkened(0.3))
+		# web only: lets a tester report why a phone is silent without a Mac inspector.
+		# Stacked in the empty column left of the menu; one line under it if that column is too narrow.
+		var lines: Array = ["web " + Game.web_build()]
+		lines.append_array(("sound: " + diag).split(" / "))
+		var f := Game.font("small")
+		var widest := 0.0
+		for ln in lines:
+			widest = maxf(widest, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+		var faint := MUTED.darkened(0.3)
+		if sr.position.x + 4 + widest <= cx - 150 - 8:
+			for i in lines.size():
+				text(Vector2(sr.position.x + 4, sr.end.y - 2 - (lines.size() - 1 - i) * 10), lines[i], faint)
+		else:
+			text_center(cx, y + 26 + 11, "  -  ".join(lines), faint)
 
 
 func _on_button(id: String) -> void:
