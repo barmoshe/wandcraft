@@ -71,3 +71,4 @@ Individual Apple Developer account (Bar buys it); bundle id `com.barbuilds.wandc
 - `bdafb9d` fix: freed wave enemies count as down (typed lambda errors on web since D4); bench unchanged 80/10.
 - `0bac598` D9.1: the dash (i-frames, afterimages, cooldown; keys, pad, touch button).
 - `b9796e2` tests: stress guard = storm/calibration ratio (< 5.2; reads 4.2-4.4 under any load) + one-frame ceiling; 170/170.
+- `beea0ef` D9.2: first-run curriculum (3 lessons + coach toward a fixed layout), counter/dash tips; onboarding test: edit ~10 s, trigger ~42 s; 174/174.
