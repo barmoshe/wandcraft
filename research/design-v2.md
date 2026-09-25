@@ -193,3 +193,10 @@ Each milestone ships web + APK for Bar, commits per step, and is logged in STATU
 
 ## Progress log
 - R0 `04ef811`: Legacy Code rewards the wand's last slot, with a test.
+- R1+R2 `5b4d483`, `1fb131d`: workbench editor with the WandLab firing range (measured damage/s, before > after on drag, cast chains, lit slots), four kinds with socket shapes, insert-on-drop, glossary (editor ? and pause HOW IT WORKS), renames, banned-word and duplicate-name tests, +damage/s chips on reward cards; HUD chevrons, lit casts, mana now/max, SWAP button.
+- R3+R7 `5248ab4`: core pool (26 spells, 24 relics, 6 wands), 13 goals replace Source Fragments, three heroes (Apprentice, Pyromancer, Tinkerer), Codex as a goals book, end screen names the next goal; screenshot runs keep their save in memory.
+- R4 `4aad090`: 2 areas of 4 rooms; threat badges on doors and the map, banners say what to bring; swarm rooms are packs.
+- R5+R7 `a08f67e`: ghost-hand coach, one-hero starts skipped, daily run, Brood Stump brood of 10 (a bench stall).
+- `62402c0`: Starwheel sprays in a spiral (Bar's report: it scattered); tap a relic to read it; wrapped toasts.
+- Bench (core pool, 10 seeds): editing bot 80%, never-editing 0%, mini-boss 52 s, boss 57 s, no stalls.
+
