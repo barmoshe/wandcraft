@@ -74,3 +74,4 @@ Individual Apple Developer account (Bar buys it); bundle id `com.barbuilds.wandc
 - `beea0ef` D9.2: first-run curriculum (3 lessons + coach toward a fixed layout), counter/dash tips; onboarding test: edit ~10 s, trigger ~42 s; 174/174.
 - `5220e79` D9.3-4: Source Fragments + 26 Codex unlocks + starting slot; Bug Reports 5 tiers; 180/180.
 - `c5fc0c2` D9 close-out: ADR 0020, 0.13.0 (build 15), web live (tutorial path checked in the browser, no console errors), APK built; bench 80/10.
+- `a08108c` fix (Bar): start pick shows the locked Stub greyed, stats lines fit, TAKE centred.
