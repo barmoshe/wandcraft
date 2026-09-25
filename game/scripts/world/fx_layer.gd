@@ -73,7 +73,9 @@ func sparks(p: Vector2, n: int, c: Color, speed: float) -> void:
 
 
 ## An enemy (or anything with a sprite) bursts into its own pixels.
-func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> void:
+## Design v3: `tint` colours the shards toward how it died (fire, ice, lightning) and `burst`
+## throws them harder (a frozen enemy shatters).
+func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0, tint := Color(0, 0, 0, 0), burst := 1.0) -> void:
 	if tex == null:
 		return
 	var img := tex.get_image()
@@ -89,9 +91,11 @@ func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> v
 			var c := img.get_pixel(x, y)
 			if c.a < 0.5:
 				continue
+			if tint.a > 0.0:
+				c = c.lerp(tint, 0.55 + 0.3 * rng.randf())
 			var lx := (w - 1 - x) if flip else x
 			var p := center + Vector2((lx - w / 2.0) * scale, (y - h) * scale)
-			var v := (p - center - Vector2(0, -h * 0.4)).normalized() * rng.randf_range(20, 90) + Vector2(0, -30)
+			var v := (p - center - Vector2(0, -h * 0.4)).normalized() * rng.randf_range(20, 90) * burst + Vector2(0, -30)
 			_shards.append([p, v, 0.0, rng.randf_range(0.35, 0.7), c, 160.0])
 
 
@@ -382,13 +386,29 @@ func _draw_trails() -> void:
 		if not b.alive or b.vel.length_squared() < 3600.0:
 			continue
 		var back := -b.vel.normalized()
+		# design v3: a coated shot trails its element, a boosted one trails longer with a gold glint
 		var c := b.color
-		for k in range(1, 4):
+		if b.burn > 0:
+			c = Style.c("ember:3")
+		elif b.chill > 0:
+			c = Style.c("frost:3")
+		elif b.static_on:
+			c = Style.c("gold:4")
+		elif b.rot > 0:
+			c = Style.c("glitch:3")
+		var boosted := b.cast != null and b.cast.mods.dmg > 1.001
+		var tl := 6 if boosted else 3
+		for k in range(1, tl + 1):
 			var q := (b.pos + back * (k * 3.0 + b.r)).round()
 			if (int(q.x) + int(q.y) + k) % 2 == 0:
 				continue
-			var a := 0.55 - k * 0.15
+			var a := (0.55 - k * 0.15) if not boosted else (0.6 - k * 0.08)
 			draw_rect(Rect2(q, Vector2.ONE), Color(c.r * a * 1.6, c.g * a * 1.6, c.b * a * 1.6))
+		if boosted and (int(b.t * 20.0) % 2 == 0):
+			var side := back.orthogonal() * 2.0
+			var g := Style.c("gold:4")
+			draw_rect(Rect2((b.pos + side).round(), Vector2.ONE), Color(g.r * 0.7, g.g * 0.7, g.b * 0.7))
+			draw_rect(Rect2((b.pos - side).round(), Vector2.ONE), Color(g.r * 0.7, g.g * 0.7, g.b * 0.7))
 
 
 func _draw_texts() -> void:

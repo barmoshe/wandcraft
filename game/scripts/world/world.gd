@@ -189,6 +189,8 @@ var dead_t := 0.0
 ## Screen shake as "trauma" (0..1, decays linearly); the camera shakes by trauma², so
 ## small events barely move it and big ones slam (design-plan §10, Eiserloh GDC 2016).
 var trauma := 0.0
+## Design v3 (Vlambeer): the camera kicks back against each shot, a few pixels, springing home.
+var kick := Vector2.ZERO
 const TRAUMA_DECAY := 1.6    # per second
 var caught := false            # Try / Catch used in this room
 var damage_done := 0.0
@@ -709,6 +711,7 @@ func step(dt: float) -> void:
 	room_time += dt
 	run.stats["time"] += dt
 	trauma = maxf(0.0, trauma - TRAUMA_DECAY * dt)
+	kick = kick.move_toward(Vector2.ZERO, dt * 24.0)
 	if dead_t > 0.0:
 		dead_t -= dt
 		player.death_tick(dt)
@@ -1527,7 +1530,22 @@ func kill_enemy(e: Enemy) -> void:
 			for k in (2 if swarm else 1):
 				_release_bug(e.position, 20.0 if swarm else 10.0)
 	_on_death(e)
-	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
+	# design v3: it dies the way it was hurt: burning ones flare into embers, frozen or chilled
+	# ones shatter hard, charged ones spit sparks
+	var tint := Color(0, 0, 0, 0)
+	var burst := 1.0
+	if e.burn_t > 0.0:
+		tint = Style.c("ember:3")
+		fx.sparks(e.position + Vector2(0, -6), 8, Style.c("ember:4"), 70.0)
+	elif e.frozen_t > 0.0 or e.chill_t > 0.0:
+		tint = Style.c("frost:4")
+		burst = 1.7
+		fx.ring(e.position + Vector2(0, -4), 2.0, 12.0, 0.2, Style.c("frost:4"))
+	elif e.static_t > 0.0:
+		tint = Style.c("gold:4")
+		for k in 3:
+			fx.beam(e.position + Vector2(0, -5), e.position + Vector2(0, -5) + Vector2.from_angle(fx.rng.randf() * TAU) * 12.0, Style.c("gold:4"), 1.0)
+	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0, tint, burst)
 	fx.poof(e.position + Vector2(0, -4))
 	if not (e is Boss):
 		Audio.sfx("kill_big" if e.elite else ("kill_mid" if e.heavy else "kill"), 0.12)

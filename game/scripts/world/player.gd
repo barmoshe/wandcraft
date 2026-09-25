@@ -179,6 +179,7 @@ func tick(dt: float) -> void:
 		clip_t = 0.0   # each shot replays the cast clip from its anticipation frame
 		recoil = 2.0
 		world.fx.muzzle(tip(), aim, wand().def.color)
+		world.kick = (world.kick - Vector2.from_angle(aim) * 1.2 * Game.shake_scale).limit_length(3.0)
 	# hazards
 	if world.hazard_at(position) and world.spikes_up():
 		hurt(6.0, position, "spikes")

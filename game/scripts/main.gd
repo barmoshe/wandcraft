@@ -547,7 +547,7 @@ func _follow_camera(snap := false, dt := 1.0 / 60.0) -> void:
 		_shake_noise.frequency = 1.0
 	var amp := world.trauma * world.trauma * SHAKE_MAX
 	var t := Time.get_ticks_msec() / 1000.0 * 22.0
-	cam.offset = (Vector2(_shake_noise.get_noise_2d(t, 0.0), _shake_noise.get_noise_2d(0.0, t + 50.0)) * 2.0 * amp).round()
+	cam.offset = (Vector2(_shake_noise.get_noise_2d(t, 0.0), _shake_noise.get_noise_2d(0.0, t + 50.0)) * 2.0 * amp + world.kick).round()
 
 
 func _read_desktop_input() -> void:

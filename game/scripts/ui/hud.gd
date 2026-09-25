@@ -31,6 +31,7 @@ var hint_t := 0.0
 var _hint_queue: Array[String] = []   # tips wait their turn; each gets its full time
 var flash_c := Color.WHITE
 var flash_a := 0.0
+var fade_a := 0.0     # design v3: a quick fade from black when a room opens
 
 
 func _ready() -> void:
@@ -56,6 +57,7 @@ func _ready() -> void:
 
 
 func _on_room(def: Dictionary) -> void:
+	fade_a = 1.0
 	banner = def.get("title", "")
 	var no := int(def["no"])
 	var th := Chapter.threat_of(world.run.room) if world and world.run and def.get("kind", &"") != &"start" else &""
@@ -76,6 +78,7 @@ func _process(dt: float) -> void:
 		hint = _hint_queue.pop_front()
 		hint_t = 5.0
 	flash_a = maxf(0.0, flash_a - dt * 2.5)
+	fade_a = maxf(0.0, fade_a - dt * 3.5)
 	queue_redraw()
 
 
@@ -118,6 +121,8 @@ func _draw() -> void:
 	_draw_hint(sr)
 	if flash_a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(flash_c.r, flash_c.g, flash_c.b, flash_a))
+	if fade_a > 0.0:
+		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(0.02, 0.01, 0.05, fade_a * fade_a))
 
 
 ## A slow red glow at the screen edges when HP is low (a pulse, not a flash).
@@ -233,12 +238,36 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		if w.rech > 0.0:
 			var k := 1.0 - w.rech / maxf(0.01, w.rech_max)
 			draw_rect(Rect2(strip.position, Vector2(strip.size.x * k, 1)), Color("#ffe066"))
+		if sel:
+			_draw_last_cast(w, row)
 		y = row.end.y + 2
 	# the editor button sits under the rows, with the bag count
 	var er := Rect2(origin.x, y, BTN, BTN)
 	_button("edit", er, HudIcons.bag())
 	if not run.bag.is_empty():
 		_text(er.position + Vector2(BTN + 4, 17), "%d in bag" % run.bag.size(), Color(0.75, 0.7, 0.85), 8)
+
+
+## Design v3: the cast that just went out, as icons beside the wand in hand (boosts, then the
+## spell, then what a trigger released), fading over half a second. The program firing,
+## visible in combat and not only in the editor.
+func _draw_last_cast(w: WandState, row: Rect2) -> void:
+	var age := world.time - w.lit_at
+	if age > 0.5 or w.lit.is_empty():
+		return
+	var a := 1.0 - age / 0.5
+	var x := row.end.x + 5
+	var cy := row.get_center().y
+	for i in w.lit:
+		if i >= w.slots.size() or w.slots[i] == null:
+			continue
+		var d := Catalog.spell(w.slots[i]["id"])
+		var ic := Icons.spell(d)
+		draw_texture(ic, (Vector2(x, cy) - Vector2(0, ic.get_height() / 2.0)).round(), Color(1, 1, 1, a))
+		x += ic.get_width() + 1
+		if Screen.fam(d) == Screen.Fam.BOOST or Screen.fam(d) == Screen.Fam.TRIGGER:
+			_text(Vector2(x, cy + 3), ">", Color(GOLD.r, GOLD.g, GOLD.b, a), 8)
+			x += 6
 
 
 ## The slot the wand reads first on its next cast (skipping empty slots and passives, and

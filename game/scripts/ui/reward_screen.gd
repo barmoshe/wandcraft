@@ -42,7 +42,14 @@ func _paint() -> void:
 	var x0 := v.x / 2.0 - total / 2.0
 	for i in n:
 		var r := Rect2(x0 + i * (cw + gap), y0, cw, ch)
+		# design v3: the cards flip in one after another (a quick turn about their centre)
+		var k := clampf((_age - 0.05 - i * 0.09) / 0.16, 0.0, 1.0)
+		k = 1.0 - pow(1.0 - k, 3.0)
+		if k < 1.0:
+			var c := r.get_center()
+			draw_set_transform_matrix(Transform2D(Vector2(maxf(0.02, k), 0), Vector2(0, 1), c - Vector2(c.x * maxf(0.02, k), 0)))
 		_card(r, offer[i], i == sel)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
 		area(r, "card%d" % i)
 	var by := y0 + ch + 8
 	var can_take: bool = sel >= 0 and not offer[sel].get("locked", false)
