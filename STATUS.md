@@ -61,7 +61,15 @@
     - "Enables" chips on offer cards (Thermal Shock, Merge Commit, Compile).
     - Counter pips on the HUD relic column.
     - 122 unit tests.
-  - **Next up:** D4, enemies and encounters: shields, armour and wards that read the D2 keywords, 4 new enemies, elite affixes and the wave grammar.
+  - **D4 enemies and encounters (0.8.0): done in code** (ADR 0015). Committed and pushed; not deployed yet (no web build or APK).
+    - Shields break with pierce, armour with blast, wards with shock.
+    - New enemies: Bark Golem, Lantern Wisp, Brood Stump, Glitch Tick. The Moss Blob now splits.
+    - 5 elite affixes.
+    - The encounter director (`encounter.gd`): wave grammar, 70% wave pacing, puzzle rooms before both bosses, spawn rules, shot cap.
+    - Counter guarantee in spell offers.
+    - 136 tests.
+    - Bench: editing bot 80%, never-editing bot 10% (target 15–30%; its deaths are almost all at the final boss, so this is revisited in D7).
+  - **Next up:** ship D4 (web build, APK), then D5, levels and the map.
   - **Known:** the 1,300-bullet stress test sits right at its 10 ms budget on the dev container, so it passes or fails from run to run on noise. A/B timing shows no regression from D2 or D3.
 
 ## Where we are (POC history)

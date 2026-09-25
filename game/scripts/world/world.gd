@@ -179,6 +179,8 @@ var cleared := false
 var waves: Array = []          # each wave: Array of [kind, elite]
 var wave_i := 0
 var wave_t := 0.0
+var wave_live: Array = []       # the enemies of the latest wave (the next comes at 70% down)
+var puzzle: StringName = &""    # a themed puzzle room (Encounter.PUZZLES), or none
 var orb: Dictionary = {}       # reward orb: {"pos", "kind", "t"}
 var npc: Dictionary = {}       # {"pos", "kind": shop|forge|spring, "used", "near"}
 var boss: Boss
@@ -392,6 +394,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	waves = []
 	wave_i = 0
 	wave_t = 0.8
+	wave_live.clear()
+	puzzle = &""
 	var mid := _find_floor(gw / 2, gh / 2 - 1)
 	match kind:
 		&"start":
@@ -414,6 +418,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 
 
 func _room_title(kind: StringName) -> String:
+	if puzzle != &"":
+		return "PUZZLE: " + String(Encounter.PUZZLES[puzzle]["title"])
 	match kind:
 		&"start":
 			return "THE RUINED GROVE"
@@ -441,42 +447,22 @@ func _place_doors() -> void:
 
 
 func _compose_waves(kind: StringName) -> Array:
-	var step := run.step if run else 1
-	var budget := (6.0 + step * 2.0) * (1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" else 1.0))
-	var roster: Array = EARLY_ROSTER if step <= 2 else ROSTER
-	var out: Array = []
-	var n := 2
-	for w in n:
-		var b := budget / n * (1.2 if w == n - 1 else 0.9)
-		var list: Array = []
-		var guard := 0
-		while b > 0.0 and list.size() < 14 and guard < 40:
-			guard += 1
-			var opts := roster.filter(func(k: StringName) -> bool: return float(Enemy.DEFS[k]["cost"]) <= b + 1.0)
-			if opts.is_empty():
-				break
-			var k: StringName = opts[rng.randi() % opts.size()]
-			b -= float(Enemy.DEFS[k]["cost"])
-			list.append([k, false])
-		out.append(list)
-	if kind == &"challenge":
-		var picks := roster.filter(func(k: StringName) -> bool: return k != &"bugling")
-		out[n - 1].append([picks[rng.randi() % picks.size()], true])
-	return out
+	puzzle = Encounter.puzzle_for(run, kind, rng)
+	return Encounter.compose(run, kind, rng, puzzle)
 
 
 func _spawn_wave(list: Array) -> void:
-	var socks := sockets.filter(func(p: Vector2) -> bool: return p.distance_to(player.position) > 80.0)
-	if socks.is_empty():
-		socks = sockets.duplicate()
+	var socks := Encounter.spawn_points(self)
 	_shuffle(socks)
+	wave_live.clear()
 	for i in list.size():
 		var p: Vector2 = socks[i % socks.size()] + Vector2(rng.randf_range(-8, 8), rng.randf_range(-8, 8))
 		var er: float = float(Enemy.DEFS[list[i][0]]["r"]) + (2.0 if list[i][1] else 0.0)
 		if not body_fits(p, er):
 			p = socks[i % socks.size()]
 		var e := spawn_enemy(list[i][0], p, list[i][1])
-		e.spawn_t = 0.5 + rng.randf() * 0.3
+		e.spawn_t = 0.8 + rng.randf() * 0.2   # the rune shows 0.8-1.0 s before anything lands
+		wave_live.append(e)
 	Audio.sfx("spawn")
 	Hints.show("aim")
 
@@ -671,15 +657,15 @@ func _update_room(dt: float) -> void:
 					_spawn_boss()
 			elif boss.dead:
 				_clear_room()
-		elif enemies.all(func(e: Enemy) -> bool: return e.dead):
-			if wave_i < waves.size():
+		elif wave_i < waves.size():
+			if Encounter.wave_done(wave_live):
 				wave_t -= dt
 				if wave_t <= 0.0:
 					_spawn_wave(waves[wave_i])
 					wave_i += 1
-					wave_t = 0.9
-			else:
-				_clear_room()
+					wave_t = 0.6
+		elif enemies.all(func(e: Enemy) -> bool: return e.dead):
+			_clear_room()
 	# the reward orb opens the reward screen on touch
 	if not orb.is_empty():
 		if orb["t"] > 0.8:
@@ -972,13 +958,32 @@ func assist_target(p: Vector2, max_d: float) -> Enemy:
 	return vis if vis else best
 
 
-func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: float, dot := false) -> float:
+## Damage to an enemy. `kw` carries the hit's resist keywords (SpellRunner.keywords: 1
+## pierce, 2 blast, 4 shock), which is what breaks shields, armour and wards (D4).
+func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: float, dot := false, kw := 0) -> float:
 	if e.dead or e.spawn_t > 0.0:
 		return 0.0
 	if e.forward:
 		e.flash = 0.07
-		return hurt_enemy(e.forward, dmg * e.fwd_mul, from, crit_chance, 0.0, dot)
+		return hurt_enemy(e.forward, dmg * e.fwd_mul, from, crit_chance, 0.0, dot, kw)
 	if e is Boss and (e as Boss).invuln > 0.0:
+		return 0.0
+	if not dot and (e.ward_n > 0 or e.shield_hp > 0):
+		if not _through_defences(e, from, kw):
+			return 0.0
+	if e.armor > 0.0:
+		# armour soaks everything; Blast tears it off three times as fast
+		var ad := dmg * (3.0 if kw & 2 else (0.2 if dot else 0.35))
+		e.armor -= ad
+		e.flash = 0.07
+		if not dot:
+			fx.sparks(e.position + Vector2(0, -6), 2, Style.c("steel:4"), 50.0)
+			Audio.sfx("hit", 0.1, -10.0)
+		if e.armor <= 0.0:
+			e.armor = 0.0
+			fx.text(e.position + Vector2(0, -18), "ARMOR BROKEN", Style.c("steel:4"))
+			fx.ring(e.position + Vector2(0, -6), 2.0, 16.0, 0.3, Style.c("steel:4"))
+			shake(0.12)
 		return 0.0
 	var crit := crit_chance > 0.0 and rng.randf() < crit_chance
 	# Zero-Day Exploit: the first hit on an unhurt enemy is always a crit
@@ -1028,7 +1033,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 				break
 			done.append(nb.uid)
 			fx.beam(e.position + Vector2(0, -4), nb.position + Vector2(0, -4), Style.c("gold:4"), 1.0)
-			hurt_enemy(nb, dmg * (1.0 if surge else 0.6), e.position, 0.0, 0.3)
+			hurt_enemy(nb, dmg * (1.0 if surge else 0.6), e.position, 0.0, 0.3, false, 4)
 		_cascading = false
 	if crit and not dot and not _cascading and run and run.has_relic(&"cascade_failure"):
 		var nx := nearest_enemy(e.position, 60.0, e.uid)
@@ -1092,6 +1097,42 @@ func _thermal_shock(e: Enemy, dmg: float) -> void:
 	hurt_enemy(e, hit, e.position, 0.0, 0.6)
 
 
+## Wards and shields (D4). False when the hit is swallowed.
+##   ward    swallows a whole hit per charge; a Shock hit strips it at once and goes through
+##   shield  a frontal arc toward the enemy's target; a Pierce hit breaks it and goes through,
+##           any other frontal hit is blocked and wears it down (so nothing is ever unkillable)
+func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
+	if e.ward_n > 0:
+		if kw & 4:
+			e.ward_n = 0
+			fx.text(e.position + Vector2(0, -18), "WARD STRIPPED", Style.c("cyan:4"))
+			fx.ring(e.position + Vector2(0, -6), 2.0, e.r + 6.0, 0.25, Style.c("cyan:4"))
+		else:
+			e.ward_n -= 1
+			fx.ring(e.position + Vector2(0, -6), 1.0, e.r + 4.0, 0.15, Style.c("cyan:4"))
+			if e._def_fx <= 0.0:
+				e._def_fx = 0.5
+				fx.text(e.position + Vector2(0, -18), "WARDED", Style.c("cyan:4"))
+			return false
+	if e.shield_hp > 0:
+		var to_target := (target_pos() - e.position).angle()
+		var to_hit := (from - e.position).angle()
+		if absf(angle_difference(to_target, to_hit)) < 1.1:
+			if kw & 1:
+				e.shield_hp = 0
+				fx.text(e.position + Vector2(0, -18), "SHIELD BROKEN", Style.c("steel:4"))
+				fx.sparks(e.position + Vector2(0, -6), 10, Style.c("steel:4"), 90.0)
+				shake(0.1)
+			else:
+				e.shield_hp -= 1
+				fx.sparks(from, 3, Style.c("steel:4"), 60.0)
+				if e._def_fx <= 0.0:
+					e._def_fx = 0.5
+					fx.text(e.position + Vector2(0, -18), "BLOCKED", Style.c("steel:4"))
+				return false
+	return true
+
+
 ## Static Coat / Static Cone: the enemy's next hit arcs to a neighbour.
 func charge(e: Enemy) -> void:
 	var tgt := e.forward if e.forward else e
@@ -1116,8 +1157,8 @@ func add_rot(e: Enemy, n: int) -> void:
 	for k in hash.query(tgt.position, 40.0):
 		var o: Enemy = enemies[k]
 		if o != tgt and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(tgt.position) < 26.0 + o.r:
-			hurt_enemy(o, hit * 0.5, tgt.position, 0.0, 0.8)
-	hurt_enemy(tgt, hit, tgt.position, 0.0, 0.8)
+			hurt_enemy(o, hit * 0.5, tgt.position, 0.0, 0.8, false, 2)
+	hurt_enemy(tgt, hit, tgt.position, 0.0, 0.8, false, 2)
 
 
 ## Hex Cursor: triggers and carriers aim their payloads at the marked enemy.
@@ -1186,6 +1227,7 @@ func kill_enemy(e: Enemy) -> void:
 			var swarm := run.has_relic(&"swarm_protocol")
 			for k in (2 if swarm else 1):
 				_release_bug(e.position, 20.0 if swarm else 10.0)
+	_on_death(e)
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
 	if e.elite:
 		hitstop(0.08)
@@ -1205,6 +1247,26 @@ func kill_enemy(e: Enemy) -> void:
 	fx.ring(e.position, 2.0, 12.0, 0.25, Color("#ff3fa4"))
 	shake(0.1)
 	Events.enemy_killed.emit(e.kind, e.position)
+
+
+## What an enemy leaves behind (D4): a Moss Blob splits in two, a Mirrored elite leaves a
+## weaker copy, a Forked elite bursts into a ring of shots.
+func _on_death(e: Enemy) -> void:
+	if e is Boss or e.ai == &"part":
+		return
+	var n := int(e.def.get("split", 0))
+	for k in n:
+		var s := spawn_enemy(&"slimelet", e.position + Vector2.from_angle(TAU * k / n + 0.5) * 5.0)
+		s.spawn_t = 0.05
+	if e.affix == &"mirrored":
+		var m := spawn_enemy(e.kind, e.position + Vector2(6, 0))
+		m.spawn_t = 0.3
+		m.max_hp = e.max_hp * 0.4
+		m.hp = m.max_hp
+		fx.text(e.position + Vector2(0, -18), "MIRRORED", Style.c("glitch:4"))
+	elif e.affix == &"forked":
+		for k in 6:
+			enemy_shoot(e.position + Vector2(0, -6), TAU * k / 6.0, 80.0, e.dmg * 0.5, 0.0, "fork:%s" % e.kind)
 
 
 ## Bug Bounty: a small homing bolt that hunts the nearest enemy.

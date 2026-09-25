@@ -1,0 +1,109 @@
+class_name Encounter
+extends RefCounted
+## The encounter director (D4, research/design-plan.md §3): what a fight room throws at you
+## and when. Split out of World so the room code and the fight grammar can grow apart.
+##   wave grammar   each wave is one anchor (ranged, area denial, tank or summoner) plus
+##                  pressure (fodder, swarm, charger); a Lantern Wisp may join an anchor
+##   pacing         no two anchors in one wave before the fourth room; the next wave comes
+##                  when 70% of the current one is down
+##   puzzle rooms   the fight right before the mini-boss and the boss tests one counter:
+##                  Sentry Wall (pierce), Nursery (area), Golem Pair (blast)
+##   spawn rules    a rune and a sound first; never within 96 px of the player or in the
+##                  cone they are aiming down
+## Pure choices over World's rng; World owns the enemies.
+
+const ANCHORS_EARLY: Array[StringName] = [&"weaver", &"puffcap"]
+const ANCHORS: Array[StringName] = [&"weaver", &"puffcap", &"sentry", &"golem", &"stump"]
+const PRESSURE_EARLY: Array[StringName] = [&"slime", &"bugling"]
+const PRESSURE: Array[StringName] = [&"slime", &"bugling", &"ram", &"tick"]
+const NEXT_AT := 0.7          # share of a wave that must be down before the next one
+const SAFE_R := 96.0
+const CONE := 0.45            # radians either side of the aim where nothing spawns
+const PUZZLES := {
+	&"sentry_wall": {"title": "SENTRY WALL", "waves": [[[&"sentry", false], [&"sentry", false], [&"sentry", false], [&"slime", false], [&"slime", false]],
+		[[&"bugling", false], [&"bugling", false], [&"bugling", false], [&"sentry", false]]]},
+	&"nursery": {"title": "NURSERY", "waves": [[[&"stump", false], [&"stump", false], [&"slime", false]],
+		[[&"bugling", false], [&"bugling", false], [&"bugling", false], [&"bugling", false], [&"tick", false]]]},
+	&"golem_pair": {"title": "GOLEM PAIR", "waves": [[[&"golem", false], [&"golem", false]],
+		[[&"slime", false], [&"slime", false], [&"tick", false], [&"tick", false]]]},
+}
+
+
+## Which puzzle the room at this step is, if any (the plain fight right before a boss).
+static func puzzle_for(run: RunState, kind: StringName, rng: RandomNumberGenerator) -> StringName:
+	if kind != &"fight" or run == null:
+		return &""
+	var nxt := run.step + 1
+	if nxt >= Chapter.PLAN.size() or not (Chapter.PLAN[nxt] == &"mini" or Chapter.PLAN[nxt] == &"boss"):
+		return &""
+	if Chapter.PLAN[nxt] == &"mini":
+		return [&"sentry_wall", &"nursery"][rng.randi() % 2]
+	return [&"golem_pair", &"nursery"][rng.randi() % 2]
+
+
+## The waves for a fight room: each wave an Array of [kind, elite].
+static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator, puzzle := &"") -> Array:
+	if puzzle != &"":
+		return (PUZZLES[puzzle]["waves"] as Array).duplicate(true)
+	var step := run.step if run else 1
+	var mult := 1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" else 1.0)
+	var budget := (6.0 + step * 2.0) * mult
+	var anchors: Array[StringName] = ANCHORS_EARLY if step <= 2 else ANCHORS
+	var pressure: Array[StringName] = PRESSURE_EARLY if step <= 2 else PRESSURE
+	var out: Array = []
+	var n := 2
+	for w in n:
+		var b := budget / n * (1.2 if w == n - 1 else 0.9)
+		var list: Array = []
+		# the very first wave of the run is pressure only: learn to move and shoot first
+		var n_anchor := 0 if step <= 1 and w == 0 else (1 if step < 3 else 1 + int(rng.randf() < 0.4))
+		for k in n_anchor:
+			var a: StringName = anchors[rng.randi() % anchors.size()]
+			if float(Enemy.DEFS[a]["cost"]) > b + 1.0:
+				break
+			list.append([a, false])
+			b -= float(Enemy.DEFS[a]["cost"])
+		if n_anchor > 0 and step >= 3 and rng.randf() < 0.35 and b >= 3.0:
+			list.append([&"wisp", false])
+			b -= 3.0
+		var guard := 0
+		while b > 0.0 and list.size() < 14 and guard < 40:
+			guard += 1
+			var opts := pressure.filter(func(k: StringName) -> bool: return float(Enemy.DEFS[k]["cost"]) <= b + 1.0)
+			if opts.is_empty():
+				break
+			var p: StringName = opts[rng.randi() % opts.size()]
+			# buglings come in packs of three
+			var pack := 3 if p == &"bugling" else 1
+			for k in pack:
+				list.append([p, false])
+			b -= float(Enemy.DEFS[p]["cost"]) * pack
+		out.append(list)
+	if kind == &"challenge" or kind == &"glitch":
+		var picks := anchors.duplicate()
+		picks.append_array(pressure.filter(func(k: StringName) -> bool: return k != &"bugling"))
+		out[n - 1].append([picks[rng.randi() % picks.size()], true])
+	return out
+
+
+## Spawn points for a wave: sockets clear of the player and out of their aim cone.
+static func spawn_points(world: World) -> Array:
+	var pl := world.player
+	var ok_ := world.sockets.filter(func(p: Vector2) -> bool:
+		var to := p - pl.position
+		if to.length() < SAFE_R:
+			return false
+		return not (to.length() < 220.0 and absf(angle_difference(pl.aim, to.angle())) < CONE))
+	if ok_.is_empty():
+		ok_ = world.sockets.filter(func(p: Vector2) -> bool: return p.distance_to(pl.position) > 60.0)
+	if ok_.is_empty():
+		ok_ = world.sockets.duplicate()
+	return ok_
+
+
+## True when enough of the current wave is down for the next one to come in.
+static func wave_done(current: Array) -> bool:
+	if current.is_empty():
+		return true
+	var down := current.filter(func(e: Enemy) -> bool: return not is_instance_valid(e) or e.dead).size()
+	return float(down) / current.size() >= NEXT_AT

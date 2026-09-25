@@ -30,7 +30,22 @@ static func score(w: WandState, run: RunState = null) -> float:
 	var regen := w.def.regen * w.regen_mul() * (Relics.mana_regen_mul(run) if run else 1.0)
 	var budget := regen * t + w.max_mana() * t / 25.0
 	var sustain := minf(1.0, budget / maxf(1.0, cost))
-	return dmg / maxf(0.05, t) * sustain
+	# D4: a wand that can break shields, armour and wards is worth more than raw numbers say
+	var kw := 0
+	for plan: WandProgram.Plan in plans:
+		for g in plan.groups:
+			kw |= _kw_tree(g)
+	var answers := int(kw & 1 != 0) + int(kw & 2 != 0) + int(kw & 4 != 0)
+	return dmg / maxf(0.05, t) * sustain * (1.0 + 0.2 * answers)
+
+
+static func _kw_tree(c: CastNode) -> int:
+	var k := SpellRunner.keywords(c.spell, c.mods)
+	if c.payload:
+		k |= _kw_tree(c.payload)
+	if c.alt:
+		k |= _kw_tree(c.alt)
+	return k
 
 
 ## Expected damage of one compiled cast (and everything it releases). `t` is the rotation

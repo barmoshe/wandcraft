@@ -502,7 +502,7 @@ func _ping(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 	world.fx.ring(tgt.position + Vector2(0, -4), 1.0, 9.0, 0.18, c.spell.color)
 	ps.pos = tgt.position - dir * (tgt.r + 6.0)
 	ps.vel = dir * 200.0
-	world.hurt_enemy(tgt, dmg, pos, crit, 0.3)
+	world.hurt_enemy(tgt, dmg, pos, crit, 0.3, false, ps.kw)
 	_apply(ps, tgt)
 	ps.alive = false
 	fire_carry(ps, &"end", null, dir.angle())
@@ -725,7 +725,7 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 		if e.dead or e.spawn_t > 0.0 or e == hit_e:
 			continue
 		if e.position.distance_squared_to(b.pos) < (r + e.r) * (r + e.r):
-			world.hurt_enemy(e, b.dmg * (1.0 if b.beh == &"mine" else 0.7), b.pos, b.crit, 1.2 * b.knock)
+			world.hurt_enemy(e, b.dmg * (1.0 if b.beh == &"mine" else 0.7), b.pos, b.crit, 1.2 * b.knock, false, b.kw | 2)
 			_apply(b, e)
 	world.shake(0.08)
 	world.break_crates_in(b.pos, r)
@@ -975,7 +975,7 @@ func _next_unhit(b: Bullet, p: Vector2, max_d: float) -> Enemy:
 ## wall slam, then the trigger events. Hot path (hundreds of hits a tick in a storm): the
 ## cheap checks come before any call.
 func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
-	world.hurt_enemy(e, dmg, from, b.crit, kb * b.knock)
+	world.hurt_enemy(e, dmg, from, b.crit, kb * b.knock, false, b.kw)
 	if b.burn > 0 or b.chill > 0 or b.static_on or b.rot > 0 or b.mark > 0.0:
 		_apply(b, e)
 	if b.slam and not e.dead and not e.heavy:

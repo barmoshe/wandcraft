@@ -69,3 +69,10 @@ Same bench, two bots, 10 seeds:
 - **Never-editing bot: survival 30%** (up from 0%). Relics that act on a plain wand now carry a lone Mote further: Cold Start, Tail Call, Loop Counter, Empty Set and Uptime.
 
 Both bots already sit inside the D4 targets (60–80% and 15–30%). D4's enemy counters should hold that gap, not widen it.
+
+## D4 enemies (2026-09-25)
+Same bench, after shields, armour, wards, the four new enemies and the wave grammar:
+- **Editing bot: 80%.**
+- **Never-editing bot: 10%.**
+
+A softer golem slam (12 → 10) and a shield that wears out after 8 blocked hits (was 10) did not move either number. The bot that never edits dies almost only at the final boss (8 of 9 runs), so its 15–30% target is left for D7's boss rework.

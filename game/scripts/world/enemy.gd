@@ -4,17 +4,43 @@ extends Node2D
 ## (telegraph then dash), turret (bursts). Names and numbers are original (decisions/0002).
 
 const DEFS := {
-	&"slime": {"title": "Moss Blob", "ai": &"chase", "hp": 16.0, "spd": 34.0, "r": 6.0, "dmg": 5.0, "cost": 1, "gold": 1},
+	&"slime": {"title": "Moss Blob", "ai": &"chase", "hp": 16.0, "spd": 34.0, "r": 6.0, "dmg": 5.0, "cost": 1, "gold": 1,
+		"role": &"pressure", "split": 2},
+	&"slimelet": {"title": "Moss Blob", "ai": &"chase", "hp": 6.0, "spd": 44.0, "r": 4.0, "dmg": 3.0, "cost": 0, "gold": 0},
 	&"weaver": {"title": "Hex Weaver", "ai": &"shoot", "hp": 22.0, "spd": 40.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
-		"shot": {"n": 1, "spd": 85.0, "cd": 2.2}},
-	&"ram": {"title": "Thornback", "ai": &"charge", "hp": 34.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3},
-	&"bugling": {"title": "Bugling", "ai": &"chase", "hp": 7.0, "spd": 50.0, "r": 4.0, "dmg": 3.0, "cost": 1, "gold": 1},
+		"role": &"anchor", "shot": {"n": 1, "spd": 85.0, "cd": 2.8, "tele": 0.5, "burst": 3, "bcd": 0.14}},
+	&"ram": {"title": "Thornback", "ai": &"charge", "hp": 34.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3,
+		"role": &"pressure", "dash": {"range": 120.0, "tele": 0.65, "t": 0.5, "spd": 240.0, "stun": true}},
+	&"bugling": {"title": "Bugling", "ai": &"charge", "hp": 7.0, "spd": 50.0, "r": 4.0, "dmg": 3.0, "cost": 1, "gold": 1,
+		"role": &"pressure", "dash": {"range": 70.0, "tele": 0.3, "t": 0.28, "spd": 170.0, "stun": false}},
 	&"puffcap": {"title": "Puffcap", "ai": &"turret", "hp": 26.0, "spd": 0.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
-		"shot": {"n": 8, "spd": 62.0, "cd": 3.0, "ring": true}},
+		"role": &"anchor", "shot": {"n": 8, "spd": 62.0, "cd": 3.0, "ring": true}},
 	&"loop_seg": {"title": "Loop Segment", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 6.0, "dmg": 12.0, "cost": 0, "gold": 0},
 	&"sentry": {"title": "Rune Sentry", "ai": &"turret", "hp": 44.0, "spd": 0.0, "r": 7.0, "dmg": 10.0, "cost": 4, "gold": 5,
-		"shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.6}},
+		"role": &"anchor", "shield": 8, "shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.6, "sight": 0.8}},
+	# D4: four more, each with a counter (design-plan §3)
+	&"golem": {"title": "Bark Golem", "ai": &"slam", "hp": 70.0, "spd": 22.0, "r": 9.0, "dmg": 10.0, "cost": 5, "gold": 5,
+		"role": &"anchor", "armor": 60.0},
+	&"wisp": {"title": "Lantern Wisp", "ai": &"support", "hp": 18.0, "spd": 36.0, "r": 5.0, "dmg": 0.0, "cost": 3, "gold": 3,
+		"role": &"support"},
+	&"stump": {"title": "Brood Stump", "ai": &"summon", "hp": 55.0, "spd": 0.0, "r": 8.0, "dmg": 6.0, "cost": 4, "gold": 4,
+		"role": &"anchor"},
+	&"tick": {"title": "Glitch Tick", "ai": &"fuse", "hp": 10.0, "spd": 55.0, "r": 4.0, "dmg": 14.0, "cost": 2, "gold": 2,
+		"role": &"pressure"},
 }
+
+## Elite affixes (D4): one per elite in World 1, each with an outline colour.
+##   armored   an armour bar (Blast breaks it)      warded    a 3-hit ward that comes back
+##   hasted    moves and attacks 50% faster          forked    its shots split in three
+##   mirrored  splits into a weaker copy when it dies
+const AFFIXES := {
+	&"armored": {"title": "ARMORED", "col": "steel:4"},
+	&"warded": {"title": "WARDED", "col": "cyan:4"},
+	&"hasted": {"title": "HASTED", "col": "gold:4"},
+	&"forked": {"title": "FORKED", "col": "violet:4"},
+	&"mirrored": {"title": "MIRRORED", "col": "glitch:4"},
+}
+const WARD_HITS := 3
 
 ## Hit flash, status recolor and elite outline in one pass (D1). Statuses recolor along a
 ## Style ramp by brightness (so a burning enemy stays in palette, not tinted), and an elite's
@@ -85,6 +111,16 @@ var rot_n := 0                 # Bitrot stacks (five crash)
 var rot_t := 0.0
 var mark_t := 0.0              # Hex Cursor mark
 var shock_t := 0.0             # Thermal Shock cooldown
+# D4 defences: each one has a resist keyword that breaks it
+var armor := 0.0               # soaks damage; Blast hits it x3, everything else x0.35
+var max_armor := 0.0
+var ward_n := 0                # hits a ward swallows whole; Shock strips it at once
+var shield_hp := 0             # frontal shield: Pierce breaks it, other hits wear it down
+var affix: StringName = &""
+var haste := 1.0
+var parent_uid := -1           # Brood Stump: whose bugling this is
+var _def_fx := 0.0             # rate limit for BLOCKED / WARD text
+var _ward_t := 0.0
 var _st_tick := 0.0
 var forward: Enemy          # body parts pass their damage to this (a boss)
 var fwd_mul := 1.0
@@ -109,7 +145,7 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	r = float(def["r"]) + (2.0 if elite else 0.0)
 	spd = def["spd"]
 	dmg = def["dmg"]
-	heavy = ai == &"turret"
+	heavy = ai == &"turret" or ai == &"summon" or ai == &"slam"
 	position = pos
 	ph = w.rng.randf() * TAU
 	strafe = 1.0 if sin(ph) > 0.0 else -1.0
@@ -124,9 +160,22 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	_mat = ShaderMaterial.new()
 	_mat.shader = _flash_shader()
 	sprite.material = _mat
+	max_armor = float(def.get("armor", 0.0)) * hp_mul
+	armor = max_armor
+	shield_hp = int(def.get("shield", 0))
 	if elite:
-		# elites keep pixel-perfect size and show a gold outline (affix colors come with D4)
-		_mat.set_shader_parameter("outline_col", Style.c("gold:3"))
+		# elites keep pixel-perfect size; the affix shows as the outline colour
+		affix = AFFIXES.keys()[w.rng.randi() % AFFIXES.size()]
+		_mat.set_shader_parameter("outline_col", Style.c(AFFIXES[affix]["col"]))
+		match affix:
+			&"armored":
+				max_armor = maxf(max_armor, max_hp * 0.6)
+				armor = max_armor
+			&"warded":
+				ward_n = WARD_HITS
+			&"hasted":
+				haste = 1.5
+				spd *= 1.5
 	sprite.visible = false
 	add_child(sprite)
 
@@ -178,12 +227,20 @@ func tick(dt: float) -> void:
 		if spawn_t <= 0.0:
 			sprite.visible = true
 			world.fx.ring(position, 2.0, 14.0, 0.25, Color("#c46bff"))
+			if elite:
+				world.fx.text(position + Vector2(0, -18), AFFIXES[affix]["title"], Style.c(AFFIXES[affix]["col"]))
 		return
 	dt = statuses(dt)
 	if dead:
 		return
 	t += dt
 	flash = maxf(0.0, flash - dt)
+	_def_fx = maxf(0.0, _def_fx - dt)
+	if affix == &"warded" and ward_n <= 0:
+		_ward_t += dt
+		if _ward_t >= 6.0:
+			_ward_t = 0.0
+			ward_n = WARD_HITS
 	if ai == &"part":
 		# a boss segment is moved by its boss; still measure how fast it goes
 		if dt > 0.0:
@@ -197,57 +254,82 @@ func tick(dt: float) -> void:
 	var dd := maxf(1.0, d.length())
 	var dir := d / dd
 	var mv := Vector2.ZERO
+	var adt := dt * haste   # attack timers run faster on a Hasted elite
 	match ai:
 		&"chase":
 			# along the flow field around cover; the wobble only in the open (decisions/0008)
 			var cdir := _steer(dt, dir)
 			var wob := 0.35 if _route_direct else 0.1
 			mv = cdir + Vector2(sin(t * 2.0 + ph), cos(t * 2.0 + ph)) * wob
-		&"shoot":
+		&"shoot", &"support":
 			var sees := world.enemy_sees(position)
-			cd -= dt
+			var keep := 110.0 if ai == &"support" else 100.0
+			cd -= adt
 			_flip_cd -= dt
+			if state == &"tele":
+				# the weaver glows before its volley
+				st_t -= adt
+				flash = 0.5 if sin(st_t * 30.0) > 0.0 else 0.0
+				if st_t <= 0.0:
+					state = &"move"
+					burst = int(def["shot"].get("burst", 1))
+					bcd = 0.0
+			elif burst > 0:
+				bcd -= adt
+				if bcd <= 0.0:
+					shoot(d.angle())
+					burst -= 1
+					bcd = float(def["shot"].get("bcd", 0.14))
 			if sees:
-				var want := -1.0 if dd < 80.0 else (1.0 if dd > 125.0 else 0.0)
+				var want := -1.0 if dd < keep - 20.0 else (1.0 if dd > keep + 25.0 else 0.0)
 				strafe_t -= dt
 				if strafe_t <= 0.0:
 					strafe = -strafe if world.rng.randf() < 0.5 else strafe
 					strafe_t = world.rng.randf_range(2.0, 4.0)
 				mv = dir * want + dir.orthogonal() * 0.7 * strafe
-				if cd <= 0.0 and dd < 220.0:
-					shoot(d.angle())
-					cd = float(def["shot"]["cd"]) * world.rng.randf_range(0.85, 1.15)
+				if ai == &"shoot" and cd <= 0.0 and dd < 220.0 and state == &"move" and burst <= 0:
+					var shot: Dictionary = def["shot"]
+					if shot.has("tele"):
+						state = &"tele"
+						st_t = shot["tele"]
+					else:
+						shoot(d.angle())
+					cd = float(shot["cd"]) * world.rng.randf_range(0.85, 1.15)
 			else:
 				# no line to the player: walk around the cover until it has one
 				mv = _steer(dt, dir)
 				cd = maxf(cd, 0.4)
+			if ai == &"support" and cd <= 0.0:
+				cd = 4.0
+				_ward_allies()
 		&"charge":
+			var dash: Dictionary = def["dash"]
 			match state:
 				&"move":
 					mv = _steer(dt, dir)
 					# only wind up a charge down a clear lane (no BONK into a pillar)
-					if dd < 120.0 and world.clear_path(position, pl.position, r):
-						cd -= dt
+					if dd < float(dash["range"]) and world.clear_path(position, pl.position, r):
+						cd -= adt
 						if cd <= 0.0:
 							state = &"tele"
-							st_t = 0.65
+							st_t = dash["tele"]
 				&"tele":
-					st_t -= dt
+					st_t -= adt
 					aim_a = d.angle()
 					flash = 0.6 if sin(st_t * 40.0) > 0.0 else 0.0
 					if st_t <= 0.0:
 						state = &"dash"
-						st_t = 0.5
+						st_t = dash["t"]
 				&"dash":
 					st_t -= dt
 					hit_wall = false
-					position = world.move_body(position, r, Vector2.from_angle(aim_a) * 240.0 * dt)
-					if world.last_hit_x or world.last_hit_y:
+					position = world.move_body(position, r, Vector2.from_angle(aim_a) * float(dash["spd"]) * haste * dt)
+					if (world.last_hit_x or world.last_hit_y) and dash["stun"]:
 						state = &"stun"
 						st_t = 1.0
 						world.shake(0.12)
 						world.fx.text(position + Vector2(0, -12), "BONK", Color.WHITE)
-					elif st_t <= 0.0:
+					elif st_t <= 0.0 or world.last_hit_x or world.last_hit_y:
 						state = &"move"
 						cd = world.rng.randf_range(1.2, 2.2)
 				&"stun":
@@ -255,20 +337,80 @@ func tick(dt: float) -> void:
 					if st_t <= 0.0:
 						state = &"move"
 						cd = world.rng.randf_range(1.0, 2.0)
+		&"slam":
+			# the Bark Golem: plods in, then a 1 s ring telegraph before the slam
+			match state:
+				&"move":
+					mv = _steer(dt, dir)
+					cd -= adt
+					if dd < 44.0 and cd <= 0.0:
+						state = &"tele"
+						st_t = 1.0
+				&"tele":
+					st_t -= adt
+					if st_t <= 0.0:
+						state = &"move"
+						cd = 2.4
+						world.shake(0.2)
+						world.fx.ring(position, 4.0, SLAM_R, 0.3, Style.c("threat:3"))
+						world.break_crates_in(position, SLAM_R)
+						if pl.position.distance_to(position) < SLAM_R + pl.r:
+							pl.hurt(dmg, position, "slam:%s" % kind)
+		&"summon":
+			# the Brood Stump: two buglings every few seconds, never more than four of its own
+			cd -= adt
+			if cd <= 0.0:
+				cd = 5.0
+				var mine := world.enemies.filter(func(e: Enemy) -> bool: return not e.dead and e.parent_uid == uid).size()
+				for k in mini(2, 4 - mine):
+					var e := world.spawn_enemy(&"bugling", position + Vector2.from_angle(ph + k * PI) * (r + 6.0))
+					e.parent_uid = uid
+					e.spawn_t = 0.4
+				world.fx.ring(position, 2.0, 14.0, 0.3, Style.c("glitch:3"))
+		&"fuse":
+			# the Glitch Tick: runs in, blinks for 0.8 s, bursts. Frost holds the fuse.
+			if state == &"fuse":
+				if chill_t <= 0.0 and frozen_t <= 0.0:
+					st_t -= dt
+				flash = 0.8 if sin(st_t * 45.0) > 0.0 else 0.0
+				if st_t <= 0.0:
+					world.fx.ring(position, 3.0, TICK_R, 0.25, Style.c("threat:3"))
+					world.shake(0.15)
+					if pl.position.distance_to(position) < TICK_R + pl.r:
+						pl.hurt(dmg, position, "burst:%s" % kind)
+					world.kill_enemy(self)
+					return
+			else:
+				mv = _steer(dt, dir)
+				if dd < 26.0:
+					state = &"fuse"
+					st_t = 0.8
 		&"turret":
-			cd -= dt
+			cd -= adt
 			var shot: Dictionary = def["shot"]
-			if burst > 0:
-				bcd -= dt
+			if state == &"aim":
+				# the sentry's laser sight: 0.8 s of warning, then the burst
+				st_t -= adt
+				aim_a = d.angle()
+				if st_t <= 0.0:
+					state = &"move"
+					burst = shot["burst"]
+					bcd = 0.0
+			elif burst > 0:
+				bcd -= adt
 				if bcd <= 0.0:
 					shoot(d.angle())
 					burst -= 1
 					bcd = shot["cd"]
 			elif cd <= 0.0 and dd < 240.0 and world.enemy_sees(position):
 				if shot.has("burst"):
-					burst = shot["burst"]
-					bcd = 0.0
 					cd = shot["bcd"]
+					if shot.has("sight"):
+						state = &"aim"
+						st_t = shot["sight"]
+					else:
+						burst = shot["burst"]
+						bcd = 0.0
 				else:
 					shoot(d.angle())
 					cd = float(shot["cd"]) * world.rng.randf_range(0.85, 1.15)
@@ -276,7 +418,7 @@ func tick(dt: float) -> void:
 		mv = mv.normalized()
 	if state != &"dash":
 		position = world.move_body(position, r, mv * spd * dt)
-		if ai == &"shoot" and _flip_cd <= 0.0 and (world.last_hit_x or world.last_hit_y):
+		if (ai == &"shoot" or ai == &"support") and _flip_cd <= 0.0 and (world.last_hit_x or world.last_hit_y):
 			strafe = -strafe   # strafed into a wall: circle the other way
 			strafe_t = world.rng.randf_range(2.0, 4.0)
 			_flip_cd = 0.8
@@ -285,7 +427,7 @@ func tick(dt: float) -> void:
 	if knock.length_squared() > 1.0:
 		position = world.move_body(position, r, knock * dt)
 		knock *= pow(0.004, dt)
-	if dmg > 0.0 and frozen_t <= 0.0 and position.distance_squared_to(pl.position) < pow(r + pl.r - 1.0, 2):
+	if dmg > 0.0 and ai != &"fuse" and frozen_t <= 0.0 and position.distance_squared_to(pl.position) < pow(r + pl.r - 1.0, 2):
 		pl.hurt(dmg, position, "touch:%s" % kind)
 		if state == &"dash":
 			# a charge that lands ends there: the ram stops, dazed
@@ -296,6 +438,21 @@ func tick(dt: float) -> void:
 	if dt > 0.0:
 		vel = vel.lerp((position - _prev) / dt, 0.3)
 	_animate()
+
+
+const SLAM_R := 36.0
+const TICK_R := 30.0
+
+
+## The Lantern Wisp wards up to three allies near it (Shock strips a ward at once).
+func _ward_allies() -> void:
+	var near := world.enemies.filter(func(e: Enemy) -> bool:
+		return e != self and not e.dead and e.spawn_t <= 0.0 and e.ai != &"part" and e.position.distance_to(position) < 130.0)
+	near.sort_custom(func(a: Enemy, b: Enemy) -> bool: return a.position.distance_squared_to(position) < b.position.distance_squared_to(position))
+	for e in near.slice(0, 3):
+		e.ward_n = WARD_HITS
+		world.fx.beam(position + Vector2(0, -6), e.position + Vector2(0, -6), Style.c("cyan:4"), 1.0)
+	world.fx.ring(position + Vector2(0, -6), 2.0, 12.0, 0.3, Style.c("cyan:4"))
 
 
 ## The way toward the player: straight at them while the lane is clear, otherwise the
@@ -327,13 +484,21 @@ func _animate() -> void:
 	queue_redraw()
 
 
+## At most this many enemy shots in the air from normal enemies (bosses are exempt).
+const SHOT_CAP := 40
+
+
 func shoot(ang: float) -> void:
+	if world.ebullets.live_count() >= SHOT_CAP:
+		return
 	var shot: Dictionary = def["shot"]
 	var n: int = shot["n"]
 	var off := world.rng.randf() * TAU
+	var spread: Array = [0.0, -0.26, 0.26] if affix == &"forked" and not shot.get("ring", false) else [0.0]
 	for i in n:
 		var a := off + TAU * i / n if shot.get("ring", false) else ang
-		world.enemy_shoot(position + muzzle * sprite.scale.y, a, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
+		for sp in spread:
+			world.enemy_shoot(position + muzzle * sprite.scale.y, a + sp, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
 	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Style.c("threat:3"))
 
 
@@ -344,13 +509,33 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, r + 1.0, Color(0, 0, 0, 0.4))
 	draw_set_transform(Vector2.ZERO)
-	if state == &"tele":
-		draw_line(muzzle, Vector2.from_angle(aim_a) * 60.0 + muzzle, Color(Style.c("threat:3"), 0.6), 1.0)
+	if state == &"tele" and ai == &"charge":
+		draw_line(muzzle, Vector2.from_angle(aim_a) * float(def["dash"]["range"]) * 0.6 + muzzle, Color(Style.c("threat:3"), 0.6), 1.0)
+	elif state == &"tele" and ai == &"slam":
+		var k := 1.0 - clampf(st_t, 0.0, 1.0)
+		draw_arc(Vector2.ZERO, SLAM_R, 0.0, TAU, 32, Color(Style.c("threat:3"), 0.35 + 0.4 * k), 1.0)
+		draw_arc(Vector2.ZERO, SLAM_R * k, 0.0, TAU, 24, Color(Style.c("threat:3"), 0.5), 1.0)
+	elif state == &"fuse":
+		draw_arc(Vector2.ZERO, TICK_R, 0.0, TAU, 24, Color(Style.c("threat:3"), 0.5), 1.0)
+	elif state == &"aim":
+		draw_line(muzzle, Vector2.from_angle(aim_a) * 200.0 + muzzle, Color(Style.c("threat:3"), 0.45), 1.0)
+	# defences: a ward ring, a shield arc facing the player
+	if ward_n > 0:
+		draw_arc(Vector2(0, -r), r + 3.0, 0.0, TAU, 20, Color(Style.c("cyan:4"), 0.35 + 0.15 * ward_n), 1.0)
+	if shield_hp > 0:
+		var fa := (world.target_pos() - position).angle()
+		draw_arc(muzzle, r + 4.0, fa - 1.0, fa + 1.0, 10, Style.c("steel:4"), 2.0)
 	if hp < max_hp:
 		var w := r * 2.0 + 2.0
 		var y := -float(frames[0].get_height()) * sprite.scale.y - 1.0
 		draw_rect(Rect2(-w / 2.0, y, w, 2.0), Color(0.05, 0.02, 0.08, 0.9))
 		draw_rect(Rect2(-w / 2.0, y, w * hp / max_hp, 2.0), Color("#ff4a5a"))
+	if armor > 0.0:
+		# the armour bar sits over the health bar, steel grey
+		var aw := r * 2.0 + 2.0
+		var ay := -float(frames[0].get_height()) * sprite.scale.y - (4.0 if hp < max_hp else 1.0)
+		draw_rect(Rect2(-aw / 2.0, ay, aw, 2.0), Color(0.05, 0.02, 0.08, 0.9))
+		draw_rect(Rect2(-aw / 2.0, ay, aw * armor / maxf(1.0, max_armor), 2.0), Style.c("steel:4"))
 	# status pips (D2): one colour each, at most three, over the health bar
 	var pips: Array[Color] = []
 	if burn_t > 0.0:

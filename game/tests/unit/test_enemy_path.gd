@@ -61,10 +61,10 @@ func test_shooters_need_a_clear_line() -> void:
 	w = _enemy(&"weaver", _tile(14, 7))
 	w.cd = 0.0
 	fired = 0
-	for i in int(0.5 / DT):
+	for i in int(1.0 / DT):
 		world.step(DT)
 		fired = maxi(fired, world.ebullets.live_count())
-	ok(fired > 0, "a weaver with a clear line shoots")
+	ok(fired > 0, "a weaver with a clear line shoots (after its 0.5 s glow)")
 	# a turret behind a pillar holds its fire too
 	world.build_room("pillars", &"empty")
 	world.player.position = _tile(8, 4)

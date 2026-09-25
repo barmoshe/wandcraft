@@ -92,6 +92,36 @@ static func roll_wand(run: RunState, min_rar := 0, exclude: Array = []) -> Strin
 	return pool[run.rng.randi() % pool.size()]
 
 
+## The resist keywords the run can already answer with (1 pierce, 2 blast, 4 shock).
+static func owned_keywords(run: RunState) -> int:
+	var k := 0
+	for r in run.spell_refs():
+		k |= SpellRunner.keywords(Catalog.spell(r["s"]["id"]), Mods.new())
+	return k
+
+
+## D4 counter guarantee: when the run cannot answer a shield, armour or ward yet, one of
+## the three spell offers carries a keyword it is missing (the last card, so a fair pick).
+static func _with_counter(run: RunState, offer: Array) -> Array:
+	var have := owned_keywords(run)
+	var covered := have
+	for it in offer:
+		covered |= SpellRunner.keywords(Catalog.spell(it["id"]), Mods.new())
+	if covered == 7:
+		return offer
+	var pool: Array = []
+	for id in Catalog.spells():
+		var d := Catalog.spell(id)
+		if Catalog.is_evolved(id) or run.banned.has(id) or offer.any(func(it: Dictionary) -> bool: return it["id"] == id):
+			continue
+		if SpellRunner.keywords(d, Mods.new()) & ~covered & 7 and d.rarity <= 1:
+			pool.append(id)
+	if pool.is_empty():
+		return offer
+	offer[offer.size() - 1] = {"t": &"spell", "id": pool[run.rng.randi() % pool.size()]}
+	return offer
+
+
 ## Three spells, no duplicates.
 static func _spells(run: RunState, biases: Array) -> Array:
 	var out: Array = []
@@ -108,7 +138,7 @@ static func offer(run: RunState, kind: StringName) -> Array:
 		&"start":
 			return RunState.LOADOUTS.keys().map(func(id: StringName) -> Dictionary: return {"t": &"loadout", "id": id})
 		&"spell":
-			return _spells(run, [0, 0, 1])
+			return _with_counter(run, _spells(run, [0, 0, 1]))
 		&"relic":
 			return roll_relics(run, 3).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
 		&"challenge":
