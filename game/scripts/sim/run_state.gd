@@ -186,6 +186,57 @@ func move_spell(from: Dictionary, to: Dictionary) -> void:
 	mark_edit()
 
 
+## The editor's drop (design v2): onto an empty slot it places the spell; onto a spell in a
+## wand it inserts the new one just LEFT of it (boosts go on the left of what they power),
+## sliding its neighbours into the nearest empty slot; a full wand swaps instead. Into the
+## bag it moves as before. Returns "place", "insert" or "swap" (what happened).
+func place_spell(from: Dictionary, to: Dictionary) -> String:
+	var moving: Variant = _ref_get(from)
+	if moving == null or from == to:
+		return ""
+	if to["w"] < 0 or _ref_get(to) == null:
+		move_spell(from, to)
+		return "place"
+	var ti: int = to["i"]
+	var slots: Array = wands[to["w"]].slots.duplicate()
+	var same: bool = from["w"] == to["w"]
+	if same:
+		slots[from["i"]] = null
+	# the nearest empty slot on the left, else on the right
+	var e := -1
+	for k in range(ti - 1, -1, -1):
+		if slots[k] == null:
+			e = k
+			break
+	var at := -1
+	if e >= 0:
+		for k in range(e, ti - 1):
+			slots[k] = slots[k + 1]
+		at = ti - 1
+	else:
+		for k in range(ti + 1, slots.size()):
+			if slots[k] == null:
+				e = k
+				break
+		if e < 0:
+			move_spell(from, to)
+			return "swap"
+		for k in range(e, ti, -1):
+			slots[k] = slots[k - 1]
+		at = ti
+	slots[at] = moving
+	if not same:
+		_ref_set(from, null)
+		bag = bag.filter(func(x: Variant) -> bool: return x != null)
+	wands[to["w"]].slots = slots
+	for w in wands:
+		w.ptr = 0
+		w.acc = Mods.new()
+		w.cd = 0.0
+	mark_edit()
+	return "insert"
+
+
 ## D9: the moment of the run's first wand edit (the onboarding test reads it).
 func mark_edit() -> void:
 	if float(stats.get("first_edit", -1.0)) < 0.0:

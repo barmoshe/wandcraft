@@ -402,7 +402,7 @@ static func enables(run: RunState, item: Dictionary) -> Array:
 		&"relic":
 			var duo := Relics.completes_duo(run, item["id"])
 			if duo != &"":
-				out.append("Merge Commit")
+				out.append("Duo")
 			for evo in Catalog.EVOLUTIONS:
 				var ev: Dictionary = Catalog.EVOLUTIONS[evo]
 				if ev["cat"] == item["id"] and owned.has(ev["base"]):
@@ -420,7 +420,7 @@ static func enables(run: RunState, item: Dictionary) -> Array:
 				if ev["cat"] == id and owned.has(ev["base"]):
 					out.append("Compile")
 				elif ev["base"] == id and (run.has_relic(ev["cat"]) or owned.has(ev["cat"])):
-					out.append("Compile at L3")
+					out.append("Compile at level 3")
 	var seen: Array = []
 	for t in out:
 		if not seen.has(t):

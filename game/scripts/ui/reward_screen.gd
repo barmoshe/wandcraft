@@ -22,6 +22,7 @@ const TITLES := {
 var kind: StringName = &"spell"
 var offer: Array = []
 var sel := -1
+var _layouts: Dictionary = {}   # card index -> the wand laid out with it (spells), cached
 
 
 func _paint() -> void:
@@ -83,6 +84,9 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	var en: Array = Rewards.enables(run, item).map(func(t: String) -> String: return "+ " + t)
 	if lv > 1:
 		en.push_front("Merges to level %d" % lv)
+	var gain := _gain(item, lv)
+	if gain >= 1.0:
+		en.push_front("+%d damage/s" % roundi(gain))
 	var foot := _footer(item, lv)
 	# the body gets whatever the header, icon and chips leave; a long text shrinks the icon
 	var chip_h := (12.0 if not tags.is_empty() else 0.0) + (14.0 if not en.is_empty() else 0.0)
@@ -122,6 +126,31 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		draw_rect(Rect2(lk + Vector2(-1, 3), Vector2(2, 3)), Style.c("night:0"))
 
 
+## Damage per second this pick adds to the wand in hand, measured on the firing range
+## (0 while it is measured, or when it adds nothing there). Spells: as an editing player
+## would slot it. Relics: the same wand with the relic.
+func _gain(item: Dictionary, lv: int) -> float:
+	if run == null or run.wands.is_empty() or not (item["t"] == &"spell" or item["t"] == &"relic"):
+		return 0.0
+	var w := run.wand()
+	var probe := WandLab.probe(get_tree())
+	var now := probe.dps(run, w.def, w.slots)
+	var then := -1.0
+	if item["t"] == &"spell":
+		var key := "%s%d" % [item["id"], lv]
+		if not _layouts.has(key):
+			_layouts[key] = WandPlanner.slots_with(run, item["id"], lv)
+		then = probe.dps(run, w.def, _layouts[key])
+	else:
+		var scratch := RunState.new()
+		scratch.relics = run.relics.duplicate()
+		scratch.relics.append(item["id"])
+		then = probe.dps(scratch, w.def, w.slots)
+	if now < 0.0 or then < 0.0:
+		return 0.0
+	return then - now
+
+
 ## The card's bottom line: [long, short, color], or ["", "", c] for none.
 func _footer(item: Dictionary, lv: int) -> Array:
 	var cyan := Style.c("cyan:4")
@@ -131,7 +160,7 @@ func _footer(item: Dictionary, lv: int) -> Array:
 	match item["t"]:
 		&"spell":
 			var st := spell_stats(item["id"], lv)
-			return [st, st.replace("mana", "MP"), cyan]
+			return [st, "  ".join(st.split("  ").slice(0, 2)), cyan]   # short: mana and damage only
 		&"loadout":
 			if item.get("locked", false):
 				var cost := int(Meta.lockable()[item["id"]]["cost"])

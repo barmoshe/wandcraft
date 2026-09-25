@@ -32,6 +32,8 @@ static func _load() -> void:
 
 ## Shows a tip the first time it is asked for. Returns true if it was shown.
 static func show(id: String) -> bool:
+	if Game.quiet > 0:
+		return false
 	_load()
 	if _seen.has(id) or not TIPS.has(id):
 		return false

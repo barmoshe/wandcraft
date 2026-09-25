@@ -216,6 +216,18 @@ static func _try_spell(run: RunState, id: StringName) -> float:
 	return score(scratch.wand(), scratch)
 
 
+## Design v2: the wand in hand as an editing player would lay it out with this spell added
+## (the reward card's "+damage" chip measures this layout on the firing range).
+static func slots_with(run: RunState, id: StringName, lv := 1) -> Array:
+	var scratch := RunState.new()
+	scratch.wands.append(WandState.make(run.wand().def))
+	scratch.wands[0].set_slots(run.wand().slots.duplicate(true))
+	scratch.relics = run.relics
+	scratch.bag = [{"id": id, "lv": lv}]
+	improve(scratch, 2)
+	return scratch.wand().slots.duplicate(true)
+
+
 ## The editing bot's answer to a reward, shop or forge screen (the balance bench and demo).
 static func bot_answer(run: RunState, kind: StringName, offer: Array = []) -> void:
 	match kind:

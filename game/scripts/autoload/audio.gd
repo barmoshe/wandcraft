@@ -171,7 +171,7 @@ static func voice_class(name: String) -> String:
 
 ## Plays a sound effect. `jitter` randomises the pitch by up to that fraction.
 func sfx(name: String, jitter := 0.06, volume_db := 0.0) -> void:
-	if not sound_on:
+	if not sound_on or Game.quiet > 0:
 		return
 	_setup()
 	var now := Time.get_ticks_msec() / 1000.0
@@ -219,7 +219,7 @@ static var _hit_cache := {}
 
 ## A stinger (clear, reward, boss, victory, defeat): on Critical, so the music ducks under it.
 func sting(name: String) -> void:
-	if not music_on or not is_inside_tree():
+	if not music_on or Game.quiet > 0 or not is_inside_tree():
 		return
 	_setup()
 	var s := stream("sting_" + name)

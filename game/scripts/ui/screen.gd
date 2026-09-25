@@ -127,8 +127,41 @@ func _input(ev: InputEvent) -> void:
 ## Activates a button by id (also used by tests and by keyboard shortcuts).
 func press(id: String) -> void:
 	if not id.begins_with("slot:") and not id.begins_with("card") and not id.begins_with("item"):
-		Audio.sfx("ui_back" if id in ["close", "done", "resume", "skip", "title"] else "ui", 0.0)
+		Audio.sfx("ui_back" if id in ["close", "done", "resume", "skip", "title", "gloss_close"] else "ui", 0.0)
+	if id == "gloss":
+		show_glossary = true
+		return
+	if id == "gloss_close":
+		show_glossary = false
+		return
 	_on_button(id)
+
+
+## Design v2: the glossary sheet over the screen (Glossary.TERMS). Screens set show_glossary
+## (a "gloss" button does it) and call this last in _paint; it takes every tap until closed.
+var show_glossary := false
+
+
+func glossary_panel() -> void:
+	_buttons.clear()
+	dim(0.9)
+	var sr := safe()
+	var w := minf(sr.size.x - 8.0, 460.0)
+	var r := Rect2(sr.get_center().x - w / 2.0, sr.position.y + 4, w, sr.size.y - 8)
+	panel(r, true)
+	text(r.position + Vector2(10, 16), "HOW WANDS WORK", GOLD, 8, "bold")
+	button(Rect2(r.end.x - 74, r.position.y + 4, 68, 24), "gloss_close", "CLOSE", "primary")
+	var y := r.position.y + 34
+	var f := Game.font("small")
+	for t in Glossary.TERMS:
+		var x := r.position.x + 10
+		if int(t[0]) >= 0:
+			socket_shape(Vector2(x + 6, y - 3), 5.0, int(t[0]), Color("#1a1330"), Color(FAM_COLORS[int(t[0])]))
+		text(Vector2(x + 16, y), String(t[1]).to_upper(), TEXT, 8, "bold")
+		var lines := _wrap(f, t[2], r.size.x - 130, 8)
+		for k in lines.size():
+			text(Vector2(r.position.x + 120, y + k * 10), lines[k], MUTED)
+		y += maxf(1, lines.size()) * 10 + 5
 
 
 func hit(p: Vector2) -> String:
@@ -306,14 +339,19 @@ func button(r: Rect2, id: String, label: String, kind := "normal", enabled := tr
 
 ## Synergy tags of an offer item (spells and relics), for the card chips.
 static func item_tags(item: Dictionary) -> Array:
+	var raw: Array = []
 	match item["t"]:
-		&"spell":
-			return Catalog.tags(item["id"])
+		&"spell", &"compile":
+			raw = Catalog.tags(item["id"])
 		&"relic":
-			return Relics.tags(item["id"])
-		&"compile":
-			return Catalog.tags(item["id"])
-	return []
+			raw = Relics.tags(item["id"])
+	# design v2 vocabulary: carriers are triggers, familiars are summons
+	var out: Array = []
+	for t in raw:
+		var shown: String = {"Carrier": "Trigger", "Familiar": "Summon", "Debug": "Rune"}.get(t, t)
+		if not out.has(shown):
+			out.append(shown)
+	return out
 
 
 ## Small tag chips in a centered row; returns the height used (0 when no tags).
@@ -364,16 +402,70 @@ static func item_icon(item: Dictionary) -> Texture2D:
 	return Icons.glyph("coin", Color("#ffd36b"))
 
 
-const KIND_NAMES := ["Shooting spell", "Boost", "Trigger", "Passive", "Debugger rune", "Familiar"]
+## Design v2: the four kinds a player sees, each with its own socket shape and colour, so
+## a wand reads without text. Carriers (Carry, Starwheel, Ping) are triggers to the player:
+## the spell on the left releases the one on the right. Summons are spells. Debugger runes
+## (a later unlock) keep their own name and the trigger's shape.
+enum Fam { SPELL, BOOST, TRIGGER, PASSIVE, RUNE }
+const FAM_NAMES := ["Spell", "Boost", "Trigger", "Passive", "Rune"]
+const FAM_COLORS := ["#8fd8ff", "#ffc94a", "#ff9a5c", "#72e06a", "#5ce1ff"]
+
+
+static func fam(d: SpellDef) -> int:
+	match d.kind:
+		SpellDef.Kind.BOOST:
+			return Fam.BOOST
+		SpellDef.Kind.TRIG:
+			return Fam.TRIGGER
+		SpellDef.Kind.PASSIVE:
+			return Fam.PASSIVE
+		SpellDef.Kind.RUNE:
+			return Fam.RUNE
+	return Fam.TRIGGER if d.carrier != &"" and d.kind == SpellDef.Kind.PROJ else Fam.SPELL
+
+
+static func fam_color(d: SpellDef) -> Color:
+	return Color(FAM_COLORS[fam(d)])
+
+
+## The socket outline for a kind: a circle (spell), a diamond (boost), a hexagon (trigger,
+## rune) or a square (passive). r is the circle's radius; the others match its size.
+static func socket_points(c: Vector2, r: float, f: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	match f:
+		Fam.BOOST:
+			for a in [-PI / 2.0, 0.0, PI / 2.0, PI]:
+				pts.append(c + Vector2.from_angle(a) * (r + 1.5))
+		Fam.TRIGGER, Fam.RUNE:
+			for k in 6:
+				pts.append(c + Vector2.from_angle(PI / 6.0 + k * PI / 3.0) * (r + 0.5))
+		Fam.PASSIVE:
+			var h := r * 0.86
+			pts = PackedVector2Array([c + Vector2(-h, -h), c + Vector2(h, -h), c + Vector2(h, h), c + Vector2(-h, h)])
+		_:
+			for k in 20:
+				pts.append(c + Vector2.from_angle(k * TAU / 20.0) * r)
+	return pts
+
+
+## Draws a socket: filled shape and its rim (closed polyline).
+func socket_shape(c: Vector2, r: float, f: int, fill: Color, rim: Color, width := 1.0) -> void:
+	var pts := socket_points(c.round(), r, f)
+	draw_colored_polygon(pts, fill)
+	pts.append(pts[0])
+	draw_polyline(pts, rim, width)
+
+
+static func kind_name(d: SpellDef) -> String:
+	return FAM_NAMES[fam(d)]
 
 
 static func kind_label(item: Dictionary) -> String:
 	match item["t"]:
 		&"spell":
-			var d := Catalog.spell(item["id"])
-			return KIND_NAMES[d.kind]
+			return kind_name(Catalog.spell(item["id"]))
 		&"relic":
-			return "Merge Commit" if Relics.DEFS[item["id"]].has("duo") else "Relic"
+			return "Duo relic" if Relics.DEFS[item["id"]].has("duo") else "Relic"
 		&"wand":
 			return "Wand"
 		&"loadout":

@@ -125,10 +125,10 @@ static func _build() -> void:
 	_s("fan", P, "Spectrum Fan", "#ffb86b", {"mp": [10, 13, 17], "dmg": [4, 7, 12], "p": {"speed": 230, "radius": 2.0, "life": 0.7, "count": [7, 7, 9], "spread": 40.0, "pierce": 1}},
 		"Fires {7/7/9} bolts in a fan. Each one passes through an enemy.")
 	_s("burst", P, "Rune Burst", "#c9a8ff", {"mp": [8, 15, 40], "dmg": [10, 26, 70], "crit": 0.2, "beh": "burst", "kw": ["blast"], "p": {"area": [30.0, 32.0, 35.0]}},
-		"Explodes right at the wand tip. Weak on its own, huge when a carrier delivers it. Breaks armor.")
+		"Explodes right at the wand tip. Weak on its own, huge when a trigger delivers it. Breaks armor.")
 	_s("moths", P, "Seeker Moths", "#ffd05e", {"mp": [7, 10, 13], "dmg": [6, 10, 18], "p": {"speed": 150, "radius": 2.0, "life": 1.6, "count": [3, 4, 5], "spread": 80.0, "homing": 7.0}},
 		"Releases {3/4/5} moths that fly to the nearest enemy.")
-	_s("needle", P, "Glitch Needle", "#e8fbff", {"mp": [2, 3, 4], "dmg": [4, 6, 8], "dl": -0.02, "crit": 0.0, "kw": ["pierce"], "p": {"speed": 380, "radius": 1.5, "life": 0.6, "pierce": 2, "crit_add": [0.0, 0.0, 0.15]}},
+	_s("needle", P, "Needle", "#e8fbff", {"mp": [2, 3, 4], "dmg": [4, 6, 8], "dl": -0.02, "crit": 0.0, "kw": ["pierce"], "p": {"speed": 380, "radius": 1.5, "life": 0.6, "pierce": 2, "crit_add": [0.0, 0.0, 0.15]}},
 		"A very fast needle that passes through two enemies. Breaks shields.", "It also gets +15% crit chance.")
 	_s("ember", P, "Ember Bolt", "#ff8a3c", {"mp": [6, 8, 11], "dmg": [8, 12, 17], "beh": "bomb", "kw": ["blast"], "p": {"speed": 150, "radius": 3.0, "life": 1.0, "area": [18.0, 21.0, 25.0], "burn": [1, 1, 2]}},
 		"A slow fireball that explodes where it lands and sets enemies on fire. Breaks armor.", "Its fire burns twice as hot.")
@@ -149,9 +149,9 @@ static func _build() -> void:
 	_s("bitrot", P, "Bitrot Spore", "#ff6fd2", {"mp": [6, 8, 10], "dmg": [2, 3, 4], "beh": "cloud", "p": {"speed": 45, "radius": 10.0, "life": 2.6, "pierce": 99, "rot": 1}},
 		"A slow cloud that keeps adding Bitrot to enemies inside it. At 5 Bitrot an enemy crashes in a burst.")
 	_s("hexcursor", P, "Hex Cursor", "#d6d6ff", {"mp": [2, 3, 4], "dmg": [3, 4, 5], "p": {"speed": 150, "radius": 4.0, "life": 1.4, "mark": 4.0}},
-		"A slow reticle that marks the first enemy it touches. Carriers and triggers aim their spell at the mark.")
+		"A slow reticle that marks the first enemy it touches. Triggers aim their spell at the mark.")
 	# ---- carriers: hold the next shooting spell as a payload ----
-	_s("seed", P, "Payload Seed", "#ffe066", {"mp": [1, 2, 3], "dmg": [2, 5, 10], "carry": "seed", "p": {"speed": 190, "radius": 2.0, "life": 0.9}},
+	_s("seed", P, "Carry", "#ffe066", {"mp": [1, 2, 3], "dmg": [2, 5, 10], "carry": "seed", "p": {"speed": 190, "radius": 2.0, "life": 0.9}},
 		"Carries the shooting spell on its right and releases it where it lands. That spell costs {90/80/60}% of its mana.")
 	_s("wheel", P, "Starwheel", "#ffd36b", {"rar": 2, "mp": [12], "dmg": [16], "carry": "wheel", "beh": "wheel", "p": {"speed": 80, "radius": 4.0, "life": 1.6, "pierce": 99}},
 		"A spinning star that fires the shooting spell on its right 16 times around it, at half damage. That spell costs 4x mana.")
@@ -176,7 +176,7 @@ static func _build() -> void:
 	# ---- status coats ----
 	_s("ember_coat", B, "Ember Coat", "#ff8a3c", {"rar": 1, "mp": [4]}, "Spells on its right set enemies on fire, {hot/hotter/hottest}.")
 	_s("frost_coat", B, "Frost Coat", "#9fe8ff", {"rar": 1, "mp": [4]}, "Each hit from a spell on its right chills {once/twice/3 times}. 3 chills freeze an enemy for a moment.")
-	_s("static_coat", B, "Static Coat", "#fff27a", {"mp": [4]}, "Spells on its right charge enemies. The next hit on a charged enemy also arcs to a neighbor. Strips wards.")
+	_s("static_coat", B, "Spark Coat", "#fff27a", {"mp": [4]}, "Spells on its right charge enemies. The next hit on a charged enemy also arcs to a neighbor. Strips wards.")
 	_s("rot_coat", B, "Rot Coat", "#ff6fd2", {"mp": [4]}, "Each hit from a spell on its right adds {1/1/2} Bitrot. At 5 Bitrot an enemy crashes in a burst.")
 	# ---- draw spells: pull more shooting spells into this one cast ----
 	_s("chorus", B, "Chorus", "#ffc94a", {"mp": [0]}, "Casts the {2/3/4} shooting spells on its right together, each a little cheaper, {in a spread/in a spread/all straight ahead}.")
@@ -184,7 +184,7 @@ static func _build() -> void:
 	# ---- triggers: sit between two spells, the left one fires the right one ----
 	_s("then", T, "THEN", "#ffe066", {"mp": [4], "t": "then"}, "Goes between two spells. When the spell on its left ends, the one on its right is cast from there, with +{30/60/120}% of the left one's damage.")
 	_s("callback", T, "Callback", "#ffe066", {"rar": 1, "mp": [5], "t": "callback"}, "Goes between two spells. Every hit of the spell on its left casts the one on its right, for {80/65/50}% of its mana, at most every {0.3/0.2/0.1} s.")
-	_s("loop", T, "While Loop", "#ffe066", {"mp": [4], "t": "loop"}, "Goes between two spells. While the spell on its left flies, it keeps casting the one on its right, for {70/55/40}% of its mana each time.")
+	_s("loop", T, "Repeat", "#ffe066", {"mp": [4], "t": "loop"}, "Goes between two spells. While the spell on its left flies, it keeps casting the one on its right, for {70/55/40}% of its mana each time.")
 	_s("fork", T, "Fork Bomb", "#ffe066", {"rar": 1, "mp": [6], "t": "fork"}, "Goes between two spells. When the spell on its left ends, the one on its right is cast 4 ways at {35/45/60}% damage, for 4x its mana.")
 	_s("finally", T, "Finally", "#ffe066", {"rar": 1, "mp": [4], "t": "finally"}, "Goes between two spells. When the spell on its left kills, the one on its right is cast from the body, up to {1/2/3} {time/times/times}.")
 	_s("sleep", T, "Sleep(ms)", "#ffe066", {"mp": [3], "t": "sleep"}, "Goes between two spells. After {0.4/0.3/0.2} s, the spell on its right is cast from wherever the one on its left is.")
@@ -196,7 +196,7 @@ static func _build() -> void:
 	# ---- familiars: summons that stay out ----
 	_s("daemon", F, "Daemon", "#9b7bff", {"rar": 1, "mp": [10, 12, 14], "dmg": [0], "carry": "daemon", "beh": "daemon", "p": {"life": [8.0, 10.0, 12.0], "every": [1.5, 1.2, 0.9]}},
 		"Summons a sprite for {8/10/12} s. It circles you and casts the shooting spell on its right every {1.5/1.2/0.9} s. One at a time.")
-	_s("turret", F, "Watchdog Turret", "#ffd05e", {"mp": [9, 11, 13], "dmg": [5, 7, 10], "beh": "turret", "p": {"life": 8.0, "every": 0.5, "range": 130.0}},
+	_s("turret", F, "Turret", "#ffd05e", {"mp": [9, 11, 13], "dmg": [5, 7, 10], "beh": "turret", "p": {"life": 8.0, "every": 0.5, "range": 130.0}},
 		"Plants a turret that shoots the nearest enemy for 8 s. Up to two at a time.")
 	_s("duck", F, "Rubber Duck", "#ffe066", {"mp": [8, 7, 6], "dmg": [0], "beh": "duck", "p": {"life": 6.0, "soak": [3, 4, 6]}},
 		"Drops a decoy that enemies chase and shoot instead of you. It takes {3/4/6} hits. One at a time.")
@@ -217,7 +217,7 @@ static func _build() -> void:
 	_s("replicator", P, "Self-Replicating Mote", "#8fd8ff", {"rar": 2, "mp": [6], "dmg": [12], "p": {"speed": 270, "radius": 2.0, "life": 1.0, "pierce": 1, "split": 3}},
 		"Compiled Arcane Mote. On its first hit it splits into 3 more.")
 	_s("exploit_needle", P, "Exploit Needle", "#e8fbff", {"rar": 2, "mp": [5], "dmg": [10], "dl": -0.02, "kw": ["pierce"], "p": {"speed": 400, "radius": 1.5, "life": 0.7, "pierce": 5, "crit_add": 0.5}},
-		"Compiled Glitch Needle. Passes through 5 enemies with +50% crit chance.")
+		"Compiled Needle. Passes through 5 enemies with +50% crit chance.")
 
 	# ---- wands ----
 	_w(&"twig", "Twig Wand", 0, 3, 50, 16, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light.")

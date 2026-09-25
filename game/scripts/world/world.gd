@@ -478,9 +478,10 @@ func build_room(tpl: String, kind: StringName) -> void:
 		&"empty":
 			cleared = true   # tests and the showcase: a room with nothing in it
 	_deco.queue_redraw()
-	Audio.music(room_music(kind))
-	Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
-		"title": _room_title(kind)})
+	if Game.quiet == 0:
+		Audio.music(room_music(kind))
+		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
+			"title": _room_title(kind)})
 	room_built.emit()
 
 
@@ -1118,7 +1119,8 @@ func flash(amount: float, c := Color.WHITE) -> void:
 	if not Game.flash_fx or time - _flash_t < 0.34:
 		return
 	_flash_t = time
-	Events.screen_flash.emit(c, amount)
+	if Game.quiet == 0:
+		Events.screen_flash.emit(c, amount)
 
 
 func hazard_at(p: Vector2) -> bool:
@@ -1530,7 +1532,8 @@ func kill_enemy(e: Enemy) -> void:
 	fx.sparks(e.position + Vector2(0, -4), 14, Color("#c46bff"), 120.0)
 	fx.ring(e.position, 2.0, 12.0, 0.25, Color("#ff3fa4"))
 	shake(0.1)
-	Events.enemy_killed.emit(e.kind, e.position)
+	if Game.quiet == 0:
+		Events.enemy_killed.emit(e.kind, e.position)
 
 
 ## What an enemy leaves behind (D4): a Moss Blob splits in two, a Mirrored elite leaves a

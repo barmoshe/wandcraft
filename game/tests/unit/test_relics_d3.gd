@@ -106,7 +106,7 @@ func test_enables_chips() -> void:
 	r.bag = [{"id": &"ember_coat", "lv": 1}]
 	ok(Rewards.enables(r, {"t": &"spell", "id": &"frost_coat"}).has("Thermal Shock"), "Frost Coat with fire already: Thermal Shock")
 	r.add_relic(&"wildfire")
-	ok(Rewards.enables(r, {"t": &"relic", "id": &"cold_boot"}).has("Merge Commit"), "Cold Boot with Wildfire: a Merge Commit")
+	ok(Rewards.enables(r, {"t": &"relic", "id": &"cold_boot"}).has("Duo"), "Cold Boot with Wildfire: a Duo")
 	r.wand().set_slots([&"spark"])
 	ok(Rewards.enables(r, {"t": &"relic", "id": &"cascade_failure"}).has("Compile"), "Cascade Failure with a Chain Spark: Compile")
 

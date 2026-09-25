@@ -112,6 +112,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		cost = 0.0
 	if w.mana < cost:
 		w.cd = 0.06
+		w.dry_at = world.time
 		return false
 	var low := w.mana < w.max_mana() * 0.25
 	w.mana -= cost
@@ -122,6 +123,8 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.acc = plan.acc
 	w.casts += 1
 	w.flash = plan.used[plan.used.size() - 1] if not plan.used.is_empty() else -1
+	w.lit = plan.used
+	w.lit_at = world.time
 	var sp := Relics.stat(run, "cast")
 	var dl := maxf(0.03, (w.def.cast_delay + plan.delay_add) * sp)
 	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * sp)
@@ -164,7 +167,8 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 			emit_cast(g, origin, ang + 0.18, opt)
 	world.fx.ring(origin, 1.0, 6.0, 0.12, plan.groups[0].spell.color)
 	Audio.cast(plan.groups[0].spell.id)
-	Events.wand_cast.emit(w.flash)
+	if Game.quiet == 0:
+		Events.wand_cast.emit(w.flash)
 	return true
 
 

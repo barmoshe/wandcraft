@@ -204,3 +204,24 @@ func test_save_round_trip() -> void:
 	eq(q.shop.size(), r.shop.size(), "shop stock")
 	eq(q.rng.state, r.rng.state, "the dice continue where they were")
 	ok(RunState.from_dict({"v": 999}) == null, "unknown versions are refused")
+
+
+func test_dropping_onto_a_spell_inserts_on_its_left() -> void:
+	# design v2: a boost dropped on the Mote lands on its left, nothing is kicked to the bag
+	var r := RunState.create(5)
+	r.bag.append({"id": &"empower", "lv": 1})
+	eq(r.place_spell({"w": -1, "i": 0}, {"w": 0, "i": 2}), "insert", "an insert")
+	var ids := r.wand().slots.map(func(s: Variant) -> Variant: return s["id"] if s != null else null)
+	eq(ids, [null, &"empower", &"mote"], "Empower just left of the Mote")
+	eq(r.bag.size(), 0, "the bag gave it up")
+	# a full wand swaps
+	r.wand().set_slots([&"fan", &"empower", &"mote"])
+	r.bag.append({"id": &"needle", "lv": 1})
+	eq(r.place_spell({"w": -1, "i": 0}, {"w": 0, "i": 2}), "swap", "full: a swap")
+	eq(r.wand().slots[2]["id"], &"needle", "the needle took the slot")
+	eq(r.bag[0]["id"], &"mote", "the mote went to the bag")
+	# moving left within a full wand slides the others right
+	r.wand().set_slots([&"fan", &"empower", &"mote"])
+	r.place_spell({"w": 0, "i": 2}, {"w": 0, "i": 0})
+	ids = r.wand().slots.map(func(s: Variant) -> Variant: return s["id"])
+	eq(ids, [&"mote", &"fan", &"empower"], "the mote goes first, the rest slide right")

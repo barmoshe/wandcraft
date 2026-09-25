@@ -8,6 +8,9 @@ var seed_value := 0
 var god_mode := false
 var inf_mana := false
 var auto_fire := true
+## > 0 while a sandbox world steps (the editor's firing range, WandSim): no sound, no buzz,
+## no tips and no HUD events leak out of it.
+var quiet := 0
 var shake_scale := 1.0      # settings: screen shake (0 = off)
 var flash_fx := true        # settings: screen flash effects
 var haptics := true         # settings: vibration on hits and boss moments
@@ -174,5 +177,5 @@ func haptic(kind: String) -> void:
 
 
 func buzz(ms: int) -> void:
-	if haptics and is_touch():
+	if haptics and quiet == 0 and is_touch():
 		Input.vibrate_handheld(ms)

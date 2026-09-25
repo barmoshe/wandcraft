@@ -250,7 +250,8 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	world.hitstop(0.09)   # getting hit freezes the moment, so you feel it (design-plan §10)
 	world.flash(0.15)
 	Game.haptic("hurt")
-	Events.player_hurt.emit(amount)
+	if Game.quiet == 0:
+		Events.player_hurt.emit(amount)
 	if hp <= 0.0:
 		hp = 0.0
 		dead = true
