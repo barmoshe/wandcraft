@@ -1,2 +1,12 @@
 shots/
 build/
+
+# Secrets. These rules came from bar_builds' root .gitignore before the split.
+.env
+.env.*
+.vercel/
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
