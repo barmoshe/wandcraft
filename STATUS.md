@@ -2,13 +2,24 @@
 
 - Updated: 2026-09-24
 
-## MVP (ADR 0010, `research/mvp-plan.md`)
-- **v0.4.1 is now the POC.** The MVP is a store-ready World 1, rebuilt in place inside `game/`, in milestones M0–M11.
-- **Research:** `research/mvp-research.md` holds the POC audit plus sourced genre and production research.
-- **Bar's calls:** code-drawn art (with a higher ceiling), CC0 sound effects plus free-licensed music, and a $0 budget. Store submission waits behind a gate that needs the accounts (Apple $99 a year, Play $25).
-- **Progress:**
-  - Step 1 (research, plan, ADR 0010): done.
-  - Next up: **M0**, foundations and baselines.
+## MVP: design-first (ADR 0011, `research/design-plan.md`)
+- **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
+- **Research:**
+  - `research/design-research.md`: four sourced briefs, including the Magicraft deep dive on spells and relics.
+  - `research/mvp-research.md`: the POC audit.
+- **Diagnosis:** wand editing is optional by construction. Spells slot themselves, enemies have only HP, and mana never runs short.
+- **Milestones:**
+  - D0: design bible and quick wins
+  - D1: art direction
+  - D2: spells
+  - D3: relics
+  - D4: enemies
+  - D5: levels and map
+  - D6: animation
+  - D7: bosses
+  - D8: music and sound
+  - D9: onboarding and meta
+- **Progress:** D0 is in progress. The design bible is committed.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
@@ -143,18 +154,16 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
-- **MVP M0** (`research/mvp-plan.md`):
-  - ADR 0011: the renderer A/B check, then the switch to Compatibility.
-  - GitHub Actions CI: test, taptest ×3, webtest, and a nightly bench.
-  - A `--perf` overlay.
-  - Screenshot goldens.
-  - A shortlist of music and sound-effect candidates.
-- **Bar, during M0:** record baseline performance on the iPhone (web and native) and on Android in `research/perf.md`. The overlay will show the numbers.
-- **The POC build stays live for testers:** https://wandcraft-test.vercel.app and APK 0.4.1.
-- **Known gaps:**
-  - Keys, curses, potions and meta unlocks are deferred (ADR 0005).
-  - The iOS privacy manifest must be checked against the one Godot generates.
-  - The bundle id is a placeholder.
+- **D0 quick wins:**
+  - Trauma screen shake.
+  - A camera that behaves the same at 60 and 120 fps and leads toward your aim.
+  - Hit-stop when you get hurt.
+  - Death to retry in about 1.1 s.
+  - Muzzle flash and wand recoil.
+  - Audio fixes in `gen_audio.gd`: 44.1 kHz, bass moved into the phone-audible range, a mid thump on booms, loudness normalization.
+- **Then D1:** art direction. A quiet floor, the outline rule, reserved hues per role, the enemy bullet family, and the palette LUT.
+- **Bar:** play each milestone build. Its focus is listed in `research/design-plan.md`.
+- **The POC build stays live for testers:** https://wandcraft-test.vercel.app, and APK 0.4.1.
 
 ## How to look at it
 - Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (xvfb). Balance bench: `tools/balance.sh` (a few minutes).
