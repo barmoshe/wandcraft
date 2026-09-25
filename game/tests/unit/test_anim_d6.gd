@@ -143,3 +143,27 @@ func test_walls_with_floor_behind_get_a_front_cap() -> void:
 		ok(world._lip_at(tx, ty), "a lip sits on a wall tile with floor above it")
 		ok(s.get_parent() == world._actors, "lips are y-sorted with the actors")
 	ok(world.life.tufts.size() > 0, "the room has grass tufts")
+
+
+func test_the_dash_moves_fast_with_iframes_and_a_cooldown() -> void:
+	# D9 (lives here with the player's other feel tests)
+	Game.god_mode = false
+	var p := world.player
+	world.build_room("hall", &"empty")
+	var from := p.position
+	world.controls.move = Vector2.RIGHT
+	world.controls.dash = true
+	world.step(1.0 / 60.0)
+	ok(p.dash_t > 0.0 and p.dash_inv > 0.0, "a dash starts with i-frames")
+	var hp0 := p.hp
+	p.hurt(10.0, p.position + Vector2(10, 0))
+	ok(p.hp == hp0, "a hit during the dash's i-frames does nothing")
+	for i in 12:
+		world.step(1.0 / 60.0)
+	ok(p.position.x - from.x > 35.0, "the dash covers ground (%.0f px)" % (p.position.x - from.x))
+	world.controls.dash = true
+	world.step(1.0 / 60.0)
+	ok(p.dash_t <= 0.0, "no second dash inside the cooldown")
+	ok(world.fx.ghosts.size() >= 2, "the dash leaves afterimages (%d)" % world.fx.ghosts.size())
+	world.controls.move = Vector2.ZERO
+	Game.god_mode = true

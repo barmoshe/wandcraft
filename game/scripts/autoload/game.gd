@@ -155,7 +155,7 @@ func apply_settings(d: Dictionary) -> void:
 ## A short vibration on phones (hurt, boss moments), if the player allows it.
 ## D8 haptics map (design-plan §9): only on getting hurt, crits, elite kills, boss moments
 ## and UI snaps, so a buzz always means something.
-const HAPTICS := {"hurt": 40, "crit": 10, "elite_kill": 25, "boss_phase": 80, "boss_kill": 200, "ui_snap": 8}
+const HAPTICS := {"hurt": 40, "crit": 10, "elite_kill": 25, "boss_phase": 80, "boss_kill": 200, "ui_snap": 8, "dash": 8}
 var _last_buzz := {}
 
 

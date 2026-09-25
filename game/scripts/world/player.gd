@@ -57,6 +57,17 @@ var clip_t := 0.0
 var back := false          # aiming up: the hero turns away from the camera
 var hurt_t := 0.0          # seconds of the hurt clip left
 var _gem := "frost"        # the held wand's gem ramp (follows the wand in hand)
+## D9: the dash (design-plan §10): 0.18 s, 0.14 s of i-frames, three afterimages, then a
+## 0.35 s cooldown. It goes where you move, or where you aim when standing still.
+const DASH_T := 0.18
+const DASH_IFRAMES := 0.14
+const DASH_CD := 0.35
+const DASH_SPEED := 240.0
+var dash_t := 0.0
+var dash_cd := 0.0
+var dash_inv := 0.0
+var dash_dir := Vector2.RIGHT
+var _ghost_t := 0.0
 
 
 func setup(w: World) -> void:
@@ -111,8 +122,29 @@ func tick(dt: float) -> void:
 	var mv := controls.move.limit_length(1.0)
 	var run := world.run
 	var speed := SPEED * Relics.stat(run, "move")
-	vel = vel.lerp(mv * speed, 1.0 - pow(0.0005, dt))
-	position = world.move_body(position, r, vel * dt)
+	dash_cd = maxf(0.0, dash_cd - dt)
+	dash_inv = maxf(0.0, dash_inv - dt)
+	if controls.dash:
+		controls.dash = false
+		if dash_cd <= 0.0 and dash_t <= 0.0:
+			dash_dir = mv.normalized() if mv.length() > 0.1 else Vector2.from_angle(aim)
+			dash_t = DASH_T
+			dash_cd = DASH_T + DASH_CD
+			dash_inv = DASH_IFRAMES
+			_ghost_t = 0.0
+			Audio.sfx("dash", 0.06)
+			Game.haptic("dash")
+	if dash_t > 0.0:
+		dash_t -= dt
+		vel = dash_dir * DASH_SPEED
+		position = world.move_body(position, r, vel * dt)
+		_ghost_t -= dt
+		if _ghost_t <= 0.0:
+			_ghost_t = DASH_T / 3.0
+			world.fx.afterimage(sprite.texture, position + sprite.offset, sprite.flip_h)
+	else:
+		vel = vel.lerp(mv * speed, 1.0 - pow(0.0005, dt))
+		position = world.move_body(position, r, vel * dt)
 	if mv.length() > 0.1:
 		walk_t += dt * mv.length()
 		_dust_t -= dt
@@ -185,7 +217,7 @@ var last_hurt_by := ""
 
 
 func hurt(amount: float, from: Vector2, by := "") -> void:
-	if dead or inv > 0.0 or Game.god_mode:
+	if dead or inv > 0.0 or dash_inv > 0.0 or Game.god_mode:
 		return
 	var run := world.run
 	if run.has_relic(&"try_catch") and not world.caught:
@@ -237,6 +269,8 @@ func pick_clip() -> String:
 		return "death"
 	if hurt_t > 0.0:
 		return "hurt"
+	if dash_t > 0.0:
+		return "dash"
 	if cast_t > 0.0:
 		return "cast"
 	return "run" if vel.length() > 12.0 else "idle"

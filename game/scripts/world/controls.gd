@@ -7,6 +7,7 @@ var move := Vector2.ZERO     # left stick, length 0..1
 var aim := Vector2.ZERO      # right stick; non-zero means "fire this way"
 var fire := false            # fire toward the auto target without aiming
 var select_wand := -1        # edge-triggered: Player clears it
+var dash := false            # edge-triggered: Player clears it (D9)
 
 
 func clear() -> void:
@@ -14,3 +15,4 @@ func clear() -> void:
 	aim = Vector2.ZERO
 	fire = false
 	select_wand = -1
+	dash = false

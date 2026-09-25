@@ -341,6 +341,8 @@ func _on_hud(id: String) -> void:
 			_open_editor()
 		"map":
 			_open_map()
+		"dash":
+			world.controls.dash = true
 
 
 func _open_map() -> void:
@@ -495,6 +497,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.physical_keycode:
 			KEY_1, KEY_2, KEY_3:
 				world.controls.select_wand = event.physical_keycode - KEY_1
+			KEY_SPACE, KEY_SHIFT:
+				world.controls.dash = true
 			KEY_TAB, KEY_E:
 				_open_editor()
 			KEY_ESCAPE, KEY_P:
@@ -509,5 +513,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				world.controls.select_wand = (world.run.cur + 1) % world.run.wands.size()
 			JOY_BUTTON_START:
 				_open_pause(false)
+			JOY_BUTTON_A, JOY_BUTTON_B:
+				world.controls.dash = true
 			JOY_BUTTON_BACK:
 				_open_editor()

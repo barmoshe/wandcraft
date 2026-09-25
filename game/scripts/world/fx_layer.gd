@@ -16,6 +16,8 @@ var _shards: Array = []  # normal-blend pixels: [pos, vel, t, life, color, gravi
 var muzzles: Array = []  # [pos, angle, color, t]: a 2-frame cast flash at the wand tip
 const MUZZLE_LIFE := 0.06
 var poofs: Array = []    # [pos, t]: the 4-frame death puff (D6)
+var ghosts: Array = []   # [texture, top-left, flip, t]: dash afterimages (D9)
+const GHOST_LIFE := 0.2
 const POOF_FPS := 12.0
 var hits: Array = []     # [pos, angle, color, t]: the 3-frame hit spark, along the hit (D6)
 const HIT_FPS := 36.0
@@ -92,6 +94,16 @@ func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> v
 func dust(p: Vector2) -> void:
 	if _shards.size() < MAX_SHARDS:
 		_shards.append([p + Vector2(rng.randf_range(-3, 3), 0), Vector2(rng.randf_range(-10, 10), -8), 0.0, 0.35, Color(0.7, 0.72, 0.6, 0.6), 0.0])
+
+
+## A dash afterimage: the hero's frame at `center` (the sprite's centre), fading out in the
+## arcane ramp. At most a handful live at once.
+func afterimage(tex: Texture2D, center: Vector2, flip: bool) -> void:
+	if tex == null:
+		return
+	if ghosts.size() >= 6:
+		ghosts.pop_front()
+	ghosts.append([tex, (center - tex.get_size() / 2.0).round(), flip, 0.0])
 
 
 ## A 4-frame puff of dust where an enemy died (design-plan §8: the dissolve plus a poof).
@@ -225,6 +237,7 @@ func clear_all() -> void:
 	poofs.clear()
 	hits.clear()
 	booms.clear()
+	ghosts.clear()
 
 
 func update(dt: float) -> void:
@@ -261,6 +274,10 @@ func update(dt: float) -> void:
 			_sparks[w] = s
 			w += 1
 	_sparks.resize(w)
+	for i in range(ghosts.size() - 1, -1, -1):
+		ghosts[i][3] += dt
+		if ghosts[i][3] >= GHOST_LIFE:
+			ghosts.remove_at(i)
 	for i in range(hits.size() - 1, -1, -1):
 		hits[i][3] += dt
 		if hits[i][3] * HIT_FPS >= 3.0:
@@ -370,6 +387,12 @@ func _draw_trails() -> void:
 
 
 func _draw_texts() -> void:
+	var gc := Style.c("arcane:3")
+	for g in ghosts:
+		# stepped fade (3 levels), not a smooth alpha ramp
+		var a := 0.5 - 0.15 * floorf(float(g[3]) / GHOST_LIFE * 3.0)
+		var tex: Texture2D = g[0]
+		_text_node.draw_texture_rect(tex, Rect2(g[1], tex.get_size() * Vector2(-1.0 if g[2] else 1.0, 1.0)), false, Color(gc.r, gc.g, gc.b, a))
 	for bm in booms:
 		var f := int(bm[3] * BOOM_FPS)
 		if f >= 4:

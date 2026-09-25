@@ -101,6 +101,8 @@ func _draw() -> void:
 	_draw_wands(sr.position, run)
 	_draw_vitals(Vector2(sr.position.x, sr.end.y), run)
 	_draw_top_right(Vector2(sr.end.x, sr.position.y), run)
+	if Game.is_touch():
+		_draw_dash(sr)
 	_draw_map(Vector2(sr.get_center().x, sr.position.y), run)
 	if world.boss and not world.boss.dead:
 		_draw_boss_bar(sr)
@@ -246,6 +248,25 @@ func _bar(r: Rect2, k: float, fill: Color, label: String) -> void:
 	draw_rect(Rect2(inner.position + Vector2(0, inner.size.y - 1), Vector2(fw, 1)), fill.darkened(0.35))
 	if label != "":
 		_text(Vector2(r.position.x + 4, r.position.y + r.size.y - 2), label, Color.WHITE, 8)
+
+
+## D9: the dash button on phones, low on the right above the aim stick's zone; its rim fills
+## back up through the cooldown.
+func _draw_dash(sr: Rect2) -> void:
+	var c := Vector2(sr.end.x - 26, sr.end.y - 74)
+	var p := world.player
+	var ready := p.dash_cd <= 0.0
+	draw_circle(c, 15.0, INK)
+	draw_circle(c, 13.0, Style.c("arcane:1") if ready else Style.c("night:2"))
+	var k := 1.0 - clampf(p.dash_cd / (Player.DASH_T + Player.DASH_CD), 0.0, 1.0)
+	draw_arc(c, 13.0, -PI / 2.0, -PI / 2.0 + TAU * k, 24, Style.c("arcane:4") if ready else Style.c("arcane:2"), 2.0)
+	# three chevrons: the dash
+	for i in 3:
+		var x := c.x - 5 + i * 4
+		var col := Style.c("arcane:4") if ready else Style.c("night:4")
+		draw_line(Vector2(x, c.y - 4), Vector2(x + 3, c.y), col, 1.0)
+		draw_line(Vector2(x + 3, c.y), Vector2(x, c.y + 4), col, 1.0)
+	buttons["dash"] = Rect2(c - Vector2(16, 16), Vector2(32, 32))
 
 
 func _draw_vitals(bl: Vector2, run: RunState) -> void:
