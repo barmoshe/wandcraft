@@ -44,7 +44,7 @@ var casts_fired := 0
 var summons: Array[Summon] = []
 var max_depth := MAX_DEPTH         # Stack Overflow raises it (set per cast)
 var knock_mul := 1.0               # Force Push
-var legacy := false                # Legacy Code
+var legacy_slot := -1              # Legacy Code: the wand's last slot hits harder (-1: not owned)
 var blockers: Array[Bullet] = []   # player bullets that stop enemy shots this tick
 var _later: Array = []             # Pipeline: casts waiting for their turn
 
@@ -131,7 +131,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		w.rech_max = rc
 	max_depth = int(Relics.stat(run, "depth"))
 	knock_mul = Relics.stat(run, "knock")
-	legacy = run != null and run.has_relic(&"legacy_code")
+	legacy_slot = w.slots.size() - 1 if run != null and run.has_relic(&"legacy_code") else -1
 	var opt := Opt.new()
 	opt.src = w
 	opt.sc = w.def.scatter
@@ -189,8 +189,8 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt, now := false) ->
 	if m.reverse:
 		ang += PI
 		dmg *= REVERSE_MUL
-	if legacy:
-		dmg *= 2.5 if c.slot == 0 else 0.8
+	if legacy_slot >= 0:
+		dmg *= 2.5 if c.slot == legacy_slot else 0.8
 	var crit := d.crit + m.crit + float(d.param("crit_add", lv, 0.0))
 	var base := int(d.param("count", lv, 1))
 	if base > 1 and run and run.has_relic(&"aperture"):

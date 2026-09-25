@@ -137,12 +137,14 @@ func test_cold_start_and_legacy_code() -> void:
 	eq(base, 1.5, "the Mote closed the cycle, so the next cast is a Cold Start")
 	world.run.relics.erase(&"cold_start")
 	world.run.add_relic(&"legacy_code")
-	world.spells.legacy = true
+	# the start spell sits in the last slot, so that is the one Legacy Code rewards
+	w = _fire([null, null, null, null, &"mote"])
+	eq(world.spells.legacy_slot, 4, "the wand's last slot")
 	var c := WandProgram.compile(w, 0, Mods.new()).groups[0]
 	world.damage_done = 0.0
 	world.spells.emit_cast(c, world.player.tip(), -PI / 2.0, SpellRunner.Opt.new())
 	_steps(0.5)
-	ok(world.damage_done >= 6.0 * 2.5 - 0.01, "slot 1 hits x2.5 (%.1f)" % world.damage_done)
+	ok(world.damage_done >= 6.0 * 2.5 - 0.01, "the last slot hits x2.5 (%.1f)" % world.damage_done)
 
 
 func test_rot_index_crashes_sooner() -> void:
