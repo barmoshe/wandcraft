@@ -68,3 +68,6 @@ Individual Apple Developer account (Bar buys it); bundle id `com.barbuilds.wandc
 - `d02d6c1` D8.4: buses + sidechain duck, voice classes, layered/interactive music, stingers, haptics, all sounds wired.
 - `2a84448` D8.5: credits screen (engine licences), web music-bus check.
 - `8fdc714` perf/tests: O(1) number merge; stress test = best-of-2 quiet quartile (desktop load swings the mean 9-18 ms); 168/168.
+- `bdafb9d` fix: freed wave enemies count as down (typed lambda errors on web since D4); bench unchanged 80/10.
+- `0bac598` D9.1: the dash (i-frames, afterimages, cooldown; keys, pad, touch button).
+- `b9796e2` tests: stress guard = storm/calibration ratio (< 5.2; reads 4.2-4.4 under any load) + one-frame ceiling; 170/170.
