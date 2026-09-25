@@ -57,3 +57,4 @@ from the Linux container, the stress roster pinned.
 - `d8b9640` D6.4: Loop head rig (12 frames x 16 headings), Copy-Paste on glitched hero clips; 154/154.
 - `4397b5d` D6.5: hit sparks, 8-frame explosions, trails, 3-tier merged numbers, filling floor decals; 162/162.
 - `4acd779` D6.6: ambient tufts/motes/leaves (8 fps, visual-only), front-cap lips y-sorted with actors; 163/163.
+- `5f5c13a` HUD icons (Bar, mid-D6): pre-rotated per-gem wand badge, ramp-drawn coin/pause/bag/heart/drop, in-cell 3x5 relic counters; 163/163.
