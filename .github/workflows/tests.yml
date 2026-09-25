@@ -1,0 +1,27 @@
+# Runs the unit tests on every push and pull request, headless on Linux with Godot 4.7.2
+# (the same tools/test.sh a developer runs). Nothing is built or deployed here.
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Godot
+        id: godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-4.7.2-linux
+      - name: Download Godot 4.7.2
+        if: steps.godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -sSfL -o /tmp/g.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q /tmp/g.zip -d ~/godot
+          chmod +x ~/godot/Godot_v4.7.2-stable_linux.x86_64
+      - name: Tests
+        run: GODOT=$HOME/godot/Godot_v4.7.2-stable_linux.x86_64 tools/test.sh
