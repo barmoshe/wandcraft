@@ -83,8 +83,15 @@
     - A shockwave on phase changes.
     - 154 tests.
     - Bench: editing bot 80%, never-editing bot 10%.
-  - **Next up:** D6 (animation rigs), D8 (music and sound), D9 (onboarding and meta). See `HANDOFF.md`.
-  - **Known:** the 1,300-bullet stress test sits right at its 10 ms budget on the dev container, so it passes or fails from run to run on noise. A/B timing shows no regression from D2 or D3.
+  - **D6 animation (0.11.0): done** (ADR 0018). Work moved to Bar's Mac (Godot 4.7.2, `tools/lib/platform.sh`).
+    - `RigDef` and `RigBaker`: parts, whole-pixel poses, row squash and stretch, one-frame lag, tears, crumble; RotSprite-style pre-rotation.
+    - The hero: two facings, 50 frames (idle, run, cast, dash, hurt, death); the wand at 16 pre-rotated angles with its gem in the wand's colour.
+    - Every enemy on a rig (move, telegraph, attack) picked by its AI state, and a death poof. The Loop's head at 16 headings; Copy-Paste on the hero's clips.
+    - VFX: directional hit sparks, 8-frame explosions, bullet trails, merged damage numbers in three tiers, telegraphs as filling floor decals.
+    - Ambient life (tufts, motes, leaves) and front-cap lips that hide the feet of whatever stands behind a wall.
+    - HUD icons redrawn (Bar's request): wand badge, coin, pause, bag, heart, mana drop, in-icon relic counters.
+    - 163 tests. Stress tick 8–9 ms on the Mac (budget 10 ms).
+  - **Next up:** D8 (music and sound), D9 (onboarding and meta), then store prep. The order and log live in `research/mvp-finish-plan.md`.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
