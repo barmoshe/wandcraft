@@ -1,6 +1,6 @@
 # wandcraft — STATUS
 
-- Updated: 2026-09-24
+- Updated: 2026-09-25
 
 ## MVP: design-first (ADR 0011, `research/design-plan.md`)
 - **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
@@ -36,7 +36,22 @@
     - Player magic moved off pink.
     - Palette-ramp status recolour and elite outline in the enemy shader; whole-pixel bob.
     - `tools/artsheet.sh check` runs the value and silhouette tests, and the dark enemies were lifted to pass.
-  - **Next up:** D2, the spell system.
+  - **D2 spell system (0.6.0): done** (ADR 0013).
+    - Rewards go to the bag. TAKE & EQUIP opens the editor.
+    - Start-room loadout choice: Twig (3 slots) or Stub (2 slots). The forge sells +1 slot. 2 copies merge.
+    - 56 spells:
+      - Firewall, Bitrot Spore, Hex Cursor, Ping.
+      - Orbit, Reverse, Siphon.
+      - Static and Rot coats, Pipeline, Sleep.
+      - Debugger runes: HEAD, IF/ELSE, GOTO, #include.
+      - Familiars: Daemon, Turret, Duck.
+      - Mana Well, Watchdog.
+    - Statuses and reactions: freeze, Static arcs, Bitrot crash, Thermal Shock, Overclocked. Enemies show status pips.
+    - Economy: rarity pacing and shop Deprecate.
+    - Editor: the rotation mana bar, IF/ELSE preview and an L3 line.
+    - The HUD pointer follows the next slot read.
+    - Bench: the editing bot (`WandPlanner`) survives 70%, the bot that never edits 0%. 103 unit tests.
+  - **Next up:** D3, relics and evolutions. D3 also takes Corrupted rarity and "Enables" chips.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**

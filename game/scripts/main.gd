@@ -105,6 +105,9 @@ func _start_from_args() -> void:
 		Game.god_mode = true
 	if _args.get("loadout", "") == "strong":
 		_strong_loadout(r)
+	elif _args.get("loadout", "") == "d2":
+		# screenshots of the D2 spells: familiars, a Firewall, Bitrot and orbiting Motes
+		r.wands[0] = WandState.make(Catalog.wand(&"oak"), [&"daemon", &"mote", &"turret", &"firewall", &"rot_coat", &"bitrot", &"orbit", &"mote"])
 	if _args.has("step"):
 		r.step = clampi(int(_args["step"]), 0, Chapter.PLAN.size() - 1)
 	if _args.has("kind"):
@@ -123,7 +126,8 @@ func _start_from_args() -> void:
 		r.cur = clampi(int(_args["wand"]) - 1, 0, r.wands.size() - 1)
 	match _args.get("screen", ""):
 		"reward":
-			_on_ui_request(&"reward", {"kind": &"spell", "offer": Rewards.offer(r, &"relic" if _args.get("offer", "") == "relic" else &"spell")})
+			var ok_ := StringName(_args.get("offer", "spell"))
+			_on_ui_request(&"reward", {"kind": ok_, "offer": Rewards.offer(r, ok_)})
 		"shop":
 			r.shop = Rewards.shop_stock(r)
 			_on_ui_request(&"shop", {})
@@ -206,10 +210,10 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 func _bot_answer(kind: StringName, data: Dictionary) -> void:
 	match kind:
 		&"reward":
-			if not data["offer"].is_empty():
-				Rewards.grant(world.run, data["offer"][0])
+			WandPlanner.bot_answer(world.run, kind, data["offer"])
 			world.reward_taken()
 		&"shop", &"forge":
+			WandPlanner.bot_answer(world.run, kind)
 			world.ui_done()
 		&"victory", &"defeat":
 			SaveGame.record_run(world.run)

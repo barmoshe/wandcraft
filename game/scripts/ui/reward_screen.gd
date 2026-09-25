@@ -86,6 +86,14 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	if item["t"] == &"spell":
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
 		text(Vector2(r.position.x + 7, r.end.y - 5), spell_stats(item["id"]), Style.c("cyan:4"))
+	elif item["t"] == &"loadout":
+		# the starting spell sits by the wand, and the wand's numbers go at the bottom
+		var lo: Dictionary = RunState.LOADOUTS[item["id"]]
+		var first: StringName = lo["spells"][0]
+		icon_at(Icons.spell(Catalog.spell(first)), ic + Vector2(22, 10))
+		var wd := Catalog.wand(lo["wand"])
+		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
+		text(Vector2(r.position.x + 7, r.end.y - 5), "%d SLOTS  %d MANA  %.2fs" % [wd.slots, int(wd.max_mana), wd.cast_delay], Style.c("cyan:4"))
 
 
 func _on_button(id: String) -> void:

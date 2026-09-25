@@ -5,12 +5,17 @@ extends "res://tests/unit/test_helpers.gd"
 ## makes it a fair stand-in for a new human player. Targets (research/balance-w1.md):
 ##   survival 40-85% (hard enough to matter, easy enough that a new player gets there in
 ##   2-4 tries), mini-boss 20-90 s, boss 30-150 s.
+## D2 runs two bots: one that edits its wand (WandPlanner: picks rewards by what they add,
+## equips from the bag, buys a slot at the forge) and one that never edits (takes the first
+## offer, leaves the bag alone). The design wants editing to matter: the D4 targets are
+## 60-80% for the editor and 15-30% for the non-editor; until D4's enemy counters land, only
+## the editor is held to the band and the non-editor is reported.
 
 const DT := 1.0 / 60.0
 const SEEDS := [11, 22, 33, 44, 55, 66, 77, 88, 99, 110]
 
 
-func _play(seed_value: int) -> Dictionary:
+func _play(seed_value: int, edits := true) -> Dictionary:
 	var world := World.new()
 	world.auto_step = false
 	runner.root.add_child(world)
@@ -18,7 +23,7 @@ func _play(seed_value: int) -> Dictionary:
 	world.bot = true
 	var res := {"won": false, "step": 0, "time": 0.0, "hp_lost": 0.0, "rooms": 0, "mini": -1.0, "boss": -1.0, "path": []}
 	var state := {"victory": false, "defeat": false}
-	world.ui_request.connect(_answer.bind(world, state))
+	world.ui_request.connect(_answer.bind(world, state, edits))
 	var by: Dictionary = {}
 	res["by"] = by
 	var on_hurt := func(a: float) -> void:
@@ -55,6 +60,14 @@ func _play(seed_value: int) -> Dictionary:
 
 
 func test_world_one_balance() -> void:
+	var rate := _bench(true)
+	ok(rate >= 0.4 and rate <= 0.85, "editing bot: survival %.0f%% is inside 40-85%%" % (rate * 100.0))
+	var lazy := _bench(false)
+	print("    editing %.0f%% vs never editing %.0f%%" % [rate * 100.0, lazy * 100.0])
+	ok(lazy < rate, "editing the wand matters (%.0f%% vs %.0f%%)" % [rate * 100.0, lazy * 100.0])
+
+
+func _bench(edits: bool) -> float:
 	Game.god_mode = false
 	Game.auto_fire = true
 	SaveGame.enabled = false
@@ -62,9 +75,10 @@ func test_world_one_balance() -> void:
 	var stalls := 0
 	var minis: Array = []
 	var bosses: Array = []
-	print("\n    seed  result   step  time   hp_lost  rooms  mini   boss")
+	print("\n    %s bot" % ("EDITING" if edits else "NEVER-EDITING"))
+	print("    seed  result   step  time   hp_lost  rooms  mini   boss")
 	for s in SEEDS:
-		var r := _play(s)
+		var r := _play(s, edits)
 		if r["won"]:
 			wins += 1
 		if r["time"] >= 899.0:
@@ -78,11 +92,13 @@ func test_world_one_balance() -> void:
 	print("    survival %.0f%%, mini-boss avg %.0fs, boss avg %.0fs" % [rate * 100.0, _avg(minis), _avg(bosses)])
 	SaveGame.enabled = true
 	eq(stalls, 0, "every run ends (a stall means a bot or game bug, not balance)")
-	ok(rate >= 0.4 and rate <= 0.85, "survival %.0f%% is inside 40-85%%" % (rate * 100.0))
+	if not edits:
+		return rate
 	if not minis.is_empty():
 		ok(_avg(minis) >= 20.0 and _avg(minis) <= 90.0, "mini-boss takes 20-90 s (%.0f)" % _avg(minis))
 	if not bosses.is_empty():
 		ok(_avg(bosses) >= 30.0 and _avg(bosses) <= 150.0, "boss takes 30-150 s (%.0f)" % _avg(bosses))
+	return rate
 
 
 func _avg(a: Array) -> float:
@@ -94,12 +110,16 @@ func _avg(a: Array) -> float:
 	return s / a.size()
 
 
-func _answer(kind: StringName, data: Dictionary, world: World, state: Dictionary) -> void:
+func _answer(kind: StringName, data: Dictionary, world: World, state: Dictionary, edits: bool) -> void:
 	if kind == &"reward":
-		if not data["offer"].is_empty():
+		if edits:
+			WandPlanner.bot_answer(world.run, kind, data["offer"])
+		elif not data["offer"].is_empty():
 			Rewards.grant(world.run, data["offer"][0])
 		world.reward_taken()
 	elif kind == &"shop" or kind == &"forge":
+		if edits:
+			WandPlanner.bot_answer(world.run, kind)
 		world.ui_done()
 	elif kind == &"victory":
 		state["victory"] = true

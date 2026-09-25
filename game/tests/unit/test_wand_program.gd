@@ -186,3 +186,32 @@ func test_level_three_changes_behaviour() -> void:
 	eq(int(d.param("pierce", 2, 0)), 0, "a level-2 one does not")
 	eq(Catalog.resolve(&"linger"), &"quicken", "Linger folded into Long Range")
 	eq(Catalog.resolve(&"shatter"), &"", "Shatter was cut")
+
+
+# ---- the bot's wand planner ----
+
+func test_planner_equips_from_the_bag() -> void:
+	var r := RunState.create(5)
+	r.bag = [{"id": &"empower", "lv": 1}, {"id": &"fan", "lv": 1}]
+	var before := WandPlanner.score(r.wand(), r)
+	ok(WandPlanner.improve(r), "it edited the wand")
+	ok(WandPlanner.score(r.wand(), r) > before, "and the wand got better")
+	var ids := r.wand().slots.filter(func(s: Variant) -> bool: return s != null).map(func(s: Dictionary) -> StringName: return s["id"])
+	ok(ids.has(&"fan"), "the Fan is equipped (%s)" % [ids])
+	eq(r.bag.size() + ids.size(), 3, "nothing lost")
+
+
+func test_planner_never_makes_a_wand_worse() -> void:
+	for ids in [[&"then", &"mote", &"empower"], [&"mote", &"empower", null], [&"loop", &"fan", &"seed"]]:
+		var r := RunState.create(5)
+		r.wand().set_slots(ids)
+		r.bag = [{"id": &"burst", "lv": 1}, {"id": &"heatsink", "lv": 1}]
+		var before := WandPlanner.score(r.wand(), r)
+		WandPlanner.improve(r)
+		ok(WandPlanner.score(r.wand(), r) >= before, "%s: %.1f -> %.1f" % [ids, before, WandPlanner.score(r.wand(), r)])
+
+
+func test_planner_picks_the_offer_that_helps() -> void:
+	var r := RunState.create(5)
+	var offer := [{"t": &"spell", "id": &"heatsink"}, {"t": &"spell", "id": &"empower"}]
+	eq(WandPlanner.pick(r, offer), 1, "Empower helps a lone Mote more than a Heat Sink")

@@ -49,3 +49,16 @@ Every one of these would also hit real players:
 
 ## After the 0.4 arsenal (2026-09-24)
 New spells and relics, tag-weighted rewards and +20% base auto-aim reach (Keen Scope cut). Same bench, 10 seeds: **70% survival**, mini-boss about 58 s, boss about 41 s, no stalls. It stays inside the guardrail (40–85%), so no tuning was needed.
+
+## D2 spell system: two bots (2026-09-25)
+The bench now runs two bots over the same 10 seeds (`tests/bench/test_balance.gd`):
+- **Editing bot** (`WandPlanner`):
+  - Takes the offer that raises a rough DPS estimate most.
+  - Equips from the bag and reorders the wand.
+  - Buys a forge slot and a shop spell when they help.
+  - **Survival 70%**, mini-boss about 61 s, boss about 41 s. No stalls.
+- **Never-editing bot:**
+  - Takes the first offer and leaves the bag alone, so it plays a whole run with the starting Mote.
+  - **Survival 0%.** Every run dies at the boss, after beating the mini-boss in about 82 s.
+
+Editing the wand now decides the run, as the design wants. The D4 target for the bot that never edits is 15–30%, not 0%: the enemy counters and the curriculum first run should leave a non-editor some chance, and early rewards may need to lean toward shooting spells.

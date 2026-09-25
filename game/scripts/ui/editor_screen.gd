@@ -7,7 +7,8 @@ extends Screen
 ##   tap a wand's name  -> that wand becomes the one you cast with
 ##   REVERT             -> undo everything since the editor opened
 ## The info panel always shows the live cast preview of the wand in focus: what each press
-## of the trigger will actually cast, which makes boosts and triggers learnable.
+## of the trigger will actually cast, which makes boosts and triggers learnable. Under it a
+## bar weighs one full rotation's mana against what the wand regenerates meanwhile (D2).
 
 const SOCK := 24.0
 const GAP := 2.0
@@ -136,6 +137,8 @@ func _info(ir: Rect2) -> void:
 	var plans := WandProgram.preview_cycle(w)
 	if plans.is_empty():
 		text(Vector2(ir.position.x + 8, y + 9), "No shooting spell: this wand does nothing.", Color("#ff8a9a"))
+	else:
+		y = _sustain_bar(w, plans, Rect2(ir.position.x + 8, y, ir.size.x - 16, 18)) + 4
 	for pi in mini(plans.size(), 6):
 		var plan: WandProgram.Plan = plans[pi]
 		if y + 14 > ir.end.y - 4:
@@ -150,18 +153,56 @@ func _info(ir: Rect2) -> void:
 		y += 15
 
 
-## Draws one compiled cast: its spell icon, then "> payload" for triggers and carriers.
+## One full rotation of the wand: its mana, how long it takes, and what regenerates meanwhile.
+## {"cost", "time", "regen"}; sustainable when regen covers cost.
+func rotation(w: WandState, plans: Array) -> Dictionary:
+	var cost := 0.0
+	var t := 0.0
+	for plan: WandProgram.Plan in plans:
+		cost += plan.mana
+		t += maxf(0.03, w.def.cast_delay + plan.delay_add)
+		if plan.wrapped:
+			t += maxf(0.03, w.recharge_time() + plan.recharge_add)
+	var regen := w.def.regen * w.regen_mul() * Relics.mana_regen_mul(run) * t
+	return {"cost": cost, "time": t, "regen": regen}
+
+
+func _sustain_bar(w: WandState, plans: Array, r: Rect2) -> float:
+	var rot := rotation(w, plans)
+	var cost: float = rot["cost"]
+	var regen: float = rot["regen"]
+	var ok_ := regen >= cost
+	var c := Style.c("leaf:4") if ok_ else (Style.c("gold:3") if w.max_mana() >= cost * 3.0 else Color("#ff6b7a"))
+	var label := "ROTATION %d MP / %.1fs" % [roundi(cost), rot["time"]]
+	text(Vector2(r.position.x, r.position.y + 8), label, c)
+	var bar := Rect2(r.position.x, r.position.y + 11, r.size.x, 3)
+	draw_rect(bar, Color(0.02, 0.02, 0.06))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(regen / maxf(1.0, cost), 0.0, 1.0), 3)), c)
+	var tip := "sustained: regen keeps up" if ok_ else "empties after %d rotations" % maxi(1, int(w.max_mana() / maxf(1.0, cost - regen)))
+	text(Vector2(r.position.x, r.position.y + 22), tip, MUTED)
+	return r.position.y + 24
+
+
+## Draws one compiled cast: its spell icon, then "> payload" for triggers and carriers, and
+## "? near | else" for an IF / ELSE node.
 func _preview_node(c: CastNode, at: Vector2, max_x: float) -> float:
 	if at.x > max_x:
 		return at.x
-	icon_at(Icons.spell(c.spell), at + Vector2(6, 0))
-	var x := at.x + 13
+	var x0 := at.x
+	if c.cond:
+		text(Vector2(x0, at.y + 3), "?", Style.c("cyan:4"))
+		x0 += 6
+	icon_at(Icons.spell(c.spell), Vector2(x0, at.y) + Vector2(6, 0))
+	var x := x0 + 13
 	if c.mods.multi > 0:
 		text(Vector2(x, at.y + 3), "x%d" % (c.mods.multi + 1), GOLD)
 		x += 12
 	if c.payload and x < max_x:
 		text(Vector2(x, at.y + 3), ">", Color("#ffe066"))
 		x = _preview_node(c.payload, Vector2(x + 6, at.y), max_x)
+	if c.cond and c.alt and x < max_x:
+		text(Vector2(x, at.y + 3), "|", Style.c("cyan:4"))
+		x = _preview_node(c.alt, Vector2(x + 5, at.y), max_x)
 	return x
 
 

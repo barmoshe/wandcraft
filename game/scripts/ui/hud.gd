@@ -177,6 +177,7 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		var w: WandState = run.wands[wi]
 		var sel := wi == run.cur
 		var n := w.slots.size()
+		var nxt := next_slot(w)
 		var row := Rect2(origin.x, y, 22 + n * (SOCKET + 1) + 3, SOCKET + 7)
 		widest = maxf(widest, row.size.x)
 		wand_rows.append(row)
@@ -204,8 +205,13 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 			if s != null:
 				if int(s["lv"]) > 1:
 					_text(c + Vector2(3, 7), "+".repeat(int(s["lv"]) - 1), GOLD, 8)
-			if sel and i == w.ptr and w.rech <= 0.0:
+			if sel and i == nxt and w.rech <= 0.0:
+				# the cast pointer: the slot the next press reads first
+				draw_arc(c, SOCKET / 2.0 - 1.0, -PI * 0.85, -PI * 0.15, 8, Color(GOLD, 0.8), 1.0)
 				draw_colored_polygon(PackedVector2Array([c + Vector2(-2, 9), c + Vector2(2, 9), c + Vector2(0, 7)]), GOLD)
+			if i == n - 1 and w.background() != null:
+				# Daemon Rod: the background slot's timer
+				draw_arc(c, SOCKET / 2.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - clampf(w.bg_t / SpellRunner.BG_EVERY, 0.0, 1.0)), 16, Style.c("violet:4"), 1.0)
 		var strip := Rect2(row.position.x + 23, row.end.y - 3, n * (SOCKET + 1) - 1, 2)
 		draw_rect(strip, Color(0.02, 0.02, 0.06))
 		draw_rect(Rect2(strip.position, Vector2(strip.size.x * w.mana / w.max_mana(), 2)), Color("#4aa8ff"))
@@ -218,6 +224,18 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 	_button("edit", er, "bag", Color("#c9a8ff"))
 	if not run.bag.is_empty():
 		_text(er.position + Vector2(BTN + 4, 17), "%d in bag" % run.bag.size(), Color(0.75, 0.7, 0.85), 8)
+
+
+## The slot the wand reads first on its next cast (skipping empty slots and passives, and
+## right to left on a Mirror Rod), or -1.
+static func next_slot(w: WandState) -> int:
+	var n := w.slots.size() - (1 if w.def.background_slot and w.slots.size() > 1 else 0)
+	for p in range(w.ptr, n):
+		var i := n - 1 - p if w.def.reverse else p
+		var s: Variant = w.slots[i]
+		if s != null and Catalog.spell(s["id"]).kind != SpellDef.Kind.PASSIVE:
+			return i
+	return -1
 
 
 func _bar(r: Rect2, k: float, fill: Color, label: String) -> void:

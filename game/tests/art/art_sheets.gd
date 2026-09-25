@@ -74,6 +74,7 @@ static func icons(s: Node) -> void:
 	s.section("spells")
 	var all_spells: Dictionary = IconSpells.ART.duplicate()
 	all_spells.merge(IconSpellsB.ART)
+	all_spells.merge(IconSpellsC.ART)
 	for id in all_spells:
 		var e: Dictionary = all_spells[id]
 		var kind: int = KINDS.get(e.get("kind", ""), Catalog.spell(id).kind if Catalog.spells().has(id) else SpellDef.Kind.PROJ)
