@@ -96,10 +96,16 @@ func _paint() -> void:
 		button(Rect2(cx - 70, by, 140, 28), "new", "NEW RUN")
 	else:
 		button(Rect2(cx - 70, by, 140, 32), "new", "NEW RUN", "primary")
-	if int(meta.get("runs", 0)) > 0:
-		text_center(cx, sr.end.y - 6, "Runs %d   Wins %d   Enemies defeated %d" % [meta["runs"], meta["wins"], meta["kills"]], MUTED)
 	button(Rect2(sr.end.x - 64, sr.end.y - 26, 64, 24), "credits", "CREDITS", "ghost")
 	button(Rect2(sr.end.x - 134, sr.end.y - 26, 66, 24), "codex", "CODEX", "ghost")
+	if int(meta.get("runs", 0)) > 0:
+		# centered in the gap between the wizard and CODEX, shortened when the gap is narrow
+		var gap_l := hero_x + sz.x / 2.0 + 8.0
+		var gap_r := sr.end.x - 134 - 8.0
+		var stats := "Runs %d   Wins %d   Enemies defeated %d" % [meta["runs"], meta["wins"], meta["kills"]]
+		if Game.font("small").get_string_size(stats, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x > gap_r - gap_l:
+			stats = "Runs %d  Wins %d  Kills %d" % [meta["runs"], meta["wins"], meta["kills"]]
+		text_center((gap_l + gap_r) / 2.0, sr.end.y - 6, stats, MUTED)
 	# D9: Bug Reports, one tier per win (up to five)
 	var max_heat := mini(5, int(meta.get("wins", 0)))
 	if max_heat > 0:
@@ -113,7 +119,8 @@ func _paint() -> void:
 	var build := Game.web_build()
 	if build != "":
 		ver += "  web " + build
-	text(Vector2(sr.position.x, sr.end.y - 6), ver, MUTED.darkened(0.3))
+	# top right: the bottom left belongs to the wizard, the top left to the moon
+	text_right(sr.end.x, sr.position.y + 10, ver, MUTED.darkened(0.3))
 
 
 func _on_button(id: String) -> void:
