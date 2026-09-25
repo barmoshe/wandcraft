@@ -13,7 +13,7 @@ const TERMS := [
 	[1, "Boost", "Powers up every spell on its right until the wand recharges."],
 	[2, "Trigger", "Goes between two spells: the one on its left releases the one on its right."],
 	[3, "Passive", "Works from any slot."],
-	[-1, "Pierce / Blast / Shock", "Break shields / tear off armor / strip wards."],
-	[-1, "Burn, Chill, Charged", "Fire hurts over time. 3 chills freeze. A charged enemy passes its next hit on."],
+	[-1, "Keywords", "Pierce breaks shields. Blast tears off armor. Shock strips wards."],
+	[-1, "Status", "Burn hurts over time. 3 chills freeze. A charged enemy passes its next hit on."],
 	[-1, "Level", "Two copies of a spell merge into the next level (up to 3)."],
 ]

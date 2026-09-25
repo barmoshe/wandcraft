@@ -58,3 +58,51 @@ func test_a_copy_you_hold_shows_the_merged_level() -> void:
 	eq(Rewards.level_after(r, &"empower"), 2, "one copy at level 1: merges to 2")
 	r.bag[0]["lv"] = 2
 	eq(Rewards.level_after(r, &"empower"), 1, "a level-2 copy alone does not merge with a level-1 pick")
+
+
+## Design v2: one vocabulary. Old words stay out of anything a player reads.
+const BANNED := ["rotation", "payload", "carrier", "debugger", "merge commit", "familiar", " mp ", "l3", "left spell", "right one"]
+
+
+func _player_texts() -> Array:
+	var out: Array = []
+	for id in Catalog.spells():
+		var d := Catalog.spell(id)
+		out.append(d.title)
+		for lv in [1, 2, 3]:
+			out.append(d.text_at(lv))
+	for id in Relics.DEFS:
+		out.append(Relics.DEFS[id]["title"])
+		out.append(Rewards.item_desc({"t": &"relic", "id": id}))
+	for id in Catalog.wands():
+		out.append(Rewards.wand_desc(Catalog.wand(id)))
+	for t in Glossary.TERMS:
+		out.append(t[2])
+	for k in Tutorial.COACH:
+		out.append(Tutorial.COACH[k])
+	for k in Hints.TIPS:
+		out.append_array(Hints.TIPS[k])
+	return out
+
+
+func test_no_old_words_in_player_text() -> void:
+	for t in _player_texts():
+		var low := " " + String(t).to_lower() + " "
+		for w in BANNED:
+			ok(not low.contains(w), "'%s' in: %s" % [w.strip_edges(), t])
+
+
+func test_no_two_things_share_a_name() -> void:
+	var seen := {}
+	for id in Catalog.spells():
+		var t := Catalog.spell(id).title.to_lower()
+		ok(not seen.has(t), "spell name used twice: %s" % t)
+		seen[t] = true
+	for id in Relics.DEFS:
+		var t := String(Relics.DEFS[id]["title"]).to_lower()
+		ok(not seen.has(t), "relic name used twice: %s" % t)
+		seen[t] = true
+	for id in Catalog.wands():
+		var t := Catalog.wand(id).title.to_lower()
+		ok(not seen.has(t), "wand name used twice: %s" % t)
+		seen[t] = true

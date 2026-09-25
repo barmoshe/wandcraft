@@ -53,8 +53,9 @@ func _paint() -> void:
 			button(Rect2(cx - bw * 1.5 - 6 + k * (bw + 6), y, bw, 26), b[0], "%s %s" % [b[1], "ON" if b[2] else "OFF"])
 		y += 30
 	y += 4
-	button(Rect2(cx - 146, y, 140, 26), "hints", "SHOW TIPS AGAIN", "ghost")
-	button(Rect2(cx + 6, y, 140, 26), "abandon", "TAP AGAIN TO ABANDON" if confirm_abandon else "ABANDON RUN", "danger")
+	button(Rect2(cx - bw * 1.5 - 6, y, bw, 26), "gloss", "HOW IT WORKS", "ghost")
+	button(Rect2(cx - bw / 2.0, y, bw, 26), "hints", "SHOW TIPS", "ghost")
+	button(Rect2(cx + bw / 2.0 + 6, y, bw, 26), "abandon", "SURE? TAP" if confirm_abandon else "ABANDON RUN", "danger")
 	var diag := Game.web_sound()
 	if diag != "":
 		# web only: lets a tester report why a phone is silent without a Mac inspector.
@@ -71,6 +72,8 @@ func _paint() -> void:
 				text(Vector2(sr.position.x + 4, sr.end.y - 2 - (lines.size() - 1 - i) * 10), lines[i], faint)
 		else:
 			text_center(cx, y + 26 + 11, "  -  ".join(lines), faint)
+	if show_glossary:
+		glossary_panel()
 
 
 func _on_button(id: String) -> void:

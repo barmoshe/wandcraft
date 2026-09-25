@@ -10,6 +10,7 @@ extends Control
 ## Everything sits inside the safe area (notch, Dynamic Island, home bar).
 
 const SOCKET := 18    # the 0.4 icons are 18 px; their frame is the socket
+const SGAP := 4       # between sockets: room for the cast-direction chevron (design v2)
 const BTN := 26.0
 const GOLD := Style.UI_GOLD
 const INK := Style.INK
@@ -179,7 +180,7 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		var sel := wi == run.cur
 		var n := w.slots.size()
 		var nxt := next_slot(w)
-		var row := Rect2(origin.x, y, 22 + n * (SOCKET + 1) + 3, SOCKET + 7)
+		var row := Rect2(origin.x, y, 22 + n * (SOCKET + SGAP) + 3 - SGAP + 1, SOCKET + 7)
 		widest = maxf(widest, row.size.x)
 		wand_rows.append(row)
 		_panel(row, sel)
@@ -190,8 +191,15 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 		draw_texture(wt, (badge.get_center() + Vector2(2, 2) - wt.get_size() / 2.0).round(), Color.WHITE if sel else Color(0.62, 0.6, 0.7))
 		_text(badge.position + Vector2(1, 7), str(wi + 1), GOLD if sel else Color(0.55, 0.5, 0.65), 8, "bold")
 		for i in n:
-			var c := row.position + Vector2(23 + i * (SOCKET + 1) + SOCKET / 2.0, 3 + SOCKET / 2.0 + 1)
-			var lit := w.flash == i and w.cd > 0.0
+			var c := row.position + Vector2(23 + i * (SOCKET + SGAP) + SOCKET / 2.0, 3 + SOCKET / 2.0 + 1)
+			# design v2: every slot the last cast read lights up, left to right as it fires
+			var lit := w.lit.has(i) and world.time - w.lit_at < 0.16
+			if i < n - 1:
+				var cc := c + Vector2(SOCKET / 2.0 + SGAP / 2.0, 0)
+				var d := -1.0 if w.def.reverse else 1.0
+				var ccol := Color(GOLD, 0.7) if sel else Color(0.45, 0.4, 0.55)
+				draw_line(cc + Vector2(-1 * d, -2), cc + Vector2(1 * d, 0), ccol, 1.0)
+				draw_line(cc + Vector2(1 * d, 0), cc + Vector2(-1 * d, 2), ccol, 1.0)
 			var s: Variant = w.slots[i]
 			if s == null:
 				draw_circle(c, SOCKET / 2.0 - 1.0, INK)
@@ -201,7 +209,7 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 				var ic := Icons.spell(Catalog.spell(s["id"]))
 				draw_texture(ic, (c - ic.get_size() / 2.0).round(), Color.WHITE if sel else Color(0.7, 0.7, 0.78))
 			if lit:
-				draw_arc(c, SOCKET / 2.0, 0.0, TAU, 20, GOLD, 1.0)
+				draw_arc(c, SOCKET / 2.0, 0.0, TAU, 20, Style.c("cyan:4"), 2.0)
 			if s != null:
 				if int(s["lv"]) > 1:
 					_text(c + Vector2(3, 7), "+".repeat(int(s["lv"]) - 1), GOLD, 8)
@@ -212,7 +220,7 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 			if i == n - 1 and w.background() != null:
 				# Daemon Rod: the background slot's timer
 				draw_arc(c, SOCKET / 2.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - clampf(w.bg_t / SpellRunner.BG_EVERY, 0.0, 1.0)), 16, Style.c("violet:4"), 1.0)
-		var strip := Rect2(row.position.x + 23, row.end.y - 3, n * (SOCKET + 1) - 1, 2)
+		var strip := Rect2(row.position.x + 23, row.end.y - 3, n * (SOCKET + SGAP) - SGAP, 2)
 		draw_rect(strip, Color(0.02, 0.02, 0.06))
 		draw_rect(Rect2(strip.position, Vector2(strip.size.x * w.mana / w.max_mana(), 2)), Color("#4aa8ff"))
 		if w.rech > 0.0:
@@ -267,6 +275,18 @@ func _draw_dash(sr: Rect2) -> void:
 		draw_line(Vector2(x, c.y - 4), Vector2(x + 3, c.y), col, 1.0)
 		draw_line(Vector2(x + 3, c.y), Vector2(x, c.y + 4), col, 1.0)
 	buttons["dash"] = Rect2(c - Vector2(16, 16), Vector2(32, 32))
+	# design v2: switching wands sits by the right thumb (the rows are out of reach mid-fight)
+	var run := world.run
+	if run.wands.size() > 1:
+		var sc := c + Vector2(0, -38)
+		var nxt: WandState = run.wands[(run.cur + 1) % run.wands.size()]
+		draw_circle(sc, 15.0, INK)
+		draw_circle(sc, 13.0, Style.c("night:2"))
+		draw_arc(sc, 13.0, 0.0, TAU, 24, Style.c("gold:3"), 1.0)
+		var wt: Texture2D = Hero.wand_angles(Hero.gem_ramp(nxt.def.color))[14]
+		draw_texture(wt, (sc - wt.get_size() / 2.0).round())
+		_text(sc + Vector2(5, 11), str((run.cur + 1) % run.wands.size() + 1), GOLD, 8, "bold")
+		buttons["swap"] = Rect2(sc - Vector2(16, 16), Vector2(32, 32))
 
 
 func _draw_vitals(bl: Vector2, run: RunState) -> void:
@@ -282,7 +302,7 @@ func _draw_vitals(bl: Vector2, run: RunState) -> void:
 	if world.player.shield > 0.0:
 		var sk := world.player.shield / 30.0
 		draw_rect(Rect2(panel.position + Vector2(16, 5), Vector2(107 * sk, 2)), Style.c("frost:3"))
-	_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), w.mana / w.max_mana(), Style.c("arcane:3"), "%d" % roundi(w.mana))
+	_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), w.mana / w.max_mana(), Style.c("arcane:3"), "%d/%d" % [roundi(w.mana), roundi(w.max_mana())])
 
 
 func _draw_top_right(tr: Vector2, run: RunState) -> void:

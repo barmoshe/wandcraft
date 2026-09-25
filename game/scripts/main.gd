@@ -186,6 +186,8 @@ func _start_from_args() -> void:
 			_open_map()
 		"pause":
 			_open_pause(false)
+			if _args.has("gloss") and screen:
+				screen.show_glossary = true   # screenshots of the glossary sheet
 		"credits":
 			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: pass)
 		"codex":
@@ -385,6 +387,8 @@ func _on_hud(id: String) -> void:
 			_open_map()
 		"dash":
 			world.controls.dash = true
+		"swap":
+			world.controls.select_wand = (world.run.cur + 1) % world.run.wands.size()
 
 
 func _open_map() -> void:

@@ -236,7 +236,7 @@ static func _build() -> void:
 	_wands[w.id] = w
 	_w(&"daemon_rod", "Daemon Rod", 1, 6, 100, 22, 0.14, 0.5, 5, 1, false, "#9b7bff", "Its last slot casts on its own every 3 s.")
 	_wands[&"daemon_rod"].background_slot = true
-	_w(&"debug_build", "Debug Build", 2, 8, 120, 22, 0.14, 0.55, 5, 1, false, "#5ce1ff", "Debugger runes cost double mana here.")
+	_w(&"debug_build", "Debug Build", 2, 8, 120, 22, 0.14, 0.55, 5, 1, false, "#5ce1ff", "Runes cost double mana here.")
 	_wands[&"debug_build"].rune_tax = 2.0
 
 

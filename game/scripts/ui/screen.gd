@@ -151,7 +151,7 @@ func glossary_panel() -> void:
 	panel(r, true)
 	text(r.position + Vector2(10, 16), "HOW WANDS WORK", GOLD, 8, "bold")
 	button(Rect2(r.end.x - 74, r.position.y + 4, 68, 24), "gloss_close", "CLOSE", "primary")
-	var y := r.position.y + 34
+	var y := r.position.y + 42
 	var f := Game.font("small")
 	for t in Glossary.TERMS:
 		var x := r.position.x + 10
