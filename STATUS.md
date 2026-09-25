@@ -110,6 +110,7 @@
     - `tools/release_ios.sh` (check, archive, upload) and CI on every push (green).
     - iPhone only, free, Individual seller, `com.barbuilds.wandcraft`.
   - **Paused (2026-09-25):** Bar is not paying for the Apple ($99/yr) or Google Play ($25) accounts for now. Sharing stays free: the sideload APK (`build/wandcraft-0.14.0.apk`) and the web build. The simulator build works (`tools/release_ios.sh --sim`).
+  - **Layout fixes (2026-09-25):** the title's stats and version no longer sit under the buttons and the wizard (`97861a5`); the web sound diagnostic on the pause screen no longer covers the bottom buttons (`503b269`). Web live at `503b269`; the 0.14.0 APK rebuilt.
   - **Next up, when Bar resumes:** his steps in `store/ios-release.md` (enrolment, Xcode sign-in, Team ID, app record; disk space is done), then TestFlight and review on his word. For Android: the Play Console account, a release keystore, the AAB build and a closed test.
 
 ## Where we are (POC history)
