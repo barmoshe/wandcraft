@@ -92,3 +92,10 @@ The first D7 bench found two stalls, both bot or planner bugs, fixed in ADR 0017
 After the fixes, with Loop armour 150 → 100 and body contact damage 50% → 40% of the head's:
 - **Editing bot: 80%.** Mini-boss about 80 s, boss about 39 s. No stalls.
 - **Never-editing bot: 10%.**
+
+## D6 animation (2026-09-25, on Bar's Mac)
+The first bench after D6 read 90% / 0%. The pre-D6 commit (`33605c6`) benched on the same Mac gives 80% / 10%, the D7 numbers exactly, so the Mac and the container agree and D6 had moved the runs. The cause: the rigs add two rows of headroom, which raised every enemy muzzle by a pixel. With the muzzle measured from the body again (`83f28b4`):
+- **Editing bot: 80%.** Mini-boss about 80 s, boss about 39 s.
+- **Never-editing bot: 10%.**
+
+D6 is art only; the bench is identical to D7.
