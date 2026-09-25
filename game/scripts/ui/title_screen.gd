@@ -2,6 +2,7 @@ class_name TitleScreen
 extends Screen
 ## Title: the logo, CONTINUE (when a run is saved), NEW RUN, and lifetime numbers.
 
+var heat := 0      # D9: the Bug Reports tier for the next run
 var has_save := false
 var meta: Dictionary = {}
 var _frames: Array[Texture2D] = []
@@ -98,6 +99,16 @@ func _paint() -> void:
 	if int(meta.get("runs", 0)) > 0:
 		text_center(cx, sr.end.y - 6, "Runs %d   Wins %d   Enemies defeated %d" % [meta["runs"], meta["wins"], meta["kills"]], MUTED)
 	button(Rect2(sr.end.x - 64, sr.end.y - 26, 64, 24), "credits", "CREDITS", "ghost")
+	button(Rect2(sr.end.x - 134, sr.end.y - 26, 66, 24), "codex", "CODEX", "ghost")
+	# D9: Bug Reports, one tier per win (up to five)
+	var max_heat := mini(5, int(meta.get("wins", 0)))
+	if max_heat > 0:
+		heat = clampi(heat, 0, max_heat)
+		var hy := by + 36
+		button(Rect2(cx - 70, hy, 26, 22), "heat_down", "-", "ghost", heat > 0)
+		text_center(cx, hy + 15, "BUG REPORTS  %d" % heat, Style.c("threat:4") if heat > 0 else MUTED, 8, "bold")
+		button(Rect2(cx + 44, hy, 26, 22), "heat_up", "+", "ghost", heat < max_heat)
+		text_center(cx, hy + 34, Meta.HEAT[heat], MUTED)
 	var ver := "v" + str(ProjectSettings.get_setting("application/config/version", ""))
 	var build := Game.web_build()
 	if build != "":
@@ -108,5 +119,11 @@ func _paint() -> void:
 func _on_button(id: String) -> void:
 	if id == "credits":
 		finished.emit({"action": "credits"})
+	elif id == "codex":
+		finished.emit({"action": "codex"})
+	elif id == "heat_up":
+		heat += 1
+	elif id == "heat_down":
+		heat -= 1
 	elif id == "continue" or id == "new":
-		finished.emit({"action": id})
+		finished.emit({"action": id, "heat": heat})

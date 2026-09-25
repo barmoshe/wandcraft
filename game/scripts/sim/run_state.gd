@@ -36,6 +36,7 @@ var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0, "
 var won := false
 var tutorial := false               # D9: the first run's curriculum (Tutorial)
 var lesson_target: Array = []       # D9: the wand layout the editor coach is walking toward
+var heat := 0                       # D9: Bug Reports tier (0-5), chosen on the title
 
 
 ## Starter loadouts (D2): a small wand with a clear identity, so the first rewards are
@@ -69,7 +70,7 @@ func apply_relics() -> void:
 func set_loadout(loadout: StringName) -> void:
 	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
 	wands[0] = WandState.make(Catalog.wand(lo["wand"]), lo["spells"])
-	for k in int(Relics.stat(self, "slots")):
+	for k in int(Relics.stat(self, "slots")) + Meta.extra_slots():
 		wands[0].slots.append(null)
 	cur = 0
 	apply_relics()
@@ -245,7 +246,7 @@ func to_dict() -> Dictionary:
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
-		"uptime": uptime, "tutorial": tutorial, "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
+		"uptime": uptime, "tutorial": tutorial, "heat": heat, "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
 		"map": map.map(func(step: Array) -> Array: return step.map(_dict_out)), "lane": lane,
 	}
 
@@ -280,6 +281,7 @@ static func from_dict(d: Dictionary) -> RunState:
 		r.stats[k] = d["stats"][k]
 	r.won = bool(d.get("won", false))
 	r.tutorial = bool(d.get("tutorial", false))
+	r.heat = int(d.get("heat", 0))
 	for x in d.get("lesson_target", []):
 		r.lesson_target.append(StringName(x) if x != null else null)
 	for b in d.get("banned", []):

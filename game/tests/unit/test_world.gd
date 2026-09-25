@@ -131,8 +131,9 @@ func test_stress_tick_budget() -> void:
 		best["avg"] / 1000.0, best["median"] / 1000.0, best["quiet"] / 1000.0, best["worst"] / 1000.0, best["peak"], best["cal"] / 1000.0, best["ratio"]])
 	ok(best["peak"] > 500, "the storm really happened (%d bullets)" % best["peak"])
 	ok(STRESS_RATIO <= 0.0 or best["ratio"] < STRESS_RATIO, "the storm costs under %.2fx the calibration work (%.2f)" % [STRESS_RATIO, best["ratio"]])
-	# and a hard ceiling whatever the machine: a quiet full-storm tick fits in one 60 Hz frame
-	ok(best["quiet"] < 16667, "a quiet full-storm tick fits a 60 Hz frame (%.2f ms)" % (best["quiet"] / 1000.0))
+	# and a backstop for a catastrophic regression whatever the machine: two 60 Hz frames (a
+	# desktop in use has pushed the quiet tick to 16 ms while the ratio held at 4.6)
+	ok(best["quiet"] < 33333, "a quiet full-storm tick is under two 60 Hz frames (%.2f ms)" % (best["quiet"] / 1000.0))
 
 
 ## A fixed workload shaped like the bullet loop: 1,300 positions moved and tested against 45

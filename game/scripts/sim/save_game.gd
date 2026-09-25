@@ -69,6 +69,10 @@ static func record_run(run: RunState) -> void:
 	m["kills"] = int(m["kills"]) + int(run.stats["kills"])
 	if run.tutorial:
 		m["tutorial_done"] = true
+	# D9: Source Fragments for the Codex
+	var got := Meta.earned(run)
+	m["fragments"] = int(m.get("fragments", 0)) + got
+	m["last_fragments"] = got
 	_write(META_PATH, m)
 
 

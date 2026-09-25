@@ -30,7 +30,7 @@ func _paint() -> void:
 		else:
 			draw_arc(p, 5.0, 0.0, TAU, 12, Color(0.4, 0.35, 0.5), 1.0)
 	y += 30
-	var r := Rect2(cx - 110, y, 220, 76)
+	var r := Rect2(cx - 110, y, 220, 88)
 	panel(r, won)
 	var st := run.stats
 	var rows := [
@@ -39,6 +39,7 @@ func _paint() -> void:
 		["Damage dealt", str(roundi(float(st["damage"])))],
 		["Time", "%d:%02d" % [int(st["time"]) / 60, int(st["time"]) % 60]],
 		["Relics / gold", "%d / %d" % [run.relics.size(), run.gold]],
+		["Source Fragments", "+%d  (%d to spend)" % [int(SaveGame.load_meta().get("last_fragments", Meta.earned(run))), Meta.fragments()]],
 	]
 	for i in rows.size():
 		text(r.position + Vector2(10, 14 + i * 12), rows[i][0], MUTED)

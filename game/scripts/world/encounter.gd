@@ -79,6 +79,14 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 				list.append([p, false])
 			b -= float(Enemy.DEFS[p]["cost"]) * pack
 		out.append(list)
+	# Bug Reports 1+: every fight's last wave carries an elite
+	if run and run.heat >= 1 and not out[n - 1].any(func(e: Array) -> bool: return e[1]):
+		var cands: Array = []
+		for i in out[n - 1].size():
+			if out[n - 1][i][0] != &"bugling":
+				cands.append(i)
+		if not cands.is_empty():
+			out[n - 1][cands[rng.randi() % cands.size()]][1] = true
 	if kind == &"challenge" or kind == &"glitch":
 		var picks := anchors.duplicate()
 		picks.append_array(pressure.filter(func(k: StringName) -> bool: return k != &"bugling"))

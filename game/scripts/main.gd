@@ -31,6 +31,7 @@ var _playing := false
 
 
 func _ready() -> void:
+	Meta.active = true   # D9: the unlock pool applies in the real game only
 	for a in OS.get_cmdline_user_args():
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
@@ -86,6 +87,10 @@ func _show_title() -> void:
 		if res.get("action") == "credits":
 			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: _show_title())
 			return
+		if res.get("action") == "codex":
+			_open(CodexScreen.new(), func(_r: Dictionary) -> void: _show_title())
+			return
+		heat = int(res.get("heat", 0))
 		if res.get("action") == "continue":
 			var r := SaveGame.load_run()
 			if r:
@@ -100,7 +105,14 @@ func _new_run() -> RunState:
 	var r := RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1)
 	var m := SaveGame.load_meta()
 	r.tutorial = int(m.get("runs", 0)) == 0 and not bool(m.get("tutorial_done", false))
+	r.heat = mini(heat, int(m.get("wins", 0)))
+	for k in Meta.extra_slots():
+		r.wands[0].slots.append(null)
 	return r
+
+
+## D9: the Bug Reports tier picked on the title for the next run.
+var heat := 0
 
 
 func _begin(r: RunState) -> void:
@@ -115,6 +127,7 @@ func _begin(r: RunState) -> void:
 func _start_from_args() -> void:
 	var r := RunState.create(int(_args.get("seed", "7")))
 	r.tutorial = _args.has("tutorial")
+	r.heat = int(_args.get("heat", "0"))
 	if _args.has("demo") or _args.has("showcase"):
 		world.bot = true
 		Game.god_mode = true
@@ -175,6 +188,8 @@ func _start_from_args() -> void:
 			_open_pause(false)
 		"credits":
 			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: pass)
+		"codex":
+			_open(CodexScreen.new(), func(_r: Dictionary) -> void: pass)
 		"end":
 			world.paused = true
 			_open_end(_args.get("won", "0") == "1")

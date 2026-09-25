@@ -543,7 +543,8 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	var e := Enemy.new()
 	_uid += 1
 	var step := run.step if run else 1
-	e.setup(self, kind, pos, _uid, 1.0 + step * 0.07, elite)
+	# Bug Reports 2+: load spikes, +20% HP
+	e.setup(self, kind, pos, _uid, (1.0 + step * 0.07) * (1.2 if run and run.heat >= 2 else 1.0), elite)
 	enemies.append(e)
 	_actors.add_child(e)
 	return e
@@ -555,6 +556,9 @@ func _spawn_boss() -> void:
 	enemies.append(b)
 	_actors.add_child(b)
 	b.setup_boss(self, Vector2(gw * TS / 2.0, gh * TS * 0.35), _uid)
+	if run and run.heat >= 5:
+		b.max_hp *= 1.25   # Bug Reports 5: hotfix denied
+		b.hp = b.max_hp
 	boss = b
 	Audio.sting("boss")
 	Hints.show("boss")
@@ -769,7 +773,7 @@ func _update_room(dt: float) -> void:
 				&"spring":
 					if not npc["used"]:
 						npc["used"] = true
-						player.heal(run.max_hp * 0.6)
+						player.heal(run.max_hp * (0.4 if run.heat >= 4 else 0.6))
 						Audio.sfx("heal")
 						fx.ring(npc["pos"], 4.0, 50.0, 0.6, Color("#6fb8ff"))
 						Events.toast.emit("The spring restores you")
@@ -847,7 +851,8 @@ func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0,
 		return
 	b.pos = pos
 	b.prev = pos
-	b.vel = Vector2.from_angle(ang) * spd
+	# Bug Reports 3+: race conditions, shots fly 15% faster
+	b.vel = Vector2.from_angle(ang) * spd * (1.15 if run and run.heat >= 3 else 1.0)
 	b.life = 4.0
 	b.max_life = 4.0
 	b.dmg = dmg

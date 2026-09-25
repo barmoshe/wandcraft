@@ -27,11 +27,11 @@ static func roll_spell(run: RunState, bias := 0, exclude: Array = []) -> StringN
 	var pool: Array = []
 	for id in Catalog.spells():
 		var d := Catalog.spell(id)
-		if d.rarity == rar and not exclude.has(id) and not run.banned.has(id) and not Catalog.is_evolved(id):
+		if d.rarity == rar and not exclude.has(id) and not run.banned.has(id) and not Catalog.is_evolved(id) and not Meta.is_locked(id):
 			pool.append(id)
 	if pool.is_empty():
 		for id in Catalog.spells():
-			if not exclude.has(id) and not run.banned.has(id) and not Catalog.is_evolved(id):
+			if not exclude.has(id) and not run.banned.has(id) and not Catalog.is_evolved(id) and not Meta.is_locked(id):
 				pool.append(id)
 	var owned := owned_tags(run)
 	var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Catalog.tags(id), owned))
@@ -69,7 +69,7 @@ static func tag_weight(tags: Array, owned: Dictionary) -> float:
 static func roll_relics(run: RunState, n: int, min_rar := 0, corrupted := false) -> Array:
 	var pool: Array = []
 	for id in Relics.DEFS:
-		if Relics.offerable(run, id, corrupted) and int(Relics.DEFS[id]["rar"]) >= min_rar:
+		if Relics.offerable(run, id, corrupted) and int(Relics.DEFS[id]["rar"]) >= min_rar and not Meta.is_locked(id):
 			pool.append(id)
 	var owned := owned_tags(run)
 	var out: Array = []
@@ -84,7 +84,7 @@ static func roll_relics(run: RunState, n: int, min_rar := 0, corrupted := false)
 static func roll_wand(run: RunState, min_rar := 0, exclude: Array = []) -> StringName:
 	var pool: Array = []
 	for id in Catalog.wands():
-		if id == &"apprentice" or exclude.has(id):
+		if id == &"apprentice" or exclude.has(id) or Meta.is_locked(id):
 			continue
 		if Catalog.wand(id).rarity >= min_rar and not run.wands.any(func(w: WandState) -> bool: return w.def.id == id):
 			pool.append(id)
@@ -139,7 +139,8 @@ static func offer(run: RunState, kind: StringName) -> Array:
 		return Tutorial.offer(run)
 	match kind:
 		&"start":
-			return RunState.LOADOUTS.keys().map(func(id: StringName) -> Dictionary: return {"t": &"loadout", "id": id})
+			return RunState.LOADOUTS.keys().filter(func(id: StringName) -> bool: return not Meta.is_locked(id)).map(
+				func(id: StringName) -> Dictionary: return {"t": &"loadout", "id": id})
 		&"spell":
 			return _with_counter(run, _spells(run, [0, 0, 1]))
 		&"relic":
@@ -200,6 +201,10 @@ static func shop_stock(run: RunState) -> Array:
 	out.append({"t": &"heal", "id": &"heal", "v": 35, "price": 25, "sold": false})
 	var wid := roll_wand(run)
 	out.append({"t": &"wand", "id": wid, "price": 65 + 25 * Catalog.wand(wid).rarity, "sold": false})
+	# Bug Reports 4+: scope creep, everything costs a quarter more
+	if run.heat >= 4:
+		for it in out:
+			it["price"] = roundi(int(it["price"]) * 1.25)
 	run.deprecated_here = false
 	return out
 
