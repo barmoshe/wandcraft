@@ -105,5 +105,10 @@ static func spawn_points(world: World) -> Array:
 static func wave_done(current: Array) -> bool:
 	if current.is_empty():
 		return true
-	var down := current.filter(func(e: Enemy) -> bool: return not is_instance_valid(e) or e.dead).size()
+	# untyped on purpose: a wave enemy may already be freed, and a typed `e: Enemy` parameter
+	# cannot take a freed object (the call errors and the enemy never counts as down)
+	var down := 0
+	for e: Variant in current:
+		if not is_instance_valid(e) or (e as Enemy).dead:
+			down += 1
 	return float(down) / current.size() >= NEXT_AT

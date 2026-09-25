@@ -161,3 +161,18 @@ func test_spell_offers_cover_a_missing_counter() -> void:
 		for it in offer:
 			kw |= SpellRunner.keywords(Catalog.spell(it["id"]), Mods.new())
 		ok(kw != 0, "a run with only a Mote is always offered some counter")
+
+
+func test_a_freed_wave_enemy_counts_as_down() -> void:
+	var a := Enemy.new()
+	var b := Enemy.new()
+	var c := Enemy.new()
+	var d := Enemy.new()
+	var wave: Array = [a, b, c, d]
+	a.free()
+	b.free()
+	c.dead = true
+	# 3 of 4 down (two freed, one dead) is past the 70% mark: a freed enemy must count
+	ok(Encounter.wave_done(wave), "freed wave enemies count as down")
+	c.free()
+	d.free()
