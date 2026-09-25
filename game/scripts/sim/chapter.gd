@@ -4,6 +4,9 @@ extends RefCounted
 ## rooms, the boss. After each cleared room the player picks a door, and every door shows
 ## what is behind it, so the route is a decision (heal before the boss? gamble on a relic?).
 
+## The Glitch Door costs this much max HP to walk through (its prizes are Corrupted relics).
+const GLITCH_COST := 10.0
+
 const PLAN: Array[StringName] = [&"start", &"room", &"room", &"room", &"mini", &"room", &"room", &"room", &"boss"]
 
 ## Door pool: kind + the reward promised on the door, with a weight.
@@ -17,6 +20,7 @@ const POOL := [
 	{"kind": "shop", "reward": "", "w": 1.2},
 	{"kind": "spring", "reward": "", "w": 0.9},
 	{"kind": "forge", "reward": "", "w": 1.0},
+	{"kind": "glitch", "reward": "relic", "w": 0.6},
 ]
 
 const INFO := {
@@ -29,6 +33,7 @@ const INFO := {
 	"shop": {"name": "Shop", "color": "#ffc94a"},
 	"spring": {"name": "Spring", "color": "#6fb8ff"},
 	"forge": {"name": "Forge", "color": "#ff8a3c"},
+	"glitch": {"name": "Glitch Door", "color": "#ff6fd2"},
 	"mini": {"name": "Mini-boss", "color": "#ff3fa4"},
 	"boss": {"name": "Boss", "color": "#ff3fa4"},
 	"exit": {"name": "Onward", "color": "#ffe066"},
@@ -76,6 +81,12 @@ static func door_options(run: RunState) -> Array:
 			return false
 		if nxt == 1 and p["kind"] != "fight":
 			return false
+		# no challenge or Glitch Door before the fourth room, and the Glitch Door only while
+		# a Corrupted relic is left to find
+		if (p["kind"] == "challenge" or p["kind"] == "glitch") and nxt < 3:
+			return false
+		if p["kind"] == "glitch" and not Relics.DEFS.keys().any(func(id: StringName) -> bool: return Relics.offerable(run, id, true)):
+			return false
 		return true)
 	var out: Array = []
 	# right before a boss or mini-boss: always offer a way to recover or spend gold
@@ -96,7 +107,7 @@ static func door_options(run: RunState) -> Array:
 		if is_quiet(d["kind"]) and quiet_n >= 1 and rng.randf() < 0.7:
 			continue
 		out.append(d)
-	if not out.any(func(o: Dictionary) -> bool: return o["kind"] == &"fight" or o["kind"] == &"challenge"):
+	if not out.any(func(o: Dictionary) -> bool: return o["kind"] == &"fight" or o["kind"] == &"challenge" or o["kind"] == &"glitch"):
 		out[out.size() - 1] = {"kind": &"fight", "reward": &"spell"}
 	# shuffle so the guaranteed door is not always first
 	for i in range(out.size() - 1, 0, -1):

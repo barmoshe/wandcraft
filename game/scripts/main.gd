@@ -105,6 +105,13 @@ func _start_from_args() -> void:
 		Game.god_mode = true
 	if _args.get("loadout", "") == "strong":
 		_strong_loadout(r)
+	elif _args.get("loadout", "") == "d3":
+		# screenshots of D3: a Compile at the forge, a Merge Commit and Enables chips
+		r.wands[0] = WandState.make(Catalog.wand(&"oak"), [&"mote", &"ember_coat"])
+		r.wands[0].slots[2] = {"id": &"spark", "lv": 3}
+		for id in [&"cascade_failure", &"wildfire", &"loop_counter", &"stack_trace", &"try_catch"]:
+			r.add_relic(id)
+		r.gold = 120
 	elif _args.get("loadout", "") == "d2":
 		# screenshots of the D2 spells: familiars, a Firewall, Bitrot and orbiting Motes
 		r.wands[0] = WandState.make(Catalog.wand(&"oak"), [&"daemon", &"mote", &"turret", &"firewall", &"rot_coat", &"bitrot", &"orbit", &"mote"])
@@ -158,7 +165,7 @@ func _strong_loadout(r: RunState) -> void:
 	r.wands[1].set_slots([&"empower", &"fan", &"then", &"burst", &"ember_coat", &"needle", &"frost", &"mana_well"])
 	r.cur = 0
 	r.bag = [{"id": &"ifelse", "lv": 1}, {"id": &"loop", "lv": 1}, {"id": &"keen", "lv": 2}]
-	for id in [&"overclock", &"recursion", &"lucky_bit", &"blast_radius", &"spare_battery"]:
+	for id in [&"cold_start", &"recursion", &"loop_counter", &"uptime", &"wildfire"]:
 		r.add_relic(id)
 	r.gold = 140
 	r.path = [&"spell", &"relic", &"shop", &"mini", &"spell", &"forge", &"relic"]

@@ -142,10 +142,11 @@ func test_relics_that_act_on_pickup() -> void:
 	r.add_relic(&"hot_patch")
 	eq(r.max_hp, 140.0, "Hot Patch: max HP +20")
 	eq(r.hp, 70.0, "and heals 20")
-	r.add_relic(&"spare_battery")
-	ok(is_equal_approx(r.wand().max_mana(), Catalog.wand(&"twig").max_mana * 1.3), "Spare Battery: +30% mana")
+	var n := r.wand().slots.size()
+	r.add_relic(&"off_by_one")
+	eq(r.wand().slots.size(), n + 1, "Off-by-One: one more slot")
 	r.add_wand(&"oak")
-	ok(is_equal_approx(r.wands[1].max_mana(), Catalog.wand(&"oak").max_mana * 1.3), "and on wands found later")
+	eq(r.wands[1].slots.size(), Catalog.wand(&"oak").slots + 1, "and on wands found later")
 	ok(Relics.dmg_mul(r, 0.0) == 1.0, "no damage relic yet")
 	r.add_relic(&"heap_overflow")
 	ok(is_equal_approx(Relics.dmg_mul(r, 10.0), 1.3), "Heap Overflow: +30% damage")
@@ -178,7 +179,8 @@ func test_save_round_trip() -> void:
 	r.doors = Chapter.door_options(r)
 	r.gold = 55
 	r.hp = 61.0
-	r.add_relic(&"lucky_bit")
+	r.add_relic(&"cold_boot")
+	r.uptime = 4
 	r.add_wand(&"birch")
 	r.wand().set_slots([&"then", {"id": &"fan", "lv": 2}])
 	r.bag = [{"id": &"seek", "lv": 1}]
@@ -193,6 +195,7 @@ func test_save_round_trip() -> void:
 	eq(q.gold, 55, "gold")
 	eq(q.hp, 61.0, "hp")
 	eq(q.relics, r.relics, "relics")
+	eq(q.uptime, 4, "uptime")
 	eq(q.wands.size(), 2, "wands")
 	eq(q.cur, r.cur, "wand in hand")
 	eq(int(q.wand().slots[1]["lv"]), 2, "spell levels")

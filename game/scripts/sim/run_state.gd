@@ -29,6 +29,7 @@ var shop: Array = []                # current shop stock (so leaving and coming 
 var banned: Array[StringName] = []  # spells Deprecated out of this run's offers (D2)
 var rare_offset := -0.05            # Slay the Spire-style rarity pacing for spell offers (D2)
 var deprecated_here := false        # one Deprecate per shop visit
+var uptime := 0                     # Uptime relic: rooms in a row cleared without a hit
 var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0}
 var won := false
 
@@ -50,11 +51,24 @@ static func create(seed_value_: int, loadout := &"twig") -> RunState:
 	return r
 
 
+## Pushes relic stats down to the wands (rune cost, nesting depth). Called whenever the
+## relics or the wands change, and after a load.
+func apply_relics() -> void:
+	var rune := Relics.stat(self, "rune")
+	var depth := int(Relics.stat(self, "depth"))
+	for w in wands:
+		w.rune_mul = rune
+		w.depth_cap = depth
+
+
 ## Swaps the starting wand for another loadout (the start room's choice).
 func set_loadout(loadout: StringName) -> void:
 	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
 	wands[0] = WandState.make(Catalog.wand(lo["wand"]), lo["spells"])
+	for k in int(Relics.stat(self, "slots")):
+		wands[0].slots.append(null)
 	cur = 0
+	apply_relics()
 
 
 func wand() -> WandState:
@@ -96,7 +110,9 @@ func add_spell(id: StringName, lv := 1) -> bool:
 		bag.append(entry)
 	else:
 		return false
-	try_merge(id, lv)
+	if try_merge(id, lv) > 0 and has_relic(&"version_control"):
+		max_hp += 8.0
+		hp = minf(max_hp, hp + 8.0)
 	return true
 
 
@@ -180,9 +196,10 @@ func _ref_set(r: Dictionary, v: Variant) -> void:
 
 func add_wand(id: StringName) -> void:
 	var w := WandState.make(Catalog.wand(id))
-	if has_relic(&"spare_battery"):
-		w.bonus_mana = 1.3
-		w.mana = w.max_mana()
+	for k in int(Relics.stat(self, "slots")):
+		w.slots.append(null)
+	w.rune_mul = Relics.stat(self, "rune")
+	w.depth_cap = int(Relics.stat(self, "depth"))
 	if wands.size() < MAX_WANDS:
 		# a new wand arrives empty: it goes on the belt, the one in hand stays in hand
 		wands.append(w)
@@ -217,6 +234,7 @@ func to_dict() -> Dictionary:
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
+		"uptime": uptime,
 	}
 
 
@@ -240,9 +258,6 @@ static func from_dict(d: Dictionary) -> RunState:
 		w.set_slots((wd["slots"] as Array).map(_entry_in))
 		w.mana = float(wd["mana"])
 		r.wands.append(w)
-	if (d["relics"] as Array).has("spare_battery"):
-		for w in r.wands:
-			w.bonus_mana = 1.3
 	r.cur = clampi(int(d["cur"]), 0, r.wands.size() - 1)
 	r.bag = (d["bag"] as Array).map(_entry_in).filter(func(e: Variant) -> bool: return e != null)
 	for id in d["relics"]:
@@ -255,6 +270,8 @@ static func from_dict(d: Dictionary) -> RunState:
 	for b in d.get("banned", []):
 		r.banned.append(StringName(b))
 	r.rare_offset = float(d.get("rare_offset", -0.05))
+	r.uptime = int(d.get("uptime", 0))
+	r.apply_relics()
 	return r
 
 

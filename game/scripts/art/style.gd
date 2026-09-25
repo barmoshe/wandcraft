@@ -57,7 +57,7 @@ const UI_BAD := Color("#ff4d68")
 
 ## Rarity colors (common, rare, epic), used for frames, headers and door rims.
 const RARITY := ["#b8c0d0", "#4fd8e8", "#ff6fd2"]
-const RARITY_NAMES := ["Common", "Rare", "Epic"]
+const RARITY_NAMES := ["Common", "Rare", "Epic", "Corrupted"]
 
 
 static func ramp(name: String) -> Array:

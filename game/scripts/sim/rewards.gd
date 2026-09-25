@@ -26,11 +26,11 @@ static func roll_spell(run: RunState, bias := 0, exclude: Array = []) -> StringN
 	var pool: Array = []
 	for id in Catalog.spells():
 		var d := Catalog.spell(id)
-		if d.rarity == rar and not exclude.has(id) and not run.banned.has(id):
+		if d.rarity == rar and not exclude.has(id) and not run.banned.has(id) and not Catalog.is_evolved(id):
 			pool.append(id)
 	if pool.is_empty():
 		for id in Catalog.spells():
-			if not exclude.has(id) and not run.banned.has(id):
+			if not exclude.has(id) and not run.banned.has(id) and not Catalog.is_evolved(id):
 				pool.append(id)
 	var owned := owned_tags(run)
 	var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Catalog.tags(id), owned))
@@ -63,15 +63,17 @@ static func tag_weight(tags: Array, owned: Dictionary) -> float:
 	return minf(k, 2.5)
 
 
-static func roll_relics(run: RunState, n: int, min_rar := 0) -> Array:
+## Relics to offer. A Merge Commit whose parents you own is three times as likely; Corrupted
+## relics only come from the Glitch Door (corrupted = true).
+static func roll_relics(run: RunState, n: int, min_rar := 0, corrupted := false) -> Array:
 	var pool: Array = []
 	for id in Relics.DEFS:
-		if not run.relics.has(id) and int(Relics.DEFS[id]["rar"]) >= min_rar:
+		if Relics.offerable(run, id, corrupted) and int(Relics.DEFS[id]["rar"]) >= min_rar:
 			pool.append(id)
 	var owned := owned_tags(run)
 	var out: Array = []
 	while out.size() < n and not pool.is_empty():
-		var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Relics.tags(id), owned))
+		var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Relics.tags(id), owned) * (3.0 if Relics.DEFS[id].has("duo") else 1.0))
 		var i := _weighted_index(w, run.rng)
 		out.append(pool[i])
 		pool.remove_at(i)
@@ -116,6 +118,10 @@ static func offer(run: RunState, kind: StringName) -> Array:
 		&"wand":
 			var w1 := roll_wand(run)
 			return [{"t": &"wand", "id": w1}, {"t": &"wand", "id": roll_wand(run, 1, [w1])}, _spells(run, [1])[0]]
+		&"glitch":
+			var g := roll_relics(run, 2, 0, true).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
+			g.append(_spells(run, [2])[0])
+			return g
 		&"mini":
 			var r := roll_relics(run, 2).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
 			r.append(_spells(run, [2])[0])
@@ -186,6 +192,8 @@ static func item_title(item: Dictionary) -> String:
 			return "Heal %d" % int(item.get("v", 0))
 		&"loadout":
 			return Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"]).title
+		&"compile":
+			return Catalog.spell(item["id"]).title
 		&"slot":
 			return "+1 Slot"
 	return "%d gold" % int(item.get("v", 0))
@@ -203,6 +211,11 @@ static func item_desc(item: Dictionary) -> String:
 			return "Restores %d HP right away." % int(item.get("v", 0))
 		&"loadout":
 			return LOADOUT_TEXT.get(item["id"], "")
+		&"compile":
+			var ev: Dictionary = Catalog.EVOLUTIONS[item["id"]]
+			var cat: String = Relics.DEFS[ev["cat"]]["title"] if ev["cat_t"] == &"relic" else Catalog.spell(ev["cat"]).title
+			return "%s Uses your level-3 %s%s." % [Catalog.spell(item["id"]).desc, Catalog.spell(ev["base"]).title,
+				"" if ev["cat_t"] == &"relic" else " and one %s" % cat]
 		&"slot":
 			return "Adds one empty slot to the end of the wand in your hand (up to %d)." % SLOT_MAX
 	return ""
@@ -222,6 +235,8 @@ static func item_rarity(item: Dictionary) -> int:
 	match item["t"]:
 		&"loadout", &"slot":
 			return 0
+		&"compile":
+			return 2
 		&"spell":
 			return Catalog.spell(item["id"]).rarity
 		&"relic":
@@ -249,3 +264,83 @@ static func _shuffle(arr: Array, rng: RandomNumberGenerator) -> void:
 		var t: Variant = arr[i]
 		arr[i] = arr[j]
 		arr[j] = t
+
+
+# ------------------------------------------------------------------ Compile (D3)
+
+## Evolutions the run can compile right now: the base spell at level 3 in a wand or the
+## bag, and the catalyst owned (a relic) or carried (a spell, which is used up).
+static func compilable(run: RunState) -> Array:
+	var out: Array = []
+	for evo in Catalog.EVOLUTIONS:
+		var ev: Dictionary = Catalog.EVOLUTIONS[evo]
+		if _ref_of(run, ev["base"], 3).is_empty():
+			continue
+		if ev["cat_t"] == &"relic" and not run.has_relic(ev["cat"]):
+			continue
+		if ev["cat_t"] == &"spell" and _ref_of(run, ev["cat"], 1).is_empty():
+			continue
+		out.append(evo)
+	return out
+
+
+static func _ref_of(run: RunState, id: StringName, min_lv: int) -> Dictionary:
+	for r in run.spell_refs():
+		if r["s"]["id"] == id and int(r["s"]["lv"]) >= min_lv:
+			return r
+	return {}
+
+
+## Turns the level-3 base spell into its evolution, in place (and uses up a spell catalyst).
+static func compile_evo(run: RunState, evo: StringName) -> bool:
+	if not compilable(run).has(evo):
+		return false
+	var ev: Dictionary = Catalog.EVOLUTIONS[evo]
+	var base := _ref_of(run, ev["base"], 3)
+	base["s"]["id"] = evo
+	base["s"]["lv"] = 3
+	if ev["cat_t"] == &"spell":
+		var cat := _ref_of(run, ev["cat"], 1)
+		if cat["w"] < 0:
+			run.bag.remove_at(cat["i"])
+		else:
+			run.wands[cat["w"]].slots[cat["i"]] = null
+	for w in run.wands:
+		w.ptr = 0
+		w.acc = Mods.new()
+	return true
+
+
+## "Enables" chips for an offer card (D3): what this item would switch on with what the
+## run already has. Short strings, shown as chips.
+static func enables(run: RunState, item: Dictionary) -> Array:
+	var out: Array = []
+	var owned: Array = run.spell_refs().map(func(r: Dictionary) -> StringName: return r["s"]["id"])
+	match item["t"]:
+		&"relic":
+			var duo := Relics.completes_duo(run, item["id"])
+			if duo != &"":
+				out.append("Merge Commit")
+			for evo in Catalog.EVOLUTIONS:
+				var ev: Dictionary = Catalog.EVOLUTIONS[evo]
+				if ev["cat"] == item["id"] and owned.has(ev["base"]):
+					out.append("Compile")
+		&"spell":
+			var id: StringName = item["id"]
+			var fire := [&"ember", &"ember_coat", &"firewall"]
+			var ice := [&"frost", &"frost_coat"]
+			if ice.has(id) and fire.any(func(f: StringName) -> bool: return owned.has(f)):
+				out.append("Thermal Shock")
+			if fire.has(id) and ice.any(func(f: StringName) -> bool: return owned.has(f)):
+				out.append("Thermal Shock")
+			for evo in Catalog.EVOLUTIONS:
+				var ev: Dictionary = Catalog.EVOLUTIONS[evo]
+				if ev["cat"] == id and owned.has(ev["base"]):
+					out.append("Compile")
+				elif ev["base"] == id and (run.has_relic(ev["cat"]) or owned.has(ev["cat"])):
+					out.append("Compile at L3")
+	var seen: Array = []
+	for t in out:
+		if not seen.has(t):
+			seen.append(t)
+	return seen

@@ -306,11 +306,13 @@ static func item_tags(item: Dictionary) -> Array:
 			return Catalog.tags(item["id"])
 		&"relic":
 			return Relics.tags(item["id"])
+		&"compile":
+			return Catalog.tags(item["id"])
 	return []
 
 
 ## Small tag chips in a centered row; returns the height used (0 when no tags).
-func chips(cx: float, y: float, tags: Array) -> float:
+func chips(cx: float, y: float, tags: Array, col := Style.c("cyan:4")) -> float:
 	if tags.is_empty():
 		return 0.0
 	var f := Game.font("small")
@@ -323,7 +325,7 @@ func chips(cx: float, y: float, tags: Array) -> float:
 		var r := Rect2(x, y, ws[i], 10)
 		draw_rect(r, Style.c("night:3"))
 		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Style.c("night:4"))
-		text(r.position + Vector2(4, 8), String(tags[i]).to_upper(), Style.c("cyan:4"))
+		text(r.position + Vector2(4, 8), String(tags[i]).to_upper(), col)
 		x += ws[i] + 3.0
 	return 12.0
 
@@ -352,6 +354,8 @@ static func item_icon(item: Dictionary) -> Texture2D:
 			return Icons.glyph("wand", Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"]).color)
 		&"slot":
 			return Icons.glyph("box", Style.c("gold:3"))
+		&"compile":
+			return Icons.spell(Catalog.spell(item["id"]))
 	return Icons.glyph("coin", Color("#ffd36b"))
 
 
@@ -371,13 +375,15 @@ static func kind_label(item: Dictionary) -> String:
 			return "Starting wand"
 		&"slot":
 			return "Wand upgrade"
+		&"compile":
+			return "Compile"
 		&"heal":
 			return "Potion"
 	return "Gold"
 
 
 static func rarity_color(r: int) -> Color:
-	return Color(Relics.RARITY_COLORS[clampi(r, 0, 2)])
+	return Color(Relics.RARITY_COLORS[clampi(r, 0, 3)])
 
 
 ## A short stat line for a spell: mana and damage at its level.

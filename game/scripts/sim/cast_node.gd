@@ -35,6 +35,8 @@ var p_rot := 0
 var p_mark := 0.0
 var p_kw := 0
 var p_spr: Array = []
+var p_blast := false          # ends in a blast (Singularity Kernel implodes)
+var p_split := 0
 
 
 func describe() -> String:

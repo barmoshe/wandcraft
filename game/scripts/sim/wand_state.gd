@@ -12,7 +12,10 @@ var rech_max := 0.5
 var acc := Mods.new()
 var casts := 0
 var flash := -1
-var bonus_mana := 1.0   # relics (Spare Battery)
+var bonus_mana := 1.0   # max mana multiplier (none since D3 cut Spare Battery; kept for saves)
+var rune_mul := 1.0     # Root Access makes Debugger runes free (RunState.apply_relics)
+var depth_cap := 3      # Stack Overflow lets payloads nest deeper
+var fresh := false      # the wand just recharged (Cold Start)
 var idle := 0.0         # seconds since this wand last cast (Watchdog)
 var bg_t := 3.0         # Daemon Rod: time until the background slot fires
 

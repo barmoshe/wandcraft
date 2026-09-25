@@ -13,7 +13,9 @@ const CAST := {&"mote": "cast_spark", &"lance": "cast_laser", &"fan": "cast_fan"
 	&"moths": "cast_missile", &"seed": "cast_spark", &"wheel": "cast_orbit", &"needle": "cast_laser",
 	&"ember": "cast_fire", &"spark": "cast_chain", &"frost": "cast_ice", &"disc": "cast_orbit", &"mine": "cast_boom",
 	&"static": "cast_chain", &"null_orb": "cast_orbit", &"firewall": "cast_fire", &"bitrot": "cast_orbit",
-	&"hexcursor": "cast_laser", &"ping": "cast_laser", &"daemon": "cast_orbit", &"turret": "cast_boom", &"duck": "cast_spark"}
+	&"hexcursor": "cast_laser", &"ping": "cast_laser", &"daemon": "cast_orbit", &"turret": "cast_boom", &"duck": "cast_spark",
+	&"storm_protocol": "cast_chain", &"singularity": "cast_orbit", &"meltdown": "cast_fire", &"absolute_zero": "cast_ice",
+	&"replicator": "cast_spark", &"exploit_needle": "cast_laser"}
 
 var _streams: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []

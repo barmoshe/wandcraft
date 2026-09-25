@@ -70,7 +70,9 @@ const ART := {
 ## Spell id -> sprite name (spells not listed use the tinted core).
 const FOR_SPELL := {&"mote": "mote", &"needle": "needle", &"moths": "moths", &"frost": "frost", &"spark": "spark",
 	&"ember": "ember", &"seed": "seed", &"wheel": "wheel", &"disc": "disc", &"mine": "mine", &"null_orb": "null_orb",
-	&"firewall": "firewall", &"bitrot": "bitrot", &"hexcursor": "hexcursor"}
+	&"firewall": "firewall", &"bitrot": "bitrot", &"hexcursor": "hexcursor",
+	&"storm_protocol": "spark", &"singularity": "null_orb", &"meltdown": "ember", &"absolute_zero": "frost",
+	&"replicator": "mote", &"exploit_needle": "needle"}
 
 static var _index: Dictionary = {}   # name -> [first cell, frame count, directional]
 static var _cells := 0

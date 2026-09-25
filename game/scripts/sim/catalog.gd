@@ -33,7 +33,26 @@ const TAGS := {
 
 
 static func tags(id: StringName) -> Array:
+	if EVOLUTIONS.has(id):
+		return TAGS.get(EVOLUTIONS[id]["base"], [])
 	return TAGS.get(id, [])
+
+
+## Compile evolutions (D3): a level-3 base spell plus a catalyst (a relic you own, or a
+## spell you carry, which is used up) become an evolved spell at the forge. Never offered
+## as rewards. Mechanics inspired by other games; names and numbers are ours (ADR 0002).
+const EVOLUTIONS := {
+	&"storm_protocol": {"base": &"spark", "cat": &"cascade_failure", "cat_t": &"relic"},
+	&"singularity": {"base": &"null_orb", "cat": &"gravity", "cat_t": &"spell"},
+	&"meltdown": {"base": &"ember", "cat": &"wildfire", "cat_t": &"relic"},
+	&"absolute_zero": {"base": &"frost", "cat": &"cold_boot", "cat_t": &"relic"},
+	&"replicator": {"base": &"mote", "cat": &"recursion", "cat_t": &"relic"},
+	&"exploit_needle": {"base": &"needle", "cat": &"null_pointer", "cat_t": &"relic"},
+}
+
+
+static func is_evolved(id: StringName) -> bool:
+	return EVOLUTIONS.has(id)
 
 
 static func spells() -> Dictionary:
@@ -130,7 +149,7 @@ static func _build() -> void:
 	_s("bitrot", P, "Bitrot Spore", "#ff6fd2", {"mp": [6, 8, 10], "dmg": [2, 3, 4], "beh": "cloud", "p": {"speed": 45, "radius": 10.0, "life": 2.6, "pierce": 99, "rot": 1}},
 		"A slow drifting cloud that adds a stack of Bitrot to everything inside it every tick. Five stacks crash the target.")
 	_s("hexcursor", P, "Hex Cursor", "#d6d6ff", {"mp": [2, 3, 4], "dmg": [3, 4, 5], "p": {"speed": 150, "radius": 4.0, "life": 1.4, "mark": 4.0}},
-		"A slow reticle that marks the first enemy it touches. Payloads from triggers and carriers aim at the marked enemy.")
+		"A slow reticle. The first enemy it touches is marked, and payloads aim at the mark.")
 	# ---- carriers: hold the next shooting spell as a payload ----
 	_s("seed", P, "Payload Seed", "#ffe066", {"mp": [1, 2, 3], "dmg": [2, 5, 10], "carry": "seed", "p": {"speed": 190, "radius": 2.0, "life": 0.9}},
 		"Carries the next shooting spell and releases it where it lands. That spell costs 90/80/60% mana.", "payload at 60% mana")
@@ -185,6 +204,20 @@ static func _build() -> void:
 	_s("mana_well", S, "Mana Well", "#5ce1ff", {}, "Wand max mana +40/80/160% and mana regenerates 30/60/120% faster.")
 	_s("heatsink", S, "Heat Sink", "#9b7bff", {}, "Wand recharge x0.6/0.3/0.15.")
 	_s("watchdog", S, "Watchdog", "#72e06a", {"rar": 1}, "If the wand has not cast for 1 s, its next cast is free.")
+
+	# ---- Compile evolutions (D3): a level-3 spell plus its catalyst, at the forge ----
+	_s("storm_protocol", P, "Storm Protocol", "#fff27a", {"rar": 2, "mp": [9], "dmg": [14], "kw": ["shock"], "p": {"speed": 260, "radius": 2.0, "life": 1.0, "chain": 8, "static": 1}},
+		"Compiled Chain Spark. Jumps 8 times and leaves everything it touches charged with Static.")
+	_s("singularity", P, "Singularity Kernel", "#a060d8", {"rar": 2, "mp": [16], "dmg": [12], "beh": "orb", "kw": ["blast"], "p": {"speed": 50, "radius": 7.0, "life": 3.0, "pierce": 99, "pull": 110.0, "implode": 1, "area": 40.0}},
+		"Compiled Null Orb. Drags harder, grinds harder, and implodes when it ends.")
+	_s("meltdown", P, "Meltdown", "#ff8a3c", {"rar": 2, "mp": [13], "dmg": [24], "beh": "bomb", "kw": ["blast"], "p": {"speed": 150, "radius": 3.5, "life": 1.0, "area": 40.0, "burn": 3}},
+		"Compiled Ember Bolt. A huge blast that sets everything in it ablaze.")
+	_s("absolute_zero", P, "Absolute Zero", "#e6fbff", {"rar": 2, "mp": [9], "dmg": [9], "p": {"speed": 230, "radius": 2.0, "life": 0.9, "count": 5, "spread": 30.0, "chill": 3}},
+		"Compiled Frost Shard. Five shards, and each one freezes what it hits.")
+	_s("replicator", P, "Self-Replicating Mote", "#8fd8ff", {"rar": 2, "mp": [6], "dmg": [12], "p": {"speed": 270, "radius": 2.0, "life": 1.0, "pierce": 1, "split": 3}},
+		"Compiled Arcane Mote. On its first hit it copies itself into 3 more.")
+	_s("exploit_needle", P, "Exploit Needle", "#e8fbff", {"rar": 2, "mp": [5], "dmg": [10], "dl": -0.02, "kw": ["pierce"], "p": {"speed": 400, "radius": 1.5, "life": 0.7, "pierce": 5, "crit_add": 0.5}},
+		"Compiled Glitch Needle. Passes through 5 enemies with +50% crit chance.")
 
 	# ---- wands ----
 	_w(&"twig", "Twig Wand", 0, 3, 50, 16, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light. Three slots.")

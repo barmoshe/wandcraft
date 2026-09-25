@@ -195,6 +195,8 @@ static func bot_answer(run: RunState, kind: StringName, offer: Array = []) -> vo
 			if not offer.is_empty():
 				Rewards.grant(run, offer[pick(run, offer)])
 		&"forge":
+			for evo in Rewards.compilable(run):
+				Rewards.compile_evo(run, evo)
 			if run.gold >= Rewards.SLOT_PRICE and run.wand().slots.size() < 8:
 				Rewards.grant(run, {"t": &"slot", "id": &"slot"})
 				run.gold -= Rewards.SLOT_PRICE

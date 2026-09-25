@@ -10,6 +10,7 @@ const TITLES := {
 	&"spell": ["SPELL", "Pick one spell"],
 	&"relic": ["RELIC", "Pick one relic"],
 	&"challenge": ["CHALLENGE CLEARED", "Pick your prize"],
+	&"glitch": ["GLITCH CLEARED", "Corrupted relics: power with a price"],
 	&"wand": ["WAND", "Pick one"],
 	&"mini": ["MINI-BOSS DEFEATED", "Pick your prize"],
 	&"boss": ["BOSS DEFEATED", "Pick your prize"],
@@ -61,7 +62,7 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	var hb := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4, 11))
 	draw_rect(hb, rc.darkened(0.55))
 	draw_rect(Rect2(hb.position, Vector2(hb.size.x, 1)), rc.darkened(0.2))
-	text(hb.position + Vector2(4, 9), Style.RARITY_NAMES[clampi(rar, 0, 2)].to_upper(), rc.lightened(0.2))
+	text(hb.position + Vector2(4, 9), Style.RARITY_NAMES[clampi(rar, 0, 3)].to_upper(), rc.lightened(0.2))
 	for k in rar + 1:
 		var g := Vector2(hb.end.x - 7 - k * 6, hb.position.y + 3)
 		draw_rect(Rect2(g, Vector2(4, 4)), rc)
@@ -81,6 +82,10 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	y += 4
 	var kl := kind_label(item).to_lower()
 	y += chips(cx, y, item_tags(item).filter(func(t: String) -> bool: return not kl.contains(t.to_lower())))
+	# D3: what this pick would switch on with what you already have
+	var en := Rewards.enables(run, item).map(func(t: String) -> String: return "+ " + t)
+	if not en.is_empty():
+		y += chips(cx, y + 2, en, Style.c("gold:4")) + 2
 	var body := Rect2(r.position + Vector2(7, y - r.position.y + 2), Vector2(r.size.x - 14, r.end.y - y - 16))
 	para(body, Rewards.item_desc(item), Style.c("bone:3"))
 	if item["t"] == &"spell":

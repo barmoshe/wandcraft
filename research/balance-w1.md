@@ -62,3 +62,10 @@ The bench now runs two bots over the same 10 seeds (`tests/bench/test_balance.gd
   - **Survival 0%.** Every run dies at the boss, after beating the mini-boss in about 82 s.
 
 Editing the wand now decides the run, as the design wants. The D4 target for the bot that never edits is 15–30%, not 0%: the enemy counters and the curriculum first run should leave a non-editor some chance, and early rewards may need to lean toward shooting spells.
+
+## D3 relics (2026-09-25)
+Same bench, two bots, 10 seeds:
+- **Editing bot: survival 70%.** Mini-boss about 57 s, boss about 54 s.
+- **Never-editing bot: survival 30%** (up from 0%). Relics that act on a plain wand now carry a lone Mote further: Cold Start, Tail Call, Loop Counter, Empty Set and Uptime.
+
+Both bots already sit inside the D4 targets (60–80% and 15–30%). D4's enemy counters should hold that gap, not widen it.

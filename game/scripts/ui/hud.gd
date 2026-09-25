@@ -272,6 +272,46 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 		var p := Vector2(tr.x - 9 - (i % 6) * 19, tr.y + BTN + 12 + (i / 6) * 19)
 		var ic := Icons.relic(run.relics[i])
 		draw_texture(ic, (p - ic.get_size() / 2.0).round())
+		# counter pips (D3): a count, or a lit dot when the relic is ready right now
+		var pip := relic_pip(run.relics[i])
+		if pip.is_empty():
+			continue
+		var at := p + Vector2(5, 5)
+		if pip[0] != "":
+			draw_rect(Rect2(at - Vector2(1, 5), Vector2(4 + 4 * pip[0].length(), 7)), INK)
+			_text(at + Vector2(0, 1), pip[0], GOLD if pip[1] else Color(0.75, 0.7, 0.85), 8)
+		else:
+			draw_circle(at, 2.5, INK)
+			draw_circle(at, 1.5, Style.c("leaf:4") if pip[1] else Style.c("night:4"))
+
+
+## [label, lit] for a relic's HUD pip, or [] when it has none. Counters show how many
+## casts are left (lit on the last one); the rest show a dot, lit while they are active.
+func relic_pip(id: StringName) -> Array:
+	var run := world.run
+	var fired := world.spells.casts_fired
+	match id:
+		&"stack_trace":
+			var left := 7 - fired % 7
+			return [str(left), left == 1]
+		&"loop_counter":
+			var left2 := 10 - fired % 10
+			return [str(left2), left2 == 1]
+		&"uptime":
+			return [str(run.uptime), run.uptime > 0] if run.uptime > 0 else []
+		&"try_catch":
+			return ["", not world.caught]
+		&"cold_start":
+			return ["", run.wand().fresh]
+		&"low_battery":
+			return ["", run.wand().mana < run.wand().max_mana() * 0.25]
+		&"cornered":
+			return ["", world.cornered()]
+		&"deadline":
+			return ["", world.room_time < 6.0 and not world.cleared]
+		&"busy_wait":
+			return ["", world.player.still_t >= 0.6]
+	return []
 
 
 func _draw_map(tc: Vector2, run: RunState) -> void:

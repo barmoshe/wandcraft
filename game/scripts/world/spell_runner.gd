@@ -42,6 +42,9 @@ var bullets: BulletPool
 var cast_seq := 0
 var casts_fired := 0
 var summons: Array[Summon] = []
+var max_depth := MAX_DEPTH         # Stack Overflow raises it (set per cast)
+var knock_mul := 1.0               # Force Push
+var legacy := false                # Legacy Code
 var blockers: Array[Bullet] = []   # player bullets that stop enemy shots this tick
 var _later: Array = []             # Pipeline: casts waiting for their turn
 
@@ -67,6 +70,25 @@ class Summon:
 	var gm := 1.0
 
 
+## Damage multiplier from the relics that look at this one cast (D3): Cold Start, Low
+## Battery, Cornered, Loop Counter and Empty Set. Also shown by the HUD's counter pips.
+func cast_bonus(w: WandState, low: bool, tenth: bool) -> float:
+	var run := world.run
+	var k := 1.0
+	if w.fresh and run.has_relic(&"cold_start"):
+		k *= 1.5
+	if low and run.has_relic(&"low_battery"):
+		k *= 1.4
+	if run.has_relic(&"cornered") and world.cornered():
+		k *= 1.25
+	if tenth:
+		k *= 2.0
+		world.fx.ring(world.player.position + Vector2(0, -8), 2.0, 14.0, 0.25, Style.c("gold:4"))
+	if run.has_relic(&"empty_set"):
+		k *= 1.0 + 0.08 * w.slots.count(null)
+	return k
+
+
 func _init(w: World) -> void:
 	world = w
 	bullets = w.bullets
@@ -81,13 +103,17 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		w.cd = 0.3
 		return false
 	var cost := 0.0 if Game.inf_mana else plan.mana
+	var run := world.run
 	# Watchdog: a wand left alone for a second casts its next cast for free
 	var free := w.idle >= 1.0 and w.passive_level(&"watchdog") > 0
-	if free:
+	# Loop Counter: every 10th cast is free (and hits twice as hard, below)
+	var tenth := run != null and run.has_relic(&"loop_counter") and (casts_fired + 1) % 10 == 0
+	if free or tenth:
 		cost = 0.0
 	if w.mana < cost:
 		w.cd = 0.06
 		return false
+	var low := w.mana < w.max_mana() * 0.25
 	w.mana -= cost
 	w.idle = 0.0
 	if free:
@@ -96,24 +122,34 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.acc = plan.acc
 	w.casts += 1
 	w.flash = plan.used[plan.used.size() - 1] if not plan.used.is_empty() else -1
-	var run := world.run
-	var oc := 0.85 if run and run.has_relic(&"overclock") else 1.0
-	var dl := maxf(0.03, (w.def.cast_delay + plan.delay_add) * oc)
-	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * oc)
+	var sp := Relics.stat(run, "cast")
+	var dl := maxf(0.03, (w.def.cast_delay + plan.delay_add) * sp)
+	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * sp)
 	w.cd = dl + (rc if plan.wrapped else 0.0)
 	if plan.wrapped:
 		w.rech = rc
 		w.rech_max = rc
+	max_depth = int(Relics.stat(run, "depth"))
+	knock_mul = Relics.stat(run, "knock")
+	legacy = run != null and run.has_relic(&"legacy_code")
 	var opt := Opt.new()
 	opt.src = w
 	opt.sc = w.def.scatter
 	opt.gm = Relics.dmg_mul(run, world.room_time) if run else 1.0
+	if run:
+		opt.gm *= cast_bonus(w, low, tenth)
 	if run and run.has_relic(&"busy_wait") and world.player.still_t >= 0.6:
 		opt.gm *= 1.6
 		world.fx.ring(origin, 2.0, 12.0, 0.2, Color("#ffe066"))
+	w.fresh = plan.wrapped
 	world.player.still_t = 0.0
 	cast_seq += 1
 	casts_fired += 1
+	# Race Condition: one cast in five fizzles (paid for, nothing comes out)
+	if run and run.has_relic(&"race_condition") and world.rng.randf() < 0.2:
+		world.fx.sparks(origin, 6, Style.c("glitch:3"), 60.0)
+		world.fx.text(origin + Vector2(0, -10), "FIZZLE", Style.c("glitch:4"))
+		return true
 	for g in plan.groups:
 		emit_cast(g, origin, ang, opt)
 	# Stack Trace: every 7th cast also goes out backward
@@ -121,12 +157,11 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		cast_seq += 1
 		for g in plan.groups:
 			emit_cast(g, origin, ang + PI, opt)
-	# Echo Crystal: sometimes the whole cast happens again, for free
-	if run and run.has_relic(&"echo") and world.rng.randf() < 0.15:
+	# Tail Call: the last cast before a recharge goes out twice
+	if run and run.has_relic(&"tail_call") and plan.wrapped:
 		cast_seq += 1
-		var a2 := ang + world.rng.randf_range(-0.25, 0.25)
 		for g in plan.groups:
-			emit_cast(g, origin, a2, opt)
+			emit_cast(g, origin, ang + 0.18, opt)
 	world.fx.ring(origin, 1.0, 6.0, 0.12, plan.groups[0].spell.color)
 	Audio.cast(plan.groups[0].spell.id)
 	Events.wand_cast.emit(w.flash)
@@ -154,7 +189,9 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt, now := false) ->
 	if m.reverse:
 		ang += PI
 		dmg *= REVERSE_MUL
-	var crit := d.crit + m.crit + float(d.param("crit_add", lv, 0.0)) + (0.1 if run and run.has_relic(&"lucky_bit") else 0.0)
+	if legacy:
+		dmg *= 2.5 if c.slot == 0 else 0.8
+	var crit := d.crit + m.crit + float(d.param("crit_add", lv, 0.0))
 	var base := int(d.param("count", lv, 1))
 	if base > 1 and run and run.has_relic(&"aperture"):
 		base += 1
@@ -245,6 +282,8 @@ func _prep(c: CastNode) -> void:
 	c.p_mark = float(d.param("mark", lv, 0.0))
 	c.p_kw = keywords(d, m)
 	c.p_spr = Projectiles.for_spell(d.id)
+	c.p_blast = int(d.param("implode", lv, 0)) > 0
+	c.p_split = maxi(m.split, int(d.param("split", lv, 0)))
 	c.prepped = true
 
 
@@ -267,10 +306,10 @@ func _fill(b: Bullet, c: CastNode, pos: Vector2, ang: float, spd: float, dmg: fl
 	b.life = c.p_life
 	b.max_life = b.life
 	b.pierce = c.p_pierce
-	b.bounce = m.bounce + (1 if world.run and world.run.has_relic(&"bounce_core") else 0)
+	b.bounce = m.bounce
 	b.home = c.p_home
-	b.split = m.split
-	b.knock = m.knock
+	b.split = c.p_split
+	b.knock = m.knock * knock_mul
 	b.slam = m.slam
 	b.static_on = c.p_static
 	b.rot = c.p_rot
@@ -370,7 +409,7 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 
 ## Rune Burst: an instant blast. Payloads delivered by carriers make it shine.
 func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
-	var r := float(c.spell.param("area", c.level, 30.0)) * c.mods.area * world.area_mul()
+	var r := float(c.spell.param("area", c.level, 30.0)) * c.mods.area
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
 	world.fx.ring(pos, 2.0, r, 0.25, c.spell.color)
 	world.fx.sparks(pos, 14, c.spell.color, 140.0)
@@ -388,7 +427,7 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 
 ## Static Cone: instant lightning in a wedge in front of the caster.
 func _cone(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
-	var reach := float(c.spell.param("len", c.level, 70.0)) * sqrt(c.mods.area) * world.area_mul()
+	var reach := float(c.spell.param("len", c.level, 70.0)) * sqrt(c.mods.area)
 	var half := deg_to_rad(float(c.spell.param("arc", c.level, 70.0))) * 0.5
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
 	for k in 6:
@@ -678,7 +717,7 @@ func _background(dt: float) -> void:
 
 ## Ember Bolt and friends: an explosion where the bolt ends. Payload triggers still fire.
 func _blast(b: Bullet, hit_e: Enemy) -> void:
-	var r := float(b.cast.spell.param("area", b.cast.level, 18.0)) * b.area * world.area_mul()
+	var r := float(b.cast.spell.param("area", b.cast.level, 18.0)) * b.area
 	world.fx.ring(b.pos, 2.0, r, 0.25, b.color)
 	world.fx.sparks(b.pos, 12, b.color, 120.0)
 	for k in world.hash.query(b.pos, r + 16.0):
@@ -1012,7 +1051,7 @@ func end_bullet(b: Bullet, hit_e: Enemy) -> void:
 	if not b.alive:
 		return
 	b.alive = false
-	if b.cast and (b.cast.spell.behavior == &"bomb" or b.beh == &"mine") and b.depth <= MAX_DEPTH:
+	if b.cast and (b.cast.spell.behavior == &"bomb" or b.beh == &"mine" or b.cast.p_blast) and b.depth <= max_depth:
 		_blast(b, hit_e)
 	if b.trig != &"":
 		fire_carry(b, &"end", hit_e)
@@ -1030,7 +1069,7 @@ func _pay(w: WandState, mp: float) -> bool:
 ## Releases a bullet's payload. `ev` is hit | end | fly | nova.
 func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 	var pl := b.payload
-	if pl == null or b.depth >= MAX_DEPTH:
+	if pl == null or b.depth >= max_depth:
 		return
 	var n := 1
 	var radial := false

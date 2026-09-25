@@ -193,6 +193,6 @@ func test_rewards_lean_toward_owned_tags() -> void:
 func test_cut_relics_drop_out_of_old_saves() -> void:
 	var r := RunState.create(5)
 	var d := r.to_dict()
-	d["relics"] = ["cache_line", "lucky_bit", "keen_scope"]
+	d["relics"] = ["cache_line", "lucky_bit", "wildfire", "keen_scope"]
 	var back := RunState.from_dict(d)
-	eq(back.relics, [&"lucky_bit"] as Array[StringName], "only relics that still exist are kept")
+	eq(back.relics, [&"wildfire"] as Array[StringName], "only relics that still exist are kept (Lucky Bit was cut in D3)")

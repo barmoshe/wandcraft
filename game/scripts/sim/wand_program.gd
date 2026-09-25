@@ -247,7 +247,7 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 				mana += d.mana_at(lv)   # a trigger with nothing on its left does nothing
 				continue
 			SpellDef.Kind.RUNE:
-				mana += d.mana_at(lv) * wand.def.rune_tax
+				mana += d.mana_at(lv) * wand.def.rune_tax * wand.rune_mul
 				match d.id:
 					&"include":
 						continue   # applied up front by _scan_includes()
@@ -290,7 +290,7 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 		mana += c.cost * reps
 		delay_add += d.cast_delay
 		recharge_add += d.recharge
-		if depth < MAX_DEPTH:
+		if depth < wand.depth_cap:
 			if d.carrier != &"":
 				var r := _draw_payload(depth)
 				var pl: CastNode = r[0]

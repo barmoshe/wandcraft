@@ -100,7 +100,7 @@ func tick(dt: float) -> void:
 	# movement
 	var mv := controls.move.limit_length(1.0)
 	var run := world.run
-	var speed := SPEED * (1.15 if run.has_relic(&"hotkey_boots") else 1.0)
+	var speed := SPEED * Relics.stat(run, "move")
 	vel = vel.lerp(mv * speed, 1.0 - pow(0.0005, dt))
 	position = world.move_body(position, r, vel * dt)
 	if mv.length() > 0.1:
@@ -137,7 +137,7 @@ func tick(dt: float) -> void:
 		recoil = 2.0
 		world.fx.muzzle(tip(), aim, wand().def.color)
 	# hazards
-	if world.hazard_at(position) and world.spikes_up() and not run.has_relic(&"sandbox"):
+	if world.hazard_at(position) and world.spikes_up():
 		hurt(6.0, position, "spikes")
 	_animate()
 
@@ -184,6 +184,8 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
 	amount *= Relics.damage_taken_mul(run)
+	if run.has_relic(&"cornered") and world.cornered():
+		amount *= 0.7
 	if shield > 0.0:
 		var soak := minf(shield, amount)
 		shield -= soak
@@ -194,7 +196,8 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 			return
 	last_hurt_by = by
 	hp -= amount
-	inv = 0.9 * (1.5 if run.has_relic(&"afterimage") else 1.0)
+	world.hit_in_room = true
+	inv = 0.9
 	vel += (position - from).normalized() * 120.0
 	world.fx.text(position + head, "-%d" % roundi(amount), Color("#ff5a6a"))
 	world.shake(0.35)

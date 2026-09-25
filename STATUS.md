@@ -51,7 +51,18 @@
     - Editor: the rotation mana bar, IF/ELSE preview and an L3 line.
     - The HUD pointer follows the next slot read.
     - Bench: the editing bot (`WandPlanner`) survives 70%, the bot that never edits 0%. 103 unit tests.
-  - **Next up:** D3, relics and evolutions. D3 also takes Corrupted rarity and "Enables" chips.
+  - **D3 relics and evolutions (0.7.0): done** (ADR 0014).
+    - 38 relics: 18 kept, 10 flat ones cut, 20 new.
+      - Conditional, scaling, rule-breaking, program-aware and status relics.
+      - 3 Merge Commit duos.
+      - 4 Corrupted relics behind the new **Glitch Door**, which costs 10 max HP.
+    - Relic stats fold through `Relics.stat()`; behaviour hooks stay at their event sites.
+    - 6 Compile evolutions at the forge, for example Chain Spark + Cascade Failure = Storm Protocol.
+    - "Enables" chips on offer cards (Thermal Shock, Merge Commit, Compile).
+    - Counter pips on the HUD relic column.
+    - 122 unit tests.
+  - **Next up:** D4, enemies and encounters: shields, armour and wards that read the D2 keywords, 4 new enemies, elite affixes and the wave grammar.
+  - **Known:** the 1,300-bullet stress test sits right at its 10 ms budget on the dev container, so it passes or fails from run to run on noise. A/B timing shows no regression from D2 or D3.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**

@@ -198,6 +198,8 @@ var _bot_dmg_seen := 0.0
 var _bot_progress_t := 0.0
 
 # move_body results
+var hit_in_room := false        # Uptime: the player was hit in this room
+var _leak_t := 0.0              # Memory Leak: time to the next HP lost
 var marked: Enemy               # Hex Cursor: payloads aim here (D2)
 var grid_ver := 0              # bumped on every grid change (the flow field rebuilds)
 var last_hit_x := false
@@ -341,6 +343,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	room_tpl = tpl
 	room_kind = kind
 	room_time = 0.0
+	hit_in_room = false
 	caught = false
 	var rows: Array = ROOMS[tpl]
 	gh = rows.size()
@@ -399,7 +402,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 			_clear_room(false)
 		&"mini", &"boss":
 			boss_t = 1.0
-		&"fight", &"challenge":
+		&"fight", &"challenge", &"glitch":
 			waves = _compose_waves(kind)
 		&"empty":
 			cleared = true   # tests and the showcase: a room with nothing in it
@@ -439,7 +442,7 @@ func _place_doors() -> void:
 
 func _compose_waves(kind: StringName) -> Array:
 	var step := run.step if run else 1
-	var budget := (6.0 + step * 2.0) * (1.3 if kind == &"challenge" else 1.0)
+	var budget := (6.0 + step * 2.0) * (1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" else 1.0))
 	var roster: Array = EARLY_ROSTER if step <= 2 else ROSTER
 	var out: Array = []
 	var n := 2
@@ -506,6 +509,7 @@ func _clear_room(reward := true) -> void:
 		_open_doors()
 		return
 	run.stats["rooms"] += 1
+	run.uptime = 0 if hit_in_room else mini(10, run.uptime + 1)
 	player.heal(8.0)
 	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
 	Events.room_cleared.emit()
@@ -515,8 +519,8 @@ func _clear_room(reward := true) -> void:
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
 			if room_kind == &"boss":
 				player.heal(run.max_hp)
-		&"challenge":
-			orb = {"pos": mid, "kind": &"challenge", "t": 0.0}
+		&"challenge", &"glitch":
+			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
 		_:
 			var r := StringName(run.room.get("reward", "spell"))
 			match r:
@@ -581,6 +585,11 @@ func go_through(def: Dictionary) -> void:
 		ui_request.emit(&"victory", {})
 		return
 	run.path.append(Chapter.door_key(def))
+	if StringName(def["kind"]) == &"glitch":
+		# the Glitch Door takes its toll on the way in
+		run.max_hp = maxf(20.0, run.max_hp - Chapter.GLITCH_COST)
+		run.hp = minf(run.hp, run.max_hp)
+		Events.toast.emit("The Glitch takes %d max HP" % int(Chapter.GLITCH_COST))
 	run.room = def
 	run.step += 1
 	run.doors = []
@@ -647,6 +656,7 @@ func step(dt: float) -> void:
 	_unstick()
 	spells.update(dt)
 	_update_enemy_bullets(dt)
+	_leak(dt)
 	_update_room(dt)
 	_check_doors()
 	fx.update(dt)
@@ -971,6 +981,9 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if e is Boss and (e as Boss).invuln > 0.0:
 		return 0.0
 	var crit := crit_chance > 0.0 and rng.randf() < crit_chance
+	# Zero-Day Exploit: the first hit on an unhurt enemy is always a crit
+	if not dot and not crit and e.hp >= e.max_hp and run and run.has_relic(&"zero_day"):
+		crit = true
 	if crit:
 		dmg *= 2.0
 	if run and run.has_relic(&"cold_boot") and e.chill_t > 0.0:
@@ -997,12 +1010,26 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	# Static: a charged enemy passes the next hit on to a neighbour as an arc
 	if not dot and not _cascading and e.static_t > 0.0:
 		e.static_t = 0.0
-		var nb := nearest_enemy(e.position, 70.0, e.uid)
-		if nb:
-			_cascading = true
+		# Surge Protector: two arcs at full damage
+		var surge := run != null and run.has_relic(&"surge_protector")
+		var done: Array[int] = [e.uid]
+		_cascading = true
+		for k in (2 if surge else 1):
+			var nb: Enemy = null
+			var bd := 70.0 * 70.0
+			for o in enemies:
+				if o.dead or o.spawn_t > 0.0 or done.has(o.uid):
+					continue
+				var dd := o.position.distance_squared_to(e.position)
+				if dd < bd:
+					bd = dd
+					nb = o
+			if nb == null:
+				break
+			done.append(nb.uid)
 			fx.beam(e.position + Vector2(0, -4), nb.position + Vector2(0, -4), Style.c("gold:4"), 1.0)
-			hurt_enemy(nb, dmg * 0.6, e.position, 0.0, 0.3)
-			_cascading = false
+			hurt_enemy(nb, dmg * (1.0 if surge else 0.6), e.position, 0.0, 0.3)
+		_cascading = false
 	if crit and not dot and not _cascading and run and run.has_relic(&"cascade_failure"):
 		var nx := nearest_enemy(e.position, 60.0, e.uid)
 		if nx:
@@ -1031,7 +1058,7 @@ func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 	if chill > 0 and not (tgt is Boss):
 		tgt.chill_t = 1.2 + chill * 0.4
 		tgt.chill_slow = [0.6, 0.5, 0.4][clampi(chill, 1, 3) - 1]
-		tgt.chill_n += 1
+		tgt.chill_n += chill
 		if tgt.chill_n >= 3 and tgt.frozen_t <= 0.0:
 			tgt.chill_n = 0
 			tgt.frozen_t = 0.9
@@ -1046,14 +1073,22 @@ func _thermal_shock(e: Enemy, dmg: float) -> void:
 	e.chill_t = 0.0
 	e.chill_n = 0
 	var hit := 10.0 + dmg * 0.8
-	fx.ring(e.position + Vector2(0, -4), 2.0, 22.0, 0.3, Style.c("frost:4"))
+	var reach := 22.0
+	var throttle := run != null and run.has_relic(&"thermal_throttle")
+	if throttle:
+		hit *= 2.0
+		reach = 44.0
+	fx.ring(e.position + Vector2(0, -4), 2.0, reach, 0.3, Style.c("frost:4"))
 	fx.ring(e.position + Vector2(0, -4), 2.0, 16.0, 0.25, Style.c("ember:3"))
 	fx.text(e.position + Vector2(0, -16), "THERMAL SHOCK", Style.c("ember:4"))
 	Audio.sfx("boom", 0.1, -6.0)
-	for k in hash.query(e.position, 40.0):
+	for k in hash.query(e.position, reach + 18.0):
 		var o: Enemy = enemies[k]
-		if o != e and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(e.position) < 22.0 + o.r:
+		if o != e and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(e.position) < reach + o.r:
 			hurt_enemy(o, hit * 0.5, e.position, 0.0, 0.6)
+			if throttle and not o.dead:
+				o.burn_t = 2.5
+				o.burn_dps = maxf(o.burn_dps, 8.0)
 	hurt_enemy(e, hit, e.position, 0.0, 0.6)
 
 
@@ -1071,7 +1106,7 @@ func add_rot(e: Enemy, n: int) -> void:
 		return
 	tgt.rot_n += n
 	tgt.rot_t = 4.0
-	if tgt.rot_n < 5:
+	if tgt.rot_n < (3 if run and run.has_relic(&"rot_index") else 5):
 		return
 	tgt.rot_n = 0
 	var hit := 20.0 + minf(tgt.max_hp * 0.2, 40.0)
@@ -1094,17 +1129,36 @@ func mark(e: Enemy, t: float) -> void:
 	marked = tgt
 
 
+## Cornered: three or more enemies within reach of the player.
+func cornered() -> bool:
+	var n := 0
+	for k in hash.query(player.position, 60.0):
+		var e: Enemy = enemies[k]
+		if not e.dead and e.spawn_t <= 0.0 and e.position.distance_squared_to(player.position) < 3600.0:
+			n += 1
+			if n >= 3:
+				return true
+	return false
+
+
+## Memory Leak: a fight slowly drains 1 HP every 10 s (never the last one).
+func _leak(dt: float) -> void:
+	if cleared or not run.has_relic(&"memory_leak"):
+		return
+	_leak_t += dt
+	if _leak_t >= 10.0:
+		_leak_t = 0.0
+		if player.hp > 1.0:
+			player.hp -= 1.0
+			fx.text(player.position + Vector2(0, -30), "-1 LEAK", Style.c("glitch:4"))
+
+
 ## Where enemies go and shoot: the Rubber Duck while one is out, else the player.
 func target_pos() -> Vector2:
 	if spells == null or spells.summons.is_empty():
 		return player.position
 	var dk := spells.decoy()
 	return dk.pos if dk else player.position
-
-
-## Explosion size multiplier from relics.
-func area_mul() -> float:
-	return 1.35 if run and run.has_relic(&"blast_radius") else 1.0
 
 
 func kill_enemy(e: Enemy) -> void:
@@ -1129,7 +1183,9 @@ func kill_enemy(e: Enemy) -> void:
 					apply_status(o, 1, 0, e.burn_dps / 0.4)
 			fx.ring(e.position, 2.0, 36.0, 0.3, Color("#ff8a3c"))
 		if run.has_relic(&"bug_bounty") and not (e is Boss):
-			_release_bug(e.position)
+			var swarm := run.has_relic(&"swarm_protocol")
+			for k in (2 if swarm else 1):
+				_release_bug(e.position, 20.0 if swarm else 10.0)
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
 	if e.elite:
 		hitstop(0.08)
@@ -1152,7 +1208,7 @@ func kill_enemy(e: Enemy) -> void:
 
 
 ## Bug Bounty: a small homing bolt that hunts the nearest enemy.
-func _release_bug(p: Vector2) -> void:
+func _release_bug(p: Vector2, dmg := 10.0) -> void:
 	var b := bullets.spawn()
 	if b == null:
 		return
@@ -1161,7 +1217,7 @@ func _release_bug(p: Vector2) -> void:
 	b.prev = b.pos
 	b.a = a
 	b.vel = Vector2.from_angle(a) * 150.0
-	b.dmg = 10.0
+	b.dmg = dmg
 	b.r = 2.0
 	b.home = 9.0
 	b.life = 1.8

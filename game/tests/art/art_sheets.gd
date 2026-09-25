@@ -132,7 +132,7 @@ static func style(s: Node) -> void:
 	s.section("spell and relic icons: new / old")
 	for id in ["mote", "ember", "frost", "empower", "then"]:
 		s.add("new " + id, Icons.spell(Catalog.spell(StringName(id))))
-	for id in ["hot_patch", "overclock"]:
+	for id in ["hot_patch", "wildfire"]:
 		s.add("new " + id, Icons.relic(StringName(id)))
 	s.add("old mote", PixelArt.cached("old_mote", func() -> Image: return Icons._build(Catalog.spell(&"mote"))))
 	s.add("old ember", PixelArt.cached("old_ember", func() -> Image: return Icons._build(Catalog.spell(&"ember"))))
