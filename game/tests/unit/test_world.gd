@@ -112,20 +112,56 @@ func test_bullet_pool_recycles() -> void:
 const STRESS_ROSTER: Array[StringName] = [&"slime", &"weaver", &"ram", &"bugling"]
 
 
+## The storm's cost relative to a fixed GDScript workload (vector maths over a packed array,
+## like the bullet loop), measured side by side. Machine speed and load scale both, so the
+## ratio tracks only the game's own work. STRESS_RATIO is D9's figure (4.2-4.4 on the Mac,
+## steady to about 3% while the absolute times swung 8-11 ms) plus 20% headroom.
+const STRESS_RATIO := 5.2
+
+
 func test_stress_tick_budget() -> void:
-	# two identical storms; the better one counts (timing under interference: the machine can
-	# only ever make a run slower, never faster than the game's own work)
-	var a := _storm()
-	var b := _storm()
-	var best: Dictionary = a if a["quiet"] <= b["quiet"] else b
-	print("    stress: avg %.2f ms, full storm median %.2f ms, p25 %.2f ms, worst %.2f ms, peak bullets %d (best of 2)" % [
-		best["avg"] / 1000.0, best["median"] / 1000.0, best["quiet"] / 1000.0, best["worst"] / 1000.0, best["peak"]])
+	# two identical storms; the better ratio counts
+	var best := {}
+	for k in 2:
+		var r := _storm()
+		r["ratio"] = float(r["quiet"]) / r["cal"]
+		if best.is_empty() or r["ratio"] < best["ratio"]:
+			best = r
+	print("    stress: avg %.2f ms, full storm median %.2f ms, p25 %.2f ms, worst %.2f ms, peak bullets %d; calibration %.2f ms, ratio %.2f" % [
+		best["avg"] / 1000.0, best["median"] / 1000.0, best["quiet"] / 1000.0, best["worst"] / 1000.0, best["peak"], best["cal"] / 1000.0, best["ratio"]])
 	ok(best["peak"] > 500, "the storm really happened (%d bullets)" % best["peak"])
-	# budget: 60% of a 60 Hz frame for a full-storm tick. Measured as the lower quartile of the
-	# full-storm ticks: on a shared desktop the mean swings 9-18 ms with whatever else the
-	# machine is doing (D8), and contention slows every tick, so only a quiet-tick statistic
-	# tracks the game's own work. A real regression moves it as much as it moves the mean.
-	ok(best["quiet"] < 10000, "a quiet full-storm tick is under 10 ms (%.2f ms)" % (best["quiet"] / 1000.0))
+	ok(STRESS_RATIO <= 0.0 or best["ratio"] < STRESS_RATIO, "the storm costs under %.2fx the calibration work (%.2f)" % [STRESS_RATIO, best["ratio"]])
+	# and a hard ceiling whatever the machine: a quiet full-storm tick fits in one 60 Hz frame
+	ok(best["quiet"] < 16667, "a quiet full-storm tick fits a 60 Hz frame (%.2f ms)" % (best["quiet"] / 1000.0))
+
+
+## A fixed workload shaped like the bullet loop: 1,300 positions moved and tested against 45
+## centres. One sample runs right after each full-storm tick, so both see the same load.
+func _calibration_work() -> Array:
+	var pos := PackedVector2Array()
+	var vel := PackedVector2Array()
+	var ctr := PackedVector2Array()
+	for i in 1300:
+		pos.append(Vector2(i % 97, i % 53) * 3.0)
+		vel.append(Vector2.from_angle(i * 0.37) * 200.0)
+	for i in 45:
+		ctr.append(Vector2(i * 7 % 300, i * 11 % 200))
+	return [pos, vel, ctr]
+
+
+func _calibrate_once(w: Array) -> int:
+	var pos: PackedVector2Array = w[0]
+	var vel: PackedVector2Array = w[1]
+	var ctr: PackedVector2Array = w[2]
+	var t0 := Time.get_ticks_usec()
+	var hits := 0
+	for i in pos.size():
+		var p := pos[i] + vel[i] * 0.016
+		pos[i] = p
+		for c in ctr:
+			if p.distance_squared_to(c) < 64.0:
+				hits += 1
+	return Time.get_ticks_usec() - t0 + hits * 0
 
 
 ## One 1,300-bullet storm: 45 tanky enemies and a Chorus Harp firing every tick for 300 ticks.
@@ -144,6 +180,8 @@ func _storm() -> Dictionary:
 	var total := 0
 	var peak := 0
 	var full: Array[int] = []   # tick times once the storm is at full size
+	var cal: Array[int] = []    # a calibration sample right after each of those ticks
+	var cw := _calibration_work()
 	for i in 300:
 		w.cd = 0.0
 		world.spells.wand_fire(w, world.player.tip(), float(i) * 0.3)
@@ -155,6 +193,9 @@ func _storm() -> Dictionary:
 		peak = maxi(peak, world.bullets.live_count())
 		if i >= 150:
 			full.append(us)
+			cal.append(_calibrate_once(cw))
 	Game.inf_mana = false
 	full.sort()
-	return {"avg": total / 300.0, "median": full[full.size() / 2], "quiet": full[full.size() / 4], "worst": worst, "peak": peak}
+	cal.sort()
+	return {"avg": total / 300.0, "median": full[full.size() / 2], "quiet": full[full.size() / 4], "worst": worst, "peak": peak,
+		"cal": float(cal[cal.size() / 4])}

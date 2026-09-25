@@ -99,3 +99,6 @@ The first bench after D6 read 90% / 0%. The pre-D6 commit (`33605c6`) benched on
 - **Never-editing bot: 10%.**
 
 D6 is art only; the bench is identical to D7.
+
+## D8 music and sound (2026-09-25)
+Sound only; the bench is unchanged: **editing bot 80%, never-editing bot 10%** (mini-boss about 80 s, boss about 39 s). The same after `bdafb9d`, which fixed freed wave enemies never counting as down (a typed lambda in `Encounter.wave_done`); in these seeds the next wave's timing did not move a result.
