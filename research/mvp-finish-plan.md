@@ -72,3 +72,4 @@ Individual Apple Developer account (Bar buys it); bundle id `com.barbuilds.wandc
 - `0bac598` D9.1: the dash (i-frames, afterimages, cooldown; keys, pad, touch button).
 - `b9796e2` tests: stress guard = storm/calibration ratio (< 5.2; reads 4.2-4.4 under any load) + one-frame ceiling; 170/170.
 - `beea0ef` D9.2: first-run curriculum (3 lessons + coach toward a fixed layout), counter/dash tips; onboarding test: edit ~10 s, trigger ~42 s; 174/174.
+- `5220e79` D9.3-4: Source Fragments + 26 Codex unlocks + starting slot; Bug Reports 5 tiers; 180/180.
