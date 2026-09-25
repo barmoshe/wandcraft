@@ -19,6 +19,8 @@ const DUMMIES := [Vector2(236, 118), Vector2(268, 140), Vector2(244, 164)]
 const VIEW := Rect2(104, 82, 200, 100)
 const PROBE_SECONDS := 3.0
 const PROBE_STEPS_PER_FRAME := 24
+## Phones measure more slowly so the editor never stutters (design v3).
+static var steps_per_frame := 6 if Game.is_touch() else PROBE_STEPS_PER_FRAME
 
 var world: World
 var wand: WandState
@@ -195,7 +197,7 @@ func _pump() -> void:
 		var job: Dictionary = _queue[0]
 		load_wand(job["run"], job["def"], job["slots"])
 		_steps_left = int(PROBE_SECONDS / DT)
-	var n := mini(PROBE_STEPS_PER_FRAME, _steps_left)
+	var n := mini(steps_per_frame, _steps_left)
 	var was := Game.inf_mana
 	Game.inf_mana = true
 	_step(n)

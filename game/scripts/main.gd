@@ -61,9 +61,13 @@ func _ready() -> void:
 	ui.add_child(touch)
 	_build_shockwave()
 	# design v2: goals are checked at every room clear; a new one says what it unlocked
+	Events.room_entered.connect(func(def: Dictionary) -> void:
+		if world.run and not world.bot:
+			RunLog.room_entered(world.run, StringName(def.get("kind", ""))))
 	Events.room_cleared.connect(func() -> void:
 		if world.run == null or world.bot:
 			return
+		RunLog.room_cleared(world.run)
 		for g in Meta.check(world.run):
 			var names: Array = (g["unlocks"] as Array).map(func(id: StringName) -> String: return Meta.title(id))
 			Events.toast.emit("Goal: %s. Unlocked %s" % [g["text"], ", ".join(names.slice(0, 3))]))
@@ -144,6 +148,8 @@ func _begin(r: RunState) -> void:
 	hud.visible = true
 	touch.enabled = true
 	_playing = true
+	if not world.bot:
+		RunLog.start(r)   # design v3: the local play log for playtests
 	world.start_run(r)
 	_follow_camera(true)
 
@@ -336,6 +342,7 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 			s.offer = data["offer"]
 			var lesson := world.run.step
 			_open(s, func(res: Dictionary) -> void:
+				RunLog.pick(s.kind, s.offer, res.get("taken"))
 				world.reward_taken()
 				# a lesson prize always opens the editor, with the coach on what to move where
 				Tutorial.on_prize(world.run, lesson)
@@ -369,6 +376,7 @@ func _bot_answer(kind: StringName, data: Dictionary) -> void:
 func _open_end(won: bool) -> void:
 	_playing = false
 	SaveGame.record_run(world.run)
+	RunLog.finish(world.run, "" if won else world.player.last_hurt_by)
 	Audio.music("")
 	Audio.sting("victory" if won else "defeat")
 	var s := EndScreen.new()

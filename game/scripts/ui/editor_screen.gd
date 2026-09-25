@@ -493,6 +493,7 @@ func _move(from: Dictionary, to: Dictionary) -> void:
 			toast("The bag is full")
 			return
 	run.place_spell(from, to)
+	RunLog.edited()
 	_sel_cast = -1
 	# a spell snapping into a wand slot is an equip (with a light buzz); into the bag, a drop
 	if to["w"] >= 0:

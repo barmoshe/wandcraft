@@ -7,6 +7,11 @@ extends Node2D
 const MAX_SPARKS := 500
 const MAX_TEXTS := 40
 const MAX_SHARDS := 700
+## Design v3: phones get half the effect budget (the Mac stress tick already sits at 8-9 ms
+## of a 10 ms budget; a mid-range phone is several times slower).
+var max_sparks := MAX_SPARKS / 2 if Game.is_touch() else MAX_SPARKS
+var max_shards := MAX_SHARDS / 2 if Game.is_touch() else MAX_SHARDS
+var trail_cap := TRAIL_CAP / 2 if Game.is_touch() else TRAIL_CAP
 
 var rings: Array = []    # [pos, r0, r1, t, life, color]
 var beams: Array = []    # [a, b, color, width, t, life]
@@ -61,7 +66,7 @@ func beam(a: Vector2, b: Vector2, c: Color, width: float) -> void:
 
 func sparks(p: Vector2, n: int, c: Color, speed: float) -> void:
 	for i in n:
-		if _sparks.size() >= MAX_SPARKS:
+		if _sparks.size() >= max_sparks:
 			return
 		var v := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(0.3, 1.0) * speed
 		_sparks.append([p, v, 0.0, rng.randf_range(0.18, 0.4), c])
@@ -79,7 +84,7 @@ func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> v
 	var step := 1 if w * h <= 420 else 2
 	for y in range(0, h, step):
 		for x in range(0, w, step):
-			if _shards.size() >= MAX_SHARDS:
+			if _shards.size() >= max_shards:
 				return
 			var c := img.get_pixel(x, y)
 			if c.a < 0.5:
@@ -92,7 +97,7 @@ func dissolve(center: Vector2, tex: Texture2D, flip := false, scale := 1.0) -> v
 
 ## A little dust under the feet.
 func dust(p: Vector2) -> void:
-	if _shards.size() < MAX_SHARDS:
+	if _shards.size() < max_shards:
 		_shards.append([p + Vector2(rng.randf_range(-3, 3), 0), Vector2(rng.randf_range(-10, 10), -8), 0.0, 0.35, Color(0.7, 0.72, 0.6, 0.6), 0.0])
 
 
@@ -371,7 +376,7 @@ func _draw_hit(h: Array) -> void:
 
 ## Up to three dithered pixels behind each player bullet, stepping down in brightness.
 func _draw_trails() -> void:
-	var n := mini(TRAIL_CAP, trail_pool.active.size())
+	var n := mini(trail_cap, trail_pool.active.size())
 	for i in n:
 		var b: Bullet = trail_pool.active[i]
 		if not b.alive or b.vel.length_squared() < 3600.0:
