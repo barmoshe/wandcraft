@@ -101,7 +101,7 @@ func _draw() -> void:
 	_draw_wands(sr.position, run)
 	_draw_vitals(Vector2(sr.position.x, sr.end.y), run)
 	_draw_top_right(Vector2(sr.end.x, sr.position.y), run)
-	if Game.is_touch():
+	if Game.is_touch() or Game.touch_seen:
 		_draw_dash(sr)
 	_draw_map(Vector2(sr.get_center().x, sr.position.y), run)
 	if world.boss and not world.boss.dead:

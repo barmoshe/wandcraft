@@ -55,6 +55,11 @@ func pixel_scale() -> float:
 
 
 ## True on phones and tablets: the native apps, and the web build in a phone's browser.
+## D9: a touch has been seen this session (a touch laptop, the tap test): phone controls such
+## as the DASH button show from then on.
+var touch_seen := false
+
+
 func is_touch() -> bool:
 	return OS.has_feature("mobile") or OS.has_feature("web_ios") or OS.has_feature("web_android")
 

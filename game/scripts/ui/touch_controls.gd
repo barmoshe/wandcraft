@@ -43,6 +43,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		touched_once = true
+		Game.touch_seen = true
 		if t.pressed:
 			_press(t.index, t.position)
 		else:

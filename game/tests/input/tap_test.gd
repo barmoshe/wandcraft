@@ -65,6 +65,13 @@ func _run() -> void:
 	var p0 := world.player.global_position
 	await _drag(Vector2(v.x * 0.2, v.y * 0.6), Vector2(v.x * 0.2 + 40.0, v.y * 0.6), 30)
 	_check(world.player.global_position.x > p0.x + 4.0, "the left stick moves the hero (%.1f px)" % (world.player.global_position.x - p0.x))
+	# D9: the DASH button, drawn on touch screens
+	await _frames(2)
+	_check(hud.buttons.has("dash"), "the DASH button is drawn on a touch screen")
+	if hud.buttons.has("dash"):
+		await _tap((hud.buttons["dash"] as Rect2).get_center())
+		await _frames(2)
+		_check(world.player.dash_cd > 0.0, "tapping DASH dashes")
 	# the wand editor: drag the first spell two slots to the right
 	await _tap((hud.buttons["edit"] as Rect2).get_center())
 	await _frames(20)
