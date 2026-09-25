@@ -104,6 +104,7 @@ func _start(m: StringName) -> void:
 		&"copy_cast":
 			# a glitch flash first, so the player sees their own program coming
 			world.fx.text(position + Vector2(0, -26), "COPY", Style.c("glitch:4"), 10)
+			Audio.sfx("copy_cast", 0.0)
 			tele_circle(position, 14.0)
 		&"undo":
 			set_meta("to", _mirror_target())
@@ -119,6 +120,7 @@ func _start(m: StringName) -> void:
 			_box = Rect2(pp - Vector2(44, 34), Vector2(88, 60))
 			tele_rect(_box)
 			world.fx.text(pp + Vector2(0, -44), "SELECT ALL", Style.c("threat:4"), 10)
+			Audio.sfx("select_all", 0.0)
 	cd = 0.0
 
 
@@ -137,6 +139,7 @@ func _go(m: StringName) -> void:
 				_cast_q.append({"t": delay, "id": rev[0][0], "lv": rev[0][1], "from_ghost": true})
 		&"undo":
 			var to: Vector2 = get_meta("to")
+			Audio.sfx("ctrl_z", 0.0)
 			world.fx.beam(position, to, Color("#5ce1ff"), 2.0)
 			position = to
 			ring(position, 8 + phase * 4, 62.0, world.rng.randf())

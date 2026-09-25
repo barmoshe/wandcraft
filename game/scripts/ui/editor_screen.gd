@@ -252,7 +252,12 @@ func _move(from: Dictionary, to: Dictionary) -> void:
 			toast("The bag is full")
 			return
 	run.move_spell(from, to)
-	Audio.sfx("swap", 0.05)
+	# a spell snapping into a wand slot is an equip (with a light buzz); into the bag, a drop
+	if to["w"] >= 0:
+		Audio.sfx("ui_equip", 0.03)
+		Game.haptic("ui_snap")
+	else:
+		Audio.sfx("ui_drop", 0.05)
 	if to["w"] >= 0:
 		focus_wand = to["w"]
 

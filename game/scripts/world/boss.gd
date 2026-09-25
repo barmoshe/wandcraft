@@ -70,7 +70,8 @@ func tick(dt: float) -> void:
 		Events.shockwave.emit(position)
 		world.fx.text(position + Vector2(0, -28), "PHASE %d" % (phase + 1), Color("#ff3fa4"), 10)
 		Audio.sfx("phase", 0.0)
-		Game.buzz(120)
+		Audio.sfx("roar", 0.05)
+		Game.haptic("boss_phase")
 		world.hitstop(0.12)
 		world.flash(0.35)
 		sm = &"recover"

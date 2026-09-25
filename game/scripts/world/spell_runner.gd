@@ -980,7 +980,10 @@ func _next_unhit(b: Bullet, p: Vector2, max_d: float) -> Enemy:
 ## wall slam, then the trigger events. Hot path (hundreds of hits a tick in a storm): the
 ## cheap checks come before any call.
 func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
+	# the hit sounds like the spell's element (D8)
+	world.hit_sound = Audio.hit_for(b.cast.spell.id) if b.cast else "hit"
 	world.hurt_enemy(e, dmg, from, b.crit, kb * b.knock, false, b.kw)
+	world.hit_sound = "hit"
 	if b.burn > 0 or b.chill > 0 or b.static_on or b.rot > 0 or b.mark > 0.0:
 		_apply(b, e)
 	if b.slam and not e.dead and not e.heavy:

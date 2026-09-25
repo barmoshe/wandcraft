@@ -160,6 +160,7 @@ func on_pylon() -> void:
 	if pulses >= PYLONS_TO_DERAIL:
 		pulses = 0
 		derail_t = DERAIL
+		Audio.sfx("derail", 0.0)
 		weaken(DERAIL, 2.0, "DERAILED")
 		world.shake(0.3)
 
@@ -170,6 +171,7 @@ func _start(m: StringName) -> void:
 	match m:
 		&"lap_charge":
 			tele_circle(center, radius)
+			Audio.sfx("chomp", 0.05)
 		&"while_true":
 			world.fx.text(position + Vector2(0, -22), "while(true)", Color("#7de08a"), 10)
 		&"chase":

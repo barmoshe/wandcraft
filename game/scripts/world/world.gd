@@ -209,6 +209,8 @@ var _paint_seed := 0
 var force_tpl := ""             # screenshots and tests: build this layout for the next fight
 var marked: Enemy               # Hex Cursor: payloads aim here (D2)
 var grid_ver := 0              # bumped on every grid change (the flow field rebuilds)
+var shot_sound := "eshot"     # D8: the sound of the enemy shot being fired (Enemy.shoot sets it)
+var hit_sound := "hit"        # D8: the element sound of the hit being dealt (SpellRunner sets it)
 var last_hit_x := false
 var last_hit_y := false
 
@@ -353,6 +355,30 @@ func enter_room() -> void:
 	SaveGame.save_run(run)
 
 
+## The music a room plays (D8): the boss cue for both bosses, the shop cue where you trade,
+## otherwise the area's stems (the Cellar for rooms 1-4, the Corrupted Grove after).
+func room_music(kind: StringName) -> String:
+	if kind == &"mini" or kind == &"boss":
+		return "boss"
+	if kind == &"shop" or kind == &"forge":
+		return "shop"
+	return "cellar" if biome() == 0 else "grove"
+
+
+## Music layers follow the fight (D8): drums while enemies are up, the lead while an elite
+## is, the boss's phase-2 layer from its second phase.
+func _music_layers() -> void:
+	var fighting := false
+	var elite := false
+	for e in enemies:
+		if not e.dead:
+			fighting = true
+			elite = elite or e.elite
+	Audio.layer("drums", fighting and not cleared)
+	Audio.layer("lead", elite)
+	Audio.layer("p2", boss != null and not boss.dead and boss.phase > 0)
+
+
 func build_room(tpl: String, kind: StringName) -> void:
 	for e in enemies:
 		e.queue_free()
@@ -452,7 +478,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 		&"empty":
 			cleared = true   # tests and the showcase: a room with nothing in it
 	_deco.queue_redraw()
-	Audio.music("boss" if kind == &"mini" or kind == &"boss" else "grove")
+	Audio.music(room_music(kind))
 	Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 		"title": _room_title(kind)})
 	room_built.emit()
@@ -525,6 +551,7 @@ func _spawn_boss() -> void:
 	_actors.add_child(b)
 	b.setup_boss(self, Vector2(gw * TS / 2.0, gh * TS * 0.35), _uid)
 	boss = b
+	Audio.sting("boss")
 	Hints.show("boss")
 	Events.boss_started.emit(b.title, b.subtitle)
 
@@ -689,6 +716,7 @@ func step(dt: float) -> void:
 	_update_enemy_bullets(dt)
 	_leak(dt)
 	_update_room(dt)
+	_music_layers()
 	_check_doors()
 	fx.update(dt)
 
@@ -718,14 +746,15 @@ func _update_room(dt: float) -> void:
 		orb["t"] += dt
 		if orb["t"] > 0.5 and player.position.distance_to(orb["pos"]) < 14.0:
 			paused = true
-			Audio.sfx("pick")
+			Audio.sting("reward")
 			var kind: StringName = orb["kind"]
 			ui_request.emit(&"reward", {"kind": kind, "offer": Rewards.offer(run, kind)})
 			return
 	if secret_open and treasure != Vector2.INF and player.position.distance_to(treasure) < 14.0:
 		treasure = Vector2.INF
 		paused = true
-		Audio.sfx("pick")
+		Audio.sfx("chest")
+		Audio.sting("reward")
 		ui_request.emit(&"reward", {"kind": &"secret", "offer": Rewards.offer(run, &"secret")})
 		return
 	if not npc.is_empty():
@@ -821,7 +850,7 @@ func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0,
 	b.accel = accel
 	b.by = by
 	b.color = Color.WHITE   # the texture carries the reserved threat colors
-	Audio.sfx("eshot", 0.1, -6.0)
+	Audio.sfx(shot_sound, 0.1, -6.0)
 
 
 ## A soft point light. Lights brighten what the ambient CanvasModulate darkens.
@@ -1000,7 +1029,7 @@ func pop_pod(tx: int, ty: int) -> void:
 	fx.ring(p, 3.0, POD_R, 0.3, Style.c("ember:3"))
 	fx.sparks(p, 16, Style.c("ember:4"), 140.0)
 	shake(0.15)
-	Audio.sfx("boom", 0.1, -4.0)
+	Audio.sfx("pod_pop", 0.1)
 	for k in hash.query(p, POD_R + 16.0):
 		var e: Enemy = enemies[k]
 		if not e.dead and e.spawn_t <= 0.0 and e.position.distance_to(p) < POD_R + e.r:
@@ -1017,7 +1046,7 @@ func burn_bramble(tx: int, ty: int) -> void:
 	var p := _center(tx, ty)
 	fx.sparks(p, 10, Style.c("ember:3"), 60.0)
 	fx.ring(p, 2.0, 10.0, 0.25, Style.c("ember:4"))
-	Audio.sfx("burn", 0.1, -4.0)
+	Audio.sfx("bramble_burn", 0.1)
 	_deco.queue_redraw()
 
 
@@ -1031,7 +1060,8 @@ func open_cracked(tx: int, ty: int) -> void:
 	fx.sparks(p, 20, Style.c("stone:3"), 100.0)
 	fx.text(p + Vector2(0, -16), "A SECRET!", Style.c("gold:4"), 10)
 	shake(0.2)
-	Audio.sfx("door")
+	Audio.sfx("crack_open", 0.05)
+	Audio.sfx("secret", 0.0)
 	_repaint()
 	_deco.queue_redraw()
 
@@ -1044,7 +1074,7 @@ func pulse_pylon(tx: int, ty: int) -> void:
 	pylon_cd[key] = time + 4.0
 	var p := _center(tx, ty)
 	fx.ring(p + Vector2(0, -8), 4.0, PYLON_R, 0.4, Style.c("cyan:4"))
-	Audio.sfx("tele", 0.1, -2.0)
+	Audio.sfx("pylon", 0.05)
 	for k in hash.query(p, PYLON_R + 16.0):
 		var e: Enemy = enemies[k]
 		if e.dead or e.spawn_t > 0.0 or e.position.distance_to(p) > PYLON_R + e.r:
@@ -1063,6 +1093,7 @@ func fall_check(e: Enemy) -> void:
 		return
 	if tile_at(floori(e.position.x / TS), floori(e.position.y / TS)) == 5:
 		fx.text(e.position + Vector2(0, -12), "FELL", Style.c("bone:4"))
+		Audio.sfx("pit_fall", 0.1)
 		fx.ring(e.position, 2.0, 8.0, 0.25, Style.c("night:4"))
 		kill_enemy(e)
 
@@ -1206,10 +1237,11 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		e.flash = 0.07
 		if not dot:
 			fx.sparks(e.position + Vector2(0, -6), 2, Style.c("steel:4"), 50.0)
-			Audio.sfx("hit", 0.1, -10.0)
+			Audio.sfx("hit_armor", 0.08, -4.0)
 		if e.armor <= 0.0:
 			e.armor = 0.0
 			fx.text(e.position + Vector2(0, -18), "ARMOR BROKEN", Style.c("steel:4"))
+			Audio.sfx("armor_break")
 			fx.ring(e.position + Vector2(0, -6), 2.0, 16.0, 0.3, Style.c("steel:4"))
 			shake(0.12)
 		return 0.0
@@ -1240,7 +1272,9 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit, e.uid)
 		fx.hit_spark(e.position + Vector2(0, -6), (e.position - from).angle(), Style.c("gold:4") if crit else Style.c("arcane:4"))
-		Audio.sfx("crit" if crit else "hit", 0.1, 0.0 if crit else -6.0)
+		Audio.sfx("crit" if crit else hit_sound, 0.1, 0.0 if crit else -6.0)
+		if crit:
+			Game.haptic("crit")
 	# Static: a charged enemy passes the next hit on to a neighbour as an arc
 	if not dot and not _cascading and e.static_t > 0.0:
 		e.static_t = 0.0
@@ -1334,10 +1368,12 @@ func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
 	if e.ward_n > 0:
 		if kw & 4:
 			e.ward_n = 0
+			Audio.sfx("ward_break")
 			fx.text(e.position + Vector2(0, -18), "WARD STRIPPED", Style.c("cyan:4"))
 			fx.ring(e.position + Vector2(0, -6), 2.0, e.r + 6.0, 0.25, Style.c("cyan:4"))
 		else:
 			e.ward_n -= 1
+			Audio.sfx("hit_ward", 0.08, -3.0)
 			fx.ring(e.position + Vector2(0, -6), 1.0, e.r + 4.0, 0.15, Style.c("cyan:4"))
 			if e._def_fx <= 0.0:
 				e._def_fx = 0.5
@@ -1349,11 +1385,13 @@ func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
 		if absf(angle_difference(to_target, to_hit)) < 1.1:
 			if kw & 1:
 				e.shield_hp = 0
+				Audio.sfx("armor_break")
 				fx.text(e.position + Vector2(0, -18), "SHIELD BROKEN", Style.c("steel:4"))
 				fx.sparks(e.position + Vector2(0, -6), 10, Style.c("steel:4"), 90.0)
 				shake(0.1)
 			else:
 				e.shield_hp -= 1
+				Audio.sfx("hit_shield", 0.08, -3.0)
 				fx.sparks(from, 3, Style.c("steel:4"), 60.0)
 				if e._def_fx <= 0.0:
 					e._def_fx = 0.5
@@ -1459,15 +1497,18 @@ func kill_enemy(e: Enemy) -> void:
 	_on_death(e)
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
 	fx.poof(e.position + Vector2(0, -4))
+	if not (e is Boss):
+		Audio.sfx("kill_big" if e.elite else ("kill_mid" if e.heavy else "kill"), 0.12)
 	if e.elite:
 		hitstop(0.08)
 		shake(0.25)
+		Game.haptic("elite_kill")
 	if e is Boss:
 		(e as Boss).die()
 		run.stats["bosses"] += 1
 		hitstop(0.3)
 		flash(0.45)
-		Game.buzz(200)
+		Game.haptic("boss_kill")
 		shake(0.8)
 		for k in 6:
 			fx.ring(e.position + Vector2(rng.randf_range(-12, 12), rng.randf_range(-12, 12)), 2.0, 20.0 + k * 6.0, 0.5, [Color("#ff3fa4"), Color("#ffc94a"), Color("#5ce1ff")][k % 3])

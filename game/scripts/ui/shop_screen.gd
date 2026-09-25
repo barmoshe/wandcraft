@@ -137,7 +137,7 @@ func _buy() -> void:
 	if it.get("sold", false) or run.gold < price:
 		Audio.sfx("deny", 0.0)
 		return
-	Audio.sfx("coin", 0.0)
+	Audio.sfx("forge" if mode == "forge" else "buy", 0.0)
 	if mode == "forge" and it["t"] == &"compile":
 		Rewards.compile_evo(run, it["id"])
 		Audio.sfx("levelup", 0.0)

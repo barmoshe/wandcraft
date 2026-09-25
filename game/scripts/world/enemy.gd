@@ -337,6 +337,7 @@ func tick(dt: float) -> void:
 					aim_a = d.angle()
 					flash = 0.6 if sin(st_t * 40.0) > 0.0 else 0.0
 					if st_t <= 0.0:
+						Audio.sfx("charge", 0.08)
 						atk_t = float(dash["t"])
 						state = &"dash"
 						st_t = dash["t"]
@@ -349,6 +350,7 @@ func tick(dt: float) -> void:
 						st_t = 1.0
 						world.shake(0.12)
 						world.fx.text(position + Vector2(0, -12), "BONK", Color.WHITE)
+						Audio.sfx("bonk", 0.1)
 					elif st_t <= 0.0 or world.last_hit_x or world.last_hit_y:
 						state = &"move"
 						cd = world.rng.randf_range(1.2, 2.2)
@@ -372,6 +374,7 @@ func tick(dt: float) -> void:
 						state = &"move"
 						cd = 2.4
 						atk_t = 0.3
+						Audio.sfx("slam", 0.05)
 						world.shake(0.2)
 						world.fx.ring(position, 4.0, SLAM_R, 0.3, Style.c("threat:3"))
 						world.break_crates_in(position, SLAM_R)
@@ -383,6 +386,7 @@ func tick(dt: float) -> void:
 			if cd <= 0.0:
 				cd = 5.0
 				atk_t = 0.25
+				Audio.sfx("summon", 0.08, -3.0)
 				var mine := world.enemies.filter(func(e: Enemy) -> bool: return not e.dead and e.parent_uid == uid).size()
 				for k in mini(2, 4 - mine):
 					var e := world.spawn_enemy(&"bugling", position + Vector2.from_angle(ph + k * PI) * (r + 6.0))
@@ -396,6 +400,7 @@ func tick(dt: float) -> void:
 					st_t -= dt
 				flash = 0.8 if sin(st_t * 45.0) > 0.0 else 0.0
 				if st_t <= 0.0:
+					Audio.sfx("fuse_pop", 0.08)
 					world.fx.ring(position, 3.0, TICK_R, 0.25, Style.c("threat:3"))
 					world.shake(0.15)
 					if pl.position.distance_to(position) < TICK_R + pl.r:
@@ -462,7 +467,41 @@ func tick(dt: float) -> void:
 		world.hurt_enemy(self, 12.0 * dt * 4.0, position, 0.0, 0.0, true)
 	if dt > 0.0:
 		vel = vel.lerp((position - _prev) / dt, 0.3)
+	_tele_cue()
 	_animate()
+
+
+## D8: every wind-up gets a rising cue that ends exactly as the attack is released (design-plan
+## §9): the longest cue that fits the wind-up starts when that much time is left.
+var _cue_prev := INF
+var _fuse_tick := 0.0
+
+
+func _tele_cue() -> void:
+	var total := 0.0
+	match state:
+		&"tele":
+			match ai:
+				&"charge": total = float(def["dash"]["tele"]) / haste
+				&"slam": total = 1.0 / haste
+				&"shoot": total = float(def["shot"]["tele"]) / haste
+		&"fuse":
+			total = 0.8
+			_fuse_tick -= get_physics_process_delta_time()
+			if _fuse_tick <= 0.0:
+				_fuse_tick = 0.2
+				Audio.sfx("fuse", 0.0, -6.0)
+		&"aim":
+			total = float(def["shot"]["sight"]) / haste
+	if total <= 0.0:
+		_cue_prev = INF
+		return
+	var cue := "tele_long" if total >= 1.0 else ("tele_mid" if total >= 0.5 else "tele_short")
+	var length := 1.0 if cue == "tele_long" else (0.5 if cue == "tele_mid" else 0.3)
+	var left := st_t / haste
+	if _cue_prev > length and left <= length:
+		Audio.sfx(cue, 0.0, -3.0)
+	_cue_prev = left
 
 
 const SLAM_R := 36.0
@@ -478,6 +517,7 @@ func _ward_allies() -> void:
 		e.ward_n = WARD_HITS
 		world.fx.beam(position + Vector2(0, -6), e.position + Vector2(0, -6), Style.c("cyan:4"), 1.0)
 	world.fx.ring(position + Vector2(0, -6), 2.0, 12.0, 0.3, Style.c("cyan:4"))
+	Audio.sfx("ward_up", 0.05, -3.0)
 
 
 ## The way toward the player: straight at them while the lane is clear, otherwise the
@@ -539,12 +579,14 @@ func shoot(ang: float) -> void:
 	var shot: Dictionary = def["shot"]
 	var n: int = shot["n"]
 	atk_t = 0.2
+	world.shot_sound = "eshot_ring" if shot.get("ring", false) else ("eshot_laser" if kind == &"sentry" else "eshot")
 	var off := world.rng.randf() * TAU
 	var spread: Array = [0.0, -0.26, 0.26] if affix == &"forked" and not shot.get("ring", false) else [0.0]
 	for i in n:
 		var a := off + TAU * i / n if shot.get("ring", false) else ang
 		for sp in spread:
 			world.enemy_shoot(position + muzzle * sprite.scale.y, a + sp, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
+	world.shot_sound = "eshot"
 	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Style.c("threat:3"))
 
 
