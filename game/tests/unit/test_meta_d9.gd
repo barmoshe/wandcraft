@@ -24,6 +24,9 @@ func test_a_new_player_meets_only_the_core() -> void:
 	for k in 60:
 		for r in Rewards.roll_relics(run, 3):
 			ok(Meta.CORE_RELICS.has(r), "%s offered from the core" % r)
+	for k in 80:
+		for it in Rewards.offer(run, &"spell"):
+			ok(Meta.CORE_SPELLS.has(it["id"]), "%s in a whole offer is core (the counter pick too)" % it["id"])
 	var starts: Array = Rewards.offer(run, &"start")
 	var free: Array = starts.filter(func(o: Dictionary) -> bool: return not o["locked"]).map(func(o: Dictionary) -> StringName: return o["id"])
 	eq(free, [&"apprentice"], "only the Apprentice until a goal opens more")

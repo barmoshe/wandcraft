@@ -109,7 +109,7 @@ static func _with_counter(run: RunState, offer: Array) -> Array:
 	var pool: Array = []
 	for id in Catalog.spells():
 		var d := Catalog.spell(id)
-		if Catalog.is_evolved(id) or run.banned.has(id) or offer.any(func(it: Dictionary) -> bool: return it["id"] == id):
+		if Catalog.is_evolved(id) or run.banned.has(id) or Meta.is_locked(id) or offer.any(func(it: Dictionary) -> bool: return it["id"] == id):
 			continue
 		if SpellRunner.keywords(d, Mods.new()) & ~covered & 7 and d.rarity <= 1:
 			pool.append(id)

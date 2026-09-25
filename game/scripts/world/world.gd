@@ -492,7 +492,7 @@ func _room_title(kind: StringName) -> String:
 		return Tutorial.title(run).to_upper()
 	match kind:
 		&"start":
-			return "THE RUINED GROVE"
+			return "WORLD 1"
 		&"mini":
 			return "MINI-BOSS"
 		&"boss":

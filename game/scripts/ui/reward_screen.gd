@@ -55,7 +55,8 @@ func _paint() -> void:
 	var nb := 3 if has_spell else 2
 	var bw := minf(120.0, (sr.size.x - 16.0) / 3.0)
 	var bx := v.x / 2.0 - (bw * nb + 8.0 * (nb - 1)) / 2.0
-	button(Rect2(bx, by, bw, bh), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
+	# a lesson's prize is the lesson: no skipping it
+	button(Rect2(bx, by, bw, bh), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost", not Tutorial.active(run))
 	button(Rect2(bx + bw + 8, by, bw, bh), "take", "TAKE", "primary", can_take)
 	if has_spell:
 		var spell: bool = can_take and offer[sel]["t"] == &"spell"
@@ -139,7 +140,7 @@ func _gain(item: Dictionary, lv: int) -> float:
 	if item["t"] == &"spell":
 		var key := "%s%d" % [item["id"], lv]
 		if not _layouts.has(key):
-			_layouts[key] = WandPlanner.slots_with(run, item["id"], lv)
+			_layouts[key] = _layout_with(item["id"], lv)
 		then = probe.dps(run, w.def, _layouts[key])
 	else:
 		var scratch := RunState.new()
@@ -149,6 +150,24 @@ func _gain(item: Dictionary, lv: int) -> float:
 	if now < 0.0 or then < 0.0:
 		return 0.0
 	return then - now
+
+
+## Where a player would put this spell: a boost in the nearest empty slot on the left of the
+## first spell (what it is for; the planner's mana caution can leave it out), anything else
+## as the editing bot lays it out.
+func _layout_with(id: StringName, lv: int) -> Array:
+	var slots: Array = run.wand().slots.duplicate(true)
+	if fam(Catalog.spell(id)) == Fam.BOOST:
+		var first := -1
+		for i in slots.size():
+			if slots[i] != null and Catalog.is_caster(Catalog.spell(slots[i]["id"])):
+				first = i
+				break
+		for i in range(first - 1, -1, -1):
+			if slots[i] == null:
+				slots[i] = {"id": id, "lv": lv}
+				return slots
+	return WandPlanner.slots_with(run, id, lv)
 
 
 ## The card's bottom line: [long, short, color], or ["", "", c] for none.
@@ -177,15 +196,14 @@ func _fit_line(r: Rect2, long: String, short: String, c := Style.c("cyan:4")) ->
 	text_center(r.get_center().x, r.end.y - 5, s, c)
 
 
-## The start: preselect the one card you can take when there is only one.
+## Preselect the one card you can take when there is only one (the start, lesson prizes).
 func _opened() -> void:
-	if kind == &"start":
-		var free := []
-		for i in offer.size():
-			if not offer[i].get("locked", false):
-				free.append(i)
-		if free.size() == 1:
-			sel = free[0]
+	var free := []
+	for i in offer.size():
+		if not offer[i].get("locked", false):
+			free.append(i)
+	if free.size() == 1:
+		sel = free[0]
 
 
 func _on_button(id: String) -> void:

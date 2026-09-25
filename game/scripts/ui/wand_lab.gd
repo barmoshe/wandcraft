@@ -81,7 +81,8 @@ func set_view(sz: Vector2i) -> void:
 	if size == sz:
 		return
 	size = sz
-	var centre := Vector2(214, 126)
+	# the hero stays 30 px in from the left edge, whatever the width
+	var centre := Vector2(HERO.x - 30.0 + sz.x / 2.0, 126)
 	if is_inside_tree():
 		canvas_transform = Transform2D(0.0, -(centre - Vector2(sz) / 2.0).round())
 

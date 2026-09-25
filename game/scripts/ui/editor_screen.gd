@@ -79,7 +79,7 @@ func _paint() -> void:
 		if was and coach.is_empty():
 			lesson = -1
 			toast("Nice. Press DONE and try it out")
-	if coach.is_empty():
+	if coach.is_empty() and Game.font("small").get_string_size("Drag spells into slots.", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 62 < sr.size.x - 170.0:
 		text(left.position + Vector2(62, 15), "Drag spells into slots.", MUTED)
 	var y := left.position.y + 24
 	for wi in run.wands.size():
@@ -118,7 +118,12 @@ func _wand_row(wi: int, at: Vector2, width: float) -> float:
 	elif run.wands.size() > 1:
 		text(at + Vector2(tw + 8, 9), "TAP TO HOLD", MUTED.darkened(0.3))
 	area(Rect2(at - Vector2(0, 4), Vector2(minf(width, tw + 80), 18)), "wand%d" % wi)
-	text_right(at.x + width - 2, at.y + 9, "%d MANA  +%d/S" % [roundi(w.max_mana()), roundi(w.def.regen * w.regen_mul() * Relics.mana_regen_mul(run))], Style.c("cyan:4"))
+	# the wand's mana on the right, when the row has room for it after the name and badge
+	var mana_s := "%d MANA  +%d/S" % [roundi(w.max_mana()), roundi(w.def.regen * w.regen_mul() * Relics.mana_regen_mul(run))]
+	var f := Game.font("small")
+	var badge_w := f.get_string_size("TAP TO HOLD", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	if tw + 8 + badge_w + 10 + f.get_string_size(mana_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x <= width:
+		text_right(at.x + width - 2, at.y + 9, mana_s, Style.c("cyan:4"))
 	if w.def.reverse:
 		text_right(at.x + width - 2, at.y + 19, "CASTS RIGHT TO LEFT", Style.c("glitch:4"))
 	var n := w.slots.size()
