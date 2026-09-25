@@ -91,7 +91,13 @@
     - Ambient life (tufts, motes, leaves) and front-cap lips that hide the feet of whatever stands behind a wall.
     - HUD icons redrawn (Bar's request): wand badge, coin, pause, bag, heart, mana drop, in-icon relic counters.
     - 163 tests. Stress tick 8–9 ms on the Mac (budget 10 ms).
-  - **Next up:** D8 (music and sound), D9 (onboarding and meta), then store prep. The order and log live in `research/mvp-finish-plan.md`.
+  - **D8 music and sound (0.12.0): done** (ADR 0019). All generated in code (Bar's call), no packs.
+    - Five cues and five stingers: title, shop, the Cellar and the Corrupted Grove as base/drums/lead stems, the boss as intro/loop/phase-2 layer. Previews went to Bar to audition.
+    - 84 effects (was 37) with element timbres, telegraph cues that end on release, and variants.
+    - A BS.1770 meter; effects at -18 LUFS, UI -24, music -20; a licence manifest with a test.
+    - Buses with a limiter and sidechain ducking, voice classes, layered and interactive music, a haptics map, a credits screen.
+    - 168 tests.
+  - **Next up:** D9 (onboarding and meta), then store prep. The order and log live in `research/mvp-finish-plan.md`.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
