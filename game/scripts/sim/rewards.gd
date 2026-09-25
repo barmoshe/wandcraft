@@ -2,24 +2,35 @@ class_name Rewards
 extends RefCounted
 ## Reward offers. Every reward screen is a choice of 3 (plus a skip that pays gold), which
 ## answers the "a spell room gives one random spell" complaint about the genre.
-## Offer items: {"t": spell|relic|wand|gold|heal, "id": StringName, "v": int}
+## Offer items: {"t": spell|relic|wand|gold|heal|loadout|slot, "id": StringName, "v": int}
 
 const SKIP_GOLD := 8
-const STARTERS: Array[StringName] = [&"fan", &"moths", &"lance", &"ember", &"spark", &"frost", &"needle"]
+const SLOT_PRICE := 60        # Forge: +1 slot on the wand in hand (D2)
+const SLOT_MAX := 10
+const LOADOUT_TEXT := {
+	&"twig": "Quick and light: three slots, the first holds an Arcane Mote. Room to build.",
+	&"stub": "Slow and deep: two slots, the first holds an Ember Bolt, and a big mana pool.",
+}
 
 
 ## Spell pool for drops: every spell with a rarity weight, passives and boosts included.
+## Epic odds follow a pacing offset (D2): +1% for every common rolled, reset on an epic,
+## so a dry spell always ends. Spells Deprecated at a shop never come back this run.
 static func roll_spell(run: RunState, bias := 0, exclude: Array = []) -> StringName:
-	var weights := [70.0 - bias * 25.0, 25.0 + bias * 10.0, 5.0 + bias * 15.0]
+	var weights := [70.0 - bias * 25.0, 25.0 + bias * 10.0, 5.0 + bias * 15.0 + run.rare_offset * 100.0]
 	var rar := _weighted_index(weights, run.rng)
+	if rar == 2:
+		run.rare_offset = -0.05
+	elif rar == 0:
+		run.rare_offset = minf(0.40, run.rare_offset + 0.01)
 	var pool: Array = []
 	for id in Catalog.spells():
 		var d := Catalog.spell(id)
-		if d.rarity == rar and not exclude.has(id):
+		if d.rarity == rar and not exclude.has(id) and not run.banned.has(id):
 			pool.append(id)
 	if pool.is_empty():
 		for id in Catalog.spells():
-			if not exclude.has(id):
+			if not exclude.has(id) and not run.banned.has(id):
 				pool.append(id)
 	var owned := owned_tags(run)
 	var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Catalog.tags(id), owned))
@@ -93,9 +104,7 @@ static func _spells(run: RunState, biases: Array) -> Array:
 static func offer(run: RunState, kind: StringName) -> Array:
 	match kind:
 		&"start":
-			var s := STARTERS.duplicate()
-			_shuffle(s, run.rng)
-			return s.slice(0, 3).map(func(id: StringName) -> Dictionary: return {"t": &"spell", "id": id})
+			return RunState.LOADOUTS.keys().map(func(id: StringName) -> Dictionary: return {"t": &"loadout", "id": id})
 		&"spell":
 			return _spells(run, [0, 0, 1])
 		&"relic":
@@ -134,6 +143,7 @@ static func shop_stock(run: RunState) -> Array:
 	out.append({"t": &"heal", "id": &"heal", "v": 35, "price": 25, "sold": false})
 	var wid := roll_wand(run)
 	out.append({"t": &"wand", "id": wid, "price": 65 + 25 * Catalog.wand(wid).rarity, "sold": false})
+	run.deprecated_here = false
 	return out
 
 
@@ -154,6 +164,13 @@ static func grant(run: RunState, item: Dictionary) -> bool:
 			run.gold += int(item.get("v", 0))
 		&"heal":
 			run.hp = minf(run.max_hp, run.hp + float(item.get("v", 0)))
+		&"loadout":
+			run.set_loadout(item["id"])
+		&"slot":
+			var w := run.wand()
+			if w.slots.size() >= SLOT_MAX:
+				return false
+			w.slots.append(null)
 	return true
 
 
@@ -167,6 +184,10 @@ static func item_title(item: Dictionary) -> String:
 			return Catalog.wand(item["id"]).title
 		&"heal":
 			return "Heal %d" % int(item.get("v", 0))
+		&"loadout":
+			return Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"]).title
+		&"slot":
+			return "+1 Slot"
 	return "%d gold" % int(item.get("v", 0))
 
 
@@ -180,6 +201,10 @@ static func item_desc(item: Dictionary) -> String:
 			return wand_desc(Catalog.wand(item["id"]))
 		&"heal":
 			return "Restores %d HP right away." % int(item.get("v", 0))
+		&"loadout":
+			return LOADOUT_TEXT.get(item["id"], "")
+		&"slot":
+			return "Adds one empty slot to the end of the wand in your hand (up to %d)." % SLOT_MAX
 	return ""
 
 
@@ -195,6 +220,8 @@ static func wand_desc(w: WandDef) -> String:
 
 static func item_rarity(item: Dictionary) -> int:
 	match item["t"]:
+		&"loadout", &"slot":
+			return 0
 		&"spell":
 			return Catalog.spell(item["id"]).rarity
 		&"relic":

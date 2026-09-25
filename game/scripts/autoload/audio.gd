@@ -12,7 +12,8 @@ const GAP := {"cast_spark": 0.045, "hit": 0.03, "crit": 0.05, "eshot": 0.06, "ca
 const CAST := {&"mote": "cast_spark", &"lance": "cast_laser", &"fan": "cast_fan", &"burst": "cast_boom",
 	&"moths": "cast_missile", &"seed": "cast_spark", &"wheel": "cast_orbit", &"needle": "cast_laser",
 	&"ember": "cast_fire", &"spark": "cast_chain", &"frost": "cast_ice", &"disc": "cast_orbit", &"mine": "cast_boom",
-	&"static": "cast_chain", &"null_orb": "cast_orbit"}
+	&"static": "cast_chain", &"null_orb": "cast_orbit", &"firewall": "cast_fire", &"bitrot": "cast_orbit",
+	&"hexcursor": "cast_laser", &"ping": "cast_laser", &"daemon": "cast_orbit", &"turret": "cast_boom", &"duck": "cast_spark"}
 
 var _streams: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []

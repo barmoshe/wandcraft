@@ -348,18 +348,29 @@ static func item_icon(item: Dictionary) -> Texture2D:
 			return Icons.glyph("wand", Catalog.wand(item["id"]).color)
 		&"heal":
 			return Icons.glyph("heart", Color("#ff4d6d"))
+		&"loadout":
+			return Icons.glyph("wand", Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"]).color)
+		&"slot":
+			return Icons.glyph("box", Style.c("gold:3"))
 	return Icons.glyph("coin", Color("#ffd36b"))
+
+
+const KIND_NAMES := ["Shooting spell", "Boost", "Trigger", "Passive", "Debugger rune", "Familiar"]
 
 
 static func kind_label(item: Dictionary) -> String:
 	match item["t"]:
 		&"spell":
 			var d := Catalog.spell(item["id"])
-			return ["Shooting spell", "Boost", "Trigger", "Passive"][d.kind]
+			return KIND_NAMES[d.kind]
 		&"relic":
 			return "Relic"
 		&"wand":
 			return "Wand"
+		&"loadout":
+			return "Starting wand"
+		&"slot":
+			return "Wand upgrade"
 		&"heal":
 			return "Potion"
 	return "Gold"
@@ -376,7 +387,9 @@ static func spell_stats(id: StringName, lv := 1) -> String:
 	if d.kind == SpellDef.Kind.PASSIVE:
 		return "Works from any slot"
 	bits.append("%d mana" % roundi(d.mana_at(lv)))
-	if d.kind == SpellDef.Kind.PROJ:
+	if (d.kind == SpellDef.Kind.PROJ or d.kind == SpellDef.Kind.FAMILIAR) and d.damage_at(lv) > 0.0:
 		var n := int(d.param("count", lv, 1))
 		bits.append(("%d dmg" % roundi(d.damage_at(lv))) + (" x%d" % n if n > 1 else ""))
+	for k in d.keywords:
+		bits.append(k.to_upper())
 	return "  ".join(bits)

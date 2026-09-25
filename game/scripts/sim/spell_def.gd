@@ -2,7 +2,9 @@ class_name SpellDef
 extends Resource
 ## One spell card. Content is original (see decisions/0002); values are per level [L1, L2, L3].
 
-enum Kind { PROJ, BOOST, TRIG, PASSIVE }
+## RUNE: Debugger runes that edit the program itself (D2). FAMILIAR: a summon, cast like a
+## shooting spell but it stays out (one of each kind at a time, see the spell text).
+enum Kind { PROJ, BOOST, TRIG, PASSIVE, RUNE, FAMILIAR }
 
 @export var id: StringName
 @export var title: String
@@ -24,6 +26,11 @@ enum Kind { PROJ, BOOST, TRIG, PASSIVE }
 ## speed, radius, life, count, spread (deg), homing, pierce, area, ...
 @export var params: Dictionary = {}
 @export var icon_rows: PackedStringArray
+## What changes at level 3 beyond the numbers (shown on the card as "L3: ...").
+@export var l3 := ""
+## Keywords this spell carries into hits: pierce (breaks shields), blast (breaks armor),
+## shock (strips wards). Boosts and statuses can add more (D2/D4).
+@export var keywords: PackedStringArray
 
 
 static func at(arr: PackedFloat32Array, level: int) -> float:

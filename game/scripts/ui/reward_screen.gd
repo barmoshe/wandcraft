@@ -1,10 +1,12 @@
 class_name RewardScreen
 extends Screen
 ## Choose 1 of 3. Tapping a card only inspects it (highlight); TAKE confirms, so a stray tap
-## never picks a reward. SKIP pays a little gold. Result: {"taken": item or null}.
+## never picks a reward. SKIP pays a little gold. A spell goes to the bag (D2: placing it
+## is the player's call), so TAKE & EQUIP opens the wand editor right after.
+## Result: {"taken": item or null, "equip": bool}.
 
 const TITLES := {
-	&"start": ["BEFORE YOU GO", "Pick your first spell"],
+	&"start": ["BEFORE YOU GO", "Pick your wand"],
 	&"spell": ["SPELL", "Pick one spell"],
 	&"relic": ["RELIC", "Pick one relic"],
 	&"challenge": ["CHALLENGE CLEARED", "Pick your prize"],
@@ -37,9 +39,14 @@ func _paint() -> void:
 		area(r, "card%d" % i)
 	var by := y0 + ch + 12
 	var can_take := sel >= 0
-	button(Rect2(v.x / 2.0 + 6, by, 110, 30), "take", "TAKE", "primary", can_take)
+	var equip := kind != &"start"
+	var bx := v.x / 2.0 - (173.0 if equip else 116.0)
 	if kind != &"start":
-		button(Rect2(v.x / 2.0 - 116, by, 110, 30), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
+		button(Rect2(bx, by, 110, 30), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
+	button(Rect2(bx + 118, by, 110, 30), "take", "TAKE", "primary", can_take)
+	if equip:
+		var spell: bool = can_take and offer[sel]["t"] == &"spell"
+		button(Rect2(bx + 236, by, 110, 30), "equip", "TAKE & EQUIP", "primary", spell)
 
 
 func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
@@ -86,21 +93,21 @@ func _on_button(id: String) -> void:
 		var i := int(id.substr(4))
 		sel = -1 if sel == i else i
 		Audio.sfx("ui", 0.05)
-	elif id == "take" and sel >= 0:
+	elif (id == "take" or id == "equip") and sel >= 0:
 		var item: Dictionary = offer[sel]
 		if not Rewards.grant(run, item):
 			Audio.sfx("deny", 0.0)
 			toast("Your bag is full (12). Skip this one, or merge spells.")
 			return
 		Audio.sfx("levelup" if _merged(item) else "pick", 0.0)
-		finished.emit({"taken": item})
+		finished.emit({"taken": item, "equip": id == "equip"})
 	elif id == "skip":
 		Audio.sfx("coin")
 		run.gold += Rewards.SKIP_GOLD
 		finished.emit({"taken": null})
 
 
-## True when taking this spell just merged three copies into a higher level.
+## True when taking this spell just merged two copies into a higher level.
 func _merged(item: Dictionary) -> bool:
 	if item["t"] != &"spell":
 		return false

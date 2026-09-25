@@ -13,6 +13,8 @@ var acc := Mods.new()
 var casts := 0
 var flash := -1
 var bonus_mana := 1.0   # relics (Spare Battery)
+var idle := 0.0         # seconds since this wand last cast (Watchdog)
+var bg_t := 3.0         # Daemon Rod: time until the background slot fires
 
 
 static func make(wand: WandDef, ids: Array = []) -> WandState:
@@ -20,7 +22,8 @@ static func make(wand: WandDef, ids: Array = []) -> WandState:
 	w.def = wand
 	w.slots.resize(wand.slots)
 	for i in mini(ids.size(), wand.slots):
-		w.slots[i] = null if ids[i] == null else {"id": StringName(ids[i]), "lv": 1}
+		var id: StringName = Catalog.resolve(StringName(ids[i])) if ids[i] != null else &""
+		w.slots[i] = null if id == &"" else {"id": id, "lv": 1}
 	w.mana = w.max_mana()
 	return w
 
@@ -32,9 +35,11 @@ func set_slots(entries: Array) -> void:
 		if e == null:
 			slots[i] = null
 		elif e is Dictionary:
-			slots[i] = {"id": StringName(e["id"]), "lv": int(e.get("lv", 1))}
+			var rid := Catalog.resolve(StringName(e["id"]))
+			slots[i] = null if rid == &"" else {"id": rid, "lv": int(e.get("lv", 1))}
 		else:
-			slots[i] = {"id": StringName(e), "lv": 1}
+			var rid2 := Catalog.resolve(StringName(e))
+			slots[i] = null if rid2 == &"" else {"id": rid2, "lv": 1}
 	ptr = 0
 	acc = Mods.new()
 
@@ -48,10 +53,23 @@ func passive_level(id: StringName) -> int:
 
 func max_mana() -> float:
 	var m := def.max_mana * bonus_mana
-	var cache := passive_level(&"cache")
-	if cache > 0:
-		m *= 1.0 + [0.4, 0.8, 1.6][cache - 1]
+	var well := passive_level(&"mana_well")
+	if well > 0:
+		m *= 1.0 + [0.4, 0.8, 1.6][well - 1]
 	return m
+
+
+## Regen multiplier from passives (Mana Well).
+func regen_mul() -> float:
+	var well := passive_level(&"mana_well")
+	return 1.0 + ([0.0, 0.3, 0.6, 1.2][well])
+
+
+## The spell in a Daemon Rod's background slot, if any.
+func background() -> Variant:
+	if not def.background_slot or slots.size() < 2:
+		return null
+	return slots[slots.size() - 1]
 
 
 func recharge_time() -> float:

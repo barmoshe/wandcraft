@@ -7,6 +7,9 @@ extends RefCounted
 const VERSION := 1
 const BAG_MAX := 12
 const MAX_WANDS := 3
+## Copies of one spell at one level that merge into the next level (D2: 2, since short
+## mobile runs rarely find three).
+const MERGE_COPIES := 2
 
 var seed_value := 1
 var rng := RandomNumberGenerator.new()
@@ -23,16 +26,35 @@ var cur := 0
 var bag: Array = []                 # {"id": StringName, "lv": int}
 var relics: Array[StringName] = []
 var shop: Array = []                # current shop stock (so leaving and coming back keeps it)
+var banned: Array[StringName] = []  # spells Deprecated out of this run's offers (D2)
+var rare_offset := -0.05            # Slay the Spire-style rarity pacing for spell offers (D2)
+var deprecated_here := false        # one Deprecate per shop visit
 var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0}
 var won := false
 
 
-static func create(seed_value_: int) -> RunState:
+## Starter loadouts (D2): a small wand with a clear identity, so the first rewards are
+## choices about what to put in the empty slots.
+const LOADOUTS := {
+	&"twig": {"wand": &"twig", "spells": [&"mote", null, null]},
+	&"stub": {"wand": &"stub", "spells": [&"ember", null]},
+}
+
+
+static func create(seed_value_: int, loadout := &"twig") -> RunState:
 	var r := RunState.new()
 	r.seed_value = seed_value_
 	r.rng.seed = seed_value_
-	r.wands.append(WandState.make(Catalog.wand(&"apprentice"), [&"mote", null, null, null]))
+	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
+	r.wands.append(WandState.make(Catalog.wand(lo["wand"]), lo["spells"]))
 	return r
+
+
+## Swaps the starting wand for another loadout (the start room's choice).
+func set_loadout(loadout: StringName) -> void:
+	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
+	wands[0] = WandState.make(Catalog.wand(lo["wand"]), lo["spells"])
+	cur = 0
 
 
 func wand() -> WandState:
@@ -42,7 +64,7 @@ func wand() -> WandState:
 ## True if the wand holds at least one shooting spell (so it can actually cast).
 static func can_cast(w: WandState) -> bool:
 	for s in w.slots:
-		if s != null and Catalog.spell(s["id"]).kind == SpellDef.Kind.PROJ:
+		if s != null and Catalog.is_caster(Catalog.spell(s["id"])):
 			return true
 	return false
 
@@ -58,14 +80,15 @@ func add_relic(id: StringName) -> void:
 	Relics.on_gain(self, id)
 
 
-## Adds a spell where it helps most: an empty slot of the current wand if the bag is empty,
-## else the bag. Three copies of the same level merge into one of the next level.
+## Adds a spell to the bag: putting it in a wand is the player's decision (D2: editing the
+## wand is the game). The only exception is a wand that cannot cast at all, which gets the
+## spell in its first empty slot. Two copies of the same level merge into the next level.
 ## Returns false when there is no room at all.
 func add_spell(id: StringName, lv := 1) -> bool:
 	var entry := {"id": id, "lv": lv}
 	var w := wand()
 	var empty := w.slots.find(null)
-	if empty >= 0 and bag.is_empty():
+	if empty >= 0 and not can_cast(w) and Catalog.is_caster(Catalog.spell(id)):
 		w.slots[empty] = entry
 		w.ptr = 0
 		w.acc = Mods.new()
@@ -95,7 +118,7 @@ func try_merge(id: StringName, lv: int) -> int:
 	if lv >= 3:
 		return 0
 	var refs := spell_refs().filter(func(r: Dictionary) -> bool: return r["s"]["id"] == id and int(r["s"]["lv"]) == lv)
-	if refs.size() < 3:
+	if refs.size() < MERGE_COPIES:
 		return 0
 	# keep a copy that sits in a wand, drop two others (bag copies first)
 	refs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["w"] >= 0 and b["w"] < 0)
@@ -104,7 +127,7 @@ func try_merge(id: StringName, lv: int) -> int:
 	var drop := refs.slice(1)
 	drop.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["w"] < 0 and b["w"] >= 0)
 	var bag_drop := []
-	for k in 2:
+	for k in MERGE_COPIES - 1:
 		var d: Dictionary = drop[k]
 		if d["w"] < 0:
 			bag_drop.append(d["s"])
@@ -193,6 +216,7 @@ func to_dict() -> Dictionary:
 		"hp": hp, "max_hp": max_hp, "gold": gold, "wands": ws, "cur": cur,
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
+		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
 	}
 
 
@@ -220,7 +244,7 @@ static func from_dict(d: Dictionary) -> RunState:
 		for w in r.wands:
 			w.bonus_mana = 1.3
 	r.cur = clampi(int(d["cur"]), 0, r.wands.size() - 1)
-	r.bag = (d["bag"] as Array).map(_entry_in)
+	r.bag = (d["bag"] as Array).map(_entry_in).filter(func(e: Variant) -> bool: return e != null)
 	for id in d["relics"]:
 		if Relics.DEFS.has(StringName(id)):   # relics cut in later versions are dropped
 			r.relics.append(StringName(id))
@@ -228,6 +252,9 @@ static func from_dict(d: Dictionary) -> RunState:
 	for k in d["stats"]:
 		r.stats[k] = d["stats"][k]
 	r.won = bool(d.get("won", false))
+	for b in d.get("banned", []):
+		r.banned.append(StringName(b))
+	r.rare_offset = float(d.get("rare_offset", -0.05))
 	return r
 
 
@@ -236,7 +263,10 @@ static func _entry_out(s: Variant) -> Variant:
 
 
 static func _entry_in(s: Variant) -> Variant:
-	return null if s == null else {"id": StringName(s["id"]), "lv": int(s["lv"])}
+	if s == null:
+		return null
+	var id := Catalog.resolve(StringName(s["id"]))   # spells cut in the D2 redesign map or drop
+	return null if id == &"" else {"id": id, "lv": int(s["lv"])}
 
 
 ## Door / shop dictionaries: StringName values become strings and back.

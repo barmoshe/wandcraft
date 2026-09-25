@@ -65,7 +65,7 @@ func test_gravity_rune_pulls_toward_bolts() -> void:
 	world.player.position = Vector2(208, 216)
 	var e := _dummy(Vector2(236, 120))
 	var before := e.position.x
-	_fire([&"gravity", &"linger", &"mote"])
+	_fire([&"gravity", &"quicken", &"mote"])
 	_steps(0.8)
 	ok(e.position.x < before - 1.0, "a passing bolt drags the dummy (%.1f -> %.1f)" % [before, e.position.x])
 

@@ -198,6 +198,7 @@ var _bot_dmg_seen := 0.0
 var _bot_progress_t := 0.0
 
 # move_body results
+var marked: Enemy               # Hex Cursor: payloads aim here (D2)
 var grid_ver := 0              # bumped on every grid change (the flow field rebuilds)
 var last_hit_x := false
 var last_hit_y := false
@@ -332,6 +333,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	boss = null
 	bullets.clear_all()
 	ebullets.clear_all()
+	spells.clear_room()
+	marked = null
 	fx.clear_all()
 	orb = {}
 	npc = {}
@@ -735,6 +738,10 @@ func _update_enemy_bullets(dt: float) -> void:
 			b.alive = false
 			fx.sparks(b.pos, 3, b.color, 40.0)
 			continue
+		if (not spells.blockers.is_empty() and spells.blocked(b.pos, b.r)) or (not spells.summons.is_empty() and spells.decoy_takes(b.pos, b.r)):
+			b.alive = false
+			fx.sparks(b.pos, 3, Style.c("gold:4"), 40.0)
+			continue
 		if b.pos.distance_squared_to(player.position + Vector2(0, -4)) < pow(b.r + player.r, 2):
 			b.alive = false
 			player.hurt(b.dmg, b.pos, b.by)
@@ -970,6 +977,9 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		dmg *= 1.25
 	if not dot and run and run.has_relic(&"null_pointer") and e.hp >= e.max_hp:
 		dmg *= 2.0
+	# Overclocked (D2): two or more statuses at once and every hit lands 20% harder
+	if not dot and (e.burn_t > 0.0 or e.chill_t > 0.0 or e.static_t > 0.0 or e.rot_n > 0) and e.status_count() >= 2:
+		dmg *= 1.2
 	dmg = maxf(1.0, dmg) if not dot else dmg
 	e.hp -= dmg
 	e.flash = 0.07
@@ -984,6 +994,15 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit)
 		Audio.sfx("crit" if crit else "hit", 0.1, 0.0 if crit else -6.0)
+	# Static: a charged enemy passes the next hit on to a neighbour as an arc
+	if not dot and not _cascading and e.static_t > 0.0:
+		e.static_t = 0.0
+		var nb := nearest_enemy(e.position, 70.0, e.uid)
+		if nb:
+			_cascading = true
+			fx.beam(e.position + Vector2(0, -4), nb.position + Vector2(0, -4), Style.c("gold:4"), 1.0)
+			hurt_enemy(nb, dmg * 0.6, e.position, 0.0, 0.3)
+			_cascading = false
 	if crit and not dot and not _cascading and run and run.has_relic(&"cascade_failure"):
 		var nx := nearest_enemy(e.position, 60.0, e.uid)
 		if nx:
@@ -996,10 +1015,15 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	return dmg
 
 
+## Burn and chill (D2): three chills in a row freeze; fire meeting ice is a Thermal Shock.
 func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 	if e.dead:
 		return
 	var tgt := e.forward if e.forward else e
+	if (burn > 0 and tgt.chill_t > 0.0) or (chill > 0 and tgt.burn_t > 0.0):
+		if tgt.shock_t <= 0.0:
+			_thermal_shock(tgt, dmg)
+			return
 	if burn > 0:
 		var base := tgt.burn_dps if tgt.burn_t > 0.0 else 0.0
 		tgt.burn_t = 2.5
@@ -1007,6 +1031,75 @@ func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 	if chill > 0 and not (tgt is Boss):
 		tgt.chill_t = 1.2 + chill * 0.4
 		tgt.chill_slow = [0.6, 0.5, 0.4][clampi(chill, 1, 3) - 1]
+		tgt.chill_n += 1
+		if tgt.chill_n >= 3 and tgt.frozen_t <= 0.0:
+			tgt.chill_n = 0
+			tgt.frozen_t = 0.9
+			fx.ring(tgt.position + Vector2(0, -4), 2.0, 12.0, 0.25, Style.c("frost:4"))
+			fx.text(tgt.position + Vector2(0, -16), "FROZEN", Style.c("frost:4"))
+
+
+## Thermal Shock: burn and chill cancel in a burst that hurts the target and its neighbours.
+func _thermal_shock(e: Enemy, dmg: float) -> void:
+	e.shock_t = 0.6
+	e.burn_t = 0.0
+	e.chill_t = 0.0
+	e.chill_n = 0
+	var hit := 10.0 + dmg * 0.8
+	fx.ring(e.position + Vector2(0, -4), 2.0, 22.0, 0.3, Style.c("frost:4"))
+	fx.ring(e.position + Vector2(0, -4), 2.0, 16.0, 0.25, Style.c("ember:3"))
+	fx.text(e.position + Vector2(0, -16), "THERMAL SHOCK", Style.c("ember:4"))
+	Audio.sfx("boom", 0.1, -6.0)
+	for k in hash.query(e.position, 40.0):
+		var o: Enemy = enemies[k]
+		if o != e and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(e.position) < 22.0 + o.r:
+			hurt_enemy(o, hit * 0.5, e.position, 0.0, 0.6)
+	hurt_enemy(e, hit, e.position, 0.0, 0.6)
+
+
+## Static Coat / Static Cone: the enemy's next hit arcs to a neighbour.
+func charge(e: Enemy) -> void:
+	var tgt := e.forward if e.forward else e
+	if not tgt.dead:
+		tgt.static_t = 4.0
+
+
+## Bitrot: five stacks crash the target in a small burst.
+func add_rot(e: Enemy, n: int) -> void:
+	var tgt := e.forward if e.forward else e
+	if tgt.dead:
+		return
+	tgt.rot_n += n
+	tgt.rot_t = 4.0
+	if tgt.rot_n < 5:
+		return
+	tgt.rot_n = 0
+	var hit := 20.0 + minf(tgt.max_hp * 0.2, 40.0)
+	fx.ring(tgt.position + Vector2(0, -4), 2.0, 20.0, 0.3, Style.c("glitch:3"))
+	fx.sparks(tgt.position + Vector2(0, -4), 12, Style.c("glitch:3"), 100.0)
+	fx.text(tgt.position + Vector2(0, -16), "CRASH", Style.c("glitch:4"))
+	for k in hash.query(tgt.position, 40.0):
+		var o: Enemy = enemies[k]
+		if o != tgt and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(tgt.position) < 26.0 + o.r:
+			hurt_enemy(o, hit * 0.5, tgt.position, 0.0, 0.8)
+	hurt_enemy(tgt, hit, tgt.position, 0.0, 0.8)
+
+
+## Hex Cursor: triggers and carriers aim their payloads at the marked enemy.
+func mark(e: Enemy, t: float) -> void:
+	var tgt := e.forward if e.forward else e
+	if tgt.dead:
+		return
+	tgt.mark_t = t
+	marked = tgt
+
+
+## Where enemies go and shoot: the Rubber Duck while one is out, else the player.
+func target_pos() -> Vector2:
+	if spells == null or spells.summons.is_empty():
+		return player.position
+	var dk := spells.decoy()
+	return dk.pos if dk else player.position
 
 
 ## Explosion size multiplier from relics.
@@ -1239,11 +1332,12 @@ func clear_path(a: Vector2, b: Vector2, r: float) -> bool:
 ## Whether an enemy at p can see (and so shoot) the player. Enemy shots stop on crates,
 ## so crates block their sight.
 func enemy_sees(p: Vector2) -> bool:
-	return los(p, player.position, true)
+	return los(p, target_pos(), true)
 
 
 func _flow_update() -> void:
-	var goal := Vector2i(floori(player.position.x / TS), floori(player.position.y / TS))
+	var tp := target_pos()
+	var goal := Vector2i(floori(tp.x / TS), floori(tp.y / TS))
 	if goal == _flow_goal and _flow_ver == grid_ver and _flow.size() == gw * gh:
 		return
 	_flow_goal = goal
@@ -1293,11 +1387,12 @@ func _flow_next(c: Vector2i) -> Vector2i:
 ## when the way is clear, otherwise along the flow field, aiming at the furthest tile of
 ## the path it can reach in a straight line (so it walks smoothly rather than tile by tile).
 func chase_dir(p: Vector2, r: float) -> Vector2:
-	var to := player.position - p
+	var goal := target_pos()
+	var to := goal - p
 	if to.length() < 1.0:
 		chase_direct = true
 		return Vector2.ZERO
-	if clear_path(p, player.position, r):
+	if clear_path(p, goal, r):
 		chase_direct = true
 		return to.normalized()
 	chase_direct = false
@@ -1389,6 +1484,7 @@ func _draw_deco() -> void:
 		_deco.draw_circle(o + Vector2(-2, -2), 2.0, c.lightened(0.6))
 	if not npc.is_empty():
 		_draw_npc(npc)
+	spells.draw_summons(_deco, false)
 	var crate := _crate_texture()
 	for y in gh:
 		for x in gw:
@@ -1430,6 +1526,17 @@ func _draw_top() -> void:
 		var p: Vector2 = orb["pos"] + Vector2(0, -12 - sin(time * 3.0) * 2.0)
 		_top.draw_circle(p, 12.0 + sin(time * 5.0), Color(1.0, 0.9, 0.5, 0.12))
 		_top.draw_arc(p, 9.0, time * 2.0, time * 2.0 + PI * 1.2, 12, Color(1.0, 0.95, 0.7, 0.8), 1.0)
+	spells.draw_summons(_top, true)
+	# Hex Cursor: brackets around the marked enemy
+	if marked and not marked.dead and marked.mark_t > 0.0:
+		var mp := marked.position + Vector2(0, -6)
+		var h := marked.r + 4.0
+		var mc := Style.c("arcane:4")
+		for sx in [-1.0, 1.0]:
+			for sy in [-1.0, 1.0]:
+				var cp := mp + Vector2(sx * h, sy * h)
+				_top.draw_line(cp, cp - Vector2(sx * 3.0, 0), mc, 1.0)
+				_top.draw_line(cp, cp - Vector2(0, sy * 3.0), mc, 1.0)
 	# spawn runes: where an enemy is about to appear
 	for e in enemies:
 		if e.spawn_t > 0.0 and not e.dead:

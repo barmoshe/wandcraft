@@ -104,3 +104,85 @@ func test_passives_are_skipped_and_apply() -> void:
 func test_empty_wand_is_safe() -> void:
 	var c := WandProgram.compile(wand([null, null]), 0, Mods.new())
 	eq(c.groups.size(), 0, "no shooting spell, no cast")
+
+
+# ---- D2: Debugger runes, Pipeline, familiars, wand quirks ----
+
+func test_head_casts_a_free_copy_of_the_first_spell() -> void:
+	var w := wand(["mote", "empower", "head"])
+	var a := WandProgram.compile(w, 0, Mods.new())
+	var b := WandProgram.compile(w, a.ptr, a.acc)
+	eq(String(b.groups[0].spell.id), "mote", "HEAD copies the Mote")
+	ok(b.groups[0].free_copy, "as a free copy")
+	ok(is_equal_approx(b.groups[0].mods.dmg, 1.25), "with the boosts it has right now")
+	eq(b.mana, 5.0 + 4.0, "paying only for Empower and the rune")
+
+
+func test_ifelse_holds_both_branches() -> void:
+	var c := WandProgram.compile(wand(["ifelse", "lance", "ember"]), 0, Mods.new())
+	eq(c.groups.size(), 1, "one cast")
+	var g := c.groups[0]
+	ok(g.cond, "a conditional node")
+	eq(String(g.spell.id), "lance", "near: the Lance")
+	eq(String(g.alt.spell.id), "ember", "else: the Ember Bolt")
+	eq(c.mana, 2.0 + 6.0, "pays the rune and the dearer branch")
+
+
+func test_goto_jumps_back_once_per_cycle() -> void:
+	var w := wand(["mote", "goto", "ember"])
+	var a := WandProgram.compile(w, 0, Mods.new())
+	eq(String(a.groups[0].spell.id), "mote", "first cast: the Mote")
+	var b := WandProgram.compile(w, a.ptr, a.acc)
+	eq(String(b.groups[0].spell.id), "mote", "GOTO jumps back to slot 1")
+	ok(not b.wrapped, "without recharging")
+	ok(b.delay_add >= 0.3, "for a little delay")
+	var c := WandProgram.compile(w, b.ptr, b.acc)
+	eq(String(c.groups[0].spell.id), "ember", "the second time GOTO is skipped")
+	ok(c.wrapped, "and the cycle ends")
+
+
+func test_include_makes_a_boost_global() -> void:
+	var w := wand(["mote", "include", "empower", "mote"])
+	var a := WandProgram.compile(w, 0, Mods.new())
+	ok(is_equal_approx(a.groups[0].mods.dmg, 1.25), "the Mote left of #include is empowered too")
+	var b := WandProgram.compile(w, a.ptr, a.acc)
+	ok(is_equal_approx(b.groups[0].mods.dmg, 1.25), "and the one on the right, once")
+	eq(b.mana, roundf(5.0 + 5.0 * 1.5 + 3.0), "the included boost costs x1.5")
+
+
+func test_pipeline_lines_casts_up_in_time() -> void:
+	var c := WandProgram.compile(wand(["pipeline", "mote", "mote", "mote"]), 0, Mods.new())
+	eq(c.groups.size(), 3, "three Motes in one cast")
+	for k in 3:
+		ok(is_equal_approx(c.groups[k].delay, k * 0.06), "Mote %d goes out after %.2fs" % [k + 1, k * 0.06])
+		eq(c.groups[k].mods.scatter, 0.0, "with no spread")
+
+
+func test_daemon_carries_its_payload_and_pays_per_shot() -> void:
+	var c := WandProgram.compile(wand(["daemon", "ember"]), 0, Mods.new())
+	var g := c.groups[0]
+	eq(String(g.trig), "daemon", "the Daemon carries")
+	eq(String(g.payload.spell.id), "ember", "the Ember Bolt")
+	eq(c.mana, 10.0, "only the summon is paid up front")
+	eq(g.pay_mana, 6.0, "each shot pays the Ember Bolt")
+
+
+func test_daemon_rod_background_slot_is_not_in_the_program() -> void:
+	var w := wand(["mote", null, null, null, null, "ember"], &"daemon_rod")
+	var c := WandProgram.compile(w, 0, Mods.new())
+	eq(String(c.groups[0].spell.id), "mote", "the Mote casts")
+	ok(c.wrapped, "and the program ends before the background slot")
+	eq(String(w.background()["id"]), "ember", "which holds the Ember Bolt")
+
+
+func test_debug_build_taxes_runes() -> void:
+	var c := WandProgram.compile(wand(["ifelse", "mote", "mote"], &"debug_build"), 0, Mods.new())
+	eq(c.mana, 2.0 * 2.0 + 3.0, "Debugger runes cost double on a Debug Build")
+
+
+func test_level_three_changes_behaviour() -> void:
+	var d := Catalog.spell(&"mote")
+	eq(int(d.param("pierce", 3, 0)), 1, "a level-3 Mote passes through one enemy")
+	eq(int(d.param("pierce", 2, 0)), 0, "a level-2 one does not")
+	eq(Catalog.resolve(&"linger"), &"quicken", "Linger folded into Long Range")
+	eq(Catalog.resolve(&"shatter"), &"", "Shatter was cut")

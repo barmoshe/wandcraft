@@ -127,9 +127,9 @@ func tick(dt: float) -> void:
 		aim = mv.angle()
 	var regen_mul := Relics.mana_regen_mul(run)
 	for w in wands:
-		var coil := w.passive_level(&"regen")
-		var k: float = regen_mul * (1.0 + ([0.0, 0.3, 0.6, 1.2][coil]))
+		var k: float = regen_mul * w.regen_mul()
 		w.mana = minf(w.max_mana(), w.mana + w.def.regen * k * dt)
+		w.idle += dt
 		w.cd = maxf(0.0, w.cd - dt)
 		w.rech = maxf(0.0, w.rech - dt)
 	if firing and world.spells.wand_fire(wand(), tip(), aim):

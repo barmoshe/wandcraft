@@ -120,7 +120,7 @@ func _info(ir: Rect2) -> void:
 		var d := Catalog.spell(s["id"])
 		icon_at(Icons.spell(d), ir.position + Vector2(18, 18), 2.0)
 		text(ir.position + Vector2(34, 16), d.title + "+".repeat(int(s["lv"]) - 1), TEXT, 8, "bold")
-		text(ir.position + Vector2(34, 27), ["Shooting spell", "Boost", "Trigger", "Passive"][d.kind], rarity_color(d.rarity))
+		text(ir.position + Vector2(34, 27), Screen.KIND_NAMES[d.kind], rarity_color(d.rarity))
 		var used := para(Rect2(ir.position + Vector2(8, 36), Vector2(ir.size.x - 16, 56)), d.desc, MUTED)
 		text(ir.position + Vector2(8, 44 + minf(used, 56)), spell_stats(d.id, int(s["lv"])), Color("#8fd8ff"))
 		y = ir.position.y + 60 + minf(used, 56)

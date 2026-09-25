@@ -25,7 +25,7 @@ var chain := 0
 var area := 1.0
 var color := Color.WHITE
 var size := 1.0
-var beh: StringName = &"bolt"   # bolt | wheel | pseudo | boomerang | mine | orb
+var beh: StringName = &"bolt"   # bolt | wheel | pseudo | boomerang | mine | orb | wall | cloud
 var split := 0
 var pull := 0.0
 var cell := 0          # Projectiles atlas cell (0: the tinted core)
@@ -40,7 +40,6 @@ var depth := 0
 var gm := 1.0
 var group := 0
 var hits := PackedInt32Array()
-var shatter := 0
 var ignore := -1
 var tgt: Enemy
 var by := ""        # enemy bullets: who fired it (damage attribution)
@@ -55,6 +54,20 @@ var loop_t := 0.12
 var wheel_n := 0
 var wheel_t := 0.0
 var spin := 0.0
+# D2
+var knock := 1.0       # knockback multiplier (Heavy Rune)
+var slam := false      # a knockback into a wall hits again (Heavy Rune)
+var static_on := false # hits charge the enemy (Static Coat, Static Cone)
+var rot := 0           # Bitrot stacks per hit
+var mark := 0.0        # Hex Cursor: seconds the hit enemy stays marked
+var siphon := 0.0      # share of `cost` refunded on a kill (Siphon Rune)
+var cost := 0.0        # what this spell cost to cast (Siphon Rune)
+var kw := 0            # resist keywords: 1 pierce, 2 blast, 4 shock (enemy counters, D4)
+var orbit := false     # circles the caster (Orbit Rune)
+var orb_a := 0.0
+var orb_r := 0.0
+var blocks := false    # destroys enemy shots it touches (Firewall, orbiting spells)
+var ext := false       # has per-tick extras (blocks, orbit, Sleep): keeps the hot loop lean
 
 
 func reset() -> void:
@@ -74,7 +87,19 @@ func reset() -> void:
 	pay_mana = 0.0
 	cast = null
 	src = null
-	shatter = 0
+	knock = 1.0
+	slam = false
+	static_on = false
+	rot = 0
+	mark = 0.0
+	siphon = 0.0
+	cost = 0.0
+	kw = 0
+	orbit = false
+	orb_a = 0.0
+	orb_r = 0.0
+	blocks = false
+	ext = false
 	pierce = 0
 	bounce = 0
 	home = 0.0

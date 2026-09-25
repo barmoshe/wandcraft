@@ -78,6 +78,13 @@ var burn_t := 0.0
 var burn_dps := 0.0
 var chill_t := 0.0
 var chill_slow := 1.0
+var chill_n := 0               # chills in a row: three freeze (D2)
+var frozen_t := 0.0
+var static_t := 0.0            # charged: the next hit arcs to a neighbour
+var rot_n := 0                 # Bitrot stacks (five crash)
+var rot_t := 0.0
+var mark_t := 0.0              # Hex Cursor mark
+var shock_t := 0.0             # Thermal Shock cooldown
 var _st_tick := 0.0
 var forward: Enemy          # body parts pass their damage to this (a boss)
 var fwd_mul := 1.0
@@ -134,10 +141,27 @@ func statuses(dt: float) -> float:
 			world.hurt_enemy(self, burn_dps * 0.25, position, 0.0, 0.0, true)
 			Audio.sfx("burn", 0.2, -8.0)
 			world.fx.sparks(position + Vector2(0, -6), 1, Color("#ff8a3c"), 30.0)
+	static_t = maxf(0.0, static_t - dt)
+	mark_t = maxf(0.0, mark_t - dt)
+	shock_t = maxf(0.0, shock_t - dt)
+	if rot_n > 0:
+		rot_t -= dt
+		if rot_t <= 0.0:
+			rot_n = 0
+	if frozen_t > 0.0:
+		frozen_t -= dt
+		return 0.0
 	if chill_t > 0.0:
 		chill_t -= dt
+		if chill_t <= 0.0:
+			chill_n = 0
 		return dt * chill_slow
 	return dt
+
+
+## How many statuses are on this enemy (two or more: Overclocked, +20% damage taken).
+func status_count() -> int:
+	return int(burn_t > 0.0) + int(chill_t > 0.0 or frozen_t > 0.0) + int(static_t > 0.0) + int(rot_n > 0)
 
 
 static func _flash_shader() -> Shader:
@@ -169,7 +193,7 @@ func tick(dt: float) -> void:
 		return
 	_prev = position
 	var pl := world.player
-	var d := pl.position - position
+	var d := world.target_pos() - position
 	var dd := maxf(1.0, d.length())
 	var dir := d / dd
 	var mv := Vector2.ZERO
@@ -261,7 +285,7 @@ func tick(dt: float) -> void:
 	if knock.length_squared() > 1.0:
 		position = world.move_body(position, r, knock * dt)
 		knock *= pow(0.004, dt)
-	if dmg > 0.0 and position.distance_squared_to(pl.position) < pow(r + pl.r - 1.0, 2):
+	if dmg > 0.0 and frozen_t <= 0.0 and position.distance_squared_to(pl.position) < pow(r + pl.r - 1.0, 2):
 		pl.hurt(dmg, position, "touch:%s" % kind)
 		if state == &"dash":
 			# a charge that lands ends there: the ram stops, dazed
@@ -290,7 +314,7 @@ func _animate() -> void:
 	sprite.texture = frames[int(t * 4.0 + ph) % 2]
 	sprite.flip_h = face < 0
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
-	var st := "frost" if chill_t > 0.0 else ("ember" if burn_t > 0.0 else "")
+	var st := "frost" if chill_t > 0.0 or frozen_t > 0.0 else ("ember" if burn_t > 0.0 else "")
 	if st != _tinted:
 		_tinted = st
 		_mat.set_shader_parameter("tint", 0.55 if st != "" else 0.0)
@@ -327,3 +351,18 @@ func _draw() -> void:
 		var y := -float(frames[0].get_height()) * sprite.scale.y - 1.0
 		draw_rect(Rect2(-w / 2.0, y, w, 2.0), Color(0.05, 0.02, 0.08, 0.9))
 		draw_rect(Rect2(-w / 2.0, y, w * hp / max_hp, 2.0), Color("#ff4a5a"))
+	# status pips (D2): one colour each, at most three, over the health bar
+	var pips: Array[Color] = []
+	if burn_t > 0.0:
+		pips.append(Style.c("ember:3"))
+	if chill_t > 0.0 or frozen_t > 0.0:
+		pips.append(Style.c("frost:3"))
+	if static_t > 0.0:
+		pips.append(Style.c("gold:4"))
+	if rot_n > 0:
+		pips.append(Style.c("glitch:3"))
+	if not pips.is_empty():
+		var py := -float(frames[0].get_height()) * sprite.scale.y - 5.0
+		var px := -float(mini(3, pips.size()) * 3 - 1) / 2.0
+		for k in mini(3, pips.size()):
+			draw_rect(Rect2(roundf(px + k * 3), py, 2, 2), pips[k])

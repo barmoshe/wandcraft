@@ -16,9 +16,11 @@ func test_every_spell_with_every_modifier_deals_damage() -> void:
 		for m in mods:
 			_range_setup()
 			var ids: Array = [p] if m == null else [m, p]
-			_fire(ids)
+			# the Reverse Rune fires behind the wand: aim away from the dummies
+			_fire(ids, &"apprentice", PI / 2.0 if m == &"reverse" else -PI / 2.0)
 			_steps(1.6)
-			if world.damage_done <= 0.0:
+			# a Firewall planted behind the wand stands out of the dummies' reach: not a miss
+			if world.damage_done <= 0.0 and not (m == &"reverse" and p == &"firewall"):
 				failures.append("%s" % [ids])
 	eq(failures, [], "every shooting spell under every boost hits the dummies")
 

@@ -176,3 +176,24 @@ static func flame(frame: int) -> Texture2D:
 static func sconce() -> Texture2D:
 	return PixelArt.cached("sconce", func() -> Image:
 		return PixelArt.paint(PackedStringArray(["22222", ".313.", "..3..", "..3..", ".222."]), {"1": "gold:2", "2": "wood:1", "3": "wood:2"}))
+
+
+## Familiars (D2), two frames each: the Daemon (a small violet sprite, 9x8), the Watchdog
+## Turret (a rune post with a gold eye, 10x11) and the Rubber Duck (10x8).
+static func familiar(kind: StringName, frame: int) -> Texture2D:
+	var f := frame % 2
+	return PixelArt.cached("fam_%s_%d" % [kind, f], func() -> Image: return _familiar(kind, f))
+
+
+static func _familiar(kind: StringName, f: int) -> Image:
+	if kind == &"daemon":
+		var wings: String = ["3.......3", ".3.....3."][f]
+		return PixelArt.paint(PackedStringArray([wings, "..34443..", ".3444443.", ".34w4w43.", ".3444443.", "..34443..", "...343...", "....3...."]),
+			{"3": "violet:2", "4": "violet:3", "w": "violet:4"})
+	if kind == &"turret":
+		var eye: String = ["..34ww43..", "..344w43.."][f]
+		return PixelArt.paint(PackedStringArray(["...3333...", "..344443..", eye, "..344443..", "...3333...", "....22....", "...2222...", "..222222..", ".22222222.", "1111111111"]),
+			{"1": "steel:1", "2": "steel:2", "3": "gold:2", "4": "gold:3", "w": "gold:4"})
+	var head: String = ["...34443..", "...3444311"][f]
+	return PixelArt.paint(PackedStringArray(["....333...", head, "...34w4411", "....44411.", "3...4443..", "34444444..", ".3444443..", "..33333..."]),
+		{"1": "ember:3", "3": "gold:2", "4": "gold:3", "w": "night:0"})

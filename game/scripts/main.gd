@@ -149,11 +149,11 @@ func _start_from_args() -> void:
 
 ## A late-run build for screenshots and boss sims.
 func _strong_loadout(r: RunState) -> void:
-	r.wands[0].set_slots([&"twin", &"spark", &"seed", &"ember", &"moths"])
+	r.wands[0] = WandState.make(Catalog.wand(&"apprentice"), [&"twin", &"spark", &"seed", &"ember", &"moths"])
 	r.add_wand(&"oak")
-	r.wands[1].set_slots([&"empower", &"fan", &"then", &"burst", &"ember_coat", &"needle", &"frost", &"regen"])
+	r.wands[1].set_slots([&"empower", &"fan", &"then", &"burst", &"ember_coat", &"needle", &"frost", &"mana_well"])
 	r.cur = 0
-	r.bag = [{"id": &"shatter", "lv": 1}, {"id": &"loop", "lv": 1}, {"id": &"keen", "lv": 2}]
+	r.bag = [{"id": &"ifelse", "lv": 1}, {"id": &"loop", "lv": 1}, {"id": &"keen", "lv": 2}]
 	for id in [&"overclock", &"recursion", &"lucky_bit", &"blast_radius", &"spare_battery"]:
 		r.add_relic(id)
 	r.gold = 140
@@ -189,7 +189,10 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 			var s := RewardScreen.new()
 			s.kind = data["kind"]
 			s.offer = data["offer"]
-			_open(s, func(_res: Dictionary) -> void: world.reward_taken())
+			_open(s, func(res: Dictionary) -> void:
+				world.reward_taken()
+				if res.get("equip", false):
+					_open_editor.call_deferred())
 		&"shop", &"forge":
 			var s := ShopScreen.new()
 			s.mode = String(kind)

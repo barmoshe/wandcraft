@@ -2,7 +2,8 @@ class_name ShopScreen
 extends Screen
 ## The merchant (mode "shop") and the forge (mode "forge"). Both are a grid of tiles on the
 ## left and a fixed info panel on the right with the one action button, so inspecting and
-## buying are separate taps.
+## buying are separate taps. The forge also sells +1 slot for the wand in hand, and the shop
+## lets you Deprecate one spell per visit: it never shows up in this run's offers again (D2).
 
 var mode := "shop"
 var sel := -1
@@ -21,8 +22,17 @@ func _refresh() -> void:
 func _items() -> Array:
 	if mode == "shop":
 		return run.shop
-	return _forge_refs.map(func(r: Dictionary) -> Dictionary:
-		return {"t": &"spell", "id": r["s"]["id"], "lv": int(r["s"]["lv"]), "price": Rewards.forge_price(int(r["s"]["lv"])), "sold": false})
+	var out: Array = []
+	if run.wand().slots.size() < Rewards.SLOT_MAX:
+		out.append({"t": &"slot", "id": &"slot", "price": Rewards.SLOT_PRICE, "sold": false})
+	out.append_array(_forge_refs.map(func(r: Dictionary) -> Dictionary:
+		return {"t": &"spell", "id": r["s"]["id"], "lv": int(r["s"]["lv"]), "price": Rewards.forge_price(int(r["s"]["lv"])), "sold": false}))
+	return out
+
+
+## Index into _forge_refs for a forge tile (the +1 slot tile comes first when offered).
+func _ref_index(i: int) -> int:
+	return i - (1 if run.wand().slots.size() < Rewards.SLOT_MAX else 0)
 
 
 func _paint() -> void:
@@ -54,10 +64,10 @@ func _paint() -> void:
 			draw_rect(r.grow(1.0), GOLD, false, 1.0)
 		var mod := Color(1, 1, 1, 0.35) if it.get("sold", false) else Color.WHITE
 		icon_at(item_icon(it), r.position + Vector2(tw / 2.0, 18), 2.0, mod)
-		if mode == "forge":
+		if mode == "forge" and it["t"] == &"spell":
 			text_center(r.get_center().x, r.position.y + 38, "+".repeat(int(it["lv"]) - 1) + " > " + "+".repeat(int(it["lv"])), GOLD)
 		var price_c := GOLD if run.gold >= int(it["price"]) else Color("#ff6b7a")
-		text_center(r.get_center().x, r.end.y - 4, "SOLD" if it.get("sold", false) else str(it["price"]), MUTED if it.get("sold", false) else price_c)
+		text_center(r.get_center().x, r.end.y - 4, ("BANNED" if run.banned.has(it["id"]) else "SOLD") if it.get("sold", false) else str(it["price"]), MUTED if it.get("sold", false) else price_c)
 		area(r, "item%d" % i)
 	# info panel
 	var ir := Rect2(sr.end.x - info_w, sr.position.y + 38, info_w, sr.size.y - 40)
@@ -76,7 +86,12 @@ func _paint() -> void:
 			text(ir.position + Vector2(8, 48 + used), spell_stats(it["id"], lv), Color("#8fd8ff"))
 		var can: bool = not it.get("sold", false) and run.gold >= int(it["price"])
 		var label := ("UPGRADE  %d" if mode == "forge" else "BUY  %d") % int(it["price"])
-		button(Rect2(ir.position.x + 8, ir.end.y - 38, ir.size.x - 16, 30), "buy", label, "primary", can)
+		var deprecate: bool = mode == "shop" and it["t"] == &"spell"
+		var bw := (ir.size.x - 20) / 2.0 if deprecate else ir.size.x - 16
+		button(Rect2(ir.position.x + 8, ir.end.y - 38, bw, 30), "buy", label, "primary", can)
+		if deprecate:
+			var can_ban: bool = not it.get("sold", false) and not run.deprecated_here
+			button(Rect2(ir.position.x + 12 + bw, ir.end.y - 38, bw, 30), "ban", "DEPRECATE", "ghost", can_ban)
 	else:
 		para(Rect2(ir.position + Vector2(8, 12), Vector2(ir.size.x - 16, 80)), "Tap an item to see what it does.", MUTED)
 
@@ -90,6 +105,23 @@ func _on_button(id: String) -> void:
 		Audio.sfx("ui", 0.05)
 	elif id == "buy":
 		_buy()
+	elif id == "ban":
+		_deprecate()
+
+
+## Deprecate: the selected spell leaves the shop and never shows up in this run again.
+func _deprecate() -> void:
+	var items := _items()
+	if sel < 0 or sel >= items.size() or run.deprecated_here:
+		return
+	var it: Dictionary = items[sel]
+	if it["t"] != &"spell" or it.get("sold", false):
+		return
+	run.banned.append(it["id"])
+	run.deprecated_here = true
+	it["sold"] = true
+	Audio.sfx("deny", 0.0)
+	toast("%s is deprecated for this run" % Catalog.spell(it["id"]).title)
 
 
 func _buy() -> void:
@@ -102,8 +134,14 @@ func _buy() -> void:
 		Audio.sfx("deny", 0.0)
 		return
 	Audio.sfx("coin", 0.0)
+	if mode == "forge" and it["t"] == &"slot":
+		Rewards.grant(run, it)
+		run.gold -= price
+		toast("%s now has %d slots" % [run.wand().def.title, run.wand().slots.size()])
+		sel = -1
+		return
 	if mode == "forge":
-		var ref: Dictionary = _forge_refs[sel]
+		var ref: Dictionary = _forge_refs[_ref_index(sel)]
 		ref["s"]["lv"] = int(ref["s"]["lv"]) + 1
 		run.gold -= price
 		for w in run.wands:

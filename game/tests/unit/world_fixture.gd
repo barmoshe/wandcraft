@@ -50,14 +50,14 @@ func _range_setup() -> void:
 		_dummy(p)
 
 
-func _fire(ids: Array, wand_id := &"apprentice") -> WandState:
+func _fire(ids: Array, wand_id := &"apprentice", ang := -PI / 2.0) -> WandState:
 	var w := WandState.make(Catalog.wand(wand_id))
 	w.set_slots(ids)
 	world.run.wands[0] = w
 	world.run.cur = 0
 	world.damage_done = 0.0
 	world.spells.cast_seq = 0
-	world.player.aim = -PI / 2.0
+	world.player.aim = ang
 	world.hash.rebuild(world.enemies)
-	world.spells.wand_fire(w, world.player.tip(), -PI / 2.0)
+	world.spells.wand_fire(w, world.player.tip(), ang)
 	return w

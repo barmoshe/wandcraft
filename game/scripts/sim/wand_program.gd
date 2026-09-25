@@ -6,8 +6,15 @@ extends RefCounted
 ##  · Chorus draws more shooting spells into this one cast
 ##  · a trigger (THEN, Callback, While Loop, Fork Bomb) glues its left spell to its right one
 ##  · carriers (Payload Seed, Starwheel) take the next shooting spell as their payload
-##  · payloads start a fresh count scope: Twin Cast and Shatter stop at them
+##  · payloads start a fresh count scope: Twin Cast stops at them
 ##  · every slot is read at most once per cast, and nesting stops at depth 3
+## D2 additions (research/design-plan.md §1):
+##  · Pipeline draws more spells like Chorus but lines them up in time, no spread
+##  · Debugger runes: HEAD (free copy of the first shooting spell), IF/ELSE (two branches,
+##    picked at cast time by range), GOTO (once per cycle, jump to slot 1 without recharging),
+##    #include (the boost to its right applies to every spell and payload on the wand)
+##  · familiars compile like shooting spells; Daemon and Ping carry a payload
+##  · a Daemon Rod's last slot is not part of the program (it runs in the background)
 
 const MAX_GROUPS := 24
 const MAX_DEPTH := 3
@@ -26,6 +33,11 @@ var acc: Mods
 var cs_mp := 1.0
 var cs_scatter := 0.0
 var used: PackedInt32Array = []
+var globals: Array = []          # [boost id, level] from #include
+var inc_slots: Dictionary = {}   # slot index -> true: boosts made global by #include
+var pipe_left := 0
+var pipe_k := 0
+var drawn := 0                   # top-level casts drawn in this compile (GOTO needs one)
 
 
 class Plan:
@@ -65,7 +77,8 @@ static func preview_cycle(w: WandState) -> Array[Plan]:
 func _run(w: WandState, start_ptr: int, acc_in: Mods) -> Plan:
 	wand = w
 	slots = w.slots
-	n = slots.size()
+	n = slots.size() - (1 if w.def.background_slot and slots.size() > 1 else 0)
+	_scan_includes()
 	ptr = w.ptr if start_ptr < 0 else start_ptr
 	acc = (acc_in if acc_in != null else w.acc).copy()
 	to_draw = w.def.simultaneous
@@ -78,6 +91,7 @@ func _run(w: WandState, start_ptr: int, acc_in: Mods) -> Plan:
 		if c.dup:
 			groups.append(c)
 		to_draw -= 1
+		drawn += 1
 	# end of the program reached exactly: this cast closes the cycle
 	if not wrapped and not groups.is_empty() and _peek() < 0:
 		ptr = 0
@@ -107,6 +121,50 @@ func _spell_at(i: int) -> SpellDef:
 func _active(i: int) -> bool:
 	var d := _spell_at(i)
 	return d != null and d.kind != SpellDef.Kind.PASSIVE
+
+
+## #include: the boost right after each include rune is applied to every cast node.
+func _scan_includes() -> void:
+	for p in n:
+		var i := _idx(p)
+		var d := _spell_at(i)
+		if d == null or d.id != &"include":
+			continue
+		for q in range(p + 1, n):
+			var j := _idx(q)
+			var b := _spell_at(j)
+			if b == null:
+				continue
+			if b.kind == SpellDef.Kind.BOOST and b.id != &"chorus" and b.id != &"pipeline" and b.id != &"mirror":
+				globals.append([b.id, _level_at(j)])
+				inc_slots[j] = true
+			break
+
+
+## The wand's first shooting spell in program order (HEAD copies it).
+func _first_caster() -> int:
+	for p in n:
+		var d := _spell_at(_idx(p))
+		if d != null and d.kind == SpellDef.Kind.PROJ:
+			return _idx(p)
+	return -1
+
+
+func _new_node(d: SpellDef, lv: int, i: int) -> CastNode:
+	var c := CastNode.new()
+	c.spell = d
+	c.level = lv
+	c.mods = acc.copy()
+	for g in globals:
+		Catalog.apply_boost(g[0], c.mods, g[1])
+	c.mods.scatter += cs_scatter
+	c.slot = i
+	if pipe_left > 0:
+		c.delay = pipe_k * 0.06
+		c.mods.scatter = 0.0
+		pipe_k += 1
+		pipe_left -= 1
+	return c
 
 
 ## Mirror/upgrade-style neighbours could raise a level here; the slice has none yet.
@@ -164,6 +222,9 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 		dup = false
 		match d.kind:
 			SpellDef.Kind.BOOST:
+				if inc_slots.has(i):
+					mana += d.mana_at(lv) * cs_mp * 1.5   # made global by #include
+					continue
 				mana += d.mana_at(lv) * cs_mp
 				if d.id == &"mirror":
 					dup = true
@@ -172,7 +233,12 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 					var k := lv + 1
 					to_draw += k * reps
 					cs_mp *= [0.8, 0.75, 0.7][lv - 1]
-					cs_scatter += 12.0 * k
+					cs_scatter += 0.0 if lv >= 3 else 12.0 * k
+					continue
+				if d.id == &"pipeline":
+					var k2 := lv + 1
+					to_draw += k2 * reps
+					pipe_left = maxi(pipe_left, k2 + 1)
 					continue
 				for r in reps:
 					Catalog.apply_boost(d.id, acc, lv)
@@ -180,13 +246,45 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 			SpellDef.Kind.TRIG:
 				mana += d.mana_at(lv)   # a trigger with nothing on its left does nothing
 				continue
-		# a shooting spell
-		var c := CastNode.new()
-		c.spell = d
-		c.level = lv
-		c.mods = acc.copy()
-		c.mods.scatter += cs_scatter
-		c.slot = i
+			SpellDef.Kind.RUNE:
+				mana += d.mana_at(lv) * wand.def.rune_tax
+				match d.id:
+					&"include":
+						continue   # applied up front by _scan_includes()
+					&"goto":
+						# once per cycle, and only with something to jump back to
+						if acc.goto_used or depth > 0 or _first_caster() < 0:
+							continue
+						acc.goto_used = true
+						ptr = 0
+						delay_add += 0.3
+						if drawn > 0:
+							to_draw = 0
+							return null
+						continue   # met at the start of a cast: carry on from slot 1
+					&"head":
+						var fi := _first_caster()
+						if fi < 0:
+							continue
+						var hc := _new_node(_spell_at(fi), _level_at(fi), fi)
+						hc.free_copy = true
+						return hc
+					&"ifelse":
+						var m0 := mana
+						var a := _draw_cast(depth, false)
+						if a == null:
+							return null
+						var ma := mana - m0
+						var m1 := mana
+						var b := _draw_cast(depth, false)
+						var mb := mana - m1
+						mana = m0 + maxf(ma, mb)
+						a.cond = true
+						a.alt = b
+						return a
+				continue
+		# a shooting spell (or a familiar)
+		var c := _new_node(d, lv, i)
 		c.dup = reps > 1
 		c.cost = _cost(d, lv)
 		mana += c.cost * reps
@@ -197,11 +295,13 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 				var r := _draw_payload(depth)
 				var pl: CastNode = r[0]
 				if pl != null:
-					var f := 0.0
+					var f := 1.0
 					if d.carrier == &"seed":
-						f = [0.9, 0.8, 0.7][lv - 1]
+						f = [0.9, 0.8, 0.6][lv - 1]
 					elif d.carrier == &"wheel":
 						f = 4.0
+					elif d.carrier == &"daemon":
+						f = 0.0   # the daemon pays for each shot as it fires
 					mana = r[2] + r[1] * f * reps
 					c.trig = d.carrier
 					c.trig_level = lv

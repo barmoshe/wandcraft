@@ -17,24 +17,66 @@ func test_new_run_starts_with_one_wand_and_a_mote() -> void:
 	eq(r.step, 0, "at the start room")
 
 
-func test_add_spell_fills_the_wand_then_the_bag() -> void:
+func test_new_spells_go_to_the_bag_unless_the_wand_cannot_cast() -> void:
+	# D2: placing a spell is the player's decision, so rewards land in the bag
 	var r := RunState.create(5)
 	ok(r.add_spell(&"fan"), "added")
-	eq(String(r.wand().slots[1]["id"]), "fan", "into the first empty slot")
-	r.bag.append({"id": &"seek", "lv": 1})
+	ok(r.wand().slots[1] == null, "not slotted by itself")
+	eq(r.bag.size(), 1, "into the bag")
+	# a wand with nothing to shoot takes a shooting spell straight away (onboarding)
+	r.wand().set_slots([null, null, null])
+	ok(r.add_spell(&"empower"), "added")
+	ok(r.wand().slots[0] == null, "a boost alone does not go in")
 	ok(r.add_spell(&"moths"), "added")
-	eq(r.bag.size(), 2, "into the bag once the bag has something in it")
+	eq(String(r.wand().slots[0]["id"]), "moths", "but a shooting spell does")
 
 
-func test_three_copies_merge_into_the_next_level() -> void:
+func test_two_copies_merge_into_the_next_level() -> void:
 	var r := RunState.create(5)
-	r.add_spell(&"fan")
-	r.bag.append({"id": &"fan", "lv": 1})
+	r.wand().slots[1] = {"id": &"fan", "lv": 1}
 	r.add_spell(&"fan")
 	var fans := r.spell_refs().filter(func(x: Dictionary) -> bool: return x["s"]["id"] == &"fan")
-	eq(fans.size(), 1, "three fans became one")
+	eq(fans.size(), 1, "two fans became one")
 	eq(int(fans[0]["s"]["lv"]), 2, "at level 2")
 	eq(fans[0]["w"], 0, "and it is the one in the wand")
+	# two level-2 copies make level 3 (four copies in all)
+	r.bag.append({"id": &"fan", "lv": 1})
+	r.add_spell(&"fan")
+	fans = r.spell_refs().filter(func(x: Dictionary) -> bool: return x["s"]["id"] == &"fan")
+	eq(fans.size(), 1, "one fan left")
+	eq(int(fans[0]["s"]["lv"]), 3, "at level 3")
+
+
+func test_start_offers_the_two_loadouts() -> void:
+	var r := RunState.create(5)
+	var offer := Rewards.offer(r, &"start")
+	eq(offer.size(), 2, "two starting wands")
+	ok(Rewards.grant(r, offer[1]), "taken")
+	eq(String(r.wand().def.id), "stub", "the Stub Staff")
+	eq(r.wand().slots.size(), 2, "two slots")
+	eq(String(r.wand().slots[0]["id"]), "ember", "with an Ember Bolt")
+
+
+func test_rarity_offset_and_deprecate() -> void:
+	var r := RunState.create(11)
+	r.banned.append(&"fan")
+	var epics := 0
+	for k in 300:
+		var id := Rewards.roll_spell(r)
+		ok(id != &"fan", "a deprecated spell never comes back")
+		if Catalog.spell(id).rarity == 2:
+			epics += 1
+		ok(r.rare_offset <= 0.40, "the offset is capped")
+	ok(epics > 0, "epics show up (%d in 300)" % epics)
+
+
+func test_forge_adds_a_slot() -> void:
+	var r := RunState.create(5)
+	var n := r.wand().slots.size()
+	ok(Rewards.grant(r, {"t": &"slot", "id": &"slot"}), "granted")
+	eq(r.wand().slots.size(), n + 1, "one more slot")
+	var r2 := RunState.from_dict(JSON.parse_string(JSON.stringify(r.to_dict())))
+	eq(r2.wand().slots.size(), n + 1, "and it survives a save")
 
 
 func test_move_and_swap_spells() -> void:
@@ -101,7 +143,7 @@ func test_relics_that_act_on_pickup() -> void:
 	eq(r.max_hp, 140.0, "Hot Patch: max HP +20")
 	eq(r.hp, 70.0, "and heals 20")
 	r.add_relic(&"spare_battery")
-	ok(is_equal_approx(r.wand().max_mana(), Catalog.wand(&"apprentice").max_mana * 1.3), "Spare Battery: +30% mana")
+	ok(is_equal_approx(r.wand().max_mana(), Catalog.wand(&"twig").max_mana * 1.3), "Spare Battery: +30% mana")
 	r.add_wand(&"oak")
 	ok(is_equal_approx(r.wands[1].max_mana(), Catalog.wand(&"oak").max_mana * 1.3), "and on wands found later")
 	ok(Relics.dmg_mul(r, 0.0) == 1.0, "no damage relic yet")
@@ -120,7 +162,7 @@ func test_wands_are_capped_and_replacing_keeps_spells() -> void:
 	r.add_wand(&"crystal")
 	eq(r.wands.size(), 3, "still three")
 	eq(r.wands[2].def.id, &"crystal", "the emptiest wand (the oak) was replaced")
-	eq(r.wand().def.id, &"apprentice", "the wand in hand is untouched")
+	eq(r.wand().def.id, &"twig", "the wand in hand is untouched")
 	eq(r.bag.size(), 0, "nothing lost")
 	r.wands[2].set_slots([&"then"])
 	r.add_wand(&"birch")

@@ -73,10 +73,16 @@ func test_forge_upgrades_a_spell() -> void:
 	var s := ShopScreen.new()
 	s.mode = "forge"
 	_open(s, r)
-	s.press("item0")
+	s.press("item1")   # item0 is the +1 slot
 	s.press("buy")
 	eq(int(r.wand().slots[0]["lv"]), 2, "the mote is level 2")
 	eq(r.gold, 100 - Rewards.forge_price(1), "paid the forge")
+	var n := r.wand().slots.size()
+	r.gold = 100
+	s.press("item0")
+	s.press("buy")
+	eq(r.wand().slots.size(), n + 1, "+1 slot bought")
+	eq(r.gold, 100 - Rewards.SLOT_PRICE, "for its price")
 	s.free()
 
 
