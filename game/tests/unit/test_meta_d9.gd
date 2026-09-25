@@ -21,8 +21,12 @@ func test_locked_content_is_never_offered_until_bought() -> void:
 	for u in Meta.UNLOCKS:
 		if u["t"] == &"spell" or u["t"] == &"rune":
 			ok(not seen.has(u["id"]), "%s is not offered while locked" % u["id"])
-	var loads: Array = Rewards.offer(run, &"start").map(func(o: Dictionary) -> StringName: return o["id"])
-	ok(loads == [&"twig"], "only the Twig start until the Stub is bought (%s)" % [loads])
+	var starts: Array = Rewards.offer(run, &"start")
+	var free: Array = starts.filter(func(o: Dictionary) -> bool: return not o["locked"]).map(func(o: Dictionary) -> StringName: return o["id"])
+	ok(free == [&"twig"], "only the Twig start can be taken until the Stub is bought (%s)" % [free])
+	ok(starts.size() == 2, "the locked Stub start is still shown, greyed")
+	var stub: Dictionary = starts.filter(func(o: Dictionary) -> bool: return o["id"] == &"stub")[0]
+	ok(not Rewards.grant(run, stub), "a locked start cannot be taken")
 	for k in 60:
 		for r in Rewards.roll_relics(run, 3):
 			ok(not Meta.is_locked(r), "%s is not offered while locked" % r)

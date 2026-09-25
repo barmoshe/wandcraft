@@ -139,8 +139,9 @@ static func offer(run: RunState, kind: StringName) -> Array:
 		return Tutorial.offer(run)
 	match kind:
 		&"start":
-			return RunState.LOADOUTS.keys().filter(func(id: StringName) -> bool: return not Meta.is_locked(id)).map(
-				func(id: StringName) -> Dictionary: return {"t": &"loadout", "id": id})
+			# a start still locked in the Codex is shown, greyed, so the player knows it exists
+			return RunState.LOADOUTS.keys().map(func(id: StringName) -> Dictionary:
+				return {"t": &"loadout", "id": id, "locked": Meta.is_locked(id)})
 		&"spell":
 			return _with_counter(run, _spells(run, [0, 0, 1]))
 		&"relic":
@@ -215,6 +216,8 @@ static func forge_price(lv: int) -> int:
 
 ## Gives an offer item to the run. False if it could not be taken (bag full).
 static func grant(run: RunState, item: Dictionary) -> bool:
+	if item.get("locked", false):
+		return false
 	if item.has("hp_cost"):
 		run.max_hp = maxf(20.0, roundf(run.max_hp * (1.0 - float(item["hp_cost"]))))
 		run.hp = minf(run.hp, run.max_hp)

@@ -42,11 +42,14 @@ func _paint() -> void:
 		_card(r, offer[i], i == sel)
 		area(r, "card%d" % i)
 	var by := y0 + ch + 12
-	var can_take := sel >= 0
+	var can_take: bool = sel >= 0 and not offer[sel].get("locked", false)
 	var equip := kind != &"start"
-	var bx := v.x / 2.0 - (173.0 if equip else 116.0)
-	if kind != &"start":
-		button(Rect2(bx, by, 110, 30), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
+	if not equip:
+		# the start: only TAKE, centred under the cards
+		button(Rect2(v.x / 2.0 - 55.0, by, 110, 30), "take", "TAKE", "primary", can_take)
+		return
+	var bx := v.x / 2.0 - 173.0
+	button(Rect2(bx, by, 110, 30), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
 	button(Rect2(bx + 118, by, 110, 30), "take", "TAKE", "primary", can_take)
 	if equip:
 		var spell: bool = can_take and offer[sel]["t"] == &"spell"
@@ -93,7 +96,7 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	para(body, Rewards.item_desc(item), Style.c("bone:3"))
 	if item["t"] == &"spell":
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
-		text(Vector2(r.position.x + 7, r.end.y - 5), spell_stats(item["id"]), Style.c("cyan:4"))
+		_fit_line(r, spell_stats(item["id"]), spell_stats(item["id"]).replace("MANA", "MP"))
 	elif item["t"] == &"loadout":
 		# the starting spell sits by the wand, and the wand's numbers go at the bottom
 		var lo: Dictionary = RunState.LOADOUTS[item["id"]]
@@ -101,12 +104,47 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		icon_at(Icons.spell(Catalog.spell(first)), ic + Vector2(22, 10))
 		var wd := Catalog.wand(lo["wand"])
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
-		text(Vector2(r.position.x + 7, r.end.y - 5), "%d SLOTS  %d MANA  %.2fs" % [wd.slots, int(wd.max_mana), wd.cast_delay], Style.c("cyan:4"))
+		if item.get("locked", false):
+			var cost := int(Meta.lockable()[item["id"]]["cost"])
+			_fit_line(r, "IN THE CODEX: %d FRAGMENTS" % cost, "CODEX: %d FRAGMENTS" % cost, GOLD)
+		else:
+			_fit_line(r, "%d SLOTS  %d MANA  %.2fs" % [wd.slots, int(wd.max_mana), wd.cast_delay],
+				"%d SLOTS  %d MP  %.1fs" % [wd.slots, int(wd.max_mana), wd.cast_delay])
+	if item.get("locked", false):
+		# a start you have not unlocked yet: greyed, with a lock over the icon
+		draw_rect(r.grow(-2.0), Color(Style.c("night:1"), 0.55))
+		var lk := ic + Vector2(0, -2)
+		draw_rect(Rect2(lk + Vector2(-6, -1), Vector2(12, 10)), Style.c("gold:2"))
+		draw_rect(Rect2(lk + Vector2(-6, -1), Vector2(12, 1)), Style.c("gold:4"))
+		draw_arc(lk + Vector2(0, -2), 4.0, PI, TAU, 8, Style.c("gold:3"), 2.0)
+		draw_rect(Rect2(lk + Vector2(-1, 3), Vector2(2, 3)), Style.c("night:0"))
+
+
+## The card's bottom stats line, centred; the short form when the long one would overflow.
+func _fit_line(r: Rect2, long: String, short: String, c := Style.c("cyan:4")) -> void:
+	var f := Game.font("small")
+	var s := long if f.get_string_size(long, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x <= r.size.x - 10.0 else short
+	text_center(r.get_center().x, r.end.y - 5, s, c)
+
+
+## The start: preselect the one card you can take when there is only one.
+func _opened() -> void:
+	if kind == &"start":
+		var free := []
+		for i in offer.size():
+			if not offer[i].get("locked", false):
+				free.append(i)
+		if free.size() == 1:
+			sel = free[0]
 
 
 func _on_button(id: String) -> void:
 	if id.begins_with("card"):
 		var i := int(id.substr(4))
+		if offer[i].get("locked", false):
+			Audio.sfx("deny", 0.0)
+			toast("Unlock it in the Codex with Source Fragments")
+			return
 		sel = -1 if sel == i else i
 		Audio.sfx("ui", 0.05)
 	elif (id == "take" or id == "equip") and sel >= 0:
