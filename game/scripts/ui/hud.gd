@@ -57,7 +57,14 @@ func _ready() -> void:
 
 func _on_room(def: Dictionary) -> void:
 	banner = def.get("title", "")
-	banner_sub = "World 1  -  room %d of %d" % [int(def["no"]) + 1, Chapter.PLAN.size()]
+	var no := int(def["no"])
+	var th := Chapter.threat_of(world.run.room) if world and world.run and def.get("kind", &"") != &"start" else &""
+	if th != &"":
+		banner_sub = String(Chapter.THREATS[th]["ask"])   # design v2: what this room asks for
+	elif no == 0:
+		banner_sub = Chapter.area_name(no)
+	else:
+		banner_sub = "%s  -  room %d of %d" % [Chapter.area_name(no), no, Chapter.PLAN.size() - 1]
 	banner_t = 2.0
 
 

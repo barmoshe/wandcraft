@@ -497,7 +497,10 @@ func _room_title(kind: StringName) -> String:
 			return "MINI-BOSS"
 		&"boss":
 			return "BOSS"
-	var key := String(kind) if kind != &"fight" else String(run.room.get("reward", "spell")) if run else "fight"
+	if kind == &"fight" and run:
+		# design v2: the banner names the room, not its prize ("FIGHT: SPELL")
+		return "FIGHT: " + String(Chapter.INFO.get(String(run.room.get("reward", "spell")), {"name": "?"})["name"]).to_upper()
+	var key := String(kind)
 	return String(Chapter.INFO.get(key, {"name": String(kind)})["name"]).to_upper()
 
 
@@ -534,6 +537,8 @@ func _spawn_wave(list: Array) -> void:
 		if not body_fits(p, er):
 			p = socks[i % socks.size()]
 		var e := spawn_enemy(list[i][0], p, list[i][1])
+		if (list[i] as Array).size() > 2 and list[i][2] == &"warded":
+			e.make_warded()   # a room whose door asked for Shock
 		e.spawn_t = 0.8 + rng.randf() * 0.2   # the rune shows 0.8-1.0 s before anything lands
 		wave_live.append(e)
 	Audio.sfx("spawn")
@@ -545,7 +550,8 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	_uid += 1
 	var step := run.step if run else 1
 	# Bug Reports 2+: load spikes, +20% HP
-	e.setup(self, kind, pos, _uid, (1.0 + step * 0.07) * (1.2 if run and run.heat >= 2 else 1.0), elite)
+	# design v2: ten rooms, so HP climbs a little slower per room and ends where it did
+	e.setup(self, kind, pos, _uid, (1.0 + step * 0.055) * (1.2 if run and run.heat >= 2 else 1.0), elite)
 	enemies.append(e)
 	_actors.add_child(e)
 	return e
@@ -1885,6 +1891,12 @@ func _draw_deco() -> void:
 		_deco.draw_texture(Props.door(c, doors_open), Vector2(x0 - 5, -9))
 		var icon := Icons.door(Chapter.door_key(def))
 		_deco.draw_texture(icon, Vector2(x0 + TS - icon.get_width() / 2.0, -1).round(), Color(1, 1, 1, 1.0 if doors_open else 0.6))
+		var th := Chapter.threat_of(def)
+		if th != &"":
+			# design v2: what the room behind asks of your wand, as a badge on the door
+			var ti: Dictionary = Chapter.THREATS[th]
+			var tg := Icons.glyph(ti["glyph"], Color(ti["color"]))
+			_deco.draw_texture(tg, Vector2(x0 + TS + 4, 10).round(), Color(1, 1, 1, 1.0 if doors_open else 0.6))
 	if not orb.is_empty():
 		var p: Vector2 = orb["pos"]
 		var bob := sin(time * 3.0) * 2.0

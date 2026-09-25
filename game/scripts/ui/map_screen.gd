@@ -1,6 +1,7 @@
 class_name MapScreen
 extends Screen
-## The World 1 map (D5): three lanes, nine steps, every node's icon. Where you are glows;
+## The World 1 map (D5, design v2): three lanes, two areas of four rooms, every node's icon and
+## the threat its room holds. Where you are glows;
 ## the nodes you can still reach are lit, the rest dimmed. Read-only: you pick the next
 ## room at the doors, the map is for planning the route (a spring before the boss?).
 
@@ -50,12 +51,25 @@ func _paint() -> void:
 			var g: String = Icons.DOOR_GLYPH.get(key, "star") if d["kind"] != &"start" else "arrow"
 			var ic := Icons.glyph(g, col if reach or here else col.darkened(0.6))
 			draw_texture(ic, (p - ic.get_size() / 2.0).round())
+			var th := Chapter.threat_of(d)
+			if th != &"":
+				var ti: Dictionary = Chapter.THREATS[th]
+				var tg := Icons.glyph(ti["glyph"], Color(ti["color"]) if reach or here else Color(ti["color"]).darkened(0.6))
+				draw_texture(tg, (p + Vector2(9, -13)).round())
 	# the two areas
 	var split_x := x0 + (Chapter.AREAS[1]["from"] - 0.5) * gx
 	draw_line(Vector2(split_x, cy - gy - 18), Vector2(split_x, cy + gy + 18), Color(Style.c("violet:3"), 0.4), 1.0)
-	text_center(x0 + gx * 2.0, cy + gy + 30, Chapter.AREAS[0]["name"].to_upper(), MUTED)
-	text_center(x0 + gx * 6.5, cy + gy + 30, Chapter.AREAS[1]["name"].to_upper(), Style.c("violet:4"))
-	para(Rect2(sr.position.x + 20, cy + gy + 44, sr.size.x - 40, 30), "From a lane you can reach the lane beside it. The middle of the step before each boss is always a spring or a shop.", MUTED)
+	var a1: int = Chapter.AREAS[1]["from"]
+	text_center(x0 + gx * (a1 - 1) / 2.0, cy + gy + 30, Chapter.AREAS[0]["name"].to_upper(), MUTED)
+	text_center(x0 + gx * (a1 + n - 1) / 2.0, cy + gy + 30, Chapter.AREAS[1]["name"].to_upper(), Style.c("violet:4"))
+	# design v2: the threat badges' legend
+	var lx := sr.position.x + 20
+	for th in Chapter.THREATS:
+		var ti: Dictionary = Chapter.THREATS[th]
+		icon_at(Icons.glyph(ti["glyph"], Color(ti["color"])), Vector2(lx + 5, cy + gy + 48))
+		var ask: String = String(ti["ask"]).split(": ")[1] if String(ti["ask"]).contains(": ") else ti["ask"]
+		text(Vector2(lx + 14, cy + gy + 51), ask, MUTED)
+		lx += 14 + Game.font("small").get_string_size(ask, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 14
 	button(Rect2(v.x / 2.0 - 60, sr.end.y - 32, 120, 28), "close", "BACK", "primary")
 
 

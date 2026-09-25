@@ -93,6 +93,8 @@ func test_bot_completes_world_one() -> void:
 		world.step(DT)
 		t += DT
 	print("    full run: step %d, %.0f sim-seconds, %d kills, path %s" % [world.run.step, t, world.run.stats["kills"], world.run.path])
+	if not victory:
+		print("    DEBUG room ", world.run.room, " alive: ", world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String: return "%s hp%.0f ward%d arm%.0f sh%d at %s" % [e.kind, e.hp, e.ward_n, e.armor, e.shield_hp, e.position.round()]))
 	ok(victory, "World 1 cleared (reached step %d of %d in %.0fs)" % [world.run.step, Chapter.PLAN.size(), t])
 	ok(world.run.won, "the run is marked won")
 	eq(int(world.run.stats["bosses"]), 2, "both bosses defeated")

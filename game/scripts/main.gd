@@ -160,7 +160,7 @@ func _start_from_args() -> void:
 		if k == &"boss":
 			r.step = Chapter.PLAN.size() - 1
 		elif k == &"mini":
-			r.step = 4
+			r.step = Chapter.PLAN.find(&"mini")
 		elif r.step == 0:
 			r.step = 1
 	world.force_tpl = _args.get("room", "")

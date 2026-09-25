@@ -196,6 +196,13 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	add_child(sprite)
 
 
+## Design v2: a plain enemy that carries a ward (the room's door asked for Shock).
+func make_warded() -> void:
+	affix = &"warded"
+	ward_n = WARD_HITS
+	_mat.set_shader_parameter("outline_col", Style.c(AFFIXES[affix]["col"]))
+
+
 ## Burn ticks damage; chill slows everything the enemy does. Returns the slowed dt.
 func statuses(dt: float) -> float:
 	if burn_t > 0.0:

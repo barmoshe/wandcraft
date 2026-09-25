@@ -13,7 +13,7 @@ func _paint() -> void:
 	var y := sr.position.y + 26
 	text_center(cx, y, "WORLD 1 CLEARED" if won else "THE GLITCH WINS", GOLD if won else Color("#ff3fa4"), 16, "body")
 	y += 14
-	text_center(cx, y, "The Infinite Loop is broken. For now." if won else "Your run ends in room %d of %d." % [run.step + 1, Chapter.PLAN.size()], MUTED)
+	text_center(cx, y, "The Infinite Loop is broken. For now." if won else "Your run ends in room %d of %d." % [run.step, Chapter.PLAN.size() - 1], MUTED)
 	y += 14
 	# the route taken
 	var n := Chapter.PLAN.size()

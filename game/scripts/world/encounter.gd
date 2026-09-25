@@ -87,6 +87,31 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 				cands.append(i)
 		if not cands.is_empty():
 			out[n - 1][cands[rng.randi() % cands.size()]][1] = true
+	# design v2: the threat the door promised is in the room
+	var threat := Chapter.threat_of(run.room) if run else &""
+	match threat:
+		&"shield":
+			out[n - 1].append([&"sentry", false])
+			if step >= 4:
+				out[0].append([&"sentry", false])
+		&"armor":
+			out[n - 1].append([&"golem", false])
+		&"ward":
+			var k := 0
+			for w in n:
+				for en in out[w]:
+					if en[0] != &"bugling" and en.size() < 3 and k < 3:
+						en.append(&"warded")
+						k += 1
+			if k == 0:
+				out[n - 1].append([&"slime", false, &"warded"])
+		&"swarm":
+			# packs, not a summoner: a Brood Stump in a big room's far corner never ends
+			for w in n:
+				for i in 3:
+					out[w].append([&"bugling", false])
+			out[n - 1].append([&"tick", false])
+			out[n - 1].append([&"tick", false])
 	if kind == &"challenge" or kind == &"glitch":
 		var picks := anchors.duplicate()
 		picks.append_array(pressure.filter(func(k: StringName) -> bool: return k != &"bugling"))

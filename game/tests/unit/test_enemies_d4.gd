@@ -125,12 +125,13 @@ func test_wave_grammar() -> void:
 func test_puzzle_rooms_before_the_bosses() -> void:
 	var r := RunState.create(9)
 	var rng := RandomNumberGenerator.new()
-	r.step = 3
+	var mini := Chapter.PLAN.find(&"mini")
+	r.step = mini - 1
 	ok(Encounter.puzzle_for(r, &"fight", rng) != &"", "the fight before the mini-boss is a puzzle room")
-	r.step = 2
+	r.step = mini - 2
 	eq(Encounter.puzzle_for(r, &"fight", rng), &"", "earlier fights are not")
-	r.step = 7
-	ok(Encounter.puzzle_for(r, &"fight", rng) != &"", "nor is the fight before the boss")
+	r.step = Chapter.PLAN.size() - 2
+	ok(Encounter.puzzle_for(r, &"fight", rng) != &"", "and so is the fight before the boss")
 
 
 func test_spawns_keep_clear_of_the_player_and_the_aim() -> void:

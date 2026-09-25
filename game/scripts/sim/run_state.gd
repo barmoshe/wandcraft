@@ -365,6 +365,8 @@ static func from_dict(d: Dictionary) -> RunState:
 	r.rare_offset = float(d.get("rare_offset", -0.05))
 	r.uptime = int(d.get("uptime", 0))
 	r.map = (d.get("map", []) as Array).map(func(step: Array) -> Array: return step.map(_dict_in))
+	if not r.map.is_empty() and r.map.size() != Chapter.PLAN.size():
+		r.map = []   # a save from before the ten-room world: the map is drawn again
 	r.lane = int(d.get("lane", 1))
 	r.apply_relics()
 	return r
@@ -398,5 +400,5 @@ static func _dict_in(d: Variant) -> Variant:
 	var o := {}
 	for k in d:
 		var v: Variant = d[k]
-		o[String(k)] = StringName(v) if v is String and k in ["kind", "reward", "t", "id"] else v
+		o[String(k)] = StringName(v) if v is String and k in ["kind", "reward", "t", "id", "threat"] else v
 	return o

@@ -37,7 +37,7 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 	var t := 0.0
 	var boss_t0 := -1.0
 	var last_kind: StringName = &""
-	while t < 900.0 and not state["victory"] and not state["defeat"]:
+	while t < 1200.0 and not state["victory"] and not state["defeat"]:
 		world.step(DT)
 		t += DT
 		if world.room_kind != last_kind:
@@ -68,6 +68,7 @@ func test_world_one_balance() -> void:
 
 
 func _bench(edits: bool) -> float:
+	Meta.core_only = true   # design v2: measure the pool a new player gets
 	Game.god_mode = false
 	Game.auto_fire = true
 	SaveGame.enabled = false

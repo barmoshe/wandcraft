@@ -1,13 +1,23 @@
 class_name Chapter
 extends RefCounted
-## The shape of a world: a start room, three chosen rooms, the mini-boss, three chosen
-## rooms, the boss. After each cleared room the player picks a door, and every door shows
-## what is behind it, so the route is a decision (heal before the boss? gamble on a relic?).
+## The shape of a world (design v2): a start room, then two areas of four chosen rooms, each
+## ending in a boss (Copy-Paste, then the Infinite Loop). After each cleared room the player
+## picks a door, and every door shows what is behind it and what the room asks for (a threat:
+## shields, armor, wards or a swarm), so the route is a decision and the wand is the answer.
 
 ## The Glitch Door costs this much max HP to walk through (its prizes are Corrupted relics).
 const GLITCH_COST := 10.0
 
-const PLAN: Array[StringName] = [&"start", &"room", &"room", &"room", &"mini", &"room", &"room", &"room", &"boss"]
+const PLAN: Array[StringName] = [&"start", &"room", &"room", &"room", &"room", &"mini", &"room", &"room", &"room", &"room", &"boss"]
+
+## What a fight room asks for (design v2), shown on its door and in its banner. The encounter
+## director puts the threat in the room (Encounter.compose).
+const THREATS := {
+	&"shield": {"name": "Shields", "glyph": "shield", "color": "#9fe8ff", "ask": "Shielded foes: bring Pierce"},
+	&"armor": {"name": "Armor", "glyph": "box", "color": "#c8a070", "ask": "Armored foes: bring Blast"},
+	&"ward": {"name": "Wards", "glyph": "gem", "color": "#5ce1ff", "ask": "Warded foes: bring Shock"},
+	&"swarm": {"name": "Swarm", "glyph": "skull", "color": "#b6ff5c", "ask": "A swarm: bring spells that hit many"},
+}
 
 ## Door pool: kind + the reward promised on the door, with a weight.
 const POOL := [
@@ -26,7 +36,7 @@ const POOL := [
 ]
 const LANES := 3
 ## World 1's two areas (D5): the room steps each one covers, and its name.
-const AREAS := [{"name": "The Mossy Root Cellar", "from": 0}, {"name": "The Corrupted Grove", "from": 5}]
+const AREAS := [{"name": "The Mossy Root Cellar", "from": 0}, {"name": "The Corrupted Grove", "from": 6}]
 
 const INFO := {
 	"spell": {"name": "Spell", "color": "#5ce1ff"},
@@ -67,6 +77,10 @@ static func door_name(d: Dictionary) -> String:
 
 static func door_color(d: Dictionary) -> Color:
 	return Color(INFO.get(door_key(d), {"color": "#ffffff"})["color"])
+
+
+static func threat_of(d: Dictionary) -> StringName:
+	return StringName(d.get("threat", ""))
 
 
 static func area_name(step: int) -> String:
@@ -115,6 +129,11 @@ static func make_map(run: RunState) -> Array:
 				if not nodes.any(func(o: Dictionary) -> bool: return o["kind"] == d["kind"] and o["reward"] == d["reward"]):
 					break
 			nodes.append(d)
+		# from the second room on, most fights ask something of the wand
+		if step >= 2:
+			for d in nodes:
+				if (d["kind"] == &"fight" or d["kind"] == &"challenge") and rng.randf() < 0.75:
+					d["threat"] = THREATS.keys()[rng.randi() % THREATS.size()]
 		if step + 1 < PLAN.size() and (PLAN[step + 1] == &"boss" or PLAN[step + 1] == &"mini"):
 			nodes[1] = {"kind": [&"spring", &"shop"][rng.randi() % 2], "reward": &""}
 		# at least one fight on every step, so no stretch is all shopping

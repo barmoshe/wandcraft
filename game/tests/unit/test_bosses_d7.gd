@@ -4,7 +4,7 @@ extends "res://tests/unit/world_fixture.gd"
 
 
 func _arena(kind: StringName) -> Boss:
-	world.run.step = 4 if kind == &"mini" else 8
+	world.run.step = Chapter.PLAN.find(&"mini") if kind == &"mini" else Chapter.PLAN.size() - 1
 	world.build_room("arena_open" if kind == &"mini" else "arena_ring", kind)
 	world.call("_spawn_boss")
 	var b: Boss = world.boss
