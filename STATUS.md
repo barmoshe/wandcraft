@@ -105,7 +105,11 @@
     - The dash, with a touch button.
     - 180 tests; the tap test presses DASH. Onboarding: first edit about 10 s, first trigger about 42 s (bar: 120 s and 180 s).
     - Bench unchanged: 80% / 10%.
-  - **Next up:** store prep and the iOS release (Bar: free, Individual account, `com.barbuilds.wandcraft`). The order and log live in `research/mvp-finish-plan.md`.
+  - **Store prep (0.14.0): done up to Bar's account** (ADR 0021).
+    - The App Store listing (`store/app-store.md`), 6.9-inch screenshots, privacy and support pages live at https://wandcraft-plum.vercel.app.
+    - `tools/release_ios.sh` (check, archive, upload) and CI on every push (green).
+    - iPhone only, free, Individual seller, `com.barbuilds.wandcraft`.
+  - **Next up:** Bar's steps in `store/ios-release.md` (disk space, enrolment, Xcode sign-in, Team ID, app record); then TestFlight and review on his word.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
