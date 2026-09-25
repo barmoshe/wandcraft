@@ -218,6 +218,7 @@ var _floor: Sprite2D
 var _vignette: Sprite2D
 var _vignette_tex: GradientTexture2D
 var _deco: Node2D
+var _decals: Node2D            # D6: telegraph decals on the floor, under the actors
 var _actors: Node2D
 var _top: Node2D
 var _ambient: CanvasModulate
@@ -253,6 +254,9 @@ func setup(seed_value: int) -> void:
 	_deco = Node2D.new()
 	add_child(_deco)
 	_deco.draw.connect(_draw_deco)
+	_decals = Node2D.new()
+	add_child(_decals)
+	_decals.draw.connect(_draw_decals)
 	_actors = Node2D.new()
 	_actors.y_sort_enabled = true
 	add_child(_actors)
@@ -275,6 +279,7 @@ func setup(seed_value: int) -> void:
 	glow_layer.add_child(bullets)
 	fx = FxLayer.new()
 	fx.rng.seed = seed_value + 7
+	fx.trail_pool = bullets
 	glow_layer.add_child(fx)
 	_ambient = CanvasModulate.new()
 	_ambient.color = AMBIENT
@@ -631,6 +636,7 @@ func _process(_dt: float) -> void:
 	bullets.sync(frac)
 	ebullets.sync(frac)
 	_deco.queue_redraw()
+	_decals.queue_redraw()
 	_top.queue_redraw()
 
 
@@ -1189,7 +1195,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		hitstop(0.045)
 		shake(0.15)
 	if not dot:
-		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit)
+		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit, e.uid)
+		fx.hit_spark(e.position + Vector2(0, -6), (e.position - from).angle(), Style.c("gold:4") if crit else Style.c("arcane:4"))
 		Audio.sfx("crit" if crit else "hit", 0.1, 0.0 if crit else -6.0)
 	# Static: a charged enemy passes the next hit on to a neighbour as an arc
 	if not dot and not _cascading and e.static_t > 0.0:
@@ -1826,6 +1833,64 @@ func _draw_npc(n: Dictionary) -> void:
 			_deco.draw_texture(Icons.glyph("drop" if n["kind"] == &"altar" else "chip", col), (p + Vector2(-9, -30)).round())
 
 
+## D6: telegraphs as floor decals (design-plan §7): an outline of where the attack lands,
+## filled from its source as the attack nears, with a bright edge on the fill front. The
+## threat ramp only (enemy attacks), drawn under the actors so bodies stay readable.
+func _draw_decals() -> void:
+	for e in enemies:
+		if e.dead or e is Boss:
+			continue
+		var tl := e.telegraph()
+		if not tl.is_empty():
+			_decal(tl, clampf(float(tl["fill"]), 0.0, 1.0))
+	if boss and not boss.dead:
+		var f := boss.tele_fill()
+		for tl in boss.tele:
+			_decal(tl, f)
+
+
+func _decal(tl: Dictionary, fill: float) -> void:
+	var edge := Style.c("threat:2")
+	var body := Color(Style.c("threat:3"), 0.22 + 0.18 * fill)
+	var front := Style.c("threat:4")
+	match tl["k"]:
+		"line":
+			var p: Vector2 = tl["p"]
+			var w := maxf(1.0, float(tl["w"]))
+			var ln := float(tl["len"])
+			_decals.draw_set_transform(p.round(), float(tl["a"]))
+			_decals.draw_rect(Rect2(0, -w / 2.0, ln, w), Color(edge, 0.7), false, 1.0)
+			_decals.draw_rect(Rect2(0, -w / 2.0, ln * fill, w), body)
+			_decals.draw_rect(Rect2(roundf(ln * fill), -w / 2.0, 1, w), front)
+			_decals.draw_set_transform(Vector2.ZERO)
+		"circle":
+			var p: Vector2 = (tl["p"] as Vector2).round()
+			var rr := float(tl["r"])
+			_decals.draw_arc(p, rr, 0.0, TAU, 40, Color(edge, 0.8), 1.0)
+			_decals.draw_circle(p, rr * fill, body)
+			_decals.draw_arc(p, rr * fill, 0.0, TAU, 32, front, 1.0)
+		"cone":
+			var p: Vector2 = (tl["p"] as Vector2).round()
+			var a := float(tl["a"])
+			var sp := float(tl["spread"])
+			var ln := float(tl["len"])
+			var pts := PackedVector2Array([p])
+			for k in 9:
+				pts.append(p + Vector2.from_angle(a - sp + sp * 2.0 * k / 8.0) * ln * fill)
+			if fill > 0.05:
+				_decals.draw_colored_polygon(pts, body)
+			_decals.draw_line(p, p + Vector2.from_angle(a - sp) * ln, Color(edge, 0.8), 1.0)
+			_decals.draw_line(p, p + Vector2.from_angle(a + sp) * ln, Color(edge, 0.8), 1.0)
+			_decals.draw_arc(p, ln * fill, a - sp, a + sp, 8, front, 1.0)
+		"rect":
+			var rc: Rect2 = tl["rect"]
+			var c := rc.get_center()
+			_decals.draw_rect(rc, Color(edge, 0.8), false, 1.0)
+			var inner := Rect2(c - rc.size * fill / 2.0, rc.size * fill)
+			_decals.draw_rect(inner, body)
+			_decals.draw_rect(inner, front, false, 1.0)
+
+
 ## Additive glow on top of the actors: torch flames, door and orb shine, boss telegraphs.
 func _draw_top() -> void:
 	for tp in torches:
@@ -1858,16 +1923,4 @@ func _draw_top() -> void:
 			var k := 1.0 - e.spawn_t / 1.1
 			_top.draw_arc(e.position, 3.0 + k * 8.0, 0.0, TAU, 16, Color(0.77, 0.42, 1.0, 0.85), 1.0)
 			_top.draw_arc(e.position, 10.0 - k * 6.0, time * 3.0, time * 3.0 + PI, 8, Color(Style.c("threat:3"), 0.85), 1.0)
-	if boss and not boss.dead:
-		var a := 0.35 + 0.25 * sin(time * 20.0)
-		for tl in boss.tele:
-			match tl["k"]:
-				"line":
-					var p: Vector2 = tl["p"]
-					_top.draw_line(p, p + Vector2.from_angle(tl["a"]) * float(tl["len"]), Color(Style.c("threat:3"), a * 0.6), float(tl["w"]))
-				"circle":
-					_top.draw_arc(tl["p"], float(tl["r"]), 0.0, TAU, 40, Color(Style.c("threat:3"), a + 0.2), 2.0)
-				"rect":
-					var rc: Rect2 = tl["rect"]
-					_top.draw_rect(rc, Color(Style.c("threat:3"), a * 0.25))
-					_top.draw_rect(rc, Color(Style.c("threat:3"), a + 0.2), false, 1.0)
+

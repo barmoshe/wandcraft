@@ -210,7 +210,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	world.hit_in_room = true
 	inv = 0.9
 	vel += (position - from).normalized() * 120.0
-	world.fx.text(position + head, "-%d" % roundi(amount), Color("#ff5a6a"))
+	world.fx.hurt_number(position + head, amount)
 	world.shake(0.35)
 	world.hitstop(0.09)   # getting hit freezes the moment, so you feel it (design-plan §10)
 	world.flash(0.15)

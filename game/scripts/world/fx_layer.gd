@@ -17,6 +17,15 @@ var muzzles: Array = []  # [pos, angle, color, t]: a 2-frame cast flash at the w
 const MUZZLE_LIFE := 0.06
 var poofs: Array = []    # [pos, t]: the 4-frame death puff (D6)
 const POOF_FPS := 12.0
+var hits: Array = []     # [pos, angle, color, t]: the 3-frame hit spark, along the hit (D6)
+const HIT_FPS := 36.0
+var booms: Array = []    # [pos, radius bucket, color, t]: the 8-frame explosion (D6)
+const BOOM_FPS := 20.0
+const MERGE_T := 0.15    # hits on one target within this merge into one number (D6)
+## Player bullets that leave a dithered trail (D6); the first TRAIL_CAP live ones only.
+var trail_pool: BulletPool
+const TRAIL_CAP := 300
+const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 var rng := RandomNumberGenerator.new()
 var _text_node: Node2D
 
@@ -114,14 +123,87 @@ static func poof_frames() -> Array[Texture2D]:
 	return out
 
 
+## A hit spark: a white pop, then three rays fanning out along the hit direction.
+func hit_spark(p: Vector2, angle: float, c: Color) -> void:
+	if hits.size() >= 48:
+		hits.pop_front()
+	hits.append([p.round(), angle, c, 0.0])
+
+
+## An explosion of radius r: four hot frames in the spell's colour (additive), then four
+## frames of dithered smoke that thins out down the stone ramp.
+func explosion(p: Vector2, r: float, c: Color) -> void:
+	if booms.size() >= 16:
+		booms.pop_front()
+	booms.append([p.round(), clampi(int(roundf(r / 4.0)) * 4, 8, 64), c, 0.0])
+
+
+## Baked explosion frames for one radius: 0-3 are white (tinted when drawn, additive),
+## 4-7 are smoke. Square, radius + 2 from the centre.
+static func boom_frames(r: int) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for k in 8:
+		out.append(PixelArt.cached("boom_%d_%d" % [r, k], func() -> Image:
+			var n := r * 2 + 5
+			var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
+			var ctr := Vector2(r + 2.5, r + 2.5)
+			for j in n:
+				for i in n:
+					var d := Vector2(i + 0.5, j + 0.5).distance_to(ctr) / float(r)
+					var dither := (float(BAYER[(j % 4) * 4 + i % 4]) + 0.5) / 16.0
+					var col := Color(0, 0, 0, 0)
+					match k:
+						0:
+							if d < 0.4: col = Color.WHITE
+						1:
+							if d < 0.35: col = Color.WHITE
+							elif d < 0.75: col = Color(0.8, 0.8, 0.8)
+						2:
+							if d < 0.3: col = Color(0.7, 0.7, 0.7)
+							elif d > 0.72 and d < 0.95: col = Color(0.9, 0.9, 0.9)
+							elif d < 0.72 and dither < 0.5: col = Color(0.45, 0.45, 0.45)
+						3:
+							if d > 0.88 and d < 1.0: col = Color(0.6, 0.6, 0.6)
+							elif d < 0.88 and dither < 0.2: col = Color(0.4, 0.4, 0.4)
+						_:
+							# smoke: a widening disc whose density falls each frame
+							var s := k - 4
+							if d < 0.75 + s * 0.12 and dither < 0.62 - s * 0.15:
+								col = Style.c("stone:%d" % (4 - s))
+								col.a = 0.85
+					img.set_pixel(i, j, col)
+			return img))
+	return out
+
+
 func text(p: Vector2, s: String, c: Color, size := 8) -> void:
 	if texts.size() >= MAX_TEXTS:
 		texts.pop_front()
-	texts.append([p, s, c, 0.0, size])
+	texts.append([p, s, c, 0.0, size, -1, 0.0])
 
 
-func number(p: Vector2, v: float, crit: bool) -> void:
+## Damage numbers in three tiers (design-plan §7): white hits, bigger gold crits, and red
+## damage to the player. Hits on the same target (key) within 150 ms add up into one number
+## that pops again, so a shotgun reads as one big hit instead of a smear.
+func number(p: Vector2, v: float, crit: bool, key := -1) -> void:
+	if key >= 0:
+		for tx in texts:
+			if tx[5] == key and tx[3] < MERGE_T:
+				tx[6] += v
+				tx[1] = str(roundi(tx[6]))
+				tx[3] = 0.0
+				if crit:
+					tx[2] = Color("#ffe066")
+					tx[4] = 10
+				return
 	text(p + Vector2(rng.randf_range(-4, 4), 0), str(roundi(v)), Color("#ffe066") if crit else Color.WHITE, 10 if crit else 8)
+	texts[texts.size() - 1][5] = key
+	texts[texts.size() - 1][6] = v
+
+
+## The third tier: damage the player takes, red and big.
+func hurt_number(p: Vector2, v: float) -> void:
+	text(p, "-%d" % roundi(v), Style.c("threat:3"), 10)
 
 
 func clear_all() -> void:
@@ -132,6 +214,8 @@ func clear_all() -> void:
 	texts.clear()
 	muzzles.clear()
 	poofs.clear()
+	hits.clear()
+	booms.clear()
 
 
 func update(dt: float) -> void:
@@ -168,6 +252,14 @@ func update(dt: float) -> void:
 			_sparks[w] = s
 			w += 1
 	_sparks.resize(w)
+	for i in range(hits.size() - 1, -1, -1):
+		hits[i][3] += dt
+		if hits[i][3] * HIT_FPS >= 3.0:
+			hits.remove_at(i)
+	for i in range(booms.size() - 1, -1, -1):
+		booms[i][3] += dt
+		if booms[i][3] * BOOM_FPS >= 8.0:
+			booms.remove_at(i)
 	for i in range(poofs.size() - 1, -1, -1):
 		poofs[i][1] += dt
 		if poofs[i][1] * POOF_FPS >= 4.0:
@@ -200,6 +292,16 @@ func _draw() -> void:
 		var k: float = 1.0 - s[2] / s[3]
 		var p: Vector2 = s[0]
 		draw_rect(Rect2(p.round(), Vector2.ONE), Color(c.r * 1.5, c.g * 1.5, c.b * 1.5, k))
+	for h in hits:
+		_draw_hit(h)
+	for bm in booms:
+		var f := int(bm[3] * BOOM_FPS)
+		if f < 4:
+			var c: Color = bm[2]
+			var bt: Texture2D = boom_frames(bm[1])[f]
+			draw_texture(bt, (bm[0] as Vector2) - Vector2(bm[1] + 2, bm[1] + 2), Color(c.r * 1.25 + 0.1, c.g * 1.25 + 0.1, c.b * 1.25 + 0.1))
+	if trail_pool:
+		_draw_trails()
 	for m in muzzles:
 		var p: Vector2 = (m[0] as Vector2).round()
 		var c: Color = m[2]
@@ -221,7 +323,47 @@ func _draw() -> void:
 			draw_rect(Rect2(p, Vector2.ONE), Color(1.8, 1.8, 1.8))
 
 
+func _draw_hit(h: Array) -> void:
+	var f := int(h[3] * HIT_FPS)
+	var p: Vector2 = h[0]
+	var c: Color = h[2]
+	var hot := Color(c.r * 1.6, c.g * 1.6, c.b * 1.6)
+	var fwd := Vector2.from_angle(h[1])
+	if f == 0:
+		draw_rect(Rect2(p - Vector2(1, 0), Vector2(3, 1)), Color(1.8, 1.8, 1.8))
+		draw_rect(Rect2(p - Vector2(0, 1), Vector2(1, 3)), Color(1.8, 1.8, 1.8))
+		return
+	for da in [-0.55, 0.0, 0.55]:
+		var d := fwd.rotated(da)
+		var from := 1 if f == 1 else 3
+		var to := 3 if f == 1 else 5
+		for k in range(from, to + (1 if da == 0.0 else 0)):
+			draw_rect(Rect2((p + d * k).round(), Vector2.ONE), hot if f == 1 else c)
+
+
+## Up to three dithered pixels behind each player bullet, stepping down in brightness.
+func _draw_trails() -> void:
+	var n := mini(TRAIL_CAP, trail_pool.active.size())
+	for i in n:
+		var b: Bullet = trail_pool.active[i]
+		if not b.alive or b.vel.length_squared() < 3600.0:
+			continue
+		var back := -b.vel.normalized()
+		var c := b.color
+		for k in range(1, 4):
+			var q := (b.pos + back * (k * 3.0 + b.r)).round()
+			if (int(q.x) + int(q.y) + k) % 2 == 0:
+				continue
+			var a := 0.55 - k * 0.15
+			draw_rect(Rect2(q, Vector2.ONE), Color(c.r * a * 1.6, c.g * a * 1.6, c.b * a * 1.6))
+
+
 func _draw_texts() -> void:
+	for bm in booms:
+		var f := int(bm[3] * BOOM_FPS)
+		if f >= 4:
+			var r: int = bm[1]
+			_text_node.draw_texture(boom_frames(r)[mini(7, f)], (bm[0] as Vector2) - Vector2(r + 2, r + 2))
 	var pf := poof_frames()
 	for pp in poofs:
 		_text_node.draw_texture(pf[mini(3, int(pp[1] * POOF_FPS))], (pp[0] as Vector2) - Vector2(8, 8))

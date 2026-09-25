@@ -546,6 +546,32 @@ func shoot(ang: float) -> void:
 	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Style.c("threat:3"))
 
 
+## D6: the attack this enemy is winding up, as a floor decal World draws under the actors
+## (design-plan §7): {"k": line|circle|cone, geometry, "fill": 0..1 as the attack nears}.
+func telegraph() -> Dictionary:
+	if dead or spawn_t > 0.0:
+		return {}
+	var to_pl := (world.target_pos() - position).angle()
+	match state:
+		&"tele":
+			match ai:
+				&"charge":
+					var dash: Dictionary = def["dash"]
+					return {"k": "line", "p": position, "a": aim_a, "len": float(dash["spd"]) * float(dash["t"]) * haste,
+						"w": r * 2.0, "fill": 1.0 - st_t / float(dash["tele"])}
+				&"slam":
+					return {"k": "circle", "p": position, "r": SLAM_R, "fill": 1.0 - st_t}
+				&"shoot":
+					return {"k": "cone", "p": position, "a": to_pl, "spread": 0.35, "len": 70.0,
+						"fill": 1.0 - st_t / float(def["shot"]["tele"])}
+		&"fuse":
+			return {"k": "circle", "p": position, "r": TICK_R, "fill": 1.0 - st_t / 0.8}
+		&"aim":
+			return {"k": "line", "p": position + muzzle, "a": aim_a, "len": 200.0, "w": 2.0,
+				"fill": 1.0 - st_t / float(def["shot"]["sight"])}
+	return {}
+
+
 func _draw() -> void:
 	if spawn_t > 0.0:
 		return   # the spawn rune is drawn by World on the glow layer
@@ -553,16 +579,6 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, r + 1.0, Color(0, 0, 0, 0.4))
 	draw_set_transform(Vector2.ZERO)
-	if state == &"tele" and ai == &"charge":
-		draw_line(muzzle, Vector2.from_angle(aim_a) * float(def["dash"]["range"]) * 0.6 + muzzle, Color(Style.c("threat:3"), 0.6), 1.0)
-	elif state == &"tele" and ai == &"slam":
-		var k := 1.0 - clampf(st_t, 0.0, 1.0)
-		draw_arc(Vector2.ZERO, SLAM_R, 0.0, TAU, 32, Color(Style.c("threat:3"), 0.35 + 0.4 * k), 1.0)
-		draw_arc(Vector2.ZERO, SLAM_R * k, 0.0, TAU, 24, Color(Style.c("threat:3"), 0.5), 1.0)
-	elif state == &"fuse":
-		draw_arc(Vector2.ZERO, TICK_R, 0.0, TAU, 24, Color(Style.c("threat:3"), 0.5), 1.0)
-	elif state == &"aim":
-		draw_line(muzzle, Vector2.from_angle(aim_a) * 200.0 + muzzle, Color(Style.c("threat:3"), 0.45), 1.0)
 	# defences: a ward ring, a shield arc facing the player
 	if ward_n > 0:
 		draw_arc(Vector2(0, -r), r + 3.0, 0.0, TAU, 20, Color(Style.c("cyan:4"), 0.35 + 0.15 * ward_n), 1.0)

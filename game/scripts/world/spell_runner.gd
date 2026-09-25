@@ -411,8 +411,9 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
 	var r := float(c.spell.param("area", c.level, 30.0)) * c.mods.area
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
+	world.fx.explosion(pos, r, c.spell.color)
 	world.fx.ring(pos, 2.0, r, 0.25, c.spell.color)
-	world.fx.sparks(pos, 14, c.spell.color, 140.0)
+	world.fx.sparks(pos, 8, c.spell.color, 140.0)
 	for k in world.hash.query(pos, r + 16.0):
 		var e: Enemy = world.enemies[k]
 		if e.dead or e.spawn_t > 0.0 or e.uid == opt.ignore:
@@ -718,8 +719,9 @@ func _background(dt: float) -> void:
 ## Ember Bolt and friends: an explosion where the bolt ends. Payload triggers still fire.
 func _blast(b: Bullet, hit_e: Enemy) -> void:
 	var r := float(b.cast.spell.param("area", b.cast.level, 18.0)) * b.area
+	world.fx.explosion(b.pos, r, b.color)
 	world.fx.ring(b.pos, 2.0, r, 0.25, b.color)
-	world.fx.sparks(b.pos, 12, b.color, 120.0)
+	world.fx.sparks(b.pos, 8, b.color, 120.0)
 	for k in world.hash.query(b.pos, r + 16.0):
 		var e: Enemy = world.enemies[k]
 		if e.dead or e.spawn_t > 0.0 or e == hit_e:

@@ -20,6 +20,7 @@ var mt := 0.0                   # time inside the current move's act
 var done := false
 var invuln := 0.0
 var tele: Array = []            # telegraphs: {"k": line|circle, ...}
+var tele_total := 1.0           # the wind-up's length, so its decals fill up (D6)
 var parts: Array[Enemy] = []
 var weak_t := 0.0               # a weak window (D7): hits land x weak_mul
 var weak_mul := 1.5
@@ -124,6 +125,7 @@ func _pick_move() -> void:
 	last_move = move
 	sm = &"tele"
 	st_t = float(move_table[move][0]) * (0.85 if phase > 0 else 1.0)
+	tele_total = st_t
 	tele.clear()
 	done = false
 	mt = 0.0
@@ -142,6 +144,11 @@ func weaken(t: float, mul: float, label: String) -> void:
 ## A rune pylon in the arena pulsed (D7: the Loop counts them).
 func on_pylon() -> void:
 	pass
+
+
+## How full the telegraph decals are: they fill through the wind-up, then stay full.
+func tele_fill() -> float:
+	return clampf(1.0 - st_t / maxf(0.01, tele_total), 0.0, 1.0) if sm == &"tele" else 1.0
 
 
 ## A telegraph box (Select All): drawn by World like the others.
