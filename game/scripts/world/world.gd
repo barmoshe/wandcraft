@@ -1408,6 +1408,7 @@ func kill_enemy(e: Enemy) -> void:
 				_release_bug(e.position, 20.0 if swarm else 10.0)
 	_on_death(e)
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
+	fx.poof(e.position + Vector2(0, -4))
 	if e.elite:
 		hitstop(0.08)
 		shake(0.25)

@@ -167,6 +167,7 @@ const L_STRIDE := 1
 const L_PASS := 3
 
 static var _rigs := {}
+static var _clips := {}
 static var _wand: Array[Texture2D] = []
 
 
@@ -238,7 +239,10 @@ static func rig(back := false) -> RigDef:
 
 ## Every clip of one facing, baked: clip name -> Array[Texture2D].
 static func clips(back := false) -> Dictionary:
-	return RigBaker.bake(rig(back))
+	var key := "back" if back else "front"
+	if not _clips.has(key):
+		_clips[key] = RigBaker.bake(rig(back))
+	return _clips[key]
 
 
 ## idle0, idle1, run0..3, cast (the pre-D6 order, kept for the title screen and art sheets).

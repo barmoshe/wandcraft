@@ -68,17 +68,37 @@ static func _entry(pose: Dictionary, part_name: String) -> Dictionary:
 	return d
 
 
-## Squash (n > 0: remove n rows from the middle) or stretch (n < 0: repeat the middle row).
+## Squash (n > 0: remove n rows) or stretch (n < 0: repeat a row). The row taken or repeated
+## is the plainest one in the middle half (fewest different colours), so eyes, mouths and
+## belts survive a squash; ties go to the row nearest the middle.
 static func squash(rows: Array, n: int) -> Array:
 	var out := rows.duplicate()
-	var mid := out.size() / 2
-	if n > 0:
-		for k in mini(n, out.size() - 1):
-			out.remove_at(mini(mid, out.size() - 1))
-	else:
-		for k in -n:
-			out.insert(mid, out[mid])
+	for k in absi(n):
+		if n > 0 and out.size() <= 1:
+			break
+		var i := _plain_row(out)
+		if n > 0:
+			out.remove_at(i)
+		else:
+			out.insert(i, out[i])
 	return out
+
+
+static func _plain_row(rows: Array) -> int:
+	var sz := rows.size()
+	var mid := sz / 2
+	var best := mid
+	var best_score := 1 << 20
+	for i in range(sz / 4, maxi(sz / 4 + 1, sz - sz / 4)):
+		var seen := {}
+		for ch in String(rows[i]):
+			if ch != "." and ch != " ":
+				seen[ch] = true
+		var score := seen.size() * 100 + absi(i - mid)
+		if score < best_score:
+			best_score = score
+			best = i
+	return best
 
 
 ## Scan-line tears: each band [y, height, dx] slides sideways by dx.

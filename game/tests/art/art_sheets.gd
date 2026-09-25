@@ -47,6 +47,17 @@ static func anim(s: Node) -> void:
 			var fr: Array = c[k]
 			for i in fr.size():
 				s.add("%d" % i, fr[i])
+	for k in Bestiary.ART:
+		var c := Bestiary.clips(k)
+		s.section("%s: move | tele | attack" % k)
+		for clip in ["move", "tele", "attack"]:
+			var fr: Array = c[clip]
+			for i in fr.size():
+				s.add("%s %d" % [clip, i], fr[i])
+	s.section("death poof")
+	var pf := FxLayer.poof_frames()
+	for i in pf.size():
+		s.add("%d" % i, pf[i])
 	s.section("wand, 16 angles")
 	var wa := Hero.wand_angles()
 	for i in wa.size():

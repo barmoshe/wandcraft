@@ -132,6 +132,12 @@ var _base_off := 0.0
 ## Where shots leave, relative to the feet (half the sprite height).
 var muzzle := Vector2(0, -6)
 var frames: Array[Texture2D]
+## D6: the rig's clips (Bestiary.rig): move, tele, attack. `atk_t` holds the attack clip.
+var clips: Dictionary = {}
+var rig: RigDef
+var atk_t := 0.0
+var _clip := "move"
+var _clip_t := 0.0
 var _mat: ShaderMaterial
 
 
@@ -154,7 +160,12 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	_route_t = fmod(ph, 0.1)   # stagger the re-plans across ticks (no extra rng draw)
 	cd = w.rng.randf_range(0.8, 2.0)
 	var art := "loop_seg" if k == &"loop_jr" else String(k)
-	frames = Bestiary.frames(art) if Bestiary.has(art) else Sprites.enemy_frames(art)
+	if Bestiary.has(art):
+		rig = Bestiary.rig(art)
+		clips = Bestiary.clips(art)
+		frames = clips["move"]
+	else:
+		frames = Sprites.enemy_frames(art)
 	muzzle = Vector2(0, -roundf(frames[0].get_height() * 0.5))
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
@@ -324,6 +335,7 @@ func tick(dt: float) -> void:
 					aim_a = d.angle()
 					flash = 0.6 if sin(st_t * 40.0) > 0.0 else 0.0
 					if st_t <= 0.0:
+						atk_t = float(dash["t"])
 						state = &"dash"
 						st_t = dash["t"]
 				&"dash":
@@ -357,6 +369,7 @@ func tick(dt: float) -> void:
 					if st_t <= 0.0:
 						state = &"move"
 						cd = 2.4
+						atk_t = 0.3
 						world.shake(0.2)
 						world.fx.ring(position, 4.0, SLAM_R, 0.3, Style.c("threat:3"))
 						world.break_crates_in(position, SLAM_R)
@@ -367,6 +380,7 @@ func tick(dt: float) -> void:
 			cd -= adt
 			if cd <= 0.0:
 				cd = 5.0
+				atk_t = 0.25
 				var mine := world.enemies.filter(func(e: Enemy) -> bool: return not e.dead and e.parent_uid == uid).size()
 				for k in mini(2, 4 - mine):
 					var e := world.spawn_enemy(&"bugling", position + Vector2.from_angle(ph + k * PI) * (r + 6.0))
@@ -476,8 +490,31 @@ func _steer(dt: float, dir: Vector2) -> Vector2:
 	return dir if _route_direct else _route
 
 
+## The clip the AI state calls for: winding up shows the telegraph, a strike the attack.
+func pick_clip() -> String:
+	if state == &"tele" or state == &"aim" or state == &"fuse":
+		return "tele"
+	if atk_t > 0.0 or state == &"dash":
+		return "attack"
+	return "move"
+
+
 func _animate() -> void:
-	sprite.texture = frames[int(t * 4.0 + ph) % 2]
+	var dt := get_physics_process_delta_time()
+	if clips.is_empty():
+		sprite.texture = frames[int(t * 4.0 + ph) % 2]
+	else:
+		atk_t = maxf(0.0, atk_t - dt)
+		var want := pick_clip()
+		if want != _clip:
+			_clip = want
+			_clip_t = 0.0
+		_clip_t += dt * (0.5 if ai == &"turret" and want == "move" else 1.0)
+		# the walk cycle starts at a different phase per enemy so a wave never marches in step
+		var ct := _clip_t + (ph if want == "move" else 0.0)
+		var tex: Texture2D = clips[want][rig.frame_at(want, ct)]
+		if tex != sprite.texture:
+			sprite.texture = tex
 	sprite.flip_h = face < 0
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
 	var st := "frost" if chill_t > 0.0 or frozen_t > 0.0 else ("ember" if burn_t > 0.0 else "")
@@ -487,9 +524,6 @@ func _animate() -> void:
 		if st != "":
 			for k in 5:
 				_mat.set_shader_parameter("ramp%d" % k, Style.c("%s:%d" % [st, k]))
-	# a whole-pixel bob instead of a fractional squash (that smeared pixels, D1)
-	if ai != &"turret":
-		sprite.offset.y = _base_off - (1.0 if sin(t * 8.0 + ph) > 0.4 else 0.0)
 	queue_redraw()
 
 
@@ -502,6 +536,7 @@ func shoot(ang: float) -> void:
 		return
 	var shot: Dictionary = def["shot"]
 	var n: int = shot["n"]
+	atk_t = 0.2
 	var off := world.rng.randf() * TAU
 	var spread: Array = [0.0, -0.26, 0.26] if affix == &"forked" and not shot.get("ring", false) else [0.0]
 	for i in n:

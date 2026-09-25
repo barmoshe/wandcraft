@@ -390,6 +390,76 @@ static func clone_frames() -> Array[Texture2D]:
 	return out
 
 
+## D6: what each enemy's eyes turn into while it winds up an attack. Telegraphs are enemy
+## attacks, so they take the reserved threat ramp (the only place it appears on a body).
+const TELE_EYES := {
+	"slime": {"o": "threat:3"}, "slimelet": {"o": "threat:3"},
+	"weaver": {"r": "threat:3", "R": "threat:4"},
+	"ram": {"r": "threat:4"},
+	"bugling": {"c": "threat:3", "C": "threat:4"},
+	"puffcap": {"o": "threat:3"},
+	"sentry": {"r": "threat:2", "R": "threat:3", "y": "threat:4"},
+	"golem": {"y": "threat:4"},
+	"wisp": {"w": "threat:4", "C": "threat:3"},
+	"stump": {"o": "threat:3", "g": "threat:4"},
+	"tick": {"g": "threat:3", "G": "threat:4"},
+	"loop_seg": {"y": "threat:3", "Y": "threat:4"},
+}
+## Rows of empty sky above every rig, so a stretch never clips the top of the head.
+const HEADROOM := 2
+
+static var _rigs := {}
+static var _clips := {}
+
+
+## D6: an enemy as a rig (design-plan §8: move 4, telegraph 2, attack 2; the hurt flash is the
+## shader's, the death is the dissolve plus FxLayer.poof). Built from the same two ART layers:
+## the moving layer steps, the body squashes a row to wind up and stretches a row to strike.
+static func rig(kind: String) -> RigDef:
+	if _rigs.has(kind):
+		return _rigs[kind]
+	var d: Dictionary = ART[kind]
+	var r := RigDef.new()
+	r.id = "en_" + kind
+	r.w = d["w"]
+	r.h = int(d["h"]) + HEADROOM
+	r.pal = d["pal"]
+	var down := Vector2i(0, HEADROOM)
+	if d.get("b_under", false):
+		r.add_part("b", d["b"], d["b_at"] + down)
+		r.add_part("a", d["a"], d["a_at"] + down)
+	else:
+		r.add_part("a", d["a"], d["a_at"] + down)
+		r.add_part("b", d["b"], d["b_at"] + down)
+	var mover: String = d["move"]
+	var mo: Vector2i = d["mo"]
+	var step := {mover: mo}
+	var step2 := {mover: mo}
+	if d.has("b1"):
+		step["b"] = {"rows": d["b1"], "off": mo if mover == "b" else Vector2i.ZERO}
+		step2 = {"a": {"sq": 1}}
+	else:
+		step2 = {mover: mo, "a": {"sq": 1, "off": mo if mover == "a" else Vector2i.ZERO}}
+	r.add_clip("move", 6.0, true, [{}, step, {}, step2])
+	var eyes: Dictionary = TELE_EYES.get(kind, {})
+	r.add_clip("tele", 8.0, true, [
+		{"a": {"sq": 1}, "_recolor": eyes},
+		{"a": {"sq": 2}, "_recolor": eyes},
+	])
+	r.add_clip("attack", 10.0, false, [
+		{"a": {"sq": -1}, "_recolor": eyes},
+		{"a": {"sq": -1, "off": Vector2i(1, 0)}},
+	])
+	_rigs[kind] = r
+	return r
+
+
+static func clips(kind: String) -> Dictionary:
+	if not _clips.has(kind):
+		_clips[kind] = RigBaker.bake(rig(kind))
+	return _clips[kind]
+
+
 static func has(kind: String) -> bool:
 	return ART.has(kind)
 
@@ -414,8 +484,6 @@ static func frame(kind: String, step: int) -> Image:
 	return PixelArt.layered(d["w"], d["h"], layers, d["pal"])
 
 
+## The move clip (first frame at rest), for callers that only need a look.
 static func frames(kind: String) -> Array[Texture2D]:
-	return [
-		PixelArt.cached("bx_%s_0" % kind, func() -> Image: return frame(kind, 0)),
-		PixelArt.cached("bx_%s_1" % kind, func() -> Image: return frame(kind, 1)),
-	]
+	return clips(kind)["move"]

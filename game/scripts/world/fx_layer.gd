@@ -15,6 +15,8 @@ var texts: Array = []    # [pos, text, color, t, size]
 var _shards: Array = []  # normal-blend pixels: [pos, vel, t, life, color, gravity]
 var muzzles: Array = []  # [pos, angle, color, t]: a 2-frame cast flash at the wand tip
 const MUZZLE_LIFE := 0.06
+var poofs: Array = []    # [pos, t]: the 4-frame death puff (D6)
+const POOF_FPS := 12.0
 var rng := RandomNumberGenerator.new()
 var _text_node: Node2D
 
@@ -82,6 +84,36 @@ func dust(p: Vector2) -> void:
 		_shards.append([p + Vector2(rng.randf_range(-3, 3), 0), Vector2(rng.randf_range(-10, 10), -8), 0.0, 0.35, Color(0.7, 0.72, 0.6, 0.6), 0.0])
 
 
+## A 4-frame puff of dust where an enemy died (design-plan §8: the dissolve plus a poof).
+func poof(p: Vector2) -> void:
+	if poofs.size() >= 24:
+		poofs.pop_front()
+	poofs.append([p.round(), 0.0])
+
+
+## The puff frames: a ring of dithered pixels that widens and thins out, stepping down the
+## bone ramp (never fading by alpha). 17x17, drawn centred.
+static func poof_frames() -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for k in 4:
+		out.append(PixelArt.cached("poof_%d" % k, func() -> Image:
+			const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+			var img := Image.create_empty(17, 17, false, Image.FORMAT_RGBA8)
+			var r_out := 3.5 + k * 1.6
+			var r_in := maxf(0.0, r_out - 3.0 - k * 0.3)
+			var density := 0.95 - k * 0.24
+			var col := Style.c("bone:%d" % (4 - k))
+			for j in 17:
+				for i in 17:
+					var d := Vector2(i - 8, j - 8).length()
+					if d > r_out or d < r_in:
+						continue
+					if (float(BAYER[(j % 4) * 4 + i % 4]) + 0.5) / 16.0 < density:
+						img.set_pixel(i, j, col)
+			return img))
+	return out
+
+
 func text(p: Vector2, s: String, c: Color, size := 8) -> void:
 	if texts.size() >= MAX_TEXTS:
 		texts.pop_front()
@@ -99,6 +131,7 @@ func clear_all() -> void:
 	_shards.clear()
 	texts.clear()
 	muzzles.clear()
+	poofs.clear()
 
 
 func update(dt: float) -> void:
@@ -135,6 +168,10 @@ func update(dt: float) -> void:
 			_sparks[w] = s
 			w += 1
 	_sparks.resize(w)
+	for i in range(poofs.size() - 1, -1, -1):
+		poofs[i][1] += dt
+		if poofs[i][1] * POOF_FPS >= 4.0:
+			poofs.remove_at(i)
 	for i in range(texts.size() - 1, -1, -1):
 		texts[i][3] += dt
 		if texts[i][3] > 0.8:
@@ -185,6 +222,9 @@ func _draw() -> void:
 
 
 func _draw_texts() -> void:
+	var pf := poof_frames()
+	for pp in poofs:
+		_text_node.draw_texture(pf[mini(3, int(pp[1] * POOF_FPS))], (pp[0] as Vector2) - Vector2(8, 8))
 	for s in _shards:
 		var c: Color = s[4]
 		var k: float = 1.0 - s[2] / s[3]
