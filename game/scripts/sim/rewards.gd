@@ -9,8 +9,8 @@ const SLOT_PRICE := 60        # Forge: +1 slot on the wand in hand (D2)
 const SLOT_MAX := 10
 const ALTAR_COST := 0.15      # share of max HP an Altar pick costs (D5)
 const LOADOUT_TEXT := {
-	&"twig": "Quick and light: three slots, the first holds an Arcane Mote. Room to build.",
-	&"stub": "Slow and deep: two slots, the first holds an Ember Bolt, and a big mana pool.",
+	&"twig": "Quick and light. An Arcane Mote in the last slot, and two empty slots on its left for boosts.",
+	&"stub": "Slow, with a deep mana pool. An Ember Bolt in the last slot, and one empty slot on its left.",
 }
 
 
@@ -238,7 +238,7 @@ static func grant(run: RunState, item: Dictionary) -> bool:
 			var w := run.wand()
 			if w.slots.size() >= SLOT_MAX:
 				return false
-			w.slots.append(null)
+			w.add_slot()
 	return true
 
 
@@ -261,18 +261,31 @@ static func item_title(item: Dictionary) -> String:
 	return "%d gold" % int(item.get("v", 0))
 
 
-static func item_desc(item: Dictionary) -> String:
-	if item.has("hp_cost"):
-		return "Costs %d%% of your max HP. " % roundi(float(item["hp_cost"]) * 100.0) + _desc(item)
-	return _desc(item)
+## The item's text. lv: the level a spell's numbers are shown at (see level_after).
+static func item_desc(item: Dictionary, lv := 1) -> String:
+	return _desc(item, lv)
 
 
-static func _desc(item: Dictionary) -> String:
+## The level a spell will have once taken: each copy you hold at the level it reaches merges
+## with it (two copies make the next level, up to 3).
+static func level_after(run: RunState, id: StringName) -> int:
+	var lv := 1
+	if run == null or RunState.MERGE_COPIES != 2:
+		return lv
+	while lv < 3 and run.spell_refs().any(func(r: Dictionary) -> bool: return r["s"]["id"] == id and int(r["s"]["lv"]) == lv):
+		lv += 1
+	return lv
+
+
+static func _desc(item: Dictionary, lv := 1) -> String:
 	match item["t"]:
 		&"spell":
-			return Catalog.spell(item["id"]).desc
+			return Catalog.spell(item["id"]).text_at(lv)
 		&"relic":
-			return Relics.DEFS[item["id"]]["desc"]
+			var d: Dictionary = Relics.DEFS[item["id"]]
+			if d.has("duo"):
+				return "%s (from %s + %s)" % [d["desc"], Relics.DEFS[d["duo"][0]]["title"], Relics.DEFS[d["duo"][1]]["title"]]
+			return d["desc"]
 		&"wand":
 			return wand_desc(Catalog.wand(item["id"]))
 		&"heal":
@@ -282,21 +295,22 @@ static func _desc(item: Dictionary) -> String:
 		&"compile":
 			var ev: Dictionary = Catalog.EVOLUTIONS[item["id"]]
 			var cat: String = Relics.DEFS[ev["cat"]]["title"] if ev["cat_t"] == &"relic" else Catalog.spell(ev["cat"]).title
-			return "%s Uses your level-3 %s%s." % [Catalog.spell(item["id"]).desc, Catalog.spell(ev["base"]).title,
+			return "%s Uses up your level-3 %s%s." % [Catalog.spell(item["id"]).desc, Catalog.spell(ev["base"]).title,
 				"" if ev["cat_t"] == &"relic" else " and one %s" % cat]
 		&"slot":
-			return "Adds one empty slot to the end of the wand in your hand (up to %d)." % SLOT_MAX
+			return "Adds one empty slot to the left end of the wand in your hand (up to %d)." % SLOT_MAX
 	return ""
 
 
+## "Quick and light. 3 slots, 50 mana. Casts every 0.1 s, recharges in 0.35 s."
 static func wand_desc(w: WandDef) -> String:
-	var bits := ["%d slots" % w.slots, "%d mana" % int(w.max_mana), "cast %.2fs" % w.cast_delay, "recharge %.2fs" % w.recharge]
-	if w.simultaneous > 1:
-		bits.append("casts %d at once" % w.simultaneous)
-	if w.reverse:
-		bits.append("reads right to left")
-	var txt := ", ".join(bits)
-	return txt[0].to_upper() + txt.substr(1) + "."
+	var nums := "%d slots, %d mana. Casts every %s s, recharges in %s s." % [w.slots, int(w.max_mana), _secs(w.cast_delay), _secs(w.recharge)]
+	return (w.desc + " " if w.desc != "" else "") + nums
+
+
+## 0.1 not 0.10, 0.35 as is.
+static func _secs(t: float) -> String:
+	return String.num(snappedf(t, 0.01))
 
 
 static func item_rarity(item: Dictionary) -> int:

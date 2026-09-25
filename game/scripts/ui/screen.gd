@@ -223,15 +223,20 @@ func text_right(x_end: float, y: float, s: String, c: Color = TEXT, size := 8, k
 	text(Vector2(x_end - w, y), s, c, size, kind)
 
 
-## Wrapped paragraph inside a rect; returns the height used.
+## Wrapped paragraph inside a rect; returns the height used. Text that does not fit ends
+## in "..." on the last line that does, so a cut is never silent (tests keep the copy short).
 func para(r: Rect2, s: String, c: Color = TEXT, size := 8, kind := "small") -> float:
 	var f := Game.font(kind)
 	var lines := _wrap(f, s, r.size.x, size)
 	var lh := size + 3.0
-	for i in lines.size():
-		if (i + 1) * lh > r.size.y + 1.0:
-			break
-		text(r.position + Vector2(0, size + i * lh), lines[i], c, size, kind)
+	var fit := mini(lines.size(), int((r.size.y + 1.0) / lh))
+	for i in fit:
+		var ln := lines[i]
+		if i == fit - 1 and fit < lines.size():
+			while ln != "" and f.get_string_size(ln + "...", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > r.size.x:
+				ln = ln.substr(0, ln.length() - 1)
+			ln = ln.strip_edges() + "..."
+		text(r.position + Vector2(0, size + i * lh), ln, c, size, kind)
 	return lines.size() * lh
 
 
@@ -368,7 +373,7 @@ static func kind_label(item: Dictionary) -> String:
 			var d := Catalog.spell(item["id"])
 			return KIND_NAMES[d.kind]
 		&"relic":
-			return "Relic"
+			return "Merge Commit" if Relics.DEFS[item["id"]].has("duo") else "Relic"
 		&"wand":
 			return "Wand"
 		&"loadout":

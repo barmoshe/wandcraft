@@ -37,9 +37,9 @@ const STEPS := {
 }
 
 const COACH := {
-	"equip": "A boost powers up every spell to its right, so it goes before your Mote. Drag EMPOWER onto the lit slot.",
+	"equip": "A boost powers up every spell on its right, so it goes left of your Mote. Drag EMPOWER onto the lit slot.",
 	"pierce": "Some enemies carry a shield that blocks hits from the front. A PIERCE spell breaks it. Drag it onto the lit slot.",
-	"trigger": "A trigger joins two spells: when the one on its left ends, it casts the one on its right. Drag THEN onto the lit slot.",
+	"trigger": "A trigger goes between two spells: when the one on its left ends, it casts the one on its right. Drag THEN onto the lit slot.",
 }
 
 
@@ -88,7 +88,10 @@ static func coach(run: RunState, lesson_step: int) -> Dictionary:
 	var target := run.lesson_target
 	if target.is_empty() or target.size() != w.slots.size():
 		return {}
-	for i in target.size():
+	# the lesson spell's own move first: it carries the explanation, the rest just make room
+	var order: Array = range(target.size())
+	order.sort_custom(func(a: int, b: int) -> bool: return ids.has(target[a]) and not ids.has(target[b]))
+	for i in order:
 		var have: Variant = w.slots[i]["id"] if w.slots[i] != null else null
 		if have == target[i] or target[i] == null:
 			continue
@@ -104,9 +107,10 @@ static func coach(run: RunState, lesson_step: int) -> Dictionary:
 
 ## The wand in hand as it should look after the lesson (spell ids, null for empty), built
 ## from what it holds now plus the lesson spell the player took:
-##   a boost goes just before the first shooting spell (boosts power up what is to their right)
-##   a shooting spell goes after the others
+##   a boost goes just left of the first shooting spell (boosts power up what is on their right)
+##   a shooting spell goes left of everything, into the empty room
 ##   a trigger goes right after the first shooting spell, so another one follows it
+## The layout is right-aligned: spells sit at the right end, empty slots stay on the left.
 ## Returns [] when the lesson spell is not in the run at all.
 static func layout(run: RunState, lesson_step: int) -> Array:
 	var ids: Array = STEPS[lesson_step]["offer"]
@@ -143,11 +147,12 @@ static func layout(run: RunState, lesson_step: int) -> Array:
 						order.insert(after, sp["id"])
 						break
 		_:
-			order.append(prize)
-	# what does not fit goes to the bag; the rest of the wand stays empty
+			order.push_front(prize)
+	# what does not fit goes to the bag; the empty slots stay on the left
 	var out: Array = []
+	var pad := w.slots.size() - order.size()
 	for i in w.slots.size():
-		out.append(order[i] if i < order.size() else null)
+		out.append(order[i - pad] if i >= pad else null)
 	return out
 
 

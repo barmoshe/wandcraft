@@ -12,6 +12,7 @@ extends Screen
 
 const SOCK := 24.0
 const GAP := 2.0
+const ROW_GAP := 10.0     # between wand sockets: room for the cast-direction chevron
 
 var sel: Dictionary = {}          # {"w": wand index or -1 for bag, "i": index}
 var focus_wand := 0
@@ -98,15 +99,30 @@ func _wand_row(wi: int, at: Vector2, width: float) -> float:
 	var lr := Rect2(at, Vector2(width, 12))
 	text(at + Vector2(2, 9), label, GOLD if is_cur else TEXT, 8, "bold")
 	area(Rect2(at - Vector2(0, 4), Vector2(minf(width, 150), 18)), "wand%d" % wi)
+	if w.def.reverse:
+		text_right(at.x + width - 2, at.y + 9, "CASTS RIGHT TO LEFT", Style.c("glitch:4"))
 	var n := w.slots.size()
 	var y := at.y + 13
-	var per_row := maxi(1, int((width + GAP) / (SOCK + GAP)))
+	# wand rows leave room between sockets for a chevron that shows the cast direction
+	var step := SOCK + ROW_GAP
+	var per_row := maxi(1, int((width + ROW_GAP) / step))
 	for i in n:
-		var p := Vector2(at.x + (i % per_row) * (SOCK + GAP), y + (i / per_row) * (SOCK + GAP))
+		var p := Vector2(at.x + (i % per_row) * step, y + (i / per_row) * (SOCK + GAP))
 		_socket(Rect2(p, Vector2(SOCK, SOCK)), {"w": wi, "i": i}, is_cur)
+		if i % per_row != per_row - 1 and i < n - 1:
+			_chevron(Vector2(p.x + SOCK + ROW_GAP / 2.0, p.y + SOCK / 2.0), w.def.reverse, is_cur)
 	var rows := ceili(float(n) / per_row)
 	var _unused := lr
 	return y + rows * (SOCK + GAP)
+
+
+## A small arrowhead between two sockets, pointing the way the wand reads its slots.
+func _chevron(c: Vector2, left: bool, lit: bool) -> void:
+	var d := -1.0 if left else 1.0
+	var col := Color(GOLD, 0.8) if lit else Color("#6a5a8a")
+	c = c.round()
+	draw_line(c + Vector2(-2 * d, -4), c + Vector2(2 * d, 0), col, 1.5)
+	draw_line(c + Vector2(2 * d, 0), c + Vector2(-2 * d, 4), col, 1.5)
 
 
 func _socket(r: Rect2, ref: Dictionary, lit: bool) -> void:
@@ -135,12 +151,15 @@ func _info(ir: Rect2) -> void:
 		icon_at(Icons.spell(d), ir.position + Vector2(18, 18), 2.0)
 		text(ir.position + Vector2(34, 16), d.title + "+".repeat(int(s["lv"]) - 1), TEXT, 8, "bold")
 		text(ir.position + Vector2(34, 27), Screen.KIND_NAMES[d.kind], rarity_color(d.rarity))
-		var used := para(Rect2(ir.position + Vector2(8, 36), Vector2(ir.size.x - 16, 56)), d.desc, MUTED)
-		text(ir.position + Vector2(8, 44 + minf(used, 56)), spell_stats(d.id, int(s["lv"])), Color("#8fd8ff"))
-		y = ir.position.y + 60 + minf(used, 56)
+		# the whole text (up to 8 lines), then the cast preview gets what is left
+		var used := minf(para(Rect2(ir.position + Vector2(8, 36), Vector2(ir.size.x - 16, 88)), d.text_at(int(s["lv"])), MUTED), 88.0)
+		text(ir.position + Vector2(8, 44 + used), spell_stats(d.id, int(s["lv"])), Color("#8fd8ff"))
+		y = ir.position.y + 60 + used
 	else:
-		var used := para(Rect2(ir.position + Vector2(8, 4), Vector2(ir.size.x - 16, 80)), "Spells fire left to right. Boosts change every spell to their right. A trigger makes the spell on its left cast the one on its right.", MUTED)
+		var used := para(Rect2(ir.position + Vector2(8, 4), Vector2(ir.size.x - 16, 80)), "Spells cast from left to right. A boost powers up every spell on its right. A trigger goes between two spells: the one on its left casts the one on its right.", MUTED)
 		y = ir.position.y + 14 + minf(used, 80)
+		if not coach.is_empty():
+			y = maxf(y, ir.position.y + 104)   # below the coach box (_draw_coach)
 	# cast preview of the wand in focus
 	var wi := focus_wand if sel.is_empty() or sel["w"] < 0 else int(sel["w"])
 	var w: WandState = run.wands[clampi(wi, 0, run.wands.size() - 1)]

@@ -29,31 +29,36 @@ func _paint() -> void:
 	var v := view()
 	var sr := safe()
 	var t: Array = TITLES.get(kind, ["REWARD", "Pick one"])
-	text_center(v.x / 2.0, sr.position.y + 18, t[0], GOLD, 16, "body")
-	text_center(v.x / 2.0, sr.position.y + 32, t[1], MUTED)
+	text_center(v.x / 2.0, sr.position.y + 16, t[0], GOLD, 16, "body")
+	text_center(v.x / 2.0, sr.position.y + 29, t[1], MUTED)
 	var n := offer.size()
-	var cw := minf(128.0, (sr.size.x - 16.0 * (n - 1)) / maxf(1, n))
-	var ch := minf(170.0, sr.size.y - 90.0)
-	var total := cw * n + 12.0 * (n - 1)
+	var gap := 10.0
+	var cw := minf(170.0, (sr.size.x - gap * (n - 1)) / maxf(1, n))
+	var y0 := sr.position.y + 36
+	var bh := 28.0
+	var ch := minf(200.0, sr.end.y - y0 - bh - 8.0)
+	var total := cw * n + gap * (n - 1)
 	var x0 := v.x / 2.0 - total / 2.0
-	var y0 := sr.position.y + 42
 	for i in n:
-		var r := Rect2(x0 + i * (cw + 12.0), y0, cw, ch)
+		var r := Rect2(x0 + i * (cw + gap), y0, cw, ch)
 		_card(r, offer[i], i == sel)
 		area(r, "card%d" % i)
-	var by := y0 + ch + 12
+	var by := y0 + ch + 8
 	var can_take: bool = sel >= 0 and not offer[sel].get("locked", false)
-	var equip := kind != &"start"
-	if not equip:
+	if kind == &"start":
 		# the start: only TAKE, centred under the cards
-		button(Rect2(v.x / 2.0 - 55.0, by, 110, 30), "take", "TAKE", "primary", can_take)
+		button(Rect2(v.x / 2.0 - 55.0, by, 110, bh), "take", "TAKE", "primary", can_take)
 		return
-	var bx := v.x / 2.0 - 173.0
-	button(Rect2(bx, by, 110, 30), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
-	button(Rect2(bx + 118, by, 110, 30), "take", "TAKE", "primary", can_take)
-	if equip:
+	# TAKE & EQUIP only where a spell is on offer (it opens the wand editor)
+	var has_spell := offer.any(func(o: Dictionary) -> bool: return o["t"] == &"spell")
+	var nb := 3 if has_spell else 2
+	var bw := minf(120.0, (sr.size.x - 16.0) / 3.0)
+	var bx := v.x / 2.0 - (bw * nb + 8.0 * (nb - 1)) / 2.0
+	button(Rect2(bx, by, bw, bh), "skip", "SKIP  +%d GOLD" % Rewards.SKIP_GOLD, "ghost")
+	button(Rect2(bx + bw + 8, by, bw, bh), "take", "TAKE", "primary", can_take)
+	if has_spell:
 		var spell: bool = can_take and offer[sel]["t"] == &"spell"
-		button(Rect2(bx + 236, by, 110, 30), "equip", "TAKE & EQUIP", "primary", spell)
+		button(Rect2(bx + (bw + 8) * 2, by, bw, bh), "equip", "TAKE & EQUIP", "primary", spell)
 
 
 func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
@@ -64,52 +69,49 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		draw_rect(r.grow(4.0), Color(Style.UI_GOLD, 0.12))
 	panel(r, selected)
 	var cx := r.get_center().x
-	# rarity header: a band in the rarity color with its name and gems (reads without color)
-	var hb := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4, 11))
+	# header band in the rarity color: the rarity on the left, what the item is on the right
+	var hb := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4, 12))
 	draw_rect(hb, rc.darkened(0.55))
 	draw_rect(Rect2(hb.position, Vector2(hb.size.x, 1)), rc.darkened(0.2))
 	text(hb.position + Vector2(4, 9), Style.RARITY_NAMES[clampi(rar, 0, 3)].to_upper(), rc.lightened(0.2))
-	for k in rar + 1:
-		var g := Vector2(hb.end.x - 7 - k * 6, hb.position.y + 3)
-		draw_rect(Rect2(g, Vector2(4, 4)), rc)
-		draw_rect(Rect2(g, Vector2(2, 2)), rc.lightened(0.5))
-	# the icon on a little pedestal with a soft glow
-	var ic := Vector2(cx, r.position.y + 38)
-	draw_circle(ic, 20.0, Color(rc, 0.08))
-	draw_circle(ic, 14.0, Color(rc, 0.1))
-	draw_set_transform(ic + Vector2(0, 17), 0.0, Vector2(1.0, 0.3))
-	draw_circle(Vector2.ZERO, 14.0, Style.c("night:3"))
-	draw_set_transform(Vector2.ZERO)
-	icon_at(item_icon(item), ic + Vector2(0, sin(_age * 2.0 + r.position.x) * (1.0 if selected else 0.0)), 2.0)
-	var y := r.position.y + 68
-	text_center(cx, y, Rewards.item_title(item), TEXT, 8, "bold")
-	y += 11
-	text_center(cx, y, kind_label(item), MUTED)
-	y += 4
+	text_right(hb.end.x - 4, hb.position.y + 9, kind_label(item).to_upper(), Style.c("bone:3"))
+	var lv := Rewards.level_after(run, item["id"]) if item["t"] == &"spell" else 1
+	var desc := Rewards.item_desc(item, lv)
 	var kl := kind_label(item).to_lower()
-	y += chips(cx, y, item_tags(item).filter(func(t: String) -> bool: return not kl.contains(t.to_lower())))
+	var tags: Array = item_tags(item).filter(func(t: String) -> bool: return not kl.contains(t.to_lower()))
 	# D3: what this pick would switch on with what you already have
-	var en := Rewards.enables(run, item).map(func(t: String) -> String: return "+ " + t)
+	var en: Array = Rewards.enables(run, item).map(func(t: String) -> String: return "+ " + t)
+	if lv > 1:
+		en.push_front("Merges to level %d" % lv)
+	var foot := _footer(item, lv)
+	# the body gets whatever the header, icon and chips leave; a long text shrinks the icon
+	var chip_h := (12.0 if not tags.is_empty() else 0.0) + (14.0 if not en.is_empty() else 0.0)
+	var body_w := r.size.x - 14.0
+	var need := _wrap(Game.font("small"), desc, body_w, 8).size() * 11.0
+	var bottom := r.end.y - (16.0 if foot[0] != "" else 4.0)
+	var compact := r.position.y + 72.0 + chip_h + need > bottom
+	var ic := Vector2(cx, r.position.y + (26.0 if compact else 33.0))
+	if not compact:
+		draw_circle(ic, 20.0, Color(rc, 0.08))
+		draw_circle(ic, 14.0, Color(rc, 0.1))
+		draw_set_transform(ic + Vector2(0, 17), 0.0, Vector2(1.0, 0.3))
+		draw_circle(Vector2.ZERO, 14.0, Style.c("night:3"))
+		draw_set_transform(Vector2.ZERO)
+	icon_at(item_icon(item), ic + Vector2(0, sin(_age * 2.0 + r.position.x) * (1.0 if selected else 0.0)), 1.0 if compact else 2.0)
+	var y := r.position.y + (46.0 if compact else 64.0)
+	text_center(cx, y, Rewards.item_title(item) + "+".repeat(lv - 1), TEXT, 8, "bold")
+	y += 4
+	y += chips(cx, y, tags)
 	if not en.is_empty():
 		y += chips(cx, y + 2, en, Style.c("gold:4")) + 2
-	var body := Rect2(r.position + Vector2(7, y - r.position.y + 2), Vector2(r.size.x - 14, r.end.y - y - 16))
-	para(body, Rewards.item_desc(item), Style.c("bone:3"))
-	if item["t"] == &"spell":
+	para(Rect2(r.position.x + 7, y + 1, body_w, bottom - y - 1), desc, Style.c("bone:3"))
+	if foot[0] != "":
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
-		_fit_line(r, spell_stats(item["id"]), spell_stats(item["id"]).replace("MANA", "MP"))
-	elif item["t"] == &"loadout":
-		# the starting spell sits by the wand, and the wand's numbers go at the bottom
-		var lo: Dictionary = RunState.LOADOUTS[item["id"]]
-		var first: StringName = lo["spells"][0]
+		_fit_line(r, foot[0], foot[1], foot[2])
+	if item["t"] == &"loadout":
+		# the starting spell sits by the wand
+		var first: StringName = RunState.LOADOUTS[item["id"]]["spells"].filter(func(x: Variant) -> bool: return x != null)[0]
 		icon_at(Icons.spell(Catalog.spell(first)), ic + Vector2(22, 10))
-		var wd := Catalog.wand(lo["wand"])
-		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
-		if item.get("locked", false):
-			var cost := int(Meta.lockable()[item["id"]]["cost"])
-			_fit_line(r, "IN THE CODEX: %d FRAGMENTS" % cost, "CODEX: %d FRAGMENTS" % cost, GOLD)
-		else:
-			_fit_line(r, "%d SLOTS  %d MANA  %.2fs" % [wd.slots, int(wd.max_mana), wd.cast_delay],
-				"%d SLOTS  %d MP  %.1fs" % [wd.slots, int(wd.max_mana), wd.cast_delay])
 	if item.get("locked", false):
 		# a start you have not unlocked yet: greyed, with a lock over the icon
 		draw_rect(r.grow(-2.0), Color(Style.c("night:1"), 0.55))
@@ -118,6 +120,25 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		draw_rect(Rect2(lk + Vector2(-6, -1), Vector2(12, 1)), Style.c("gold:4"))
 		draw_arc(lk + Vector2(0, -2), 4.0, PI, TAU, 8, Style.c("gold:3"), 2.0)
 		draw_rect(Rect2(lk + Vector2(-1, 3), Vector2(2, 3)), Style.c("night:0"))
+
+
+## The card's bottom line: [long, short, color], or ["", "", c] for none.
+func _footer(item: Dictionary, lv: int) -> Array:
+	var cyan := Style.c("cyan:4")
+	if item.has("hp_cost"):
+		var pct := roundi(float(item["hp_cost"]) * 100.0)
+		return ["COSTS %d%% OF MAX HP" % pct, "-%d%% MAX HP" % pct, Style.c("threat:4")]
+	match item["t"]:
+		&"spell":
+			var st := spell_stats(item["id"], lv)
+			return [st, st.replace("mana", "MP"), cyan]
+		&"loadout":
+			if item.get("locked", false):
+				var cost := int(Meta.lockable()[item["id"]]["cost"])
+				return ["IN THE CODEX: %d FRAGMENTS" % cost, "CODEX: %d FRAGMENTS" % cost, GOLD]
+			var wd := Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"])
+			return ["%d SLOTS  %d MANA" % [wd.slots, int(wd.max_mana)], "%d SLOTS  %d MP" % [wd.slots, int(wd.max_mana)], cyan]
+	return ["", "", cyan]
 
 
 ## The card's bottom stats line, centred; the short form when the long one would overflow.
@@ -151,7 +172,7 @@ func _on_button(id: String) -> void:
 		var item: Dictionary = offer[sel]
 		if not Rewards.grant(run, item):
 			Audio.sfx("deny", 0.0)
-			toast("Your bag is full (12). Skip this one, or merge spells.")
+			toast("Your bag is full. Skip this one to take the gold instead.")
 			return
 		Audio.sfx("levelup" if _merged(item) else "pick", 0.0)
 		finished.emit({"taken": item, "equip": id == "equip"})

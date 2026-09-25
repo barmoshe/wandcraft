@@ -31,6 +31,14 @@ static func make(wand: WandDef, ids: Array = []) -> WandState:
 	return w
 
 
+## One more empty slot, on the left end: spells sit on the right (the start spell in the
+## last slot, as in Magicraft), so new room opens where boosts go.
+func add_slot() -> void:
+	slots.push_front(null)
+	ptr = 0
+	acc = Mods.new()
+
+
 func set_slots(entries: Array) -> void:
 	slots.resize(maxi(entries.size(), def.slots))
 	for i in slots.size():

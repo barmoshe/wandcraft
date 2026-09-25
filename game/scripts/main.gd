@@ -107,7 +107,7 @@ func _new_run() -> RunState:
 	r.tutorial = int(m.get("runs", 0)) == 0 and not bool(m.get("tutorial_done", false))
 	r.heat = mini(heat, int(m.get("wins", 0)))
 	for k in Meta.extra_slots():
-		r.wands[0].slots.append(null)
+		r.wands[0].add_slot()
 	return r
 
 
@@ -176,7 +176,7 @@ func _start_from_args() -> void:
 				r.tutorial = true
 				r.step = lesson
 				if lesson >= 2:
-					r.wand().set_slots([&"empower", &"mote", &"needle"] if lesson == 3 else [&"empower", &"mote", null])
+					r.wand().set_slots([&"needle", &"empower", &"mote"] if lesson == 3 else [null, &"empower", &"mote"])
 				r.bag.append({"id": Tutorial.STEPS[lesson]["offer"][0], "lv": 1})
 				Tutorial.on_prize(r, lesson)
 				_open_editor(lesson)

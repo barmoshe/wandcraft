@@ -97,7 +97,8 @@ func test_the_boost_lesson_puts_empower_before_the_mote() -> void:
 			break
 		run.move_spell(c["from"], c["to"])
 	var ids: Array = run.wand().slots.map(func(s: Variant) -> Variant: return s["id"] if s != null else null)
-	ok(ids[0] == &"empower" and ids[1] == &"mote", "Empower sits left of the Mote it powers (%s)" % [ids])
+	ok(ids.find(&"empower") == ids.find(&"mote") - 1, "Empower sits just left of the Mote it powers (%s)" % [ids])
+	eq(ids[-1], &"mote", "the Mote stays in the last slot")
 
 
 func test_a_normal_run_is_not_a_lesson() -> void:

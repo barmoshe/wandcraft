@@ -26,7 +26,7 @@ enum Kind { PROJ, BOOST, TRIG, PASSIVE, RUNE, FAMILIAR }
 ## speed, radius, life, count, spread (deg), homing, pierce, area, ...
 @export var params: Dictionary = {}
 @export var icon_rows: PackedStringArray
-## What changes at level 3 beyond the numbers (shown on the card as "L3: ...").
+## What changes at level 3 beyond the numbers: a full sentence, added to the text at level 3.
 @export var l3 := ""
 ## Keywords this spell carries into hits: pierce (breaks shields), blast (breaks armor),
 ## shock (strips wards). Boosts and statuses can add more (D2/D4).
@@ -37,6 +37,31 @@ static func at(arr: PackedFloat32Array, level: int) -> float:
 	if arr.is_empty():
 		return 0.0
 	return arr[clampi(level, 1, arr.size()) - 1]
+
+
+## The description at one level: every {L1/L2/L3} token becomes that level's value, and
+## level 3 adds its extra sentence. Players only ever read the numbers they have.
+func text_at(level: int) -> String:
+	var out := SpellDef.resolve(desc, level)
+	if level >= 3 and l3 != "":
+		out += " " + l3
+	return out
+
+
+static var _tok: RegEx
+
+
+## Replaces each {a/b/c} in s with the value for this level (1-3).
+static func resolve(s: String, level: int) -> String:
+	if _tok == null:
+		_tok = RegEx.create_from_string("\\{([^}]*)\\}")
+	var out := ""
+	var from := 0
+	for m in _tok.search_all(s):
+		var vals := m.get_string(1).split("/")
+		out += s.substr(from, m.get_start() - from) + vals[clampi(level, 1, vals.size()) - 1]
+		from = m.get_end()
+	return out + s.substr(from)
 
 
 func mana_at(level: int) -> float:

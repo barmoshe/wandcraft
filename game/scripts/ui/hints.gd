@@ -13,7 +13,7 @@ const TIPS := {
 	"boss": ["Red lines and circles show where the boss will strike", "Red lines and circles show where the boss will strike"],
 	# D9: the counters, taught the first time each defence stops you (any run)
 	"shield": ["Shields block hits from the front. PIERCE spells break them", "Shields block hits from the front. PIERCE spells break them"],
-	"armor": ["Armour soaks damage. BLAST spells tear it off", "Armour soaks damage. BLAST spells tear it off"],
+	"armor": ["Armor soaks damage. BLAST spells tear it off", "Armor soaks damage. BLAST spells tear it off"],
 	"ward": ["Wards swallow whole hits. SHOCK spells strip them", "Wards swallow whole hits. SHOCK spells strip them"],
 	"dash": ["Tap DASH to slip through bullets", "Press Space to dash through bullets"],
 }

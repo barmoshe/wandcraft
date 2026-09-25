@@ -82,9 +82,10 @@ func _paint() -> void:
 		text(ir.position + Vector2(34, 28), "%s - %s" % [kind_label(it), Relics.RARITY_NAMES[rar]], rarity_color(rar))
 		var kl := kind_label(it).to_lower()
 		var ch := chips(ir.get_center().x, ir.position.y + 34, item_tags(it).filter(func(t: String) -> bool: return not kl.contains(t.to_lower())))
-		var used := para(Rect2(ir.position + Vector2(8, 40 + ch), Vector2(ir.size.x - 16, ir.size.y - 90 - ch)), Rewards.item_desc(it), Style.c("bone:3")) + ch
+		var lv: int = int(it.get("lv", 1)) + (1 if mode == "forge" else 0)
+		var room := ir.size.y - 90 - ch - (12.0 if it["t"] == &"spell" else 0.0)
+		var used := minf(para(Rect2(ir.position + Vector2(8, 40 + ch), Vector2(ir.size.x - 16, room)), Rewards.item_desc(it, lv), Style.c("bone:3")), room) + ch
 		if it["t"] == &"spell":
-			var lv: int = int(it.get("lv", 1)) + (1 if mode == "forge" else 0)
 			text(ir.position + Vector2(8, 48 + used), spell_stats(it["id"], lv), Color("#8fd8ff"))
 		var can: bool = not it.get("sold", false) and run.gold >= int(it["price"])
 		var label := ("UPGRADE  %d" if mode == "forge" else "BUY  %d") % int(it["price"])

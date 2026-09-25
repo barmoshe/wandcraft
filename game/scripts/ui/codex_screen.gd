@@ -22,7 +22,12 @@ func _paint() -> void:
 	text(sr.position + Vector2(2, 30), _collection(), MUTED)
 	# the cards
 	var top := sr.position.y + 38
-	var bottom := sr.end.y - 44
+	# the detail panel grows to fit the picked card's text (wrapped, never clipped)
+	var desc_w := sr.size.x - 128.0
+	var dh := 38.0
+	if sel >= 0:
+		dh = maxf(38.0, 24.0 + _wrap(Game.font("small"), _desc(Meta.UNLOCKS[sel]), desc_w, 8).size() * 11.0)
+	var bottom := sr.end.y - dh - 6
 	var cols := maxi(1, int((sr.size.x + GAP) / (CARD.x + GAP)))
 	var x0 := sr.position.x + (sr.size.x - (cols * (CARD.x + GAP) - GAP)) / 2.0
 	var owned: Array = Meta.unlocked()
@@ -35,17 +40,17 @@ func _paint() -> void:
 		_card(Rect2(p, CARD), i, u, owned.has(String(u["id"])))
 	_max_scroll = maxf(0.0, ceilf(float(n) / cols) * (CARD.y + GAP) - (bottom - top))
 	# the picked card, and what buying it does
-	var dr := Rect2(sr.position.x, sr.end.y - 38, sr.size.x, 38)
+	var dr := Rect2(sr.position.x, sr.end.y - dh, sr.size.x, dh)
 	panel(dr)
 	if sel < 0:
-		text(dr.position + Vector2(8, 22), "Runs earn Source Fragments (rooms, bosses, wins). Spend them to add to the pool.", MUTED)
+		text(dr.position + Vector2(8, 22), "Rooms, bosses and wins earn Source Fragments. Spend them here to add new things to your runs.", MUTED)
 		return
 	var u: Dictionary = Meta.UNLOCKS[sel]
 	var have := owned.has(String(u["id"]))
 	text(dr.position + Vector2(8, 14), Meta.title(u).to_upper(), TEXT, 8, "bold")
-	text(dr.position + Vector2(8, 28), _desc(u), MUTED, 8, "small", HORIZONTAL_ALIGNMENT_LEFT, dr.size.x - 120)
+	para(Rect2(dr.position + Vector2(8, 18), Vector2(desc_w, dh - 20)), _desc(u), MUTED)
 	if have:
-		text_right(dr.end.x - 10, dr.position.y + 22, "IN THE POOL", Style.UI_GOOD, 8, "bold")
+		text_right(dr.end.x - 10, dr.position.y + 22, "UNLOCKED", Style.UI_GOOD, 8, "bold")
 	else:
 		var cost := int(u["cost"])
 		button(Rect2(dr.end.x - 104, dr.position.y + 5, 96, 28), "buy", "BUY  %d" % cost, "primary", Meta.fragments() >= cost)
@@ -55,7 +60,7 @@ func _card(r: Rect2, i: int, u: Dictionary, have: bool) -> void:
 	panel(r, i == sel)
 	icon_at(_icon(u), r.position + Vector2(14, r.size.y / 2.0), 1.0, Color.WHITE if have else Color(0.35, 0.33, 0.45))
 	text(r.position + Vector2(28, 12), Meta.title(u), TEXT if have else MUTED, 8, "bold")
-	text(r.position + Vector2(28, 23), "IN THE POOL" if have else "%d fragments" % int(u["cost"]), Style.UI_GOOD if have else GOLD, 8)
+	text(r.position + Vector2(28, 23), "UNLOCKED" if have else "%d fragments" % int(u["cost"]), Style.UI_GOOD if have else GOLD, 8)
 	area(r, "card%d" % i)
 
 
@@ -73,9 +78,9 @@ func _icon(u: Dictionary) -> Texture2D:
 func _desc(u: Dictionary) -> String:
 	match u["t"]:
 		&"spell", &"rune":
-			return Catalog.spell(u["id"]).desc
+			return Catalog.spell(u["id"]).text_at(1)
 		&"relic":
-			return String(Relics.DEFS[u["id"]]["desc"])
+			return Rewards.item_desc({"t": &"relic", "id": u["id"]})
 		&"wand":
 			return Rewards.wand_desc(Catalog.wand(u["id"]))
 		&"loadout":
@@ -122,7 +127,7 @@ func _on_button(id: String) -> void:
 	elif id == "buy" and sel >= 0:
 		if Meta.buy(Meta.UNLOCKS[sel]["id"]):
 			Audio.sfx("buy", 0.0)
-			toast("%s joins the pool" % Meta.title(Meta.UNLOCKS[sel]))
+			toast("%s unlocked: it can now show up in runs" % Meta.title(Meta.UNLOCKS[sel]))
 		else:
 			Audio.sfx("deny", 0.0)
 	elif id.begins_with("card"):

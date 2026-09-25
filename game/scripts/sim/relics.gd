@@ -11,51 +11,51 @@ extends RefCounted
 
 const DEFS := {
 	# ---- kept from the POC ----
-	&"hot_patch": {"title": "Hot Patch", "rar": 0, "color": "#ff6b7a", "glyph": "heart", "tags": ["Survival"], "desc": "Max HP +20, and heal 20."},
+	&"hot_patch": {"title": "Hot Patch", "rar": 0, "color": "#ff6b7a", "glyph": "heart", "tags": ["Survival"], "desc": "Max HP +20, and heal 20 now."},
 	&"garbage_collector": {"title": "Garbage Collector", "rar": 0, "color": "#7dd8ff", "glyph": "bin", "tags": ["Economy"], "desc": "Every kill refills 3 mana in all your wands."},
-	&"interest": {"title": "Compound Interest", "rar": 0, "color": "#ffd36b", "glyph": "coin", "tags": ["Economy"], "stats": {"gold": 1.25}, "desc": "Gain 25% more gold. Enter a room holding 60+ gold: +3 gold."},
+	&"interest": {"title": "Compound Interest", "rar": 0, "color": "#ffd36b", "glyph": "coin", "tags": ["Economy"], "stats": {"gold": 1.25}, "desc": "+25% gold. Entering a room with 60 gold or more gives 3 extra."},
 	&"leech_loop": {"title": "Leech Loop", "rar": 0, "color": "#d8344a", "glyph": "loop", "tags": ["Survival"], "desc": "Every 6th kill heals 4 HP."},
-	&"busy_wait": {"title": "Busy Wait", "rar": 0, "color": "#ffe066", "glyph": "clock", "tags": [], "desc": "Stand still for 0.6 s: your next cast deals +60%."},
-	&"buffer_overflow": {"title": "Buffer Overflow", "rar": 0, "color": "#9ab0ff", "glyph": "shield", "tags": ["Survival"], "desc": "Healing past your max HP becomes a shield (up to 30) that takes hits first."},
-	&"heap_overflow": {"title": "Heap Overflow", "rar": 1, "color": "#ff5a8a", "glyph": "stack", "tags": [], "stats": {"dmg": 1.3}, "desc": "Deal 30% more damage. Max HP -20."},
-	&"try_catch": {"title": "Try / Catch", "rar": 1, "color": "#9ab0ff", "glyph": "shield", "tags": ["Survival"], "desc": "The first hit you take in each room is caught and ignored."},
-	&"recursion": {"title": "Recursion Charm", "rar": 1, "color": "#ffe066", "glyph": "spiral", "tags": ["Trigger", "Carrier"], "desc": "Spells released by triggers and carriers deal 30% more damage."},
+	&"busy_wait": {"title": "Busy Wait", "rar": 0, "color": "#ffe066", "glyph": "clock", "tags": [], "desc": "Stand still for 0.6 s and your next cast deals +60% damage."},
+	&"buffer_overflow": {"title": "Buffer Overflow", "rar": 0, "color": "#9ab0ff", "glyph": "shield", "tags": ["Survival"], "desc": "Healing above your max HP becomes a shield (up to 30) that takes hits first."},
+	&"heap_overflow": {"title": "Heap Overflow", "rar": 1, "color": "#ff5a8a", "glyph": "stack", "tags": [], "stats": {"dmg": 1.3}, "desc": "+30% damage, but max HP -20."},
+	&"try_catch": {"title": "Try / Catch", "rar": 1, "color": "#9ab0ff", "glyph": "shield", "tags": ["Survival"], "desc": "The first hit you take in each room does no damage."},
+	&"recursion": {"title": "Recursion Charm", "rar": 1, "color": "#ffe066", "glyph": "spiral", "tags": ["Trigger", "Carrier"], "desc": "Spells released by triggers and carriers deal +30% damage."},
 	&"aperture": {"title": "Wide Aperture", "rar": 1, "color": "#ffb86b", "glyph": "fan", "tags": ["Multi"], "desc": "Spells that fire several bolts fire one more."},
 	&"null_pointer": {"title": "Null Pointer", "rar": 1, "color": "#ff3fa4", "glyph": "cursor", "tags": ["Crit"], "desc": "The first hit on an unhurt enemy deals double damage."},
-	&"deadline": {"title": "Deadline", "rar": 1, "color": "#ff7b7b", "glyph": "clock", "tags": [], "desc": "+40% damage for the first 6 seconds of every fight."},
+	&"deadline": {"title": "Deadline", "rar": 1, "color": "#ff7b7b", "glyph": "clock", "tags": [], "desc": "+40% damage for the first 6 s of every fight."},
 	&"stack_trace": {"title": "Stack Trace", "rar": 1, "color": "#c9a8ff", "glyph": "stack", "tags": ["Glitch", "Multi"], "counter": 7, "desc": "Every 7th cast also fires backward."},
-	&"bug_bounty": {"title": "Bug Bounty", "rar": 1, "color": "#9cd01c", "glyph": "star", "tags": ["Carrier"], "desc": "Kills release a little bug that hunts the nearest enemy (10 damage)."},
-	&"cascade_failure": {"title": "Cascade Failure", "rar": 1, "color": "#fff27a", "glyph": "burst", "tags": ["Crit"], "desc": "Critical hits arc to another enemy nearby for half damage."},
-	&"wildfire": {"title": "Wildfire", "rar": 1, "color": "#ff8a3c", "glyph": "burst", "tags": ["Burn"], "desc": "Burning enemies spread their fire to enemies close by when they die."},
-	&"cold_boot": {"title": "Cold Boot", "rar": 1, "color": "#9fe8ff", "glyph": "drop", "tags": ["Frost"], "desc": "Chilled enemies take 25% more damage."},
-	&"event_loop": {"title": "Event Loop", "rar": 2, "color": "#ffd05e", "glyph": "loop", "tags": ["Trigger", "Carrier"], "desc": "Triggers and carriers release their payload twice, the second time at 60%."},
+	&"bug_bounty": {"title": "Bug Bounty", "rar": 1, "color": "#9cd01c", "glyph": "star", "tags": ["Carrier"], "desc": "Kills release a small bug that hunts the nearest enemy for 10 damage."},
+	&"cascade_failure": {"title": "Cascade Failure", "rar": 1, "color": "#fff27a", "glyph": "burst", "tags": ["Crit"], "desc": "Crits arc to a nearby enemy for half damage."},
+	&"wildfire": {"title": "Wildfire", "rar": 1, "color": "#ff8a3c", "glyph": "burst", "tags": ["Burn"], "desc": "When a burning enemy dies, its fire spreads to enemies close by."},
+	&"cold_boot": {"title": "Cold Boot", "rar": 1, "color": "#9fe8ff", "glyph": "drop", "tags": ["Frost"], "desc": "Chilled enemies take +25% damage."},
+	&"event_loop": {"title": "Event Loop", "rar": 2, "color": "#ffd05e", "glyph": "loop", "tags": ["Trigger", "Carrier"], "desc": "Triggers and carriers release their spell twice. The second one deals 60%."},
 	# ---- conditional ----
-	&"cold_start": {"title": "Cold Start", "rar": 0, "color": "#86d8ff", "glyph": "clock", "tags": [], "desc": "The first cast after a wand recharges deals +50%."},
-	&"low_battery": {"title": "Low Battery", "rar": 0, "color": "#ff9a3a", "glyph": "battery", "tags": ["Economy"], "desc": "While a wand is under 25% mana, its spells deal +40%."},
-	&"cornered": {"title": "Cornered", "rar": 1, "color": "#d0101e", "glyph": "shield", "tags": ["Survival"], "desc": "With 3 or more enemies within reach, take 30% less damage and deal 25% more."},
+	&"cold_start": {"title": "Cold Start", "rar": 0, "color": "#86d8ff", "glyph": "clock", "tags": [], "desc": "The first cast after a wand recharges deals +50% damage."},
+	&"low_battery": {"title": "Low Battery", "rar": 0, "color": "#ff9a3a", "glyph": "battery", "tags": ["Economy"], "desc": "While a wand is under 25% mana, its spells deal +40% damage."},
+	&"cornered": {"title": "Cornered", "rar": 1, "color": "#d0101e", "glyph": "shield", "tags": ["Survival"], "desc": "With 3 or more enemies close by, take 30% less damage and deal 25% more."},
 	# ---- scaling ----
-	&"uptime": {"title": "Uptime", "rar": 1, "color": "#72e06a", "glyph": "clock", "tags": [], "desc": "+3% damage for each room in a row cleared without being hit (up to +30%)."},
-	&"version_control": {"title": "Version Control", "rar": 0, "color": "#8c96a8", "glyph": "stack", "tags": ["Survival"], "desc": "Every time spells merge into a higher level: max HP +8 and heal 8."},
+	&"uptime": {"title": "Uptime", "rar": 1, "color": "#72e06a", "glyph": "clock", "tags": [], "desc": "+3% damage for each room in a row cleared without getting hit (up to +30%)."},
+	&"version_control": {"title": "Version Control", "rar": 0, "color": "#8c96a8", "glyph": "stack", "tags": ["Survival"], "desc": "Whenever spells merge to a higher level: max HP +8, and heal 8."},
 	# ---- rule-breakers ----
 	&"root_access": {"title": "Root Access", "rar": 1, "color": "#5ce1ff", "glyph": "cursor", "tags": ["Debug"], "stats": {"rune": 0.0}, "desc": "Debugger runes cost no mana."},
-	&"stack_overflow": {"title": "Stack Overflow", "rar": 2, "color": "#c2359f", "glyph": "stack", "tags": ["Trigger", "Carrier"], "stats": {"depth": 5}, "desc": "Payloads can nest 5 deep instead of 3."},
+	&"stack_overflow": {"title": "Stack Overflow", "rar": 2, "color": "#c2359f", "glyph": "stack", "tags": ["Trigger", "Carrier"], "stats": {"depth": 5}, "desc": "Carriers and triggers can chain 5 deep instead of 3."},
 	# ---- program-aware ----
-	&"off_by_one": {"title": "Off-by-One", "rar": 1, "color": "#ffd05e", "glyph": "box", "tags": [], "stats": {"slots": 1}, "desc": "Every wand has one more slot."},
-	&"tail_call": {"title": "Tail Call", "rar": 2, "color": "#c9a8ff", "glyph": "gem", "tags": ["Multi"], "desc": "The last cast before a wand recharges goes out twice."},
-	&"loop_counter": {"title": "Loop Counter", "rar": 1, "color": "#ffe066", "glyph": "loop", "tags": ["Economy"], "counter": 10, "desc": "Every 10th cast is free and deals double."},
+	&"off_by_one": {"title": "Off-by-One", "rar": 1, "color": "#ffd05e", "glyph": "box", "tags": [], "stats": {"slots": 1}, "desc": "Every wand gets one more slot."},
+	&"tail_call": {"title": "Tail Call", "rar": 2, "color": "#c9a8ff", "glyph": "gem", "tags": ["Multi"], "desc": "The last cast before a wand recharges fires twice."},
+	&"loop_counter": {"title": "Loop Counter", "rar": 1, "color": "#ffe066", "glyph": "loop", "tags": ["Economy"], "counter": 10, "desc": "Every 10th cast is free and deals double damage."},
 	&"empty_set": {"title": "Empty Set", "rar": 0, "color": "#d6d6ff", "glyph": "box", "tags": [], "desc": "+8% damage for each empty slot on the wand in your hand."},
 	# ---- status ----
-	&"surge_protector": {"title": "Surge Protector", "rar": 1, "color": "#fff27a", "glyph": "burst", "tags": ["Shock"], "desc": "Static arcs jump to two enemies, at full damage."},
-	&"rot_index": {"title": "Rot Index", "rar": 1, "color": "#ff6fd2", "glyph": "skull", "tags": ["Rot"], "desc": "Bitrot crashes at 3 stacks instead of 5."},
+	&"surge_protector": {"title": "Surge Protector", "rar": 1, "color": "#fff27a", "glyph": "burst", "tags": ["Shock"], "desc": "Static arcs hit two enemies instead of one, at full damage."},
+	&"rot_index": {"title": "Rot Index", "rar": 1, "color": "#ff6fd2", "glyph": "skull", "tags": ["Rot"], "desc": "Bitrot crashes an enemy at 3 stacks instead of 5."},
 	# ---- Merge Commit duos: offered only when you own both parents ----
-	&"thermal_throttle": {"title": "Thermal Throttle", "rar": 2, "color": "#ff9a3a", "glyph": "burst", "tags": ["Burn", "Frost"], "duo": [&"wildfire", &"cold_boot"], "desc": "Merge Commit. Thermal Shock hits twice as hard, twice as wide, and sets what it hits on fire."},
-	&"zero_day": {"title": "Zero-Day Exploit", "rar": 2, "color": "#ff3fa4", "glyph": "cursor", "tags": ["Crit"], "duo": [&"null_pointer", &"cascade_failure"], "desc": "Merge Commit. The first hit on an unhurt enemy is always a critical hit."},
-	&"swarm_protocol": {"title": "Swarm Protocol", "rar": 2, "color": "#9cd01c", "glyph": "star", "tags": ["Carrier"], "duo": [&"bug_bounty", &"event_loop"], "desc": "Merge Commit. Kills release two bugs, and bugs deal 20."},
+	&"thermal_throttle": {"title": "Thermal Throttle", "rar": 2, "color": "#ff9a3a", "glyph": "burst", "tags": ["Burn", "Frost"], "duo": [&"wildfire", &"cold_boot"], "desc": "Thermal Shock (fire meeting ice on an enemy) hits twice as hard, reaches twice as far, and sets enemies on fire."},
+	&"zero_day": {"title": "Zero-Day Exploit", "rar": 2, "color": "#ff3fa4", "glyph": "cursor", "tags": ["Crit"], "duo": [&"null_pointer", &"cascade_failure"], "desc": "The first hit on an unhurt enemy is always a crit."},
+	&"swarm_protocol": {"title": "Swarm Protocol", "rar": 2, "color": "#9cd01c", "glyph": "star", "tags": ["Carrier"], "duo": [&"bug_bounty", &"event_loop"], "desc": "Kills release two bugs, and each bug deals 20."},
 	# ---- Corrupted: only behind the Glitch Door ----
 	&"race_condition": {"title": "Race Condition", "rar": 3, "color": "#ff6fd2", "glyph": "clock", "tags": [], "stats": {"cast": 0.6}, "desc": "Wands cast and recharge 40% faster, but 1 cast in 5 fizzles."},
-	&"memory_leak": {"title": "Memory Leak", "rar": 3, "color": "#ff6fd2", "glyph": "drop", "tags": [], "stats": {"dmg": 1.5}, "desc": "Deal 50% more damage, but lose 1 HP every 10 s of a fight."},
-	&"force_push": {"title": "Force Push", "rar": 3, "color": "#ff6fd2", "glyph": "arrow", "tags": [], "stats": {"dmg": 1.25, "knock": 3.0, "move": 0.85}, "desc": "Spells deal 25% more and knock enemies far back, but you move 15% slower."},
-	&"legacy_code": {"title": "Legacy Code", "rar": 3, "color": "#ff6fd2", "glyph": "chest", "tags": [], "desc": "Spells in slot 1 deal x2.5. Every other slot deals 20% less."},
+	&"memory_leak": {"title": "Memory Leak", "rar": 3, "color": "#ff6fd2", "glyph": "drop", "tags": [], "stats": {"dmg": 1.5}, "desc": "+50% damage, but you lose 1 HP every 10 s during a fight."},
+	&"force_push": {"title": "Force Push", "rar": 3, "color": "#ff6fd2", "glyph": "arrow", "tags": [], "stats": {"dmg": 1.25, "knock": 3.0, "move": 0.85}, "desc": "+25% damage and a big knockback, but you move 15% slower."},
+	&"legacy_code": {"title": "Legacy Code", "rar": 3, "color": "#ff6fd2", "glyph": "chest", "tags": [], "desc": "The spell in slot 1 deals 2.5x damage. Every other slot deals 20% less."},
 }
 
 ## Relics cut in D3 (flat stat bumps and duplicates). Old saves drop them.
@@ -84,7 +84,7 @@ static func on_gain(run: RunState, id: StringName) -> void:
 			run.hp = minf(run.hp, run.max_hp)
 		&"off_by_one":
 			for w in run.wands:
-				w.slots.append(null)
+				w.add_slot()
 	run.apply_relics()
 
 

@@ -42,8 +42,10 @@ var heat := 0                       # D9: Bug Reports tier (0-5), chosen on the 
 ## Starter loadouts (D2): a small wand with a clear identity, so the first rewards are
 ## choices about what to put in the empty slots.
 const LOADOUTS := {
-	&"twig": {"wand": &"twig", "spells": [&"mote", null, null]},
-	&"stub": {"wand": &"stub", "spells": [&"ember", null]},
+	# the start spell sits in the last slot (as in Magicraft): the empty slots on its left are
+	# where boosts go, since a boost powers up every spell on its right
+	&"twig": {"wand": &"twig", "spells": [null, null, &"mote"]},
+	&"stub": {"wand": &"stub", "spells": [null, &"ember"]},
 }
 
 
@@ -71,7 +73,7 @@ func set_loadout(loadout: StringName) -> void:
 	var lo: Dictionary = LOADOUTS.get(loadout, LOADOUTS[&"twig"])
 	wands[0] = WandState.make(Catalog.wand(lo["wand"]), lo["spells"])
 	for k in int(Relics.stat(self, "slots")) + Meta.extra_slots():
-		wands[0].slots.append(null)
+		wands[0].add_slot()
 	cur = 0
 	apply_relics()
 
@@ -101,12 +103,12 @@ func add_relic(id: StringName) -> void:
 
 ## Adds a spell to the bag: putting it in a wand is the player's decision (D2: editing the
 ## wand is the game). The only exception is a wand that cannot cast at all, which gets the
-## spell in its first empty slot. Two copies of the same level merge into the next level.
+## spell in its last empty slot (the right end, where shooting spells sit). Two copies of the same level merge into the next level.
 ## Returns false when there is no room at all.
 func add_spell(id: StringName, lv := 1) -> bool:
 	var entry := {"id": id, "lv": lv}
 	var w := wand()
-	var empty := w.slots.find(null)
+	var empty := w.slots.rfind(null)
 	if empty >= 0 and not can_cast(w) and Catalog.is_caster(Catalog.spell(id)):
 		w.slots[empty] = entry
 		w.ptr = 0
@@ -209,7 +211,7 @@ func _ref_set(r: Dictionary, v: Variant) -> void:
 func add_wand(id: StringName) -> void:
 	var w := WandState.make(Catalog.wand(id))
 	for k in int(Relics.stat(self, "slots")):
-		w.slots.append(null)
+		w.add_slot()
 	w.rune_mul = Relics.stat(self, "rune")
 	w.depth_cap = int(Relics.stat(self, "depth"))
 	if wands.size() < MAX_WANDS:

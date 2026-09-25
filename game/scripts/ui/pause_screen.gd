@@ -18,22 +18,26 @@ func _paint() -> void:
 	var cx := v.x / 2.0
 	var y := sr.position.y + 48
 	# relics
-	var rw := minf(sr.size.x - 20, 300.0)
-	var rr := Rect2(cx - rw / 2.0, y, rw, 62)
+	var rw := minf(sr.size.x - 20, 360.0)
+	var picked := sel_relic >= 0 and sel_relic < run.relics.size()
+	var desc := Rewards.item_desc({"t": &"relic", "id": run.relics[sel_relic]}) if picked else ""
+	var desc_n := _wrap(Game.font("small"), desc, rw - 16, 8).size() if picked else 1
+	var rr := Rect2(cx - rw / 2.0, y, rw, 51 + desc_n * 11)
 	panel(rr)
 	text(rr.position + Vector2(8, 12), "RELICS  %d" % run.relics.size(), MUTED, 8, "bold")
 	if run.relics.is_empty():
-		text(rr.position + Vector2(8, 30), "None yet. Relic doors and bosses give them.", MUTED)
+		text(rr.position + Vector2(8, 30), "None yet. Relic rooms and bosses give them.", MUTED)
+	elif not picked:
+		text_right(rr.end.x - 8, rr.position.y + 12, "TAP ONE TO READ IT", MUTED.darkened(0.3))
 	for i in run.relics.size():
 		var p := rr.position + Vector2(18 + i * 22, 30)
 		if p.x > rr.end.x - 10:
 			break
 		icon_at(Icons.relic(run.relics[i]), p, 1.0 if i != sel_relic else 1.3)
 		area(Rect2(p - Vector2(10, 10), Vector2(20, 20)), "relic%d" % i)
-	if sel_relic >= 0 and sel_relic < run.relics.size():
-		var d: Dictionary = Relics.DEFS[run.relics[sel_relic]]
-		text(rr.position + Vector2(8, 48), d["title"], TEXT, 8, "bold")
-		text(rr.position + Vector2(8, 58), d["desc"], MUTED)
+	if picked:
+		text(rr.position + Vector2(8, 48), Relics.DEFS[run.relics[sel_relic]]["title"], TEXT, 8, "bold")
+		para(Rect2(rr.position + Vector2(8, 50), Vector2(rw - 16, desc_n * 11)), desc, MUTED)
 	y = rr.end.y + 6
 	button(Rect2(cx - 70, y, 140, 28), "resume", "RESUME", "primary")
 	y += 34

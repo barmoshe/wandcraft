@@ -72,18 +72,18 @@ func _run() -> void:
 		await _tap((hud.buttons["dash"] as Rect2).get_center())
 		await _frames(2)
 		_check(world.player.dash_cd > 0.0, "tapping DASH dashes")
-	# the wand editor: drag the first spell two slots to the right
+	# the wand editor: drag the start spell (in the last slot) two slots to the left
 	await _tap((hud.buttons["edit"] as Rect2).get_center())
 	await _frames(20)
 	s = main.get("screen")
 	_check(s is EditorScreen, "the HUD wands button opens the editor")
 	if s is EditorScreen:
 		var w: WandState = world.run.wands[0]
-		var first: Variant = w.slots[0]
-		var a := _button_rect(s, "slot:0:0").get_center()
-		var b := _button_rect(s, "slot:0:2").get_center()
+		var first: Variant = w.slots[2]
+		var a := _button_rect(s, "slot:0:2").get_center()
+		var b := _button_rect(s, "slot:0:0").get_center()
 		await _drag(a, b)
-		_check(w.slots[2] != null and first != null and w.slots[2]["id"] == first["id"], "dragging a spell moves it to another slot")
+		_check(w.slots[0] != null and first != null and w.slots[0]["id"] == first["id"], "dragging a spell moves it to another slot")
 		await _tap(_button_rect(s, "done").get_center())
 		await _frames(5)
 		_check(main.get("screen") == null, "DONE closes the editor")

@@ -13,7 +13,8 @@ func teardown() -> void:
 func test_new_run_starts_with_one_wand_and_a_mote() -> void:
 	var r := RunState.create(5)
 	eq(r.wands.size(), 1, "one wand")
-	eq(String(r.wand().slots[0]["id"]), "mote", "an Arcane Mote to start")
+	eq(String(r.wand().slots[-1]["id"]), "mote", "an Arcane Mote in the last slot (as in Magicraft)")
+	ok(r.wand().slots[0] == null and r.wand().slots[1] == null, "empty slots on its left, for boosts")
 	eq(r.step, 0, "at the start room")
 
 
@@ -21,14 +22,14 @@ func test_new_spells_go_to_the_bag_unless_the_wand_cannot_cast() -> void:
 	# D2: placing a spell is the player's decision, so rewards land in the bag
 	var r := RunState.create(5)
 	ok(r.add_spell(&"fan"), "added")
-	ok(r.wand().slots[1] == null, "not slotted by itself")
+	ok(r.wand().slots[0] == null and r.wand().slots[1] == null, "not slotted by itself")
 	eq(r.bag.size(), 1, "into the bag")
 	# a wand with nothing to shoot takes a shooting spell straight away (onboarding)
 	r.wand().set_slots([null, null, null])
 	ok(r.add_spell(&"empower"), "added")
-	ok(r.wand().slots[0] == null, "a boost alone does not go in")
+	ok(r.wand().slots[2] == null, "a boost alone does not go in")
 	ok(r.add_spell(&"moths"), "added")
-	eq(String(r.wand().slots[0]["id"]), "moths", "but a shooting spell does")
+	eq(String(r.wand().slots[2]["id"]), "moths", "but a shooting spell does, in the last slot")
 
 
 func test_two_copies_merge_into_the_next_level() -> void:
@@ -54,7 +55,7 @@ func test_start_offers_the_two_loadouts() -> void:
 	ok(Rewards.grant(r, offer[1]), "taken")
 	eq(String(r.wand().def.id), "stub", "the Stub Staff")
 	eq(r.wand().slots.size(), 2, "two slots")
-	eq(String(r.wand().slots[0]["id"]), "ember", "with an Ember Bolt")
+	eq(String(r.wand().slots[1]["id"]), "ember", "with an Ember Bolt in the last slot")
 
 
 func test_rarity_offset_and_deprecate() -> void:
