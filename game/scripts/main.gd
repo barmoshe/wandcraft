@@ -308,9 +308,9 @@ func _build_environment() -> void:
 	add_child(we)
 
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
 	_read_desktop_input()
-	_follow_camera()
+	_follow_camera(false, dt)
 	_frames += 1
 	if _args.has("shot") and _frames == int(_args.get("frames", "90")):
 		await RenderingServer.frame_post_draw
@@ -330,7 +330,17 @@ const PAD_BOTTOM := 30.0
 const PAD_SIDE := 10.0
 
 
-func _follow_camera(snap := false) -> void:
+## Camera feel (design-plan §10): it eases toward its target with a frame-rate independent
+## factor (the same on 60 and 120 Hz screens), leads a little toward where you aim when the
+## room is bigger than the view, and shakes by trauma² along smooth noise, in whole pixels.
+const CAM_EASE := 0.8          # per 60 Hz frame: 0.8 keeps 80%, closes 20% of the gap
+const CAM_LEAD := 16.0
+const SHAKE_MAX := 7.0
+var _cam_pos := Vector2.ZERO
+var _shake_noise: FastNoiseLite
+
+
+func _follow_camera(snap := false, dt := 1.0 / 60.0) -> void:
 	if world.run == null or world.gw == 0:
 		return
 	var view := get_viewport_rect().size
@@ -341,14 +351,24 @@ func _follow_camera(snap := false) -> void:
 	var lo := Vector2(-PAD_SIDE, -PAD_TOP)
 	var hi := room + Vector2(PAD_SIDE, PAD_BOTTOM)
 	var c := Vector2.ZERO
+	var lead := Vector2.from_angle(world.player.aim) * CAM_LEAD
 	for ax in 2:
 		if hi[ax] - lo[ax] <= view[ax]:
 			c[ax] = (lo[ax] + hi[ax]) / 2.0
 		else:
-			c[ax] = clampf(p[ax], lo[ax] + view[ax] / 2.0, hi[ax] - view[ax] / 2.0)
-	var s := world.shake_amt * 14.0
-	cam.offset = Vector2(randf_range(-s, s), randf_range(-s, s)).round()
-	cam.position = c.round() if snap or _frames <= 1 else cam.position.lerp(c, 0.2).round()
+			c[ax] = clampf(p[ax] + lead[ax], lo[ax] + view[ax] / 2.0, hi[ax] - view[ax] / 2.0)
+	if snap or _frames <= 1:
+		_cam_pos = c
+	else:
+		_cam_pos = _cam_pos.lerp(c, 1.0 - pow(CAM_EASE, dt * 60.0))
+	cam.position = _cam_pos.round()
+	if _shake_noise == null:
+		_shake_noise = FastNoiseLite.new()
+		_shake_noise.noise_type = FastNoiseLite.TYPE_PERLIN
+		_shake_noise.frequency = 1.0
+	var amp := world.trauma * world.trauma * SHAKE_MAX
+	var t := Time.get_ticks_msec() / 1000.0 * 22.0
+	cam.offset = (Vector2(_shake_noise.get_noise_2d(t, 0.0), _shake_noise.get_noise_2d(0.0, t + 50.0)) * 2.0 * amp).round()
 
 
 func _read_desktop_input() -> void:

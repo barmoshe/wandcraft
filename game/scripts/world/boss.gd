@@ -61,6 +61,7 @@ func tick(dt: float) -> void:
 		invuln = 1.2
 		world.clear_enemy_bullets()
 		world.shake(0.5)
+		world.hitstop(0.15)
 		world.fx.ring(position, 4.0, 90.0, 0.6, Color.WHITE)
 		world.fx.text(position + Vector2(0, -28), "PHASE %d" % (phase + 1), Color("#ff3fa4"), 10)
 		Audio.sfx("phase", 0.0)

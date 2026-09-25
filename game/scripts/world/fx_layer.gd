@@ -13,6 +13,8 @@ var beams: Array = []    # [a, b, color, width, t, life]
 var _sparks: Array = []   # [pos, vel, t, life, color]
 var texts: Array = []    # [pos, text, color, t, size]
 var _shards: Array = []  # normal-blend pixels: [pos, vel, t, life, color, gravity]
+var muzzles: Array = []  # [pos, angle, color, t]: a 2-frame cast flash at the wand tip
+const MUZZLE_LIFE := 0.06
 var rng := RandomNumberGenerator.new()
 var _text_node: Node2D
 
@@ -29,6 +31,14 @@ func _ready() -> void:
 
 func ring(p: Vector2, r0: float, r1: float, life: float, c: Color) -> void:
 	rings.append([p, r0, r1, 0.0, life, c])
+
+
+## Cast flash at the wand tip: frame 1 a white core, frame 2 a 4-point star in the spell's
+## color pointing along the aim (design-plan §7 VFX, §10 feel). Pixel-snapped.
+func muzzle(p: Vector2, angle: float, c: Color) -> void:
+	if muzzles.size() >= 8:
+		muzzles.pop_front()
+	muzzles.append([p, angle, c, 0.0])
 
 
 func beam(a: Vector2, b: Vector2, c: Color, width: float) -> void:
@@ -88,6 +98,7 @@ func clear_all() -> void:
 	_sparks.clear()
 	_shards.clear()
 	texts.clear()
+	muzzles.clear()
 
 
 func update(dt: float) -> void:
@@ -95,6 +106,10 @@ func update(dt: float) -> void:
 		rings[i][3] += dt
 		if rings[i][3] >= rings[i][4]:
 			rings.remove_at(i)
+	for i in range(muzzles.size() - 1, -1, -1):
+		muzzles[i][3] += dt
+		if muzzles[i][3] >= MUZZLE_LIFE:
+			muzzles.remove_at(i)
 	for i in range(beams.size() - 1, -1, -1):
 		beams[i][4] += dt
 		if beams[i][4] >= beams[i][5]:
@@ -148,6 +163,25 @@ func _draw() -> void:
 		var k: float = 1.0 - s[2] / s[3]
 		var p: Vector2 = s[0]
 		draw_rect(Rect2(p.round(), Vector2.ONE), Color(c.r * 1.5, c.g * 1.5, c.b * 1.5, k))
+	for m in muzzles:
+		var p: Vector2 = (m[0] as Vector2).round()
+		var c: Color = m[2]
+		if m[3] < MUZZLE_LIFE * 0.5:
+			# frame 1: a white core
+			draw_rect(Rect2(p - Vector2(2, 1), Vector2(5, 3)), Color(1.8, 1.8, 1.8))
+			draw_rect(Rect2(p - Vector2(1, 2), Vector2(3, 5)), Color(1.8, 1.8, 1.8))
+		else:
+			# frame 2: a star in the spell's color, the long ray along the aim
+			var hot := Color(c.r * 1.6, c.g * 1.6, c.b * 1.6)
+			var fwd := Vector2.from_angle(m[1])
+			var side := fwd.orthogonal()
+			for k2 in range(1, 5):
+				draw_rect(Rect2((p + fwd * k2).round(), Vector2.ONE), hot)
+			for k2 in range(1, 3):
+				draw_rect(Rect2((p - fwd * k2).round(), Vector2.ONE), hot)
+				draw_rect(Rect2((p + side * k2).round(), Vector2.ONE), hot)
+				draw_rect(Rect2((p - side * k2).round(), Vector2.ONE), hot)
+			draw_rect(Rect2(p, Vector2.ONE), Color(1.8, 1.8, 1.8))
 
 
 func _draw_texts() -> void:

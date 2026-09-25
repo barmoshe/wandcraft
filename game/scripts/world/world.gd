@@ -184,7 +184,10 @@ var npc: Dictionary = {}       # {"pos", "kind": shop|forge|spring, "used", "nea
 var boss: Boss
 var boss_t := 0.0
 var dead_t := 0.0
-var shake_amt := 0.0
+## Screen shake as "trauma" (0..1, decays linearly); the camera shakes by trauma², so
+## small events barely move it and big ones slam (design-plan §10, Eiserloh GDC 2016).
+var trauma := 0.0
+const TRAUMA_DECAY := 1.6    # per second
 var caught := false            # Try / Catch used in this room
 var damage_done := 0.0
 var _kill_streak := 0
@@ -581,7 +584,8 @@ func go_through(def: Dictionary) -> void:
 
 
 func _on_player_died() -> void:
-	dead_t = 1.6
+	dead_t = 1.1   # death to the retry screen quickly (design-plan: back in a run in ~3 s)
+	Audio.death_sweep()
 	fx.text(player.position + Vector2(0, -30), "THE GLITCH WINS", Color("#ff3fa4"), 10)
 
 
@@ -610,7 +614,7 @@ func step(dt: float) -> void:
 	time += dt
 	room_time += dt
 	run.stats["time"] += dt
-	shake_amt = maxf(0.0, shake_amt - dt)
+	trauma = maxf(0.0, trauma - TRAUMA_DECAY * dt)
 	if dead_t > 0.0:
 		dead_t -= dt
 		fx.update(dt)
@@ -973,7 +977,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if not e.heavy and kb > 0.0:
 		e.knock += (e.position - from).normalized() * kb * (70.0 if crit else 38.0)
 	if crit and time - _last_stop > 0.25:
-		hitstop(0.035)
+		hitstop(0.045)
+		shake(0.15)
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit)
 		Audio.sfx("crit" if crit else "hit", 0.1, 0.0 if crit else -6.0)
@@ -1032,7 +1037,8 @@ func kill_enemy(e: Enemy) -> void:
 			_release_bug(e.position)
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0)
 	if e.elite:
-		hitstop(0.06)
+		hitstop(0.08)
+		shake(0.25)
 	if e is Boss:
 		(e as Boss).die()
 		run.stats["bosses"] += 1
@@ -1046,7 +1052,7 @@ func kill_enemy(e: Enemy) -> void:
 		Events.boss_defeated.emit()
 	fx.sparks(e.position + Vector2(0, -4), 14, Color("#c46bff"), 120.0)
 	fx.ring(e.position, 2.0, 12.0, 0.25, Color("#ff3fa4"))
-	shake(0.06)
+	shake(0.1)
 	Events.enemy_killed.emit(e.kind, e.position)
 
 
@@ -1069,8 +1075,10 @@ func _release_bug(p: Vector2) -> void:
 	b.depth = SpellRunner.MAX_DEPTH
 
 
+## Adds trauma (kill 0.1, crit 0.15, hurt 0.35, boss kill 0.8). Game.shake_scale is the
+## player's Shake setting.
 func shake(amount: float) -> void:
-	shake_amt = maxf(shake_amt, amount * Game.shake_scale)
+	trauma = minf(1.0, trauma + amount * Game.shake_scale)
 
 
 # ------------------------------------------------------------------ bot (tests, demo)

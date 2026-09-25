@@ -105,8 +105,43 @@ func cast(spell_id: StringName) -> void:
 	sfx(CAST.get(spell_id, "cast_spark"), 0.08, -2.0)
 
 
+## On the player's death the music sinks behind a closing low-pass for about a second
+## (design-plan §10); the next music() call lifts it.
+var _lowpass: AudioEffectLowPassFilter
+var _sweep: Tween
+
+
+func death_sweep() -> void:
+	if not is_inside_tree():
+		return
+	var bus := AudioServer.get_bus_index("Music")
+	if bus < 0:
+		return
+	if _lowpass == null:
+		_lowpass = AudioEffectLowPassFilter.new()
+		AudioServer.add_bus_effect(bus, _lowpass)
+	AudioServer.set_bus_effect_enabled(bus, AudioServer.get_bus_effect_count(bus) - 1, true)
+	_lowpass.cutoff_hz = 16000.0
+	if _sweep:
+		_sweep.kill()
+	_sweep = create_tween()
+	_sweep.tween_property(_lowpass, "cutoff_hz", 500.0, 1.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO)
+
+
+func _clear_sweep() -> void:
+	if _lowpass == null:
+		return
+	if _sweep:
+		_sweep.kill()
+	var bus := AudioServer.get_bus_index("Music")
+	for i in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, i) == _lowpass:
+			AudioServer.set_bus_effect_enabled(bus, i, false)
+
+
 ## Crossfades to a music track: title | grove | boss | "" (silence).
 func music(track: String, fade := 0.8) -> void:
+	_clear_sweep()
 	if track == _track:
 		return
 	_setup()

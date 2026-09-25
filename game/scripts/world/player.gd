@@ -38,6 +38,7 @@ var bag: Array:
 var target: Enemy
 var inv := 0.0
 var cast_t := 0.0
+var recoil := 0.0          # px the wand kicks back on a cast, springing home
 var face := 1
 var walk_t := 0.0
 var dead := false
@@ -133,6 +134,8 @@ func tick(dt: float) -> void:
 		w.rech = maxf(0.0, w.rech - dt)
 	if firing and world.spells.wand_fire(wand(), tip(), aim):
 		cast_t = 0.12
+		recoil = 2.0
+		world.fx.muzzle(tip(), aim, wand().def.color)
 	# hazards
 	if world.hazard_at(position) and world.spikes_up() and not run.has_relic(&"sandbox"):
 		hurt(6.0, position, "spikes")
@@ -194,7 +197,8 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	inv = 0.9 * (1.5 if run.has_relic(&"afterimage") else 1.0)
 	vel += (position - from).normalized() * 120.0
 	world.fx.text(position + head, "-%d" % roundi(amount), Color("#ff5a6a"))
-	world.shake(0.18)
+	world.shake(0.35)
+	world.hitstop(0.09)   # getting hit freezes the moment, so you feel it (design-plan §10)
 	world.flash(0.15)
 	Game.buzz(40)
 	Events.player_hurt.emit(amount)
@@ -221,6 +225,8 @@ func _animate() -> void:
 	sprite.flip_h = face < 0
 	sprite.visible = inv <= 0.0 or fmod(inv, 0.12) > 0.05
 	wand_sprite.rotation = aim
+	recoil = maxf(0.0, recoil - 0.5)
+	wand_sprite.position = HAND - Vector2.from_angle(aim) * roundf(recoil)
 	wand_sprite.z_index = -1 if sin(aim) < -0.3 else 0
 	var w := wand()
 	tip_glow.position = HAND + Vector2.from_angle(aim) * 11.0

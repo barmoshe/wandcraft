@@ -6,8 +6,17 @@ extends SceneTree
 ## pitch slide and an exponential decay, and filtered noise. It is a port of our own
 ## prototype synth (Wandcraft v5, 35-audio.js), so every sound is original. Output is
 ## deterministic: the same code always writes the same bytes.
+##
+## D0 audio pass (research/design-research.md §4): 44.1 kHz with band-limited (PolyBLEP)
+## square and saw; bass and booms moved up into what a phone speaker can play (they used to
+## sit at 40-120 Hz, below its roll-off); a seamless 80 Hz high-pass on every file; and
+## loudness normalization per family instead of peak normalization.
 
-const SR := 22050
+const SR := 44100
+## Target loudness per family, as RMS after a bass-discounting pre-filter (a stand-in for
+## a full BS.1770 meter, which comes with the D8 audio pipeline).
+const TARGET_RMS := {"music": 0.13, "sfx": 0.11, "ui": 0.07}
+const UI_SOUNDS := ["ui", "ui_back", "swap", "deny", "coin"]
 const OUT := "res://assets/audio/"
 
 var rng := RandomNumberGenerator.new()
@@ -19,10 +28,10 @@ func _initialize() -> void:
 	var n := 0
 	for name in SFX:
 		var buf := _render_sfx(SFX[name])
-		_save(buf, OUT + "sfx_%s.wav" % name)
+		_save(buf, OUT + "sfx_%s.wav" % name, "ui" if name in UI_SOUNDS else "sfx", false)
 		n += 1
 	for name in SONGS:
-		_save(_render_song(SONGS[name]), OUT + "music_%s.wav" % name)
+		_save(_render_song(SONGS[name]), OUT + "music_%s.wav" % name, "music", true)
 		n += 1
 	print("gen_audio: wrote %d files to %s" % [n, OUT])
 	quit()
@@ -41,14 +50,15 @@ func tone(buf: PackedFloat32Array, t0: float, f: float, d: float, type: String, 
 	for i in n:
 		var k := float(i) / n
 		var freq := f * pow(f_end / f, k)
-		ph += freq / SR
+		var dph := freq / SR
+		ph += dph
 		ph -= floorf(ph)
 		var s: float
 		match type:
 			"square":
-				s = 1.0 if ph < 0.5 else -1.0
+				s = (1.0 if ph < 0.5 else -1.0) + _blep(ph, dph) - _blep(fmod(ph + 0.5, 1.0), dph)
 			"sawtooth":
-				s = ph * 2.0 - 1.0
+				s = ph * 2.0 - 1.0 - _blep(ph, dph)
 			"triangle":
 				s = 1.0 - absf(ph * 4.0 - 2.0)
 			_:
@@ -61,6 +71,18 @@ func tone(buf: PackedFloat32Array, t0: float, f: float, d: float, type: String, 
 				break
 			j %= size
 		buf[j] += s * env * vol
+
+
+## PolyBLEP: smooths the jump of a square or saw wave over one sample, so high notes do
+## not alias into harsh inharmonic whistles.
+func _blep(t: float, dt: float) -> float:
+	if t < dt:
+		var x := t / dt
+		return x + x - x * x - 1.0
+	if t > 1.0 - dt:
+		var x := (t - 1.0) / dt
+		return x * x + x + x + 1.0
+	return 0.0
 
 
 ## Filtered noise burst: one-pole high-pass (hp Hz) or low-pass (lp Hz).
@@ -92,12 +114,46 @@ func noise(buf: PackedFloat32Array, t0: float, d: float, vol: float, hp := 800.0
 		buf[j] += y * env * vol
 
 
-func _save(buf: PackedFloat32Array, path: String) -> void:
-	# normalise gently (never boost quiet sounds by more than 2x), then 16-bit PCM
+## One-pole high-pass run over buf in place. For loops it runs twice, starting the second
+## pass with the state the first ended in, so the seam stays click-free.
+func _highpass(buf: PackedFloat32Array, hz: float, loop: bool) -> void:
+	var a := exp(-TAU * hz / SR)
+	var px := buf[buf.size() - 1] if loop else 0.0
+	var py := 0.0
+	for pass_i in (2 if loop else 1):
+		var out := PackedFloat32Array()
+		out.resize(buf.size())
+		for i in buf.size():
+			var x := buf[i]
+			py = a * (py + x - px)
+			px = x
+			out[i] = py
+		if pass_i == (1 if loop else 0):
+			for i in buf.size():
+				buf[i] = out[i]
+
+
+## Loudness as RMS of a copy high-passed at 300 Hz: low end a phone cannot play counts less.
+func _loudness(buf: PackedFloat32Array) -> float:
+	var w := buf.duplicate()
+	_highpass(w, 300.0, false)
+	var sum := 0.0
+	var n := 0
+	for v in w:
+		if absf(v) > 0.0005:
+			sum += v * v
+			n += 1
+	return sqrt(sum / maxf(1.0, n))
+
+
+func _save(buf: PackedFloat32Array, path: String, family := "sfx", loop := false) -> void:
+	_highpass(buf, 80.0, loop)
+	# normalise to the family's loudness, never boosting more than 4x, then keep peaks under 0.95
+	var gain := clampf(float(TARGET_RMS[family]) / maxf(0.0001, _loudness(buf)), 0.25, 4.0)
 	var peak := 0.0001
 	for v in buf:
 		peak = maxf(peak, absf(v))
-	var gain := minf(2.0, 0.9 / peak)
+	gain = minf(gain, 0.95 / peak)
 	var bytes := PackedByteArray()
 	bytes.resize(buf.size() * 2)
 	for i in buf.size():
@@ -125,18 +181,18 @@ const SFX := {
 	"cast_ice": [0.1, [["t", 0, 1600, 0.08, "triangle", 0.03, 0.6]]],
 	"cast_chain": [0.1, [["t", 0, 1500, 0.07, "square", 0.025, 0.3], ["n", 0, 0.05, 0.02, 4000, 0]]],
 	"cast_orbit": [0.22, [["t", 0, 660, 0.2, "triangle", 0.04, 1.5]]],
-	"cast_boom": [0.3, [["n", 0, 0.25, 0.07, 0, 1200], ["t", 0, 120, 0.25, "sine", 0.09, 0.4]]],
+	"cast_boom": [0.3, [["n", 0, 0.25, 0.07, 0, 1600], ["t", 0, 240, 0.25, "triangle", 0.09, 0.45], ["t", 0, 120, 0.12, "square", 0.02, 0.5]]],
 	"trigger": [0.1, [["t", 0, 990, 0.05, "square", 0.02, 1.5], ["t", 0.04, 1480, 0.05, "square", 0.015, 1.2]]],
 	# combat
 	"hit": [0.06, [["n", 0, 0.05, 0.035, 1800, 0]]],
 	"crit": [0.1, [["n", 0, 0.08, 0.06, 1200, 0], ["t", 0, 1800, 0.08, "square", 0.03, 0.5]]],
 	"kill": [0.14, [["t", 0, 340, 0.12, "square", 0.03, 0.4], ["n", 0, 0.08, 0.03, 1500, 0]]],
-	"boom": [0.4, [["n", 0, 0.35, 0.09, 0, 900], ["t", 0, 90, 0.3, "sine", 0.12, 0.4]]],
-	"bigboom": [0.9, [["n", 0, 0.8, 0.14, 0, 600], ["t", 0, 60, 0.8, "sine", 0.18, 0.3]]],
+	"boom": [0.4, [["n", 0, 0.35, 0.09, 0, 1400], ["t", 0, 220, 0.3, "triangle", 0.12, 0.35], ["t", 0, 110, 0.18, "square", 0.025, 0.5]]],
+	"bigboom": [0.9, [["n", 0, 0.8, 0.14, 0, 1100], ["t", 0, 170, 0.8, "triangle", 0.16, 0.3], ["t", 0, 85, 0.4, "square", 0.03, 0.5], ["n", 0, 0.05, 0.06, 2500, 0]]],
 	"hurt": [0.32, [["t", 0, 160, 0.3, "sawtooth", 0.07, 0.4], ["n", 0, 0.2, 0.07, 400, 0]]],
 	"eshot": [0.08, [["t", 0, 280, 0.07, "sawtooth", 0.02, 0.6]]],
 	"tele": [0.5, [["t", 0, 420, 0.5, "triangle", 0.05, 1.9]]],
-	"phase": [1.0, [["n", 0, 0.8, 0.1, 200, 0], ["t", 0, 80, 1.0, "sawtooth", 0.1, 2.5]]],
+	"phase": [1.0, [["n", 0, 0.8, 0.1, 300, 0], ["t", 0, 110, 1.0, "sawtooth", 0.1, 2.5]]],
 	"spawn": [0.25, [["t", 0, 300, 0.22, "triangle", 0.03, 2.2]]],
 	"burn": [0.12, [["n", 0, 0.1, 0.03, 0, 1500]]],
 	"freeze": [0.2, [["t", 0, 2000, 0.2, "triangle", 0.04, 0.5]]],
@@ -199,19 +255,22 @@ func _render_song(s: Dictionary) -> PackedFloat32Array:
 		var chord: Array = s["prog"][bar]
 		var root: float = chord[0]
 		var notes: Array = chord[1]
-		# bass
+		# bass, an octave up from the old sub range, with a quiet square an octave above that
+		# so its harmonics carry on a phone speaker
 		if i % 4 == 0 or (boss and i % 2 == 0):
-			tone(buf, t, root, step * 3.0, "triangle", 0.13, 0.0, true)
+			tone(buf, t, root * 2.0, step * 3.0, "triangle", 0.08, 0.0, true)
+			tone(buf, t, root * 4.0, step * 2.0, "square", 0.01, 0.0, true)
 		# arpeggio lead, the pattern changes each pass
 		var pat: Array = PATTERNS[round_i % PATTERNS.size()]
 		var f: float = notes[pat[i % 6]] * (2.0 if i >= 8 and round_i % 2 == 1 else 1.0)
 		if not (round_i == 0 and i % 2 == 1 and not boss):
-			tone(buf, t, f, step * 1.5, String(s["lead"]), 0.018 if boss else 0.03, 0.0, true)
+			tone(buf, t, f, step * 1.5, String(s["lead"]), 0.03 if boss else 0.045, 0.0, true)
 		# hat and kick
 		if i % 8 == 4:
 			noise(buf, t, 0.08, 0.04, 3000.0, 0.0, true)
-		if boss and i % 4 == 0:
-			tone(buf, t, 140.0, 0.1, "sine", 0.12, 0.3, true)
-		if not boss and i % 8 == 0:
-			tone(buf, t, root / 2.0, 0.12, "sine", 0.08, 0.5, true)
+		# kick: a mid "thump" that slides down plus a short click (the old 41-62 Hz sines were
+		# below what phone speakers reproduce)
+		if (boss and i % 4 == 0) or (not boss and i % 8 == 0):
+			tone(buf, t, 170.0, 0.09, "triangle", 0.1 if boss else 0.07, 0.45, true)
+			noise(buf, t, 0.012, 0.05, 2000.0, 0.0, true)
 	return buf

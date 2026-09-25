@@ -19,7 +19,16 @@
   - D7: bosses
   - D8: music and sound
   - D9: onboarding and meta
-- **Progress:** D0 is in progress. The design bible is committed.
+- **Progress:**
+  - **D0 (0.5.0): done.**
+    - Design bible committed.
+    - Trauma shake: trauma², noise-driven, up to 7 px. Adds 0.1 per kill, 0.15 per crit, 0.35 when you're hurt, 0.8 for a boss kill.
+    - A camera that behaves the same at every frame rate and leads 16 px toward your aim.
+    - Hit-stop: 45 ms on crits, 80 ms on elite kills, 90 ms when you're hurt (new), 150 ms on a boss phase change.
+    - Death to retry in 1.1 s, with a music low-pass sweep.
+    - Muzzle flash and 2 px wand recoil.
+    - Audio at 44.1 kHz, band-limited, with bass and booms moved into the phone-audible range: 40% to 72% of the energy is now above 250 Hz. Sounds are normalized by loudness.
+  - **Next up:** D1, art direction.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
