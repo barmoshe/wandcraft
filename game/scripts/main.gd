@@ -55,6 +55,8 @@ func _ready() -> void:
 	touch.hud = hud
 	touch.hud_pressed.connect(_on_hud)
 	ui.add_child(touch)
+	_build_shockwave()
+	Events.shockwave.connect(_on_shockwave)
 	_screens = CanvasLayer.new()
 	_screens.layer = 20
 	add_child(_screens)
@@ -159,6 +161,61 @@ func _start_from_args() -> void:
 		touch.set("_aiming", true)
 		touch.set("_aim_origin", Vector2(v.x - 110, v.y - 70))
 		touch.set("_aim_pos", Vector2(v.x - 96, v.y - 84))
+
+
+# ------------------------------------------------------------------ shockwave (D7)
+
+const SHOCK_SHADER := """
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_nearest;
+uniform vec2 center = vec2(0.5);
+uniform float radius = 0.0;
+uniform float strength = 0.0;
+uniform float aspect = 1.7778;
+void fragment() {
+	vec2 d = SCREEN_UV - center;
+	d.x *= aspect;
+	float dist = length(d);
+	float band = smoothstep(radius - 0.06, radius, dist) * (1.0 - smoothstep(radius, radius + 0.06, dist));
+	vec2 off = normalize(d + vec2(1e-5)) * band * strength;
+	off.x /= aspect;
+	COLOR = texture(screen_tex, SCREEN_UV - off);
+}
+"""
+var _shock: ColorRect
+var _shock_mat: ShaderMaterial
+
+
+## A screen ripple from a boss's phase change: a screen-space ring, hidden when idle.
+func _build_shockwave() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 5
+	add_child(layer)
+	_shock = ColorRect.new()
+	_shock.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_shock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shock_mat = ShaderMaterial.new()
+	var sh := Shader.new()
+	sh.code = SHOCK_SHADER
+	_shock_mat.shader = sh
+	_shock.material = _shock_mat
+	_shock.visible = false
+	layer.add_child(_shock)
+
+
+func _on_shockwave(world_pos: Vector2) -> void:
+	if not Game.flash_fx:
+		return
+	var view := get_viewport_rect().size
+	var screen := world_pos - (cam.position + cam.offset) + view / 2.0
+	_shock_mat.set_shader_parameter("center", screen / view)
+	_shock_mat.set_shader_parameter("aspect", view.x / view.y)
+	_shock.visible = true
+	var tw := create_tween()
+	tw.tween_method(func(k: float) -> void:
+		_shock_mat.set_shader_parameter("radius", k * 0.7)
+		_shock_mat.set_shader_parameter("strength", 0.025 * (1.0 - k)), 0.0, 1.0, 0.6)
+	tw.tween_callback(func() -> void: _shock.visible = false)
 
 
 ## A late-run build for screenshots and boss sims.

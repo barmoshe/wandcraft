@@ -124,7 +124,7 @@ const ROOMS := {
 	"arena_ring": [
 		"################################",
 		"#L............................L#",
-		"#..............................#",
+		"#..Y........................Y..#",
 		"#..............................#",
 		"#..............................#",
 		"#..............................#",
@@ -133,7 +133,7 @@ const ROOMS := {
 		"#..............................#",
 		"#..............................#",
 		"#..............................#",
-		"#..............................#",
+		"#..Y........................Y..#",
 		"#L............................L#",
 		"#..............................#",
 		"################################"],
@@ -1002,6 +1002,8 @@ func pulse_pylon(tx: int, ty: int) -> void:
 		e.ward_n = 0
 		if not (e is Boss):
 			e.stun_t = maxf(e.stun_t, 1.2)
+	if boss and not boss.dead:
+		boss.on_pylon()
 	_deco.queue_redraw()
 
 
@@ -1128,6 +1130,10 @@ func assist_target(p: Vector2, max_d: float) -> Enemy:
 	return vis if vis else best
 
 
+## Hit flag: damage passed on from a boss's body part. It skips the head's armour.
+const SOFT := 8
+
+
 ## Damage to an enemy. `kw` carries the hit's resist keywords (SpellRunner.keywords: 1
 ## pierce, 2 blast, 4 shock), which is what breaks shields, armour and wards (D4).
 func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: float, dot := false, kw := 0) -> float:
@@ -1135,14 +1141,16 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		return 0.0
 	if e.forward:
 		e.flash = 0.07
-		return hurt_enemy(e.forward, dmg * e.fwd_mul, from, crit_chance, 0.0, dot, kw)
+		return hurt_enemy(e.forward, dmg * e.fwd_mul, from, crit_chance, 0.0, dot, kw | SOFT)
 	if e is Boss and (e as Boss).invuln > 0.0:
 		return 0.0
 	if not dot and (e.ward_n > 0 or e.shield_hp > 0):
 		if not _through_defences(e, from, kw):
 			return 0.0
-	if e.armor > 0.0:
-		# armour soaks everything; Blast tears it off three times as fast
+	if e is Boss and (e as Boss).weak_t > 0.0:
+		dmg *= (e as Boss).weak_mul
+	if e.armor > 0.0 and not (kw & SOFT):
+		# armour soaks everything (a boss's body passes its share straight through); Blast tears it off three times as fast
 		var ad := dmg * (3.0 if kw & 2 else (0.2 if dot else 0.35))
 		e.armor -= ad
 		e.flash = 0.07
@@ -1488,11 +1496,12 @@ func _bot_drive() -> void:
 	if e == null:
 		controls.move = (Vector2(gw * TS / 2.0, gh * TS / 2.0) - p).limit_length(1.0) * 0.5
 		return
-	# watchdog: no damage for a while means we are stuck somewhere; walk the path for a bit
+	# watchdog: no damage for a while means we are stuck somewhere, or our spells cannot
+	# reach from here (a short-range wand); walk in on the path until hits land again
 	if damage_done > _bot_dmg_seen:
 		_bot_dmg_seen = damage_done
 		_bot_progress_t = time
-	var stuck := time - _bot_progress_t > 8.0 and time - _bot_progress_t < 10.0
+	var stuck := time - _bot_progress_t > 8.0
 	var to_e := e.position - p
 	# sight is judged from the hand, where spells leave the wand (as the player does)
 	var sees := los(p + Vector2(0, -8), e.position)
@@ -1856,3 +1865,7 @@ func _draw_top() -> void:
 					_top.draw_line(p, p + Vector2.from_angle(tl["a"]) * float(tl["len"]), Color(Style.c("threat:3"), a * 0.6), float(tl["w"]))
 				"circle":
 					_top.draw_arc(tl["p"], float(tl["r"]), 0.0, TAU, 40, Color(Style.c("threat:3"), a + 0.2), 2.0)
+				"rect":
+					var rc: Rect2 = tl["rect"]
+					_top.draw_rect(rc, Color(Style.c("threat:3"), a * 0.25))
+					_top.draw_rect(rc, Color(Style.c("threat:3"), a + 0.2), false, 1.0)

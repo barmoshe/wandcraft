@@ -21,6 +21,8 @@ var done := false
 var invuln := 0.0
 var tele: Array = []            # telegraphs: {"k": line|circle, ...}
 var parts: Array[Enemy] = []
+var weak_t := 0.0               # a weak window (D7): hits land x weak_mul
+var weak_mul := 1.5
 
 
 func setup_boss(w: World, pos: Vector2, id: int) -> void:
@@ -55,6 +57,7 @@ func tick(dt: float) -> void:
 	t += dt
 	flash = maxf(0.0, flash - dt)
 	invuln = maxf(0.0, invuln - dt)
+	weak_t = maxf(0.0, weak_t - dt)
 	# phase change
 	while phase + 1 < phases.size() and hp / max_hp <= float(phases[phase + 1]["at"]):
 		phase += 1
@@ -63,6 +66,7 @@ func tick(dt: float) -> void:
 		world.shake(0.5)
 		world.hitstop(0.15)
 		world.fx.ring(position, 4.0, 90.0, 0.6, Color.WHITE)
+		Events.shockwave.emit(position)
 		world.fx.text(position + Vector2(0, -28), "PHASE %d" % (phase + 1), Color("#ff3fa4"), 10)
 		Audio.sfx("phase", 0.0)
 		Game.buzz(120)
@@ -125,6 +129,24 @@ func _pick_move() -> void:
 	mt = 0.0
 	Audio.sfx("tele", 0.05, -4.0)
 	_start(move)
+
+
+## Opens a weak window: the boss lags and takes more damage for a moment.
+func weaken(t: float, mul: float, label: String) -> void:
+	weak_t = t
+	weak_mul = mul
+	world.fx.text(position + Vector2(0, -30), label, Style.c("gold:4"), 10)
+	world.fx.ring(position, 3.0, r + 10.0, 0.3, Style.c("gold:4"))
+
+
+## A rune pylon in the arena pulsed (D7: the Loop counts them).
+func on_pylon() -> void:
+	pass
+
+
+## A telegraph box (Select All): drawn by World like the others.
+func tele_rect(rect: Rect2) -> void:
+	tele.append({"k": "rect", "rect": rect})
 
 
 # ---- hooks for subclasses

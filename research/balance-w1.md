@@ -83,3 +83,12 @@ The bench after D5's rooms, features and 3-lane map:
 - **Never-editing bot: 0%.**
 
 The non-editor still dies at the final boss every time. D7 reworks both bosses, and the non-editor's target is set there.
+
+## D7 bosses (2026-09-25)
+The first D7 bench found two stalls, both bot or planner bugs, fixed in ADR 0017:
+- A lone Rune Burst from the planner could not reach a boss.
+- The bot would not walk up to a far Brood Stump.
+
+After the fixes, with Loop armour 150 → 100 and body contact damage 50% → 40% of the head's:
+- **Editing bot: 80%.** Mini-boss about 80 s, boss about 39 s. No stalls.
+- **Never-editing bot: 10%.**

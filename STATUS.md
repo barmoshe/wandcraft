@@ -77,7 +77,13 @@
     - Altar and Debug Terminal rooms.
     - 146 tests.
     - Bench: editing bot 80%, never-editing bot 0%. The non-editor dies at the final boss, which D7 reworks.
-  - **Next up:** D7, the bosses (before D6: the non-editor's target depends on the boss, and the rigs of D6 can then draw the reworked bosses once).
+  - **D7 bosses (0.10.0): done** (ADR 0017).
+    - Copy-Paste reads your wand and casts it back reversed; Ctrl+Z opens a weak window; phase 2 brings a ghost split and Select All.
+    - The Infinite Loop: an armoured head with a soft body, breakable segments shedding Loop Jr., pylons that derail it, and a head-only phase 3.
+    - A shockwave on phase changes.
+    - 154 tests.
+    - Bench: editing bot 80%, never-editing bot 10%.
+  - **Next up:** D6 (animation rigs), D8 (music and sound), D9 (onboarding and meta). See `HANDOFF.md`.
   - **Known:** the 1,300-bullet stress test sits right at its 10 ms budget on the dev container, so it passes or fails from run to run on noise. A/B timing shows no regression from D2 or D3.
 
 ## Where we are (POC history)

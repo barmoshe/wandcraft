@@ -26,7 +26,7 @@ static func score(w: WandState, run: RunState = null) -> float:
 	var dmg := 0.0
 	for plan: WandProgram.Plan in plans:
 		for g in plan.groups:
-			dmg += node_value(g, t)
+			dmg += node_value(g, t, true)
 	var regen := w.def.regen * w.regen_mul() * (Relics.mana_regen_mul(run) if run else 1.0)
 	var budget := regen * t + w.max_mana() * t / 25.0
 	var sustain := minf(1.0, budget / maxf(1.0, cost))
@@ -50,12 +50,23 @@ static func _kw_tree(c: CastNode) -> int:
 
 ## Expected damage of one compiled cast (and everything it releases). `t` is the rotation
 ## time, which caps what a familiar adds before the next one replaces it.
-static func node_value(c: CastNode, t := 1.0) -> float:
+## `top`: cast straight from the wand (a short-range spell is worth less there than when a
+## carrier or trigger delivers it onto an enemy).
+static func node_value(c: CastNode, t := 1.0, top := false) -> float:
+	var v := 0.0
 	if c.cond:
 		var near := _own_value(c, t)
-		var far := node_value(c.alt, t) if c.alt else 0.0
-		return (near + far) * 0.5
-	return _own_value(c, t)
+		var far := node_value(c.alt, t, top) if c.alt else 0.0
+		v = (near + far) * 0.5
+	else:
+		v = _own_value(c, t)
+	if top:
+		match c.spell.behavior:
+			&"burst":
+				v *= 0.3   # detonates at the wand tip: you have to stand in the fight
+			&"cone":
+				v *= 0.7
+	return v
 
 
 static func _own_value(c: CastNode, t: float) -> float:

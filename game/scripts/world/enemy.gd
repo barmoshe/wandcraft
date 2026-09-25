@@ -16,6 +16,7 @@ const DEFS := {
 	&"puffcap": {"title": "Puffcap", "ai": &"turret", "hp": 26.0, "spd": 0.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
 		"role": &"anchor", "shot": {"n": 8, "spd": 62.0, "cd": 3.0, "ring": true}},
 	&"loop_seg": {"title": "Loop Segment", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 6.0, "dmg": 12.0, "cost": 0, "gold": 0},
+	&"loop_jr": {"title": "Loop Jr.", "ai": &"chase", "hp": 50.0, "spd": 62.0, "r": 6.0, "dmg": 8.0, "cost": 0, "gold": 3},
 	&"sentry": {"title": "Rune Sentry", "ai": &"turret", "hp": 44.0, "spd": 0.0, "r": 7.0, "dmg": 10.0, "cost": 4, "gold": 5,
 		"role": &"anchor", "shield": 8, "shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.6, "sight": 0.8}},
 	# D4: four more, each with a counter (design-plan §3)
@@ -152,7 +153,8 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	strafe = 1.0 if sin(ph) > 0.0 else -1.0
 	_route_t = fmod(ph, 0.1)   # stagger the re-plans across ticks (no extra rng draw)
 	cd = w.rng.randf_range(0.8, 2.0)
-	frames = Bestiary.frames(String(k)) if Bestiary.has(String(k)) else Sprites.enemy_frames(String(k))
+	var art := "loop_seg" if k == &"loop_jr" else String(k)
+	frames = Bestiary.frames(art) if Bestiary.has(art) else Sprites.enemy_frames(art)
 	muzzle = Vector2(0, -roundf(frames[0].get_height() * 0.5))
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]

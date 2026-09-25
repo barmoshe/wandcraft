@@ -12,3 +12,4 @@ signal boss_started(title: String, subtitle: String)
 signal boss_defeated
 signal hint(text: String)
 signal screen_flash(color: Color, amount: float)
+signal shockwave(world_pos: Vector2)   # boss phase changes (D7): main draws a screen ripple

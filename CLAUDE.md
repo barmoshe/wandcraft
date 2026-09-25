@@ -1,6 +1,6 @@
 # wandcraft — CLAUDE.md
 
-Per-project context. Loads only when working in this folder. Business-wide rules live in the repo-root `CLAUDE.md`.
+Wandcraft's own repo (`barmoshe/wandcraft`). It was split out of `bar_builds/projects/wandcraft` on 2026-09-25 with its history, and is registered there as a sibling in `.repos.json`. Start with `HANDOFF.md`. The workshop's business-wide rules still live in `bar_builds/CLAUDE.md`.
 
 - **What it is:** A pixel-art twin-stick roguelite for iOS and Android, built around wands you program like tiny code: spells fire left to right, boosts modify everything to their right, and triggers chain one spell into another. It grew out of the Wandcraft HTML prototypes (v1-v5, private claude.ai artifact) and is being rebuilt from scratch for the stores.
 - **Stack:** Godot 4.7.2 (GDScript, typed), Mobile renderer. The game is in `game/`, and deterministic asset and audio generators are in `tools/`. iOS export and signing happen on Bar's Mac (Xcode 26); everything else runs on Linux.
@@ -18,6 +18,7 @@ Per-project context. Loads only when working in this folder. Business-wide rules
   - **Art uses the Style ramps** (`scripts/art/style.gd`, ADR 0007): no inline hex colors in new art. New spells and relics need an icon entry (`icon_spells*.gd`, `icon_relics.gd`).
   - **Secrets stay off git:** signing keys, keystores and App Store Connect API keys are never committed.
 - **Canonical state:**
+  - `HANDOFF.md`: the state at the split, what is left, and how to work locally.
   - `STATUS.md`: where we are.
   - `brief.md`: the immutable ask.
   - `scope.md`: acceptance criteria.
