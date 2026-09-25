@@ -102,3 +102,8 @@ D6 is art only; the bench is identical to D7.
 
 ## D8 music and sound (2026-09-25)
 Sound only; the bench is unchanged: **editing bot 80%, never-editing bot 10%** (mini-boss about 80 s, boss about 39 s). The same after `bdafb9d`, which fixed freed wave enemies never counting as down (a typed lambda in `Encounter.wave_done`); in these seeds the next wave's timing did not move a result.
+
+## D9 onboarding and meta (2026-09-25)
+The bench runs without the tutorial, the unlock locks, heat or dashing (the bots never dash), so it measures the same game: **editing bot 80%, never-editing bot 10%** (mini-boss about 80 s, boss about 39 s).
+
+The never-editing bot stays under its 15-30% band. It dies at the final boss; softening the boss would lift the editing bot past its 85% cap too, and the gap is what the band exists to show. Recorded and left (ADR 0020).

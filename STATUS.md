@@ -97,7 +97,15 @@
     - A BS.1770 meter; effects at -18 LUFS, UI -24, music -20; a licence manifest with a test.
     - Buses with a limiter and sidechain ducking, voice classes, layered and interactive music, a haptics map, a credits screen.
     - 168 tests.
-  - **Next up:** D9 (onboarding and meta), then store prep. The order and log live in `research/mvp-finish-plan.md`.
+  - **D9 onboarding and meta (0.13.0): done** (ADR 0020).
+    - The first run is a curriculum: three lesson rooms before the mini-boss (Empower, pierce against shields, a trigger), each prize opening the editor with a coach toward the right layout.
+    - Tips for armour, wards and dashing the first time they matter.
+    - Source Fragments and the Codex: 26 unlocks and +1 starting slot.
+    - Bug Reports: five stacking heat tiers, one per win.
+    - The dash, with a touch button.
+    - 180 tests; the tap test presses DASH. Onboarding: first edit about 10 s, first trigger about 42 s (bar: 120 s and 180 s).
+    - Bench unchanged: 80% / 10%.
+  - **Next up:** store prep and the iOS release (Bar: free, Individual account, `com.barbuilds.wandcraft`). The order and log live in `research/mvp-finish-plan.md`.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
