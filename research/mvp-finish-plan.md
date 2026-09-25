@@ -76,3 +76,4 @@ Individual Apple Developer account (Bar buys it); bundle id `com.barbuilds.wandc
 - `c5fc0c2` D9 close-out: ADR 0020, 0.13.0 (build 15), web live (tutorial path checked in the browser, no console errors), APK built; bench 80/10.
 - `a08108c` fix (Bar): start pick shows the locked Stub greyed, stats lines fit, TAKE centred.
 - `45302b1` store prep: CI green (180/180 on Linux, ratio 3.33); listing, screenshots, privacy/support live at wandcraft-plum.vercel.app; release_ios.sh (--check blocked: iOS platform needs ~11 GB free disk); ios-release.md.
+- `8367ff0` 0.14.0 release candidate: ADR 0021, web live, APK built. Waiting on Bar: store/ios-release.md.

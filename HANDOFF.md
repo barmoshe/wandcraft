@@ -1,5 +1,7 @@
 # Wandcraft: handoff (2026-09-25)
 
+> **Since this handoff:** D6, D8, D9 and store prep are done (0.14.0; ADRs 0018-0021). For the current state read `STATUS.md`; for the order of work and every commit, `research/mvp-finish-plan.md`; for publishing on iOS, `store/ios-release.md`. The rest of this file is the state at the split, kept as it was.
+
 This hands off the design-first MVP after D0–D7, the point where Wandcraft moved out of `bar_builds/projects/wandcraft` into its own sibling repo, `barmoshe/wandcraft`, for local work. The full history came along: `git log` goes back to the first mobile milestone.
 
 ## Where it is
