@@ -22,6 +22,7 @@ const HIT_FPS := 36.0
 var booms: Array = []    # [pos, radius bucket, color, t]: the 8-frame explosion (D6)
 const BOOM_FPS := 20.0
 const MERGE_T := 0.15    # hits on one target within this merge into one number (D6)
+var _by_key := {}        # target key -> its latest number (the entry itself)
 ## Player bullets that leave a dithered trail (D6); the first TRAIL_CAP live ones only.
 var trail_pool: BulletPool
 const TRAIL_CAP := 300
@@ -178,7 +179,9 @@ static func boom_frames(r: int) -> Array[Texture2D]:
 
 func text(p: Vector2, s: String, c: Color, size := 8) -> void:
 	if texts.size() >= MAX_TEXTS:
-		texts.pop_front()
+		var old: Array = texts.pop_front()
+		if old[5] >= 0 and _by_key.get(old[5]) == old:
+			_by_key.erase(old[5])
 	texts.append([p, s, c, 0.0, size, -1, 0.0])
 
 
@@ -187,18 +190,23 @@ func text(p: Vector2, s: String, c: Color, size := 8) -> void:
 ## that pops again, so a shotgun reads as one big hit instead of a smear.
 func number(p: Vector2, v: float, crit: bool, key := -1) -> void:
 	if key >= 0:
-		for tx in texts:
-			if tx[5] == key and tx[3] < MERGE_T:
-				tx[6] += v
-				tx[1] = str(roundi(tx[6]))
-				tx[3] = 0.0
-				if crit:
-					tx[2] = Color("#ffe066")
-					tx[4] = 10
-				return
+		# the live number for this target, if it is young enough to merge into (O(1): a storm
+		# lands hundreds of hits a tick)
+		var tx: Variant = _by_key.get(key)
+		if tx != null and (tx as Array)[3] < MERGE_T and (tx as Array)[5] == key:
+			tx[6] += v
+			tx[1] = str(roundi(tx[6]))
+			tx[3] = 0.0
+			if crit:
+				tx[2] = Color("#ffe066")
+				tx[4] = 10
+			return
 	text(p + Vector2(rng.randf_range(-4, 4), 0), str(roundi(v)), Color("#ffe066") if crit else Color.WHITE, 10 if crit else 8)
-	texts[texts.size() - 1][5] = key
-	texts[texts.size() - 1][6] = v
+	var e: Array = texts[texts.size() - 1]
+	e[5] = key
+	e[6] = v
+	if key >= 0:
+		_by_key[key] = e
 
 
 ## The third tier: damage the player takes, red and big.
@@ -212,6 +220,7 @@ func clear_all() -> void:
 	_sparks.clear()
 	_shards.clear()
 	texts.clear()
+	_by_key.clear()
 	muzzles.clear()
 	poofs.clear()
 	hits.clear()
@@ -267,6 +276,8 @@ func update(dt: float) -> void:
 	for i in range(texts.size() - 1, -1, -1):
 		texts[i][3] += dt
 		if texts[i][3] > 0.8:
+			if texts[i][5] >= 0 and _by_key.get(texts[i][5]) == texts[i]:
+				_by_key.erase(texts[i][5])
 			texts.remove_at(i)
 
 
