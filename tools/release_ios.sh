@@ -7,6 +7,7 @@
 #   tools/release_ios.sh --archive    build a signed Release archive and export the .ipa into
 #                                     build/ios/ (needs the Team ID and Xcode signed in)
 #   tools/release_ios.sh --upload     the same, then upload it to App Store Connect (TestFlight)
+#   tools/release_ios.sh --sim        build for the iOS Simulator (unsigned, any simulated iPhone)
 #
 # The Team ID comes from $WANDCRAFT_TEAM_ID or ~/.config/wandcraft/team_id (10 characters,
 # from developer.apple.com > Membership). It is written into the iOS preset only for the
@@ -29,7 +30,7 @@ xcodebuild -version >/dev/null 2>&1 || fail "Xcode not found (xcode-select -p)."
 
 TEAM="${WANDCRAFT_TEAM_ID:-}"
 [ -z "$TEAM" ] && [ -f "$HOME/.config/wandcraft/team_id" ] && TEAM="$(tr -d '[:space:]' < "$HOME/.config/wandcraft/team_id")"
-if [ "$MODE" != "--check" ]; then
+if [ "$MODE" != "--check" ] && [ "$MODE" != "--sim" ]; then
   [[ "$TEAM" =~ ^[A-Z0-9]{10}$ ]] || fail "No Team ID. Put the 10-character Team ID from developer.apple.com > Membership in ~/.config/wandcraft/team_id (or \$WANDCRAFT_TEAM_ID)."
 fi
 
@@ -65,6 +66,19 @@ case "$MODE" in
     say "ok: $APP"
     /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" -c "Print :CFBundleShortVersionString" -c "Print :CFBundleVersion" \
       -c "Print :UIDeviceFamily" -c "Print :ITSAppUsesNonExemptEncryption" "$APP/Info.plist" 2>/dev/null | sed 's/^/[release_ios]   /'
+    ;;
+  --sim)
+    # the iOS Simulator (no account, no signing): the .app for `xcrun simctl install`
+    # any simulator, built for this Mac's own architecture only (Godot's simulator library
+    # carries x86_64 objects only; an Apple-silicon Mac needs the arm64 slice from the template)
+    say "building for the iOS Simulator"
+    xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration Debug -sdk iphonesimulator \
+      -destination "generic/platform=iOS Simulator" -derivedDataPath "$OUT/derived-sim" \
+      ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build > "$OUT/xcodebuild-sim.log" 2>&1
+    code=$?
+    grep -E "error:|BUILD SUCCEEDED|BUILD FAILED" "$OUT/xcodebuild-sim.log" | tail -5
+    [ $code -eq 0 ] || fail "the simulator build failed (build/ios/xcodebuild-sim.log)"
+    say "ok: $(find "$OUT/derived-sim" -name '*.app' -path '*iphonesimulator*' | head -1)"
     ;;
   --archive|--upload)
     DEST="export"
