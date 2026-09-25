@@ -10,6 +10,8 @@ cp "$HERE/web/vercel.json" "$HERE/web/.vercelignore" "$WEB/"
 export NODE_USE_ENV_PROXY=1 VERCEL_TELEMETRY_DISABLED=1
 [ -f /root/.ccr/ca-bundle.crt ] && export NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt
 cd "$WEB"
+# a global `vercel` if there is one, otherwise the CLI through npx
+command -v vercel >/dev/null 2>&1 || vercel() { npx -y vercel@latest "$@"; }
 vercel link --yes --project wandcraft-test >/dev/null
 # link pulls a short-lived OIDC token into .env.local; the site needs no env, so drop it
 rm -f .env.local
