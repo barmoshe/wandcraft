@@ -126,6 +126,7 @@ func _start_from_args() -> void:
 			r.step = 4
 		elif r.step == 0:
 			r.step = 1
+	world.force_tpl = _args.get("room", "")
 	_begin(r)
 	if _args.has("showcase"):
 		_showcase()
@@ -142,6 +143,8 @@ func _start_from_args() -> void:
 			_on_ui_request(&"forge", {})
 		"editor":
 			_open_editor()
+		"map":
+			_open_map()
 		"pause":
 			_open_pause(false)
 		"end":
@@ -272,6 +275,15 @@ func _on_hud(id: String) -> void:
 			_open_pause(false)
 		"edit":
 			_open_editor()
+		"map":
+			_open_map()
+
+
+func _open_map() -> void:
+	if screen or not _playing:
+		return
+	world.paused = true
+	_open(MapScreen.new(), func(_res: Dictionary) -> void: world.paused = false)
 
 
 ## Save when the app goes to the background, and come back paused (never into live combat).

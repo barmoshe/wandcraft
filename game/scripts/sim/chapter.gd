@@ -21,7 +21,12 @@ const POOL := [
 	{"kind": "spring", "reward": "", "w": 0.9},
 	{"kind": "forge", "reward": "", "w": 1.0},
 	{"kind": "glitch", "reward": "relic", "w": 0.6},
+	{"kind": "altar", "reward": "", "w": 0.5},
+	{"kind": "terminal", "reward": "", "w": 0.5},
 ]
+const LANES := 3
+## World 1's two areas (D5): the room steps each one covers, and its name.
+const AREAS := [{"name": "The Mossy Root Cellar", "from": 0}, {"name": "The Corrupted Grove", "from": 5}]
 
 const INFO := {
 	"spell": {"name": "Spell", "color": "#5ce1ff"},
@@ -34,12 +39,14 @@ const INFO := {
 	"spring": {"name": "Spring", "color": "#6fb8ff"},
 	"forge": {"name": "Forge", "color": "#ff8a3c"},
 	"glitch": {"name": "Glitch Door", "color": "#ff6fd2"},
+	"altar": {"name": "Altar", "color": "#ff4d6d"},
+	"terminal": {"name": "Debug Terminal", "color": "#5ce1ff"},
 	"mini": {"name": "Mini-boss", "color": "#ff3fa4"},
 	"boss": {"name": "Boss", "color": "#ff3fa4"},
 	"exit": {"name": "Onward", "color": "#ffe066"},
 }
 
-const QUIET := [&"start", &"shop", &"spring", &"forge"]
+const QUIET := [&"start", &"shop", &"spring", &"forge", &"altar", &"terminal"]
 
 
 static func is_quiet(kind: StringName) -> bool:
@@ -62,59 +69,74 @@ static func door_color(d: Dictionary) -> Color:
 	return Color(INFO.get(door_key(d), {"color": "#ffffff"})["color"])
 
 
-## The doors offered once the current room is cleared.
+static func area_name(step: int) -> String:
+	return AREAS[1]["name"] if step >= AREAS[1]["from"] else AREAS[0]["name"]
+
+
+## The visible 3-lane map (D5): every room step has three nodes, the mini-boss and the boss
+## one each. From lane L you can reach lanes L-1..L+1 on the next step. Rules:
+##   the first two room steps are fights; no challenge, Glitch Door, altar or terminal
+##   before the fourth room; no quiet room twice in a row on a lane; the middle lane of the
+##   step before a boss is always a spring or a shop (every lane can reach it)
+static func make_map(run: RunState) -> Array:
+	var rng := run.rng
+	var out: Array = []
+	for step in PLAN.size():
+		match PLAN[step]:
+			&"start":
+				out.append([{"kind": &"start", "reward": &""}])
+				continue
+			&"mini":
+				out.append([{"kind": &"mini", "reward": &"relic"}])
+				continue
+			&"boss":
+				out.append([{"kind": &"boss", "reward": &"wand"}])
+				continue
+		var nodes: Array = []
+		for lane in LANES:
+			var prev: Dictionary = out[step - 1][mini(lane, out[step - 1].size() - 1)]
+			var pool := POOL.filter(func(p: Dictionary) -> bool:
+				if step <= 2 and p["kind"] != "fight":
+					return false
+				if step < 3 and p["kind"] in ["challenge", "glitch", "altar", "terminal"]:
+					return false
+				if p["kind"] != "fight" and is_quiet(StringName(p["kind"])) and is_quiet(prev["kind"]):
+					return false
+				if p["kind"] == "glitch" and not Relics.DEFS.keys().any(func(id: StringName) -> bool: return Relics.offerable(run, id, true)):
+					return false
+				return true)
+			var d := {}
+			for guard in 20:
+				var p := _pick(pool, rng)
+				d = {"kind": StringName(p["kind"]), "reward": StringName(p["reward"])}
+				if not nodes.any(func(o: Dictionary) -> bool: return o["kind"] == d["kind"] and o["reward"] == d["reward"]):
+					break
+			nodes.append(d)
+		if step + 1 < PLAN.size() and (PLAN[step + 1] == &"boss" or PLAN[step + 1] == &"mini"):
+			nodes[1] = {"kind": [&"spring", &"shop"][rng.randi() % 2], "reward": &""}
+		# at least one fight on every step, so no stretch is all shopping
+		if not nodes.any(func(o: Dictionary) -> bool: return not is_quiet(o["kind"])):
+			nodes[0] = {"kind": &"fight", "reward": &"spell"}
+		out.append(nodes)
+	return out
+
+
+## The doors offered once the current room is cleared: the next step's nodes you can reach.
 static func door_options(run: RunState) -> Array:
 	var nxt := run.step + 1
 	if nxt >= PLAN.size():
 		return [{"kind": &"exit", "reward": &""}]
-	match PLAN[nxt]:
-		&"mini":
-			return [{"kind": &"mini", "reward": &"relic"}]
-		&"boss":
-			return [{"kind": &"boss", "reward": &"wand"}]
-	var rng := run.rng
-	var n := 2 + (1 if rng.randf() < 0.3 else 0)
-	var last := StringName(run.room.get("kind", ""))
-	var pool := POOL.filter(func(p: Dictionary) -> bool:
-		# no quiet room twice in a row, and the first room is always a fight
-		if p["kind"] != "fight" and p["kind"] == String(last):
-			return false
-		if nxt == 1 and p["kind"] != "fight":
-			return false
-		# no challenge or Glitch Door before the fourth room, and the Glitch Door only while
-		# a Corrupted relic is left to find
-		if (p["kind"] == "challenge" or p["kind"] == "glitch") and nxt < 3:
-			return false
-		if p["kind"] == "glitch" and not Relics.DEFS.keys().any(func(id: StringName) -> bool: return Relics.offerable(run, id, true)):
-			return false
-		return true)
+	if run.map.is_empty():
+		run.map = make_map(run)
+	var nodes: Array = run.map[nxt]
+	if nodes.size() == 1:
+		return [nodes[0].duplicate()]
 	var out: Array = []
-	# right before a boss or mini-boss: always offer a way to recover or spend gold
-	if nxt + 1 < PLAN.size() and (PLAN[nxt + 1] == &"boss" or PLAN[nxt + 1] == &"mini"):
-		var k: StringName = [&"spring", &"shop"][rng.randi() % 2]
-		if k == last:
-			k = &"spring" if k == &"shop" else &"shop"
-		out.append({"kind": k, "reward": &""})
-	var guard := 0
-	while out.size() < n and guard < 50:
-		guard += 1
-		var p := _pick(pool, rng)
-		var d := {"kind": StringName(p["kind"]), "reward": StringName(p["reward"])}
-		if out.any(func(o: Dictionary) -> bool: return o["kind"] == d["kind"] and o["reward"] == d["reward"]):
-			continue
-		# at most one quiet door, most of the time
-		var quiet_n := out.filter(func(o: Dictionary) -> bool: return is_quiet(o["kind"])).size()
-		if is_quiet(d["kind"]) and quiet_n >= 1 and rng.randf() < 0.7:
-			continue
-		out.append(d)
-	if not out.any(func(o: Dictionary) -> bool: return o["kind"] == &"fight" or o["kind"] == &"challenge" or o["kind"] == &"glitch"):
-		out[out.size() - 1] = {"kind": &"fight", "reward": &"spell"}
-	# shuffle so the guaranteed door is not always first
-	for i in range(out.size() - 1, 0, -1):
-		var j := rng.randi_range(0, i)
-		var t: Variant = out[i]
-		out[i] = out[j]
-		out[j] = t
+	for lane in LANES:
+		if run.step == 0 or absi(lane - run.lane) <= 1:
+			var d: Dictionary = nodes[lane].duplicate()
+			d["lane"] = lane
+			out.append(d)
 	return out
 
 

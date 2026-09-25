@@ -197,3 +197,74 @@ static func _familiar(kind: StringName, f: int) -> Image:
 	var head: String = ["...34443..", "...3444311"][f]
 	return PixelArt.paint(PackedStringArray(["....333...", head, "...34w4411", "....44411.", "3...4443..", "34444444..", ".3444443..", "..33333..."]),
 		{"1": "ember:3", "3": "gold:2", "4": "gold:3", "w": "night:0"})
+
+
+## D5 room features, drawn over the floor like crates.
+## A bramble clump (burn clears it). 16x14.
+static func bramble() -> Texture2D:
+	return PixelArt.cached("bramble", func() -> Image:
+		return PixelArt.paint(PackedStringArray([
+			"....w......w....",
+			"...22.2..2.22...",
+			"..2112.22.2112..",
+			".w21..2112..12w.",
+			".211.21..12.112.",
+			"..12112.w.2112..",
+			".w.2112112112.w.",
+			"..2111222211112.",
+			".21112111121112.",
+			"..2211.w..1122..",
+			".211..2112..112.",
+			"..1122111122211.",
+			"...1111111111...",
+		]), {"1": "wood:1", "2": "leaf:2", "w": "bone:3"}))
+
+
+## A spore pod (a blast, or any hit, sets it off; pods chain). 12x12.
+static func pod() -> Texture2D:
+	return PixelArt.cached("pod", func() -> Image:
+		return PixelArt.paint(PackedStringArray([
+			".....33.....",
+			"....3443....",
+			"...344443...",
+			"..34y44y43..",
+			".3444444443.",
+			".344y4444y3.",
+			".3444444443.",
+			"..34444y43..",
+			"...344443...",
+			"....2222....",
+			"...2....2...",
+		]), {"2": "moss:2", "3": "ember:2", "4": "ember:3", "y": "gold:4"}))
+
+
+## A rune pylon: hit it to pulse (stuns enemies near it, strips wards). 10x20.
+static func pylon(ready: bool) -> Texture2D:
+	return PixelArt.cached("pylon_%s" % ready, func() -> Image:
+		var r := "c" if ready else "d"
+		return PixelArt.paint(PackedStringArray([
+			"....22....",
+			"...2332...",
+			"...2332...",
+			"..233332..",
+			"..23%s%s32..".replace("%s", r),
+			"..23%s332..".replace("%s", r),
+			"..233%s32..".replace("%s", r),
+			"..23%s%s32..".replace("%s", r),
+			"..233332..",
+			"..233332..",
+			"..23%s332..".replace("%s", r),
+			"..233332..",
+			".22333322.",
+			"1122222211",
+		]), {"1": "stone:1", "2": "stone:2", "3": "stone:3", "c": "cyan:4", "d": "cyan:1"}))
+
+
+## A secret chest. 12x10.
+static func chest(open: bool) -> Texture2D:
+	return PixelArt.cached("chest_%s" % open, func() -> Image:
+		if open:
+			return PixelArt.paint(PackedStringArray(["............", ".2222222222.", ".2yyyyyyyy2.", ".2222222222.", ".2111111112.", ".2111gg1112.", ".2111111112.", ".2222222222."]),
+				{"1": "wood:2", "2": "wood:1", "g": "gold:3", "y": "gold:4"})
+		return PixelArt.paint(PackedStringArray(["............", "..22222222..", ".2111111112.", ".2111111112.", ".2222gg2222.", ".2111gg1112.", ".2111111112.", ".2222222222."]),
+			{"1": "wood:3", "2": "wood:1", "g": "gold:3"}))

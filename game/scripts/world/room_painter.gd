@@ -20,7 +20,9 @@ static func size_px(gw: int, gh: int) -> Vector2i:
 	return Vector2i((gw + MARGIN.x * 2) * TS, (gh + MARGIN.y * 2) * TS)
 
 
-static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> Image:
+## biome 0: the Mossy Root Cellar (rooms 1-4); 1: the Corrupted Grove (rooms 5-8), the same
+## stone under a violet cast with glitch pixels in the floor (D5).
+static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biome := 0) -> Image:
 	var sz := size_px(gw, gh)
 	var img := Image.create_empty(sz.x, sz.y, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -32,7 +34,7 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 	var O := MARGIN * TS
 	var at := func(x: int, y: int) -> int:
 		return 1 if x < 0 or y < 0 or x >= gw or y >= gh else grid[y * gw + x]
-	var wallish := func(t: int) -> bool: return t == 1 or t == 3
+	var wallish := func(t: int) -> bool: return t == 1 or t == 3 or t == 7
 	_surroundings(img, gw, gh, rng)
 	# floors
 	_floor(img, gw, gh, at, wallish, rng, seed_value)
@@ -75,6 +77,8 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 		for x in gw:
 			if at.call(x, y) == 2:
 				_spike_plate(img, O.x + x * TS, O.y + y * TS)
+			elif at.call(x, y) == 5:
+				_pit(img, O.x + x * TS, O.y + y * TS, at.call(x, y - 1) == 5)
 	# ambient occlusion under and beside walls
 	for y in gh:
 		for x in gw:
@@ -96,7 +100,38 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 		for x in gw:
 			if wallish.call(at.call(x, y)):
 				_wall(img, O.x + x * TS, O.y + y * TS, x, y, at, wallish, rng)
+			if at.call(x, y) == 7:
+				_cracks(img, O.x + x * TS, O.y + y * TS)
+	if biome == 1:
+		var tint := Image.create_empty(img.get_width(), img.get_height(), false, Image.FORMAT_RGBA8)
+		tint.fill(Color(Style.c("violet:2"), 0.22))
+		img.blend_rect(tint, Rect2i(Vector2i.ZERO, img.get_size()), Vector2i.ZERO)
+		for k in gw * gh / 6:
+			var gx := rng.randi_range(1, gw - 2)
+			var gy := rng.randi_range(1, gh - 2)
+			if at.call(gx, gy) == 0:
+				img.fill_rect(Rect2i(O.x + gx * TS + rng.randi_range(0, 13), O.y + gy * TS + rng.randi_range(0, 13), 2, 1), Style.c("glitch:2"))
 	return img
+
+
+## A pit: a dark shaft with a lit lip on its top edge (only where the tile above is floor).
+static func _pit(img: Image, X: int, Y: int, below_pit: bool) -> void:
+	img.fill_rect(Rect2i(X, Y, TS, TS), Style.c("night:0"))
+	if not below_pit:
+		img.fill_rect(Rect2i(X, Y, TS, 2), Style.c("stone:2"))
+		img.fill_rect(Rect2i(X, Y + 2, TS, 3), Style.c("night:1"))
+
+
+## Hairline cracks across a wall that a blast can open (a secret behind it).
+static func _cracks(img: Image, X: int, Y: int) -> void:
+	var pts := [Vector2i(3, 2), Vector2i(6, 5), Vector2i(5, 8), Vector2i(9, 10), Vector2i(8, 13), Vector2i(12, 15)]
+	for i in pts.size() - 1:
+		var a: Vector2i = pts[i]
+		var b: Vector2i = pts[i + 1]
+		for k in 4:
+			var q := Vector2i(a) + (b - a) * k / 4
+			img.set_pixel(X + q.x, Y + q.y, Style.c("night:0"))
+			img.set_pixel(X + q.x + 1, Y + q.y, Style.c("stone:4"))
 
 
 # ------------------------------------------------------------------ floor

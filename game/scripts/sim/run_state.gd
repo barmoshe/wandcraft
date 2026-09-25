@@ -29,6 +29,8 @@ var shop: Array = []                # current shop stock (so leaving and coming 
 var banned: Array[StringName] = []  # spells Deprecated out of this run's offers (D2)
 var rare_offset := -0.05            # Slay the Spire-style rarity pacing for spell offers (D2)
 var deprecated_here := false        # one Deprecate per shop visit
+var map: Array = []                # D5: the 3-lane map (Chapter.make_map), per step an Array of nodes
+var lane := 1                       # the lane the player is on
 var uptime := 0                     # Uptime relic: rooms in a row cleared without a hit
 var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0}
 var won := false
@@ -235,6 +237,7 @@ func to_dict() -> Dictionary:
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
 		"uptime": uptime,
+		"map": map.map(func(step: Array) -> Array: return step.map(_dict_out)), "lane": lane,
 	}
 
 
@@ -271,6 +274,8 @@ static func from_dict(d: Dictionary) -> RunState:
 		r.banned.append(StringName(b))
 	r.rare_offset = float(d.get("rare_offset", -0.05))
 	r.uptime = int(d.get("uptime", 0))
+	r.map = (d.get("map", []) as Array).map(func(step: Array) -> Array: return step.map(_dict_in))
+	r.lane = int(d.get("lane", 1))
 	r.apply_relics()
 	return r
 

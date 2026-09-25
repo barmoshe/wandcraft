@@ -320,6 +320,7 @@ func _draw_map(tc: Vector2, run: RunState) -> void:
 	var x0 := tc.x - (n - 1) * gap / 2.0
 	var y := tc.y + 8
 	draw_rect(Rect2(x0 - 8, y - 7, (n - 1) * gap + 16, 14), Color(0.05, 0.03, 0.1, 0.6))
+	buttons["map"] = Rect2(x0 - 10, y - 10, (n - 1) * gap + 20, 22)   # tap the strip for the map
 	for i in n:
 		var p := Vector2(x0 + i * gap, y)
 		if i > 0:

@@ -420,7 +420,7 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 		if e.position.distance_squared_to(pos) < (r + e.r) * (r + e.r):
 			_strike(ps, e, pos, dmg, 1.3)
 	world.shake(0.1)
-	world.break_crates_in(pos, r)
+	world.break_crates_in(pos, r, ps.burn > 0)
 	Audio.sfx("boom", 0.1, -3.0)
 	end_bullet(ps, null)
 
@@ -728,7 +728,7 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 			world.hurt_enemy(e, b.dmg * (1.0 if b.beh == &"mine" else 0.7), b.pos, b.crit, 1.2 * b.knock, false, b.kw | 2)
 			_apply(b, e)
 	world.shake(0.08)
-	world.break_crates_in(b.pos, r)
+	world.break_crates_in(b.pos, r, b.burn > 0)
 	Audio.sfx("boom", 0.12, -5.0)
 
 
@@ -830,12 +830,14 @@ func update(dt: float) -> void:
 			b.vel = Vector2.ZERO
 			tile = 0
 			np = b.pos
+		if tile >= 6:
+			world.tile_hit(tx, ty, b.burn > 0)
 		if tile == 4:
 			world.break_crate(tx, ty)
 			world.fx.sparks(b.pos, 3, b.color, 50.0)
 			end_bullet(b, null)
 			continue
-		if tile == 1 or tile == 3:
+		if tile == 1 or tile == 3 or tile >= 6:
 			if b.bounce > 0:
 				var hx := world.solid_at(Vector2(np.x, b.pos.y))
 				var hy := world.solid_at(Vector2(b.pos.x, np.y))
@@ -896,7 +898,8 @@ func _pull(b: Bullet, dt: float) -> void:
 		var d := to.length()
 		if d < 3.0 or d > 44.0 + e.r:
 			continue
-		e.position = world.move_body(e.position, e.r, to / d * minf(b.pull * dt, d - 2.0))
+		e.position = world.move_body(e.position, e.r, to / d * minf(b.pull * dt, d - 2.0), true)
+		world.fall_check(e)
 
 
 func _steer(b: Bullet, target: Vector2, rate: float, dt: float) -> void:

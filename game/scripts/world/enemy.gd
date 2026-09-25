@@ -111,6 +111,7 @@ var rot_n := 0                 # Bitrot stacks (five crash)
 var rot_t := 0.0
 var mark_t := 0.0              # Hex Cursor mark
 var shock_t := 0.0             # Thermal Shock cooldown
+var stun_t := 0.0              # a rune pylon's pulse (D5)
 # D4 defences: each one has a resist keyword that breaks it
 var armor := 0.0               # soaks damage; Blast hits it x3, everything else x0.35
 var max_armor := 0.0
@@ -197,6 +198,9 @@ func statuses(dt: float) -> float:
 		rot_t -= dt
 		if rot_t <= 0.0:
 			rot_n = 0
+	if stun_t > 0.0:
+		stun_t -= dt
+		return 0.0
 	if frozen_t > 0.0:
 		frozen_t -= dt
 		return 0.0
@@ -425,8 +429,11 @@ func tick(dt: float) -> void:
 	if absf(mv.x) > 0.1:
 		face = 1 if mv.x > 0.0 else -1
 	if knock.length_squared() > 1.0:
-		position = world.move_body(position, r, knock * dt)
+		position = world.move_body(position, r, knock * dt, true)
 		knock *= pow(0.004, dt)
+		world.fall_check(self)
+		if dead:
+			return
 	if dmg > 0.0 and ai != &"fuse" and frozen_t <= 0.0 and position.distance_squared_to(pl.position) < pow(r + pl.r - 1.0, 2):
 		pl.hurt(dmg, position, "touch:%s" % kind)
 		if state == &"dash":

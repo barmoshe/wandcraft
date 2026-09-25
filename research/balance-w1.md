@@ -76,3 +76,10 @@ Same bench, after shields, armour, wards, the four new enemies and the wave gram
 - **Never-editing bot: 10%.**
 
 A softer golem slam (12 → 10) and a shield that wears out after 8 blocked hits (was 10) did not move either number. The bot that never edits dies almost only at the final boss (8 of 9 runs), so its 15–30% target is left for D7's boss rework.
+
+## D5 levels (2026-09-25)
+The bench after D5's rooms, features and 3-lane map:
+- **Editing bot: 80%.** Mini-boss about 82 s, boss about 38 s.
+- **Never-editing bot: 0%.**
+
+The non-editor still dies at the final boss every time. D7 reworks both bosses, and the non-editor's target is set there.

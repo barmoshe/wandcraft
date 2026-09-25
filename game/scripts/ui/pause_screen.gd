@@ -13,7 +13,7 @@ func _paint() -> void:
 	var v := view()
 	var sr := safe()
 	text_center(v.x / 2.0, sr.position.y + 22, "PAUSED" if not resumed else "WELCOME BACK", GOLD, 16, "body")
-	var step_txt := "Room %d of %d  -  %s" % [run.step + 1, Chapter.PLAN.size(), "World 1: The Ruined Grove"]
+	var step_txt := "Room %d of %d  -  %s" % [run.step + 1, Chapter.PLAN.size(), Chapter.area_name(run.step)]
 	text_center(v.x / 2.0, sr.position.y + 36, step_txt, MUTED)
 	var cx := v.x / 2.0
 	var y := sr.position.y + 48

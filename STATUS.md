@@ -61,7 +61,7 @@
     - "Enables" chips on offer cards (Thermal Shock, Merge Commit, Compile).
     - Counter pips on the HUD relic column.
     - 122 unit tests.
-  - **D4 enemies and encounters (0.8.0): done in code** (ADR 0015). Committed and pushed; not deployed yet (no web build or APK).
+  - **D4 enemies and encounters (0.8.0): done** (ADR 0015).
     - Shields break with pierce, armour with blast, wards with shock.
     - New enemies: Bark Golem, Lantern Wisp, Brood Stump, Glitch Tick. The Moss Blob now splits.
     - 5 elite affixes.
@@ -69,7 +69,15 @@
     - Counter guarantee in spell offers.
     - 136 tests.
     - Bench: editing bot 80%, never-editing bot 10% (target 15–30%; its deaths are almost all at the final boss, so this is revisited in D7).
-  - **Next up:** ship D4 (web build, APK), then D5, levels and the map.
+  - **D5 levels and the map (0.9.0): done** (ADR 0016).
+    - 18 new layouts (6 S, 8 M, 4 L) plus the POC's five; the camera scrolls in the big ones.
+    - Room features: pits (knock fodder in), brambles (burn them), cracked walls hiding secret chests (blast them), spore pods (chain blasts), rune pylons (a stun pulse that strips wards).
+    - The Corrupted Grove look for rooms 5–8.
+    - A visible 3-lane map with a map screen.
+    - Altar and Debug Terminal rooms.
+    - 146 tests.
+    - Bench: editing bot 80%, never-editing bot 0%. The non-editor dies at the final boss, which D7 reworks.
+  - **Next up:** D7, the bosses (before D6: the non-editor's target depends on the boss, and the rigs of D6 can then draw the reworked bosses once).
   - **Known:** the 1,300-bullet stress test sits right at its 10 ms budget on the dev container, so it passes or fails from run to run on noise. A/B timing shows no regression from D2 or D3.
 
 ## Where we are (POC history)

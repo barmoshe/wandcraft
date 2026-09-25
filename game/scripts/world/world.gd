@@ -202,6 +202,11 @@ var _bot_progress_t := 0.0
 # move_body results
 var hit_in_room := false        # Uptime: the player was hit in this room
 var _leak_t := 0.0              # Memory Leak: time to the next HP lost
+var treasure := Vector2.INF     # a secret chest behind a cracked wall (D5)
+var secret_open := false
+var pylon_cd: Dictionary = {}   # tile index -> seconds until that pylon can pulse again
+var _paint_seed := 0
+var force_tpl := ""             # screenshots and tests: build this layout for the next fight
 var marked: Enemy               # Hex Cursor: payloads aim here (D2)
 var grid_ver := 0              # bumped on every grid change (the flow field rebuilds)
 var last_hit_x := false
@@ -310,14 +315,20 @@ func enter_room() -> void:
 		kind = StringName(run.room.get("kind", "fight"))
 	var tpl: String
 	match kind:
-		&"start", &"shop", &"spring", &"forge":
+		&"start", &"shop", &"spring", &"forge", &"altar", &"terminal":
 			tpl = "camp"
 		&"mini":
 			tpl = "arena_open"
 		&"boss":
 			tpl = "arena_ring"
 		_:
-			tpl = FIGHT_ROOMS[rng.randi() % FIGHT_ROOMS.size()]
+			var pool: Array = RoomLayouts.pool(run.step)
+			if run.step >= 3:
+				pool.append_array(FIGHT_ROOMS)   # the POC's five stay in the medium pool
+			tpl = pool[rng.randi() % pool.size()]
+			if force_tpl != "":
+				tpl = force_tpl
+				force_tpl = ""
 	if run.doors.is_empty():
 		run.doors = Chapter.door_options(run)
 	if kind == &"shop" and run.shop.is_empty():
@@ -347,7 +358,10 @@ func build_room(tpl: String, kind: StringName) -> void:
 	room_time = 0.0
 	hit_in_room = false
 	caught = false
-	var rows: Array = ROOMS[tpl]
+	var rows: Array = ROOMS[tpl] if ROOMS.has(tpl) else RoomLayouts.ART[tpl]["rows"]
+	treasure = Vector2.INF
+	secret_open = false
+	pylon_cd.clear()
 	gh = rows.size()
 	gw = String(rows[0]).length()
 	grid.resize(gw * gh)
@@ -372,12 +386,26 @@ func build_room(tpl: String, kind: StringName) -> void:
 					torches.append(_center(x, y))
 				"c":
 					tile = 4
+				"_":
+					tile = 5
+				"b":
+					tile = 6
+				"X":
+					tile = 7
+				"P":
+					tile = 8
+				"Y":
+					tile = 9
+				"T":
+					treasure = _center(x, y)
 			grid[y * gw + x] = tile
 	grid_ver += 1
 	_place_doors()
 	doors_open = false
 	cleared = false
-	_floor.texture = ImageTexture.create_from_image(RoomPainter.paint(grid, gw, gh, run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()))
+	_paint_seed = run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()
+	_repaint()
+	_ambient.color = AMBIENT if biome() == 0 else AMBIENT.lerp(Style.c("violet:4"), 0.12)
 	var vs := RoomPainter.size_px(gw, gh)
 	_vignette_tex.width = vs.x
 	_vignette_tex.height = vs.y
@@ -401,7 +429,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 		&"start":
 			orb = {"pos": mid, "kind": &"start", "t": 0.0}
 			cleared = true
-		&"shop", &"forge", &"spring":
+		&"shop", &"forge", &"spring", &"altar", &"terminal":
 			npc = {"pos": mid, "kind": kind, "used": false, "near": false}
 			_clear_room(false)
 		&"mini", &"boss":
@@ -571,6 +599,8 @@ func go_through(def: Dictionary) -> void:
 		ui_request.emit(&"victory", {})
 		return
 	run.path.append(Chapter.door_key(def))
+	if def.has("lane"):
+		run.lane = int(def["lane"])
 	if StringName(def["kind"]) == &"glitch":
 		# the Glitch Door takes its toll on the way in
 		run.max_hp = maxf(20.0, run.max_hp - Chapter.GLITCH_COST)
@@ -677,6 +707,12 @@ func _update_room(dt: float) -> void:
 			var kind: StringName = orb["kind"]
 			ui_request.emit(&"reward", {"kind": kind, "offer": Rewards.offer(run, kind)})
 			return
+	if secret_open and treasure != Vector2.INF and player.position.distance_to(treasure) < 14.0:
+		treasure = Vector2.INF
+		paused = true
+		Audio.sfx("pick")
+		ui_request.emit(&"reward", {"kind": &"secret", "offer": Rewards.offer(run, &"secret")})
+		return
 	if not npc.is_empty():
 		var near: bool = player.position.distance_to(npc["pos"]) < 18.0
 		if near and not npc["near"]:
@@ -691,6 +727,11 @@ func _update_room(dt: float) -> void:
 				&"shop", &"forge":
 					paused = true
 					ui_request.emit(npc["kind"], {})
+				&"altar", &"terminal":
+					if not npc["used"]:
+						npc["used"] = true
+						paused = true
+						ui_request.emit(&"reward", {"kind": npc["kind"], "offer": Rewards.offer(run, npc["kind"])})
 		npc["near"] = near
 
 
@@ -826,9 +867,25 @@ func tile_at(x: int, y: int) -> int:
 	return grid[y * gw + x]
 
 
+## Solid for spells and bodies: walls, pillars, crates, brambles, cracked walls, pods, pylons.
+## Pits (5) are not: spells fly over them. Bodies test body_solid_at instead.
 func solid_at(p: Vector2) -> bool:
 	var t := tile_at(floori(p.x / TS), floori(p.y / TS))
-	return t == 1 or t == 3 or t == 4
+	return t == 1 or t == 3 or t == 4 or t >= 6
+
+
+## Solid for walking: everything solid, plus pits (unless something is being knocked in).
+func body_solid_at(p: Vector2) -> bool:
+	var t := tile_at(floori(p.x / TS), floori(p.y / TS))
+	return t == 1 or t == 3 or t == 4 or t >= 5
+
+
+func biome() -> int:
+	return 1 if run and run.step >= 5 else 0
+
+
+func _repaint() -> void:
+	_floor.texture = ImageTexture.create_from_image(RoomPainter.paint(grid, gw, gh, _paint_seed, biome()))
 
 
 ## Smashes the crate at a tile (spells do this; enemy shots don't). Drops a little gold.
@@ -847,11 +904,115 @@ func break_crate(tx: int, ty: int) -> void:
 		fx.text(p + Vector2(0, -10), "+%d" % g, Color("#ffd36b"))
 
 
-func break_crates_in(p: Vector2, r: float) -> void:
+## An explosion's effect on the room: crates smash, spore pods go off (and chain), cracked
+## walls open (a secret), and a burning blast clears brambles.
+func break_crates_in(p: Vector2, r: float, burning := false) -> void:
 	for ty in range(floori((p.y - r) / TS), floori((p.y + r) / TS) + 1):
 		for tx in range(floori((p.x - r) / TS), floori((p.x + r) / TS) + 1):
-			if tile_at(tx, ty) == 4 and _center(tx, ty).distance_to(p) < r + TS * 0.5:
-				break_crate(tx, ty)
+			if _center(tx, ty).distance_to(p) >= r + TS * 0.5:
+				continue
+			match tile_at(tx, ty):
+				4:
+					break_crate(tx, ty)
+				6:
+					if burning:
+						burn_bramble(tx, ty)
+				7:
+					open_cracked(tx, ty)
+				8:
+					pop_pod(tx, ty)
+
+
+## A spell hit a feature tile (the spell ends or bounces there). Brambles burn from fire,
+## pods pop, pylons pulse.
+func tile_hit(tx: int, ty: int, burning: bool) -> void:
+	match tile_at(tx, ty):
+		6:
+			if burning:
+				burn_bramble(tx, ty)
+		8:
+			pop_pod(tx, ty)
+		9:
+			pulse_pylon(tx, ty)
+
+
+const POD_R := 34.0
+const POD_DMG := 22.0
+const PYLON_R := 80.0
+
+
+func pop_pod(tx: int, ty: int) -> void:
+	if tile_at(tx, ty) != 8:
+		return
+	grid[ty * gw + tx] = 0
+	grid_ver += 1
+	var p := _center(tx, ty)
+	fx.ring(p, 3.0, POD_R, 0.3, Style.c("ember:3"))
+	fx.sparks(p, 16, Style.c("ember:4"), 140.0)
+	shake(0.15)
+	Audio.sfx("boom", 0.1, -4.0)
+	for k in hash.query(p, POD_R + 16.0):
+		var e: Enemy = enemies[k]
+		if not e.dead and e.spawn_t <= 0.0 and e.position.distance_to(p) < POD_R + e.r:
+			hurt_enemy(e, POD_DMG, p, 0.0, 1.5, false, 2)
+	break_crates_in(p, POD_R)   # chains into other pods
+	_deco.queue_redraw()
+
+
+func burn_bramble(tx: int, ty: int) -> void:
+	if tile_at(tx, ty) != 6:
+		return
+	grid[ty * gw + tx] = 0
+	grid_ver += 1
+	var p := _center(tx, ty)
+	fx.sparks(p, 10, Style.c("ember:3"), 60.0)
+	fx.ring(p, 2.0, 10.0, 0.25, Style.c("ember:4"))
+	Audio.sfx("burn", 0.1, -4.0)
+	_deco.queue_redraw()
+
+
+func open_cracked(tx: int, ty: int) -> void:
+	if tile_at(tx, ty) != 7:
+		return
+	grid[ty * gw + tx] = 0
+	grid_ver += 1
+	secret_open = true
+	var p := _center(tx, ty)
+	fx.sparks(p, 20, Style.c("stone:3"), 100.0)
+	fx.text(p + Vector2(0, -16), "A SECRET!", Style.c("gold:4"), 10)
+	shake(0.2)
+	Audio.sfx("door")
+	_repaint()
+	_deco.queue_redraw()
+
+
+## A rune pylon, when hit: a pulse that stuns enemies near it and strips their wards.
+func pulse_pylon(tx: int, ty: int) -> void:
+	var key := ty * gw + tx
+	if pylon_cd.get(key, 0.0) > time:
+		return
+	pylon_cd[key] = time + 4.0
+	var p := _center(tx, ty)
+	fx.ring(p + Vector2(0, -8), 4.0, PYLON_R, 0.4, Style.c("cyan:4"))
+	Audio.sfx("tele", 0.1, -2.0)
+	for k in hash.query(p, PYLON_R + 16.0):
+		var e: Enemy = enemies[k]
+		if e.dead or e.spawn_t > 0.0 or e.position.distance_to(p) > PYLON_R + e.r:
+			continue
+		e.ward_n = 0
+		if not (e is Boss):
+			e.stun_t = maxf(e.stun_t, 1.2)
+	_deco.queue_redraw()
+
+
+## A body over a pit falls in (fodder only: heavy enemies and bosses never get knocked in).
+func fall_check(e: Enemy) -> void:
+	if e.heavy or e.dead or e is Boss or e.ai == &"part":
+		return
+	if tile_at(floori(e.position.x / TS), floori(e.position.y / TS)) == 5:
+		fx.text(e.position + Vector2(0, -12), "FELL", Style.c("bone:4"))
+		fx.ring(e.position, 2.0, 8.0, 0.25, Style.c("night:4"))
+		kill_enemy(e)
 
 
 func hitstop(t: float) -> void:
@@ -877,7 +1038,12 @@ func spikes_up() -> bool:
 
 ## Circle-vs-tiles movement, one axis at a time, in sub-steps short enough that nothing
 ## tunnels through a wall. Sets last_hit_x / last_hit_y.
-func move_body(pos: Vector2, r: float, delta: Vector2) -> Vector2:
+var _fall_ok := false
+
+
+## Moves a body, sliding along walls. `fall_ok`: a knock or a pull may carry it over a pit.
+func move_body(pos: Vector2, r: float, delta: Vector2, fall_ok := false) -> Vector2:
+	_fall_ok = fall_ok
 	var n := ceili(delta.length() / 6.0)
 	if n <= 1:
 		last_hit_x = false
@@ -902,16 +1068,20 @@ func _move_step(pos: Vector2, r: float, delta: Vector2) -> Vector2:
 	p.x += delta.x
 	if delta.x != 0.0:
 		var ex := p.x + (r if delta.x > 0.0 else -r)
-		if solid_at(Vector2(ex, p.y - r * 0.7)) or solid_at(Vector2(ex, p.y + r * 0.7)):
+		if _blocked(Vector2(ex, p.y - r * 0.7)) or _blocked(Vector2(ex, p.y + r * 0.7)):
 			p.x = floorf(ex / TS) * TS - r - 0.01 if delta.x > 0.0 else (floorf(ex / TS) + 1.0) * TS + r + 0.01
 			last_hit_x = true
 	p.y += delta.y
 	if delta.y != 0.0:
 		var ey := p.y + (r if delta.y > 0.0 else -r)
-		if solid_at(Vector2(p.x - r * 0.7, ey)) or solid_at(Vector2(p.x + r * 0.7, ey)):
+		if _blocked(Vector2(p.x - r * 0.7, ey)) or _blocked(Vector2(p.x + r * 0.7, ey)):
 			p.y = floorf(ey / TS) * TS - r - 0.01 if delta.y > 0.0 else (floorf(ey / TS) + 1.0) * TS + r + 0.01
 			last_hit_y = true
 	return p
+
+
+func _blocked(p: Vector2) -> bool:
+	return solid_at(p) if _fall_ok else body_solid_at(p)
 
 
 ## Line of sight. Crates block movement but not aim (spells smash them), so by default
@@ -921,7 +1091,7 @@ func los(a: Vector2, b: Vector2, crates_block := false) -> bool:
 	for k in range(1, n):
 		var q := a.lerp(b, float(k) / n)
 		var t := tile_at(floori(q.x / TS), floori(q.y / TS))
-		if t == 1 or t == 3 or (crates_block and t == 4):
+		if t == 1 or t == 3 or t == 6 or t == 7 or (crates_block and t == 4):
 			return false
 	return true
 
@@ -1435,7 +1605,7 @@ func walkable(x: int, y: int) -> bool:
 ## Whether a body of radius r can stand at p (its centre and four edge points are free).
 func body_fits(p: Vector2, r: float) -> bool:
 	for o in [Vector2.ZERO, Vector2(r, 0), Vector2(-r, 0), Vector2(0, r), Vector2(0, -r)]:
-		if solid_at(p + o):
+		if body_solid_at(p + o):
 			return false
 	return true
 
@@ -1606,8 +1776,19 @@ func _draw_deco() -> void:
 	var crate := _crate_texture()
 	for y in gh:
 		for x in gw:
-			if grid[y * gw + x] == 4:
-				_deco.draw_texture(crate, Vector2(x * TS, y * TS) + Vector2(1, 0))
+			match grid[y * gw + x]:
+				4:
+					_deco.draw_texture(crate, Vector2(x * TS, y * TS) + Vector2(1, 0))
+				6:
+					_deco.draw_texture(Props.bramble(), Vector2(x * TS, y * TS + 1))
+				8:
+					_deco.draw_texture(Props.pod(), Vector2(x * TS + 2, y * TS + 3))
+				9:
+					var ready: bool = pylon_cd.get(y * gw + x, 0.0) <= time
+					_deco.draw_texture(Props.pylon(ready), Vector2(x * TS + 3, y * TS - 5))
+	if treasure != Vector2.INF:
+		var ch := Props.chest(false)
+		_deco.draw_texture(ch, (treasure - Vector2(ch.get_width() / 2.0, ch.get_height() - 4)).round())
 
 
 func _draw_npc(n: Dictionary) -> void:
@@ -1627,6 +1808,11 @@ func _draw_npc(n: Dictionary) -> void:
 			var a := Props.anvil()
 			_deco.draw_texture(a, (p + Vector2(-a.get_width() / 2.0, 8 - a.get_height())).round())
 			_deco.draw_texture(Icons.glyph("anvil", Color("#ff8a3c")), (p + Vector2(-9, -30)).round())
+		&"altar", &"terminal":
+			var col := Color(Chapter.INFO[String(n["kind"])]["color"])
+			var al := Props.altar(col if not n["used"] else col.darkened(0.6))
+			_deco.draw_texture(al, (p + Vector2(-al.get_width() / 2.0, 8 - al.get_height())).round())
+			_deco.draw_texture(Icons.glyph("drop" if n["kind"] == &"altar" else "chip", col), (p + Vector2(-9, -30)).round())
 
 
 ## Additive glow on top of the actors: torch flames, door and orb shine, boss telegraphs.

@@ -7,6 +7,7 @@ extends RefCounted
 const SKIP_GOLD := 8
 const SLOT_PRICE := 60        # Forge: +1 slot on the wand in hand (D2)
 const SLOT_MAX := 10
+const ALTAR_COST := 0.15      # share of max HP an Altar pick costs (D5)
 const LOADOUT_TEXT := {
 	&"twig": "Quick and light: three slots, the first holds an Arcane Mote. Room to build.",
 	&"stub": "Slow and deep: two slots, the first holds an Ember Bolt, and a big mana pool.",
@@ -148,6 +149,24 @@ static func offer(run: RunState, kind: StringName) -> Array:
 		&"wand":
 			var w1 := roll_wand(run)
 			return [{"t": &"wand", "id": w1}, {"t": &"wand", "id": roll_wand(run, 1, [w1])}, _spells(run, [1])[0]]
+		&"secret":
+			# behind a cracked wall: a relic, a spell leaning rare, and a purse
+			var sec: Array = roll_relics(run, 1).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
+			sec.append(_spells(run, [1])[0])
+			sec.append({"t": &"gold", "id": &"gold", "v": 30})
+			return sec
+		&"altar":
+			# power for blood: every pick here costs 15% max HP (Rewards.grant pays it)
+			var alt: Array = _spells(run, [2, 2]).map(func(it: Dictionary) -> Dictionary:
+				it["hp_cost"] = ALTAR_COST
+				return it)
+			var ar := roll_relics(run, 1, 1)
+			if not ar.is_empty():
+				alt.append({"t": &"relic", "id": ar[0], "hp_cost": ALTAR_COST})
+			return alt
+		&"terminal":
+			# the Debug Terminal: a patch of your choice
+			return [{"t": &"slot", "id": &"slot"}, {"t": &"gold", "id": &"gold", "v": 40}, {"t": &"heal", "id": &"heal", "v": 35}]
 		&"glitch":
 			var g := roll_relics(run, 2, 0, true).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
 			g.append(_spells(run, [2])[0])
@@ -189,6 +208,9 @@ static func forge_price(lv: int) -> int:
 
 ## Gives an offer item to the run. False if it could not be taken (bag full).
 static func grant(run: RunState, item: Dictionary) -> bool:
+	if item.has("hp_cost"):
+		run.max_hp = maxf(20.0, roundf(run.max_hp * (1.0 - float(item["hp_cost"]))))
+		run.hp = minf(run.hp, run.max_hp)
 	match item["t"]:
 		&"spell":
 			return run.add_spell(item["id"])
@@ -230,6 +252,12 @@ static func item_title(item: Dictionary) -> String:
 
 
 static func item_desc(item: Dictionary) -> String:
+	if item.has("hp_cost"):
+		return "Costs %d%% of your max HP. " % roundi(float(item["hp_cost"]) * 100.0) + _desc(item)
+	return _desc(item)
+
+
+static func _desc(item: Dictionary) -> String:
 	match item["t"]:
 		&"spell":
 			return Catalog.spell(item["id"]).desc
