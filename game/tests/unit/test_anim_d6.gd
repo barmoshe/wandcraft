@@ -131,3 +131,15 @@ func test_hits_on_one_target_merge_into_one_number() -> void:
 	ok(fx.texts.size() == 2, "a hit after 150 ms starts a new number")
 	fx.number(Vector2.ZERO, 4.0, false, 7)
 	ok(fx.texts.size() == 3, "another target gets its own number")
+
+
+func test_walls_with_floor_behind_get_a_front_cap() -> void:
+	world.force_tpl = "pillars"
+	world.build_room("pillars", &"empty")
+	ok(not world._lips.is_empty(), "the pillar room has front-cap lips")
+	for s in world._lips:
+		var tx := int(s.position.x) / World.TS
+		var ty := int(s.position.y) / World.TS
+		ok(world._lip_at(tx, ty), "a lip sits on a wall tile with floor above it")
+		ok(s.get_parent() == world._actors, "lips are y-sorted with the actors")
+	ok(world.life.tufts.size() > 0, "the room has grass tufts")

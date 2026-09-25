@@ -219,6 +219,9 @@ var _vignette: Sprite2D
 var _vignette_tex: GradientTexture2D
 var _deco: Node2D
 var _decals: Node2D            # D6: telegraph decals on the floor, under the actors
+var life: AmbientLife          # D6: tufts, motes, leaves
+var _lips: Array[Sprite2D] = [] # D6: front-cap lips, y-sorted with the actors
+const LIP := 6                 # px a wall's cap rises above its tile
 var _actors: Node2D
 var _top: Node2D
 var _ambient: CanvasModulate
@@ -257,6 +260,9 @@ func setup(seed_value: int) -> void:
 	_decals = Node2D.new()
 	add_child(_decals)
 	_decals.draw.connect(_draw_decals)
+	life = AmbientLife.new()
+	life.setup(self)
+	add_child(life)
 	_actors = Node2D.new()
 	_actors.y_sort_enabled = true
 	add_child(_actors)
@@ -268,6 +274,7 @@ func setup(seed_value: int) -> void:
 	add_child(glow_layer)
 	_top = Node2D.new()
 	glow_layer.add_child(_top)
+	glow_layer.add_child(life.glow)
 	_top.draw.connect(_draw_top)
 	ebullets = BulletPool.new()
 	# normal blend so the dark rim shows on bright magic; drawn above the player's bullets
@@ -410,6 +417,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	cleared = false
 	_paint_seed = run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()
 	_repaint()
+	life.reset(_paint_seed)
 	_ambient.color = AMBIENT if biome() == 0 else AMBIENT.lerp(Style.c("violet:4"), 0.12)
 	var vs := RoomPainter.size_px(gw, gh)
 	_vignette_tex.width = vs.x
@@ -892,7 +900,42 @@ func biome() -> int:
 
 
 func _repaint() -> void:
-	_floor.texture = ImageTexture.create_from_image(RoomPainter.paint(grid, gw, gh, _paint_seed, biome()))
+	var img := RoomPainter.paint(grid, gw, gh, _paint_seed, biome())
+	_floor.texture = ImageTexture.create_from_image(img)
+	_rebuild_lips(img)
+
+
+## D6: the front-cap overlay (design-plan §7). A wall whose north side is open floor gets its
+## cap raised LIP px above its tile, as a sprite y-sorted with the actors at the tile's top:
+## anything standing behind it (feet above that line) has its feet hidden by the wall, so
+## pillars and the south wall read as solid in front of you. One sprite per horizontal run.
+func _rebuild_lips(img: Image) -> void:
+	for s in _lips:
+		s.queue_free()
+	_lips.clear()
+	var o := RoomPainter.MARGIN * TS
+	for y in gh:
+		var x := 0
+		while x < gw:
+			if not _lip_at(x, y):
+				x += 1
+				continue
+			var x0 := x
+			while x < gw and _lip_at(x, y):
+				x += 1
+			var region := img.get_region(Rect2i(o.x + x0 * TS, o.y + y * TS, (x - x0) * TS, LIP))
+			var s := Sprite2D.new()
+			s.texture = ImageTexture.create_from_image(region)
+			s.centered = false
+			s.position = Vector2(x0 * TS, y * TS)
+			s.offset = Vector2(0, -LIP)
+			_actors.add_child(s)
+			_lips.append(s)
+
+
+func _lip_at(x: int, y: int) -> bool:
+	var t := tile_at(x, y)
+	return (t == 1 or t == 3 or t == 7) and y > 0 and tile_at(x, y - 1) != 1 and tile_at(x, y - 1) != 3 and tile_at(x, y - 1) != 7
 
 
 ## Smashes the crate at a tile (spells do this; enemy shots don't). Drops a little gold.
