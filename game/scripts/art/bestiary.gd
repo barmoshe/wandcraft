@@ -354,40 +354,112 @@ static func loop_head(open: bool) -> Texture2D:
 		return PixelArt.layered(24, 14, [[d["top"], Vector2i(0, 0)], [d["jaw_open"] if open else d["jaw"], Vector2i(0, 9)]], d["pal"]))
 
 
+## D6: the Infinite Loop's head as a rig: chomp while it laps, rear up and glow while it
+## winds up, gape while it acts, and roar (a one-shot) on a phase change.
+static func loop_rig() -> RigDef:
+	if _rigs.has("loop_head"):
+		return _rigs["loop_head"]
+	var d := LOOP_HEAD
+	var r := RigDef.new()
+	r.id = "loop_head"
+	r.w = 24
+	r.h = 14 + HEADROOM
+	r.pal = d["pal"]
+	r.add_part("jaw", d["jaw"], Vector2i(0, 9 + HEADROOM))
+	r.add_part("top", d["top"], Vector2i(0, HEADROOM))
+	var hot := {"y": "threat:3", "Y": "threat:4", "c": "threat:4"}
+	var gape := {"rows": d["jaw_open"]}
+	r.add_clip("chomp", 6.0, true, [{}, {"jaw": Vector2i(0, 1)}, {"jaw": gape}, {"jaw": Vector2i(0, 1)}])
+	r.add_clip("tele", 10.0, true, [
+		{"jaw": gape, "top": Vector2i(0, -1), "_recolor": hot},
+		{"jaw": gape, "top": Vector2i(0, -2), "_recolor": hot},
+	])
+	r.add_clip("act", 8.0, true, [{"jaw": gape}, {"jaw": {"rows": d["jaw_open"], "off": Vector2i(0, 1)}}])
+	r.add_clip("roar", 8.0, false, [
+		{"jaw": gape, "top": Vector2i(0, -1)},
+		{"jaw": {"rows": d["jaw_open"], "off": Vector2i(0, 1)}, "top": Vector2i(0, -2), "_recolor": hot},
+		{"jaw": {"rows": d["jaw_open"], "off": Vector2i(0, 1)}, "top": Vector2i(0, -2)},
+		{"jaw": gape, "top": Vector2i(0, -1), "_recolor": hot},
+	])
+	_rigs["loop_head"] = r
+	return r
+
+
+## One head frame pre-rotated to 16 headings (index k points along TAU * k / 16). Headings
+## that point left use the frame flipped upside down first, so the head never swims on its
+## back. Baked on first use and kept.
+static func loop_head_views(clip: String, i: int) -> Array[Texture2D]:
+	var key := "%s_%d" % [clip, i]
+	if _views.has(key):
+		return _views[key]
+	var src := (clips_of(loop_rig())[clip][i] as Texture2D).get_image()
+	var flipped := src.duplicate() as Image
+	flipped.flip_y()
+	var piv := Vector2(src.get_width() / 2.0, src.get_height() / 2.0)
+	var up := RigBaker.rotations(src, piv, 16)
+	var down := RigBaker.rotations(flipped, piv, 16)
+	var out: Array[Texture2D] = []
+	for k in 16:
+		out.append(PixelArt.tex(down[k] if cos(TAU * k / 16.0) < -0.01 else up[k]))
+	_views[key] = out
+	return out
+
+
+## Baked clips of any rig, cached by rig id.
+static func clips_of(r: RigDef) -> Dictionary:
+	if not _clips.has(r.id):
+		_clips[r.id] = RigBaker.bake(r)
+	return _clips[r.id]
+
+
 ## Copy-Paste: a glitched copy of the hero. Magenta and night palette, and scan-line tears
 ## (rows shifted sideways) that move from frame to frame.
 static func clone_frames() -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
 	var src: Array = Hero.frames()
 	for i in src.size():
-		out.append(PixelArt.cached("bx_clone_%d" % i, func() -> Image:
-			var img: Image = (src[i] as Texture2D).get_image()
-			img.convert(Image.FORMAT_RGBA8)
-			var w := img.get_width()
-			var h := img.get_height()
-			var ramp_hi: Array = Style.RAMPS["glitch"]
-			var ramp_lo: Array = Style.RAMPS["night"]
-			for j in h:
-				for x in w:
-					var c := img.get_pixel(x, j)
-					if c.a == 0.0:
-						continue
-					var v := c.get_luminance()
-					var nc := Color(ramp_hi[clampi(int(v * 5.0) + 1, 1, 4)])
-					if v < 0.12:
-						nc = Color(ramp_lo[3])
-					if v > 0.8:
-						nc = Color("#dffcff")   # highlights go cyan-white
-					img.set_pixel(x, j, Color(nc.r, nc.g, nc.b, c.a))
-			# scan-line tears: two bands shifted by 2px, position depends on the frame
-			var tear := img.duplicate() as Image
-			for band in [[6 + i * 3 % 12, 2, 2], [18 + i * 5 % 9, 1, -2]]:
-				for j in range(band[0], mini(h, band[0] + band[1])):
-					for x in w:
-						var sx := x - int(band[2])
-						tear.set_pixel(x, j, img.get_pixel(sx, j) if sx >= 0 and sx < w else Color(0, 0, 0, 0))
-			return tear))
+		out.append(PixelArt.cached("bx_clone_%d" % i, func() -> Image: return glitch((src[i] as Texture2D).get_image(), i)))
 	return out
+
+
+## D6: every hero clip, glitched (Copy-Paste moves with the hero's own rig).
+static func clone_clips() -> Dictionary:
+	if _clips.has("clone"):
+		return _clips["clone"]
+	var out := {}
+	var src := Hero.clips(false)
+	for k in src:
+		var fr: Array[Texture2D] = []
+		for i in (src[k] as Array).size():
+			var tex: Texture2D = src[k][i]
+			fr.append(PixelArt.cached("bx_clone_%s_%d" % [k, i], func() -> Image: return glitch(tex.get_image(), i)))
+		out[k] = fr
+	_clips["clone"] = out
+	return out
+
+
+## The Copy-Paste look: the glitch and night ramps by brightness, cyan-white highlights, and
+## two scan-line tears whose rows depend on `i`, so the tears move from frame to frame.
+static func glitch(src_img: Image, i: int) -> Image:
+	var img := src_img.duplicate() as Image
+	img.convert(Image.FORMAT_RGBA8)
+	var w := img.get_width()
+	var h := img.get_height()
+	var ramp_hi: Array = Style.RAMPS["glitch"]
+	var ramp_lo: Array = Style.RAMPS["night"]
+	for j in h:
+		for x in w:
+			var c := img.get_pixel(x, j)
+			if c.a == 0.0:
+				continue
+			var v := c.get_luminance()
+			var nc := Color(ramp_hi[clampi(int(v * 5.0) + 1, 1, 4)])
+			if v < 0.12:
+				nc = Color(ramp_lo[3])
+			if v > 0.8:
+				nc = Color("#dffcff")   # highlights go cyan-white
+			img.set_pixel(x, j, Color(nc.r, nc.g, nc.b, c.a))
+	return RigBaker.tear(img, [[6 + i * 3 % 12, 2, 2], [18 + i * 5 % 9, 1, -2]])
 
 
 ## D6: what each enemy's eyes turn into while it winds up an attack. Telegraphs are enemy
@@ -410,6 +482,7 @@ const HEADROOM := 2
 
 static var _rigs := {}
 static var _clips := {}
+static var _views := {}
 
 
 ## D6: an enemy as a rig (design-plan §8: move 4, telegraph 2, attack 2; the hurt flash is the

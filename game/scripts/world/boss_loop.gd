@@ -53,6 +53,11 @@ func _init_boss() -> void:
 	center = world.room_size() / 2.0 + Vector2(0, 6)
 	radius = minf(world.room_size().x * 0.3, 96.0)
 	frames = [Bestiary.loop_head(false), Bestiary.loop_head(true)]
+	# bake every head frame at all 16 headings now, not mid-fight
+	var head := Bestiary.loop_rig()
+	for c in head.clips:
+		for i in (head.clips[c]["poses"] as Array).size():
+			Bestiary.loop_head_views(c, i)
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	add_child(sprite)
@@ -221,10 +226,32 @@ func _end(m: StringName) -> void:
 		ang = atan2((position.y - center.y) / 0.75, position.x - center.x)
 
 
+var _head_clip := "chomp"
+var _head_t := 0.0
+
+
+func _head_pick() -> String:
+	if invuln > 0.0 and phase > 0:
+		return "roar"
+	if sm == &"tele":
+		return "tele"
+	if sm == &"act":
+		return "act"
+	return "chomp"
+
+
 func _animate() -> void:
-	sprite.texture = frames[1 if sm == &"tele" or sm == &"act" else 0]
-	sprite.rotation = (trail[0] - trail[mini(3, trail.size() - 1)]).angle() if trail.size() > 3 else 0.0
-	sprite.flip_v = cos(sprite.rotation) < 0.0
+	# the head is drawn pre-rotated (D6), never rotated as a sprite
+	var want := _head_pick()
+	if want != _head_clip:
+		_head_clip = want
+		_head_t = 0.0
+	_head_t += get_physics_process_delta_time()
+	var heading := (trail[0] - trail[mini(3, trail.size() - 1)]).angle() if trail.size() > 3 else 0.0
+	var k := posmod(roundi(heading / (TAU / 16.0)), 16)
+	var views := Bestiary.loop_head_views(want, Bestiary.loop_rig().frame_at(want, _head_t))
+	if sprite.texture != views[k]:
+		sprite.texture = views[k]
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
 	queue_redraw()
 

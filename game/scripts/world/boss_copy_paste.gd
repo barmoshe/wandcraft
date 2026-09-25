@@ -221,9 +221,23 @@ func tick(dt: float) -> void:
 		ghost.sprite.modulate.a = 0.75
 
 
+## D6: the copy moves on the hero's own rig: it runs, crouches to wind up (the dash's first
+## frame), casts in a loop while it acts, and flinches (the hurt clip) on a phase change.
+func _clip_now() -> String:
+	if invuln > 0.0 and phase > 0:
+		return "hurt"
+	if sm == &"act":
+		return "cast"
+	if sm == &"tele":
+		return "dash"
+	return "run"
+
+
 func _animate() -> void:
-	var moving := true
-	sprite.texture = frames[6 if sm == &"act" else (2 + int(t * 8.0) % 4 if moving else 0)]
+	var clip := _clip_now()
+	var fr: Array = Bestiary.clone_clips()[clip]
+	var i := 0 if clip == "dash" else (int(t * 12.0) % fr.size() if clip != "hurt" else mini(fr.size() - 1, int(invuln * 10.0) % 2))
+	sprite.texture = fr[i]
 	sprite.flip_h = world.player.position.x < position.x
 	sprite.scale = Vector2(SCALE, SCALE)
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))

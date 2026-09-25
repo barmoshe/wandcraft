@@ -54,6 +54,20 @@ static func anim(s: Node) -> void:
 			var fr: Array = c[clip]
 			for i in fr.size():
 				s.add("%s %d" % [clip, i], fr[i])
+	var lc := Bestiary.clips_of(Bestiary.loop_rig())
+	for clip in lc:
+		s.section("loop head: %s" % clip)
+		for i in (lc[clip] as Array).size():
+			s.add("%d" % i, lc[clip][i])
+	s.section("loop head, 16 headings (chomp 0)")
+	var lv := Bestiary.loop_head_views("chomp", 0)
+	for i in lv.size():
+		s.add("%d" % i, lv[i])
+	var cc := Bestiary.clone_clips()
+	s.section("copy-paste: run | cast | hurt")
+	for clip in ["run", "cast", "hurt"]:
+		for i in (cc[clip] as Array).size():
+			s.add("%s %d" % [clip, i], cc[clip][i])
 	s.section("death poof")
 	var pf := FxLayer.poof_frames()
 	for i in pf.size():

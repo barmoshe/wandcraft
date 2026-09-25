@@ -25,7 +25,7 @@ func _ready() -> void:
 	_collect()
 	# draw into a fixed-size offscreen viewport, independent of the window
 	var vp := SubViewport.new()
-	vp.size = Vector2i(1800, 4000)
+	vp.size = Vector2i(1800, 9000)
 	vp.transparent_bg = false
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
