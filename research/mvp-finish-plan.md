@@ -60,3 +60,7 @@ from the Linux container, the stress roster pinned.
 - `5f5c13a` HUD icons (Bar, mid-D6): pre-rotated per-gem wand badge, ramp-drawn coin/pause/bag/heart/drop, in-cell 3x5 relic counters; 163/163.
 - `ef4ae82` D6 close-out: ADR 0018, 0.11.0 (build 13); web live at ef4ae82 (checked in the browser, no console errors); APK 0.11.0 built. Bench: see balance-w1.md.
 - `83f28b4` D6 muzzle fix: bench back to 80/10 (identical to D7); the 90/0 reading came from a 1 px muzzle shift, not the Mac.
+- `05bf6f5` D8.1-3: BS.1770 meter, 5 generated cues + 5 stingers, 84 effects with variants, licence manifest.
+- `d02d6c1` D8.4: buses + sidechain duck, voice classes, layered/interactive music, stingers, haptics, all sounds wired.
+- `2a84448` D8.5: credits screen (engine licences), web music-bus check.
+- `8fdc714` perf/tests: O(1) number merge; stress test = best-of-2 quiet quartile (desktop load swings the mean 9-18 ms); 168/168.
