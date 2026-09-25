@@ -1,8 +1,9 @@
 class_name RoomPainter
 extends RefCounted
-## Bakes a room into one image (0.4, decisions/0007): the Ruined Grove.
-##   - floor: cool slate flagstones with cracks, moss creeping in from the walls, the odd
-##     puddle, root and flower, kept low-contrast so actors always read on top of it
+## Bakes a room into one image (0.4, decisions/0007; D1 art pass): the Ruined Grove.
+##   - floor: QUIET by design (D1, research/design-research.md §3): a narrow 3-value band,
+##     large calm patches, faint flagstone joints on a 2-tile grid and small stamps (pebbles,
+##     cracks) in clusters with empty floor between. Actors carry the contrast, not the floor.
 ##   - walls: moss-topped caps and a brick face with broken bricks and moss drips
 ##   - surroundings: MARGIN tiles of overgrown ruin around the room (canopy, trunks, broken
 ##     pillars), so wide phone screens show the grove instead of black bars
@@ -34,11 +35,7 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 	var wallish := func(t: int) -> bool: return t == 1 or t == 3
 	_surroundings(img, gw, gh, rng)
 	# floors
-	for y in gh:
-		for x in gw:
-			if wallish.call(at.call(x, y)):
-				continue
-			_stones(img, O.x + x * TS, O.y + y * TS, rng)
+	_floor(img, gw, gh, at, wallish, rng, seed_value)
 	# moss creeping from the walls (noise, biased toward wall-adjacent tiles)
 	for y in gh:
 		for x in gw:
@@ -53,13 +50,11 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 					var px := x * TS + i
 					var py := y * TS + j
 					var n := noise.get_noise_2d(px, py) * 0.5 + 0.5 + near
-					if n > 0.72:
-						var c := Style.c("moss:1").lerp(Style.c("moss:2"), 0.5) if n < 0.8 else Style.c("moss:2")
-						if n > 0.9:
-							c = Style.c("moss:2").lerp(Style.c("moss:3"), 0.5)
+					if n > 0.76:
+						var c := Style.c("moss:1").lerp(Style.c("slate:2"), 0.35) if n < 0.86 else Style.c("moss:1")
 						img.fill_rect(Rect2i(O.x + px, O.y + py, 2, 2), c)
-					elif n > 0.68 and (i + j) % 4 == 0:
-						img.fill_rect(Rect2i(O.x + px, O.y + py, 1, 1), Style.c("moss:1"))
+					elif n > 0.72 and (i + j) % 4 == 0:
+						img.fill_rect(Rect2i(O.x + px, O.y + py, 1, 1), Style.c("moss:1").lerp(Style.c("slate:2"), 0.5))
 	# details: puddles, roots, flowers, tufts; then hazard plates on top
 	var puddles := 0
 	for y in range(2, gh - 1):
@@ -69,12 +64,12 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 			var X := O.x + x * TS
 			var Y := O.y + y * TS
 			var r := rng.randf()
-			if r < 0.02 and puddles < 3:
+			if r < 0.015 and puddles < 2:
 				puddles += 1
 				_puddle(img, X + 2, Y + 4, rng)
-			elif r < 0.07:
+			elif r < 0.045:
 				_tuft(img, X + 2 + rng.randi_range(0, 10), Y + 6 + rng.randi_range(0, 7), rng)
-			elif r < 0.10:
+			elif r < 0.06:
 				_flowers(img, X + rng.randi_range(2, 12), Y + rng.randi_range(3, 12), rng)
 	for y in gh:
 		for x in gw:
@@ -105,6 +100,71 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int) -> I
 
 
 # ------------------------------------------------------------------ floor
+
+## The floor as one surface: base value, calm low-frequency patches (dithered only where
+## two values meet), faint joints every 2 tiles, and clustered stamps.
+const BAYER4 := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+
+
+static func _floor(img: Image, gw: int, gh: int, at: Callable, wallish: Callable, rng: RandomNumberGenerator, seed_value: int) -> void:
+	var O := MARGIN * TS
+	var f0 := Style.c("slate:2").lerp(Style.c("slate:1"), 0.3)
+	var f1 := Style.c("slate:2")
+	var f2 := Style.c("slate:2").lerp(Style.c("slate:3"), 0.2)
+	var patches := FastNoiseLite.new()
+	patches.seed = seed_value + 7
+	patches.frequency = 0.018
+	patches.fractal_octaves = 2
+	for y in gh:
+		for x in gw:
+			if wallish.call(at.call(x, y)):
+				continue
+			var X := O.x + x * TS
+			var Y := O.y + y * TS
+			for j in TS:
+				for i in TS:
+					var n := patches.get_noise_2d(x * TS + i, y * TS + j)
+					var th := (float(BAYER4[(j % 4) * 4 + (i % 4)]) / 16.0 - 0.5) * 0.08
+					var c := f1
+					if n + th < -0.22:
+						c = f0
+					elif n + th > 0.26:
+						c = f2
+					img.set_pixel(X + i, Y + j, c)
+			# faint flagstone joints on a 2-tile grid, broken up
+			if x % 2 == 0 and rng.randf() < 0.55:
+				var len := rng.randi_range(6, 16)
+				img.fill_rect(Rect2i(X, Y + rng.randi_range(0, TS - len), 1, len), f0)
+			if y % 2 == 0 and rng.randf() < 0.55:
+				var len2 := rng.randi_range(6, 16)
+				img.fill_rect(Rect2i(X + rng.randi_range(0, TS - len2), Y, len2, 1), f0)
+	# clustered stamps: pebbles and cracks near a few centers, empty floor between
+	var clusters := maxi(3, gw * gh / 22)
+	for k in clusters:
+		var cx := rng.randi_range(1, gw - 2)
+		var cy := rng.randi_range(1, gh - 2)
+		if wallish.call(at.call(cx, cy)):
+			continue
+		var cpx := O.x + cx * TS + TS / 2
+		var cpy := O.y + cy * TS + TS / 2
+		for m in rng.randi_range(2, 5):
+			var p := Vector2i(cpx + rng.randi_range(-12, 12), cpy + rng.randi_range(-10, 10))
+			var tx := (p.x - O.x) / TS
+			var ty := (p.y - O.y) / TS
+			if wallish.call(at.call(tx, ty)):
+				continue
+			if rng.randf() < 0.6:
+				# a pebble: lit top pixel over a dark one
+				img.set_pixel(p.x, p.y, Style.c("slate:3"))
+				img.set_pixel(p.x + 1, p.y, Style.c("slate:3").lerp(f2, 0.5))
+				img.set_pixel(p.x, p.y + 1, Style.c("slate:1"))
+			else:
+				# a hairline crack
+				var q := p
+				for s2 in rng.randi_range(3, 6):
+					img.set_pixel(q.x, q.y, Style.c("slate:1"))
+					q += Vector2i(1 if rng.randf() < 0.5 else 0, 1)
+
 
 static func _stones(img: Image, X: int, Y: int, rng: RandomNumberGenerator) -> void:
 	img.fill_rect(Rect2i(X, Y, TS, TS), Style.c("slate:0"))
@@ -154,7 +214,7 @@ static func _tuft(img: Image, x: int, y: int, rng: RandomNumberGenerator) -> voi
 		var h := 2 + rng.randi_range(0, 3) - absi(k - 2)
 		if h <= 0:
 			continue
-		img.fill_rect(Rect2i(x + k, y - h, 1, h), Style.c("leaf:3") if k % 2 else Style.c("leaf:2"))
+		img.fill_rect(Rect2i(x + k, y - h, 1, h), Style.c("moss:2") if k % 2 else Style.c("moss:1"))
 
 
 static func _flowers(img: Image, x: int, y: int, rng: RandomNumberGenerator) -> void:
@@ -182,12 +242,13 @@ static func _spike_plate(img: Image, X: int, Y: int) -> void:
 static func _wall(img: Image, X: int, Y: int, x: int, y: int, at: Callable, wallish: Callable, rng: RandomNumberGenerator) -> void:
 	var open: bool = not wallish.call(at.call(x, y + 1))
 	var top_h := TS - FACE if open else TS
-	var cap := Style.c("slate:1").lerp(Style.c("stone:1"), 0.4)
+	# caps are LIGHTER than the floor and faces darker, so the room edge reads at a glance (D1)
+	var cap := Style.c("stone:3").lerp(Style.c("stone:2"), 0.35)
 	img.fill_rect(Rect2i(X, Y, TS, top_h), cap)
 	# cap slabs with a seam and a lit top edge
 	var seam := 8 if (x + y) % 2 else 5
-	img.fill_rect(Rect2i(X + seam, Y, 1, top_h), Style.c("night:2"))
-	img.fill_rect(Rect2i(X, Y, TS, 1), cap.lerp(Style.c("slate:3"), 0.4))
+	img.fill_rect(Rect2i(X + seam, Y, 1, top_h), Style.c("stone:2"))
+	img.fill_rect(Rect2i(X, Y, TS, 1), cap.lerp(Style.c("stone:4"), 0.45))
 	# moss on the cap, heavier where the cap faces the room
 	if not wallish.call(at.call(x, y - 1)) or rng.randf() < 0.35:
 		for k in rng.randi_range(3, 8):
@@ -195,14 +256,14 @@ static func _wall(img: Image, X: int, Y: int, x: int, y: int, at: Callable, wall
 			img.fill_rect(Rect2i(mx, Y, rng.randi_range(2, 4), 2), Style.c("moss:2"))
 			img.set_pixel(mx, Y, Style.c("moss:3"))
 	if not wallish.call(at.call(x - 1, y)):
-		img.fill_rect(Rect2i(X, Y, 1, top_h), cap.lerp(Style.c("slate:3"), 0.25))
+		img.fill_rect(Rect2i(X, Y, 1, top_h), cap.lerp(Style.c("stone:4"), 0.25))
 	if not wallish.call(at.call(x + 1, y)):
 		img.fill_rect(Rect2i(X + TS - 1, Y, 1, top_h), Style.c("night:1"))
 	if not open:
 		return
 	# the brick face
 	var fy := Y + TS - FACE
-	img.fill_rect(Rect2i(X, fy, TS, FACE), Style.c("stone:0"))
+	img.fill_rect(Rect2i(X, fy, TS, FACE), Style.c("night:3"))
 	for row in 3:
 		var by := fy + 1 + row * 3
 		var off := 0 if (row + x) % 2 else 4
@@ -214,11 +275,11 @@ static func _wall(img: Image, X: int, Y: int, x: int, y: int, at: Callable, wall
 				if rng.randf() < 0.07:
 					img.fill_rect(Rect2i(x0, by, x1 - x0, 2), Style.c("night:1"))   # a missing brick
 				else:
-					var c := Style.c("stone:2").lerp(Style.c("stone:1"), row * 0.28 + rng.randf() * 0.25)
+					var c := Style.c("stone:1").lerp(Style.c("stone:0"), row * 0.3 + rng.randf() * 0.2)
 					img.fill_rect(Rect2i(x0, by, x1 - x0, 2), c)
-					img.fill_rect(Rect2i(x0, by, x1 - x0, 1), c.lerp(Style.c("stone:3"), 0.45))
+					img.fill_rect(Rect2i(x0, by, x1 - x0, 1), c.lerp(Style.c("stone:2"), 0.5))
 			bx += 8
-	img.fill_rect(Rect2i(X, fy, TS, 1), Style.c("stone:3"))
+	img.fill_rect(Rect2i(X, fy, TS, 1), Style.c("stone:2"))
 	img.fill_rect(Rect2i(X, Y + TS - 1, TS, 1), Style.c("night:0"))
 	if rng.randf() < 0.35:
 		# moss drips from the cap
@@ -270,9 +331,23 @@ static func _surroundings(img: Image, gw: int, gh: int, rng: RandomNumberGenerat
 			continue
 		blobs += 1
 		var dark := rng.randf() < 0.5
-		PixelArt.disc(img, c, r, Style.c("leaf:0") if dark else Style.c("moss:0"))
-		PixelArt.disc(img, c + Vector2(-r * 0.18, -r * 0.2), r * 0.78, Style.c("leaf:1") if dark else Style.c("moss:1"))
-		PixelArt.disc(img, c + Vector2(-r * 0.35, -r * 0.38), r * 0.42, Style.c("leaf:2") if dark else Style.c("moss:2"))
+		var base := Style.c("leaf:0") if dark else Style.c("moss:0")
+		var mid := Style.c("leaf:1") if dark else Style.c("moss:1")
+		var hi := Style.c("leaf:2") if dark else Style.c("moss:2")
+		PixelArt.disc(img, c, r, base)
+		# leaf clusters instead of concentric discs: lighter toward the top-left light
+		for m in int(r * 1.6):
+			var a := rng.randf() * TAU
+			var d := sqrt(rng.randf()) * r * 0.85
+			var lp := c + Vector2.from_angle(a) * d
+			var lit := (lp - c).dot(Vector2(-0.7, -0.7)) / r
+			if lit < -0.35:
+				continue
+			var col := hi if lit > 0.35 else mid
+			var ip := Vector2i(lp.round())
+			img.fill_rect(Rect2i(ip.x, ip.y, 3, 2).intersection(Rect2i(0, 0, W, H)), col)
+			if lit > 0.55 and ip.x >= 0 and ip.y >= 0 and ip.x < W and ip.y < H:
+				img.set_pixel(ip.x, ip.y, hi.lerp(Style.c("leaf:3"), 0.4))
 	# broken pillar stubs peeking out of the undergrowth
 	for k in 6:
 		var x := rng.randi_range(8, W - 24)

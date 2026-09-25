@@ -3,6 +3,8 @@ extends RefCounted
 ## Projectile sprites for 0.4 (decisions/0007): every flying spell has its own look.
 ## All frames live in one atlas strip of CELL x CELL cells so the player BulletPool still
 ## draws every bullet in one MultiMesh call (a shader picks the cell per instance).
+## Player magic stays in cool colors and gold (D1): red is reserved for enemy threat, and
+## pink is left to the Glitch-bodied enemies, so a projectile's color says whose it is.
 ## Cell 0 is the generic white core, tinted per bullet (shards, split bolts, the fan's
 ## rainbow). Sprites face right (+x); "dir" sprites rotate with the flight direction,
 ## the others spin. Drawn additive, so dark pixels simply do not show: art is light.
@@ -18,11 +20,11 @@ const ART := {
 	"needle": [[
 		["............", "............", "............", "............", "............", "1122333444ww", "............", "............"],
 		["............", "............", "............", "............", "............", "..1223344www", "............", "............"],
-	], {"1": "glitch:2", "2": "cyan:2", "3": "cyan:3", "4": "cyan:4", "w": "#ffffff"}, true],
+	], {"1": "arcane:2", "2": "cyan:2", "3": "cyan:3", "4": "cyan:4", "w": "#ffffff"}, true],
 	"moths": [[
 		["............", "............", "...33.......", "...344......", "....4w4.....", "...344......", "...33.......", "............"],
 		["............", "............", "............", "....44......", "..334w4.....", "....44......", "............", "............"],
-	], {"3": "rose:3", "4": "rose:4", "w": "#ffffff"}, true],
+	], {"3": "gold:3", "4": "gold:4", "w": "#ffffff"}, true],
 	"frost": [[
 		["............", "............", "............", ".....3......", "..1233w4....", "123344ww4...", "..1233w4....", ".....3......", "............"],
 	], {"1": "frost:1", "2": "frost:2", "3": "frost:3", "4": "frost:4", "w": "#ffffff"}, true],
@@ -47,7 +49,7 @@ const ART := {
 	"mine": [[
 		["............", "............", ".....3......", "...3.33.3...", "....3333....", "..3334w333..", "....3333....", "...3.33.3...", ".....3......", "............"],
 		["............", "............", ".....3......", "...3.33.3...", "....3333....", "..33333333..", "....3333....", "...3.33.3...", ".....3......", "............"],
-	], {"3": "glitch:2", "4": "glitch:4", "w": "#ffffff"}, false],
+	], {"3": "violet:3", "4": "violet:4", "w": "#ffffff"}, false],
 	"null_orb": [[
 		["....3333....", "..33....33..", ".3...11...3.", ".3..1..1..3.", "3..1....1..3", "3.1..44..1.3", "3.1..44..1.3", "3..1....1..3", ".3..1..1..3.", ".3...11...3.", "..33....33..", "....3333...."],
 		["....3333....", "..34....43..", ".3...11...3.", ".4..1..1..4.", "3..1....1..3", "3.1..ww..1.3", "3.1..ww..1.3", "3..1....1..3", ".4..1..1..4.", ".3...11...3.", "..34....43..", "....3333...."],

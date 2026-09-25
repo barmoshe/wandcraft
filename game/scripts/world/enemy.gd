@@ -16,11 +16,25 @@ const DEFS := {
 		"shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.6}},
 }
 
+## Hit flash, status recolor and elite outline in one pass (D1). Statuses recolor along a
+## Style ramp by brightness (so a burning enemy stays in palette, not tinted), and an elite's
+## INK outline pixels take its affix color.
 const FLASH_SHADER := """
 shader_type canvas_item;
 uniform float flash = 0.0;
+uniform float tint = 0.0;
+uniform vec3 ramp0; uniform vec3 ramp1; uniform vec3 ramp2; uniform vec3 ramp3; uniform vec3 ramp4;
+uniform vec4 outline_col = vec4(0.0);
 void fragment() {
 	vec4 c = texture(TEXTURE, UV) * COLOR;
+	if (outline_col.a > 0.0 && c.a > 0.0 && max(max(c.r, c.g), c.b) < 0.1) {
+		c.rgb = outline_col.rgb;
+	}
+	if (tint > 0.0) {
+		float l = clamp(dot(c.rgb, vec3(0.299, 0.587, 0.114)) * 1.6, 0.0, 1.0) * 4.0;
+		vec3 r = l < 1.0 ? mix(ramp0, ramp1, l) : l < 2.0 ? mix(ramp1, ramp2, l - 1.0) : l < 3.0 ? mix(ramp2, ramp3, l - 2.0) : mix(ramp3, ramp4, l - 3.0);
+		c.rgb = mix(c.rgb, r, tint);
+	}
 	COLOR = vec4(mix(c.rgb, vec3(1.0), flash), c.a);
 }
 """
@@ -68,7 +82,8 @@ var _st_tick := 0.0
 var forward: Enemy          # body parts pass their damage to this (a boss)
 var fwd_mul := 1.0
 var sprite: Sprite2D
-const ELITE_SCALE := 1.25
+var _tinted := ""
+var _base_off := 0.0
 ## Where shots leave, relative to the feet (half the sprite height).
 var muzzle := Vector2(0, -6)
 var frames: Array[Texture2D]
@@ -98,11 +113,13 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 2.0)
-	if elite:
-		sprite.scale = Vector2(ELITE_SCALE, ELITE_SCALE)
+	_base_off = sprite.offset.y
 	_mat = ShaderMaterial.new()
 	_mat.shader = _flash_shader()
 	sprite.material = _mat
+	if elite:
+		# elites keep pixel-perfect size and show a gold outline (affix colors come with D4)
+		_mat.set_shader_parameter("outline_col", Style.c("gold:3"))
 	sprite.visible = false
 	add_child(sprite)
 
@@ -273,9 +290,16 @@ func _animate() -> void:
 	sprite.texture = frames[int(t * 4.0 + ph) % 2]
 	sprite.flip_h = face < 0
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
-	sprite.modulate = Color(0.6, 0.85, 1.3) if chill_t > 0.0 else (Color(1.3, 0.85, 0.6) if burn_t > 0.0 else Color.WHITE)
-	var sq := 1.0 + sin(t * 8.0 + ph) * 0.06 if ai != &"turret" else 1.0
-	sprite.scale = Vector2(1.0 / sq, sq) * (ELITE_SCALE if elite else 1.0)
+	var st := "frost" if chill_t > 0.0 else ("ember" if burn_t > 0.0 else "")
+	if st != _tinted:
+		_tinted = st
+		_mat.set_shader_parameter("tint", 0.55 if st != "" else 0.0)
+		if st != "":
+			for k in 5:
+				_mat.set_shader_parameter("ramp%d" % k, Style.c("%s:%d" % [st, k]))
+	# a whole-pixel bob instead of a fractional squash (that smeared pixels, D1)
+	if ai != &"turret":
+		sprite.offset.y = _base_off - (1.0 if sin(t * 8.0 + ph) > 0.4 else 0.0)
 	queue_redraw()
 
 
@@ -286,7 +310,7 @@ func shoot(ang: float) -> void:
 	for i in n:
 		var a := off + TAU * i / n if shot.get("ring", false) else ang
 		world.enemy_shoot(position + muzzle * sprite.scale.y, a, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
-	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Color("#ff5a7a"))
+	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Style.c("threat:3"))
 
 
 func _draw() -> void:
@@ -297,7 +321,7 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, r + 1.0, Color(0, 0, 0, 0.4))
 	draw_set_transform(Vector2.ZERO)
 	if state == &"tele":
-		draw_line(muzzle, Vector2.from_angle(aim_a) * 60.0 + muzzle, Color(1, 0.3, 0.3, 0.5), 1.0)
+		draw_line(muzzle, Vector2.from_angle(aim_a) * 60.0 + muzzle, Color(Style.c("threat:3"), 0.6), 1.0)
 	if hp < max_hp:
 		var w := r * 2.0 + 2.0
 		var y := -float(frames[0].get_height()) * sprite.scale.y - 1.0

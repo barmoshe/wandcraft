@@ -1,5 +1,7 @@
 class_name Bestiary
 extends RefCounted
+## D1: the weaver, ram and sentry palettes are lifted a step so their bodies pass the
+## grayscale value test against the floor (tools/artsheet.sh check).
 ## Enemies and bosses, drawn for 0.4 (decisions/0007). Each enemy is a body layer plus an
 ## optional second layer (legs, drips, a sprout) so frames animate by moving parts:
 ##   frame 0: rest      frame 1: the "b" layer offset by "bo" (a step or a squash)
@@ -33,7 +35,7 @@ const ART := {
 	},
 	"weaver": {
 		"w": 22, "h": 16,
-		"pal": {"1": "violet:0", "2": "violet:1", "3": "violet:2", "4": "violet:3", "r": "blood:2", "R": "blood:4",
+		"pal": {"1": "violet:2", "2": "violet:3", "3": "violet:4", "4": "bone:4", "r": "blood:2", "R": "blood:4",
 			"o": "night:0", "L": "violet:1", "l": "violet:2", "g": "glitch:3", "G": "glitch:4"},
 		"a": [
 			".......1222221........",
@@ -63,7 +65,7 @@ const ART := {
 	},
 	"ram": {
 		"w": 23, "h": 16,
-		"pal": {"1": "wood:0", "2": "wood:1", "3": "wood:2", "4": "wood:3", "T": "leaf:3", "t": "leaf:2", "u": "leaf:1",
+		"pal": {"1": "wood:1", "2": "wood:2", "3": "wood:3", "4": "wood:4", "T": "leaf:3", "t": "leaf:2", "u": "leaf:1",
 			"W": "bone:4", "V": "bone:2", "r": "ember:4", "n": "rose:2", "k": "stone:1", "e": "wood:0"},
 		"a": [
 			"....T.....T.....T......",
@@ -149,7 +151,7 @@ const ART := {
 	},
 	"sentry": {
 		"w": 16, "h": 17,
-		"pal": {"1": "stone:1", "2": "stone:2", "3": "stone:3", "4": "stone:4", "r": "ember:2", "R": "ember:3",
+		"pal": {"1": "steel:1", "2": "steel:2", "3": "steel:3", "4": "steel:4", "r": "ember:2", "R": "ember:3",
 			"y": "ember:4", "w": "#fff4e0", "m": "moss:3"},
 		"a": [
 			"......1111......",

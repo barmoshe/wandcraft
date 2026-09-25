@@ -1,7 +1,7 @@
 extends Node2D
 ## Contact sheets for art review: every sprite, frame, icon and tile drawn at 4x on a dark
 ## ground with a label, saved to shots/artsheet-<name>.png. Run: tools/artsheet.sh [name].
-## Sheets: chars, icons, tiles, fx, ui, all (default).
+## Sheets: chars, icons, tiles, fx, ui, all (default); style; check (D1 readability).
 
 var S := 4
 const PAD := 6
@@ -73,6 +73,8 @@ func _collect() -> void:
 		ArtSheets.ui(self)
 	if sheet == "style":
 		ArtSheets.style(self)
+	if sheet == "check":
+		ArtSheets.check(self)
 
 
 var _layout: Array = []

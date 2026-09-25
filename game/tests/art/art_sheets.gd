@@ -3,6 +3,41 @@ extends RefCounted
 ## What each art sheet shows (tests/art/artsheet.gd). Add new art here as it is drawn.
 
 
+## D1 readability check: each actor on a real floor patch, then the same in grayscale (the
+## value test: does it still separate from the ground?) and as a silhouette.
+static func check(s: Node) -> void:
+	var grid := PackedByteArray()
+	grid.resize(8 * 6)
+	grid.fill(0)
+	var room := RoomPainter.paint(grid, 8, 6, 5)
+	var o := RoomPainter.MARGIN * RoomPainter.TS
+	var patch := room.get_region(Rect2i(o + Vector2i(16, 16), Vector2i(64, 48)))
+	var actors: Array = [["hero", Hero.frames()[0]]]
+	for k in Bestiary.ART:
+		actors.append([k, Bestiary.frames(k)[0]])
+	actors.append(["loop head", Bestiary.loop_head(false)])
+	s.section("actors on the floor | grayscale value test | silhouette")
+	for a in actors:
+		var spr: Image = (a[1] as Texture2D).get_image()
+		var on := patch.duplicate() as Image
+		var at := Vector2i((on.get_width() - spr.get_width()) / 2, on.get_height() - spr.get_height() - 6)
+		on.blend_rect(spr, Rect2i(Vector2i.ZERO, spr.get_size()), at)
+		s.add("%s" % a[0], ImageTexture.create_from_image(on))
+		var gray := on.duplicate() as Image
+		for j in gray.get_height():
+			for i in gray.get_width():
+				var c := gray.get_pixel(i, j)
+				var l := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+				gray.set_pixel(i, j, Color(l, l, l))
+		s.add("value", ImageTexture.create_from_image(gray))
+		var sil := spr.duplicate() as Image
+		for j in sil.get_height():
+			for i in sil.get_width():
+				if sil.get_pixel(i, j).a > 0.0:
+					sil.set_pixel(i, j, Color(0.9, 0.9, 0.95))
+		s.add("shape", ImageTexture.create_from_image(sil))
+
+
 static func chars(s: Node) -> void:
 	s.section("hero (0.4)")
 	var hf: Array = Hero.frames()

@@ -28,7 +28,15 @@
     - Death to retry in 1.1 s, with a music low-pass sweep.
     - Muzzle flash and 2 px wand recoil.
     - Audio at 44.1 kHz, band-limited, with bass and booms moved into the phone-audible range: 40% to 72% of the energy is now above 250 Hz. Sounds are normalized by loudness.
-  - **Next up:** D1, art direction.
+  - **D1 art direction: done** (ADR 0012).
+    - A quiet floor with a 3-value band, calm patches and clustered stamps.
+    - Light wall caps and dark faces.
+    - The outline rule: INK only on the bottom and right edges and the ground line; top and left take the ramp step 1.
+    - A reserved `threat` red for enemy bullets (new design), telegraphs and spawn runes.
+    - Player magic moved off pink.
+    - Palette-ramp status recolour and elite outline in the enemy shader; whole-pixel bob.
+    - `tools/artsheet.sh check` runs the value and silhouette tests, and the dark enemies were lifted to pass.
+  - **Next up:** D2, the spell system.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**

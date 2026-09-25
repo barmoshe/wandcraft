@@ -11,6 +11,10 @@ extends RefCounted
 ##   - Characters and enemies use saturated mid-steps; the floor stays in desaturated stone
 ##     and moss, so actors always pop against the room.
 ##   - Magic is light: projectiles and effects are drawn additive in the glow layer.
+##   - Role hues (D1, research/design-research.md §3): enemy THREAT is hot red with a white
+##     core and is used for nothing else; player magic is cool colors plus gold; pickups are
+##     gold and green; the room is desaturated. Outlines: INK only on the bottom and right
+##     edges and the ground line; top and left take the pixel's own ramp step 1.
 
 const INK := Color("#0b0816")
 
@@ -36,6 +40,8 @@ const RAMPS := {
 	"steel": ["#16181f", "#2e3340", "#555d6e", "#8c96a8", "#d4dbe6"],
 	"toxic": ["#18260a", "#34540e", "#5c8c14", "#9cd01c", "#e0ff7a"],
 	"night": ["#05030d", "#0a0718", "#120d26", "#1c1638", "#2a2250"],
+	# reserved for enemy attacks: bullets, telegraphs, danger. Nothing of the player's uses it.
+	"threat": ["#1e0306", "#6a0710", "#d0101e", "#ff4a3a", "#fff4ec"],
 }
 
 # UI (shared by the HUD and every menu screen)

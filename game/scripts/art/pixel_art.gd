@@ -84,11 +84,11 @@ static func paint(rows: PackedStringArray, pal: Dictionary, rim := true, outline
 				var k: Variant = keys[j * w + i]
 				if k == null:
 					continue
+				# top-facing edges catch one step of light; the shadow side is left to the INK
+				# outline (a darker step there too made every shape a pillow, D1)
 				var shift := 0
 				if j == 0 or src.get_pixel(i, j - 1).a == 0.0:
 					shift += 1
-				elif j == h - 1 or src.get_pixel(i, j + 1).a == 0.0:
-					shift -= 1
 				if shift != 0:
 					var r: Array = Style.RAMPS[k[0]]
 					img.set_pixel(i, j, Color(r[clampi(int(k[1]) + shift, 0, r.size() - 1)]))
@@ -118,9 +118,11 @@ static func selout(src: Image, keys: Array = []) -> Image:
 				continue
 			var col := Style.INK
 			if lit and not keys.is_empty():
+				# lit sides take the neighbour's own ramp step 1: a colored edge, not a black
+				# line, so silhouettes separate from the dark floor (D1)
 				var k: Variant = keys[best.y * sw + best.x]
 				if k != null:
-					col = Color(Style.RAMPS[k[0]][0]).darkened(0.25)
+					col = Color(Style.RAMPS[k[0]][1])
 			out.set_pixel(i + 1, j + 1, col)
 	out.blend_rect(src, Rect2i(0, 0, sw, sh), Vector2i(1, 1))
 	return out

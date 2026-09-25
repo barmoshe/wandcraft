@@ -256,7 +256,9 @@ func setup(seed_value: int) -> void:
 	glow_layer.add_child(_top)
 	_top.draw.connect(_draw_top)
 	ebullets = BulletPool.new()
-	ebullets.setup(512, _enemy_bullet_texture())
+	# normal blend so the dark rim shows on bright magic; drawn above the player's bullets
+	ebullets.setup(512, _enemy_bullet_texture(), false)
+	ebullets.z_index = 2
 	glow_layer.add_child(ebullets)
 	bullets = BulletPool.new()
 	bullets.setup_atlas(2048, Projectiles.atlas(), Projectiles.cell_count())
@@ -759,7 +761,7 @@ func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0,
 	b.r = 2.5
 	b.accel = accel
 	b.by = by
-	b.color = Color("#ff4a7a")
+	b.color = Color.WHITE   # the texture carries the reserved threat colors
 	Audio.sfx("eshot", 0.1, -6.0)
 
 
@@ -1334,16 +1336,22 @@ func _crate_texture() -> Texture2D:
 		]), {"w": "#8a6a3a", "b": "#b8894a", "B": "#6e4a24", "d": "#3a2a18"}))
 
 
+## Enemy bullets have their own look, used by nothing else (D1): a white core, a hot red
+## ring and a dark rim, 9 px, so they read on the dark floor and on bright player magic.
 func _enemy_bullet_texture() -> Texture2D:
-	return PixelArt.cached("ebullet", func() -> Image:
-		var img := Image.create_empty(8, 8, false, Image.FORMAT_RGBA8)
-		for j in 8:
-			for i in 8:
-				var d := Vector2(i + 0.5 - 4.0, j + 0.5 - 4.0).length()
-				if d < 1.6:
-					img.set_pixel(i, j, Color.WHITE)
-				elif d < 3.8:
-					img.set_pixel(i, j, Color(1, 1, 1, 0.8))
+	return PixelArt.cached("ebullet_v2", func() -> Image:
+		var img := Image.create_empty(9, 9, false, Image.FORMAT_RGBA8)
+		for j in 9:
+			for i in 9:
+				var d := Vector2(i + 0.5 - 4.5, j + 0.5 - 4.5).length()
+				if d < 1.9:
+					img.set_pixel(i, j, Style.c("threat:4"))
+				elif d < 2.9:
+					img.set_pixel(i, j, Style.c("threat:3"))
+				elif d < 3.7:
+					img.set_pixel(i, j, Style.c("threat:2"))
+				elif d < 4.5:
+					img.set_pixel(i, j, Style.c("threat:0"))
 		return img)
 
 
@@ -1427,13 +1435,13 @@ func _draw_top() -> void:
 		if e.spawn_t > 0.0 and not e.dead:
 			var k := 1.0 - e.spawn_t / 1.1
 			_top.draw_arc(e.position, 3.0 + k * 8.0, 0.0, TAU, 16, Color(0.77, 0.42, 1.0, 0.85), 1.0)
-			_top.draw_arc(e.position, 10.0 - k * 6.0, time * 3.0, time * 3.0 + PI, 8, Color(1.0, 0.25, 0.64, 0.85), 1.0)
+			_top.draw_arc(e.position, 10.0 - k * 6.0, time * 3.0, time * 3.0 + PI, 8, Color(Style.c("threat:3"), 0.85), 1.0)
 	if boss and not boss.dead:
 		var a := 0.35 + 0.25 * sin(time * 20.0)
 		for tl in boss.tele:
 			match tl["k"]:
 				"line":
 					var p: Vector2 = tl["p"]
-					_top.draw_line(p, p + Vector2.from_angle(tl["a"]) * float(tl["len"]), Color(1.0, 0.25, 0.5, a * 0.6), float(tl["w"]))
+					_top.draw_line(p, p + Vector2.from_angle(tl["a"]) * float(tl["len"]), Color(Style.c("threat:3"), a * 0.6), float(tl["w"]))
 				"circle":
-					_top.draw_arc(tl["p"], float(tl["r"]), 0.0, TAU, 40, Color(1.0, 0.25, 0.5, a + 0.2), 2.0)
+					_top.draw_arc(tl["p"], float(tl["r"]), 0.0, TAU, 40, Color(Style.c("threat:3"), a + 0.2), 2.0)
