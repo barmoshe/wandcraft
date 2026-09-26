@@ -28,6 +28,16 @@ const DEFS := {
 		"role": &"anchor"},
 	&"tick": {"title": "Glitch Tick", "ai": &"fuse", "hp": 10.0, "spd": 55.0, "r": 4.0, "dmg": 14.0, "cost": 2, "gold": 2,
 		"role": &"pressure"},
+	# design v3: the Corrupted Grove's own (Bestiary.VARIANTS: a base drawing, a new palette)
+	#   Rot Weaver   anchor: a long burst down one line; step out of the line (counter: strafe)
+	#   Blink Tick   pressure: blinks next to you (a 0.45 s ring shows where), then fuses
+	#   Bramble Ram  pressure: its charge leaves a line of thorns that lingers (counter: flank)
+	&"rot_weaver": {"title": "Rot Weaver", "ai": &"shoot", "hp": 26.0, "spd": 36.0, "r": 6.0, "dmg": 7.0, "cost": 3, "gold": 3,
+		"role": &"anchor", "shot": {"n": 1, "spd": 115.0, "cd": 3.0, "tele": 0.6, "burst": 6, "bcd": 0.07}},
+	&"blink_tick": {"title": "Blink Tick", "ai": &"fuse", "hp": 12.0, "spd": 40.0, "r": 4.0, "dmg": 14.0, "cost": 2, "gold": 2,
+		"role": &"pressure", "blink": true},
+	&"thorn_ram": {"title": "Bramble Ram", "ai": &"charge", "hp": 38.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3,
+		"role": &"pressure", "thorns": true, "dash": {"range": 130.0, "tele": 0.65, "t": 0.55, "spd": 230.0, "stun": true}},
 }
 
 ## Elite affixes (D4): one per elite in World 1, each with an outline colour.
@@ -84,6 +94,9 @@ var spawn_t := 0.75
 var knock := Vector2.ZERO
 var cd := 1.0
 var state: StringName = &"move"
+var blink_cd := 2.2            # design v3: Blink Tick, seconds to its next blink
+var blink_to := Vector2.ZERO
+var _thorn_t := 0.0
 var st_t := 0.0
 var aim_a := 0.0
 var flash := 0.0
@@ -367,6 +380,12 @@ func tick(dt: float) -> void:
 					st_t -= dt
 					hit_wall = false
 					position = world.move_body(position, r, Vector2.from_angle(aim_a) * float(dash["spd"]) * haste * dt)
+					if def.get("thorns", false):
+						# a line of thorns behind the charge, lingering a moment
+						_thorn_t -= dt
+						if _thorn_t <= 0.0:
+							_thorn_t = 0.07
+							world.enemy_shoot(position, aim_a, 0.0, dmg * 0.5, 0.0, "thorns:%s" % kind)
 					if (world.last_hit_x or world.last_hit_y) and dash["stun"]:
 						state = &"stun"
 						st_t = 1.0
@@ -431,8 +450,28 @@ func tick(dt: float) -> void:
 						pl.hurt(dmg, position, "burst:%s" % kind)
 					world.kill_enemy(self)
 					return
+			elif state == &"blink":
+				# a ring marks where it lands; then it is there
+				st_t -= adt
+				flash = 0.6 if sin(st_t * 50.0) > 0.0 else 0.0
+				if st_t <= 0.0:
+					world.fx.sparks(position, 6, Style.c("glitch:4"), 50.0)
+					position = world.move_body(blink_to, r, Vector2.ZERO)
+					world.fx.ring(position, 2.0, 12.0, 0.2, Style.c("glitch:4"))
+					Audio.sfx("tele_short", 0.1, -6.0)
+					state = &"move"
+					blink_cd = world.rng.randf_range(2.4, 3.4)
 			else:
 				mv = _steer(dt, dir)
+				if def.get("blink", false):
+					blink_cd -= adt
+					if blink_cd <= 0.0 and dd > 50.0 and dd < 170.0:
+						var to := pl.position + Vector2.from_angle(world.rng.randf() * TAU) * 34.0
+						if world.body_fits(to, r):
+							state = &"blink"
+							st_t = 0.45
+							blink_to = to
+							world.fx.ring(to, 12.0, 4.0, 0.45, Style.c("threat:3"))
 				if dd < 26.0:
 					state = &"fuse"
 					st_t = 0.8

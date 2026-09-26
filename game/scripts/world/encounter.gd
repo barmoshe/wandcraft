@@ -16,7 +16,9 @@ const ANCHORS_EARLY: Array[StringName] = [&"weaver", &"puffcap"]
 const ANCHORS: Array[StringName] = [&"weaver", &"puffcap", &"sentry", &"golem", &"stump"]
 const PRESSURE_EARLY: Array[StringName] = [&"slime", &"bugling"]
 const PRESSURE: Array[StringName] = [&"slime", &"bugling", &"ram", &"tick"]
-const NEXT_AT := 0.7          # share of a wave that must be down before the next one
+const NEXT_AT := 0.7
+## Design v3: the Grove's variants of the Cellar's enemies (Enemy.DEFS, Bestiary.VARIANTS).
+const GROVE_SWAP := {&"weaver": &"rot_weaver", &"tick": &"blink_tick", &"ram": &"thorn_ram"}          # share of a wave that must be down before the next one
 const SAFE_R := 96.0
 const CONE := 0.45            # radians either side of the aim where nothing spawns
 const PUZZLES := {
@@ -87,6 +89,13 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 				cands.append(i)
 		if not cands.is_empty():
 			out[n - 1][cands[rng.randi() % cands.size()]][1] = true
+	# design v3: the Corrupted Grove swaps in its own enemies for most of the familiar ones
+	if run and run.step >= Chapter.AREAS[1]["from"]:
+		for w in out:
+			for en in w:
+				var alt: StringName = GROVE_SWAP.get(en[0], &"")
+				if alt != &"" and rng.randf() < 0.65:
+					en[0] = alt
 	# design v2: the threat the door promised is in the room
 	var threat := Chapter.threat_of(run.room) if run else &""
 	match threat:

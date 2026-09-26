@@ -537,10 +537,31 @@ static var _views := {}
 ## D6: an enemy as a rig (design-plan §8: move 4, telegraph 2, attack 2; the hurt flash is the
 ## shader's, the death is the dissolve plus FxLayer.poof). Built from the same two ART layers:
 ## the moving layer steps, the body squashes a row to wind up and stretches a row to strike.
+## Design v3: the Corrupted Grove's enemies are variants: a base drawing under a new palette
+## (their rules are their own, in Enemy.DEFS).
+const VARIANTS := {
+	"rot_weaver": ["weaver", {"1": "cyan:1", "2": "cyan:2", "3": "cyan:3", "L": "night:3", "l": "cyan:1", "g": "toxic:3", "G": "toxic:4"}],
+	"blink_tick": ["tick", {"2": "cyan:2", "3": "cyan:3", "k": "cyan:1", "g": "gold:3", "G": "gold:4"}],
+	"thorn_ram": ["ram", {"1": "violet:1", "2": "violet:2", "3": "violet:3", "4": "violet:4", "T": "glitch:3", "t": "glitch:2", "u": "glitch:1", "e": "night:1"}],
+}
+
+
+## A kind's drawing: its own, or its base's under the variant palette.
+static func def_of(kind: String) -> Dictionary:
+	if ART.has(kind):
+		return ART[kind]
+	var v: Array = VARIANTS[kind]
+	var d: Dictionary = (ART[v[0]] as Dictionary).duplicate()
+	var pal: Dictionary = (d["pal"] as Dictionary).duplicate()
+	pal.merge(v[1], true)
+	d["pal"] = pal
+	return d
+
+
 static func rig(kind: String) -> RigDef:
 	if _rigs.has(kind):
 		return _rigs[kind]
-	var d: Dictionary = ART[kind]
+	var d: Dictionary = def_of(kind)
 	var r := RigDef.new()
 	r.id = "en_" + kind
 	r.w = d["w"]
@@ -563,7 +584,7 @@ static func rig(kind: String) -> RigDef:
 	else:
 		step2 = {mover: mo, "a": {"sq": 1, "off": mo if mover == "a" else Vector2i.ZERO}}
 	r.add_clip("move", 6.0, true, [{}, step, {}, step2])
-	var eyes: Dictionary = TELE_EYES.get(kind, {})
+	var eyes: Dictionary = TELE_EYES.get(kind, TELE_EYES.get(VARIANTS[kind][0], {}) if VARIANTS.has(kind) else {})
 	r.add_clip("tele", 8.0, true, [
 		{"a": {"sq": 1}, "_recolor": eyes},
 		{"a": {"sq": 2}, "_recolor": eyes},
@@ -583,11 +604,11 @@ static func clips(kind: String) -> Dictionary:
 
 
 static func has(kind: String) -> bool:
-	return ART.has(kind)
+	return ART.has(kind) or VARIANTS.has(kind)
 
 
 static func frame(kind: String, step: int) -> Image:
-	var d: Dictionary = ART[kind]
+	var d: Dictionary = def_of(kind)
 	var off_a: Vector2i = d["a_at"]
 	var off_b: Vector2i = d["b_at"]
 	if step == 1:
