@@ -82,7 +82,7 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	var hb := Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4, 12))
 	draw_rect(hb, rc.darkened(0.55))
 	draw_rect(Rect2(hb.position, Vector2(hb.size.x, 1)), rc.darkened(0.2))
-	var band := "STARTER" if item["t"] == &"loadout" else Style.RARITY_NAMES[clampi(rar, 0, 3)].to_upper()
+	var band: String = "STARTER" if item["t"] == &"loadout" else Style.RARITY_NAMES[clampi(rar, 0, 3)].to_upper()
 	text(hb.position + Vector2(4, 9), band, rc.lightened(0.2))
 	text_right(hb.end.x - 4, hb.position.y + 9, kind_label(item).to_upper(), Style.c("bone:3"))
 	var lv := Rewards.level_after(run, item["id"]) if item["t"] == &"spell" else 1
