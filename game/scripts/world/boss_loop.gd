@@ -35,7 +35,7 @@ func _init_boss() -> void:
 	title = "The Infinite Loop"
 	subtitle = "World 1 boss"
 	phase_lines = ["", "The loop cracks", "while(alive)"]
-	max_hp = 1300.0   # design v3: the peak of the run (90-150 s on the bench)
+	max_hp = 1500.0   # design v3: the peak of the run (90-150 s on the bench; 1300 gave 80 s)
 	max_armor = ARMOR
 	armor = ARMOR
 	r = 10.0

@@ -1,4 +1,6 @@
 file,title,source,license,author,credit_required
+music_amb_cellar.wav,music amb cellar,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_grove.wav,music amb grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_intro.wav,music boss intro,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_loop.wav,music boss loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_p2.wav,music boss p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no

@@ -62,6 +62,10 @@ func _initialize() -> void:
 	for s in ["clear", "reward", "boss", "victory", "defeat"]:
 		var b: PackedFloat32Array = call("_sting_" + s)
 		_normalize_save({"sting_" + s: b}, "sting_" + s, STING_LUFS, false)
+	# design v3: ambience beds, one per area (after everything else, so the random stream the
+	# earlier cues draw from is unchanged and their files stay byte-identical)
+	_cue({"amb_cellar": _amb_cellar()})
+	_cue({"amb_grove": _amb_grove()})
 	print("gen_music: done in %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	quit()
 
@@ -639,4 +643,37 @@ func _sting_defeat() -> PackedFloat32Array:
 		note(b, n[0], 0.6 if n[1] != 62 else 1.4, n[1], INST["warm"], 1.0, false)
 	for m in [50, 53, 57]:
 		note(b, 2.25, 1.5, m, INST["pad_dark"], 1.2, false)
+	return b
+
+
+# ------------------------------------------------------------------ ambience (design v3)
+
+## The Cellar: a low draught that swells and settles, water dripping somewhere in the dark
+## (a bright ping with a quieter echo), and now and then a far-off stone settling. 16 s loop.
+func _amb_cellar() -> PackedFloat32Array:
+	var b := PackedFloat32Array()
+	b.resize(int(16.0 * SR))
+	for k in 12:
+		noise(b, k * 1.35 + rng.randf() * 0.4, 3.2, 0.22, 60.0, 380.0)
+	for k in 9:
+		var t := rng.randf() * 16.0
+		var m := 88.0 + rng.randi_range(0, 7)
+		note(b, t, 0.12, m, INST["bell"], 0.35)
+		note(b, t + 0.21, 0.12, m, INST["bell"], 0.12)
+	for k in 2:
+		noise(b, 3.0 + k * 8.0 + rng.randf(), 1.4, 0.18, 90.0, 220.0)
+	return b
+
+
+## The Grove: a hollow drone that breathes, glitch crackle in short bursts, and a whisper of
+## high noise drifting past. 16 s loop.
+func _amb_grove() -> PackedFloat32Array:
+	var b := PackedFloat32Array()
+	b.resize(int(16.0 * SR))
+	for m in [37.0, 44.0, 49.0]:
+		note(b, 0.0, 16.0, m, INST["pad_dark"], 0.55)
+	for k in 7:
+		noise(b, rng.randf() * 16.0, 0.35, 0.18, 1800.0, 6000.0, true, 12)
+	for k in 5:
+		noise(b, k * 3.1 + rng.randf(), 2.6, 0.08, 2500.0, 5200.0)
 	return b

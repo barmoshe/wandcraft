@@ -107,6 +107,7 @@ func _buses() -> void:
 	_ensure_bus("Music", "Master")
 	_ensure_bus("Critical", "SFX")
 	_ensure_bus("UI", "Master")
+	_ensure_bus("Ambience", "Master")
 	var master := AudioServer.get_bus_index("Master")
 	if AudioServer.get_bus_effect_count(master) == 0:
 		var lim := AudioEffectHardLimiter.new()
@@ -121,6 +122,27 @@ func _buses() -> void:
 		duck.attack_us = 5000.0
 		duck.release_ms = 350.0
 		AudioServer.add_bus_effect(music, duck)
+		# design v3: space for the synthesized music: a light chorus and a medium room
+		var cho := AudioEffectChorus.new()
+		cho.voice_count = 2
+		cho.wet = 0.25
+		AudioServer.add_bus_effect(music, cho)
+		var rev := AudioEffectReverb.new()
+		rev.room_size = 0.55
+		rev.damping = 0.55
+		rev.spread = 0.8
+		rev.wet = 0.16
+		rev.hipass = 0.2
+		AudioServer.add_bus_effect(music, rev)
+	var sfx_bus := AudioServer.get_bus_index("SFX")
+	if AudioServer.get_bus_effect_count(sfx_bus) == 0:
+		# a short stone room around the effects, no low end (it would muddy the booms)
+		var room := AudioEffectReverb.new()
+		room.room_size = 0.3
+		room.damping = 0.7
+		room.wet = 0.08
+		room.hipass = 0.45
+		AudioServer.add_bus_effect(sfx_bus, room)
 
 
 func _ensure_bus(name: String, send: String) -> void:
@@ -298,6 +320,35 @@ func track_stream(track: String) -> AudioStream:
 
 ## Crossfades to a music track: title | shop | cellar | grove | boss | "" (silence). Every
 ## optional layer starts off.
+## Design v3: the area's ambience bed (amb_cellar | amb_grove, "" for none), a quiet loop on
+## its own bus under the music. Crossfades like the music.
+var _amb: AudioStreamPlayer
+var _amb_name := ""
+const AMB_DB := -13.0
+
+
+func ambience(area: String, fade := 1.2) -> void:
+	if area == _amb_name or Game.quiet > 0 or not is_inside_tree():
+		return
+	_amb_name = area
+	if _amb == null:
+		_amb = AudioStreamPlayer.new()
+		_amb.bus = "Ambience"
+		add_child(_amb)
+	var tw := create_tween()
+	if area == "":
+		tw.tween_property(_amb, "volume_db", -80.0, fade)
+		tw.tween_callback(_amb.stop)
+		return
+	var s := stream("music_amb_" + area)
+	if s == null:
+		return
+	_amb.stream = s
+	_amb.volume_db = -60.0
+	_amb.play()
+	tw.tween_property(_amb, "volume_db", AMB_DB if music_on else -80.0, fade)
+
+
 func music(track: String, fade := 0.8) -> void:
 	_clear_sweep()
 	if track == _track:

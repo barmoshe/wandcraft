@@ -482,6 +482,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_deco.queue_redraw()
 	if Game.quiet == 0:
 		Audio.music(room_music(kind))
+		Audio.ambience("grove" if biome() == 1 else "cellar")
 		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 			"title": _room_title(kind)})
 	room_built.emit()
