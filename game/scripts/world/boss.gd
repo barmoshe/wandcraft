@@ -24,6 +24,8 @@ var tele_total := 1.0           # the wind-up's length, so its decals fill up (D
 var parts: Array[Enemy] = []
 var weak_t := 0.0               # a weak window (D7): hits land x weak_mul
 var weak_mul := 1.5
+## Design v3: one line per phase for the phase banner ("The loop cracks"); "" for none.
+var phase_lines: Array = []
 
 
 func setup_boss(w: World, pos: Vector2, id: int) -> void:
@@ -70,6 +72,8 @@ func tick(dt: float) -> void:
 		if Game.quiet == 0:
 			Events.shockwave.emit(position)
 		world.fx.text(position + Vector2(0, -28), "PHASE %d" % (phase + 1), Color("#ff3fa4"), 10)
+		if Game.quiet == 0:
+			Events.boss_phase.emit(phase + 1, String(phase_lines[phase]) if phase < phase_lines.size() else "")
 		Audio.sfx("phase", 0.0)
 		Audio.sfx("roar", 0.05)
 		Game.haptic("boss_phase")

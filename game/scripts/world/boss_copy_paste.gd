@@ -24,7 +24,8 @@ const LAG := 1.2
 
 func _init_boss() -> void:
 	title = "Copy-Paste"
-	subtitle = "Mini-boss"
+	subtitle = "It read your wand"
+	phase_lines = ["", "Split: one of them is a ghost"]
 	mini = true
 	max_hp = 360.0
 	r = 9.0
@@ -103,7 +104,7 @@ func _start(m: StringName) -> void:
 	match m:
 		&"copy_cast":
 			# a glitch flash first, so the player sees their own program coming
-			world.fx.text(position + Vector2(0, -26), "COPY", Style.c("glitch:4"), 10)
+			world.fx.text(position + Vector2(0, -26), "CASTING YOUR SPELLS", Style.c("glitch:4"), 10)
 			Audio.sfx("copy_cast", 0.0)
 			tele_circle(position, 14.0)
 		&"undo":
@@ -269,3 +270,18 @@ func _draw() -> void:
 	var off := 2.0 + sin(t * 9.0)
 	draw_texture_rect(tex, Rect2(at + Vector2(-off, 0), sz), false, Color(1.0, 0.25, 0.65, 0.35))
 	draw_texture_rect(tex, Rect2(at + Vector2(off, 0), sz), false, Color(0.35, 0.9, 1.0, 0.35))
+	# design v3: the clipboard. What it copied from your wand, shown while it enters and while
+	# it winds up and casts it back (last one first, so the icons read right to left)
+	var show := sm == &"intro" or (move == &"copy_cast" and (sm == &"tele" or sm == &"act"))
+	if show and not copied.is_empty():
+		var n := copied.size()
+		var pw := n * 18.0 + 6.0
+		# beside the body (above it would sit under the entrance's letterbox at the top wall)
+		var top := Vector2(sz.x / 2.0 + 4.0, at.y + sz.y * 0.25)
+		draw_rect(Rect2(top, Vector2(pw, 20)), Color(0.07, 0.05, 0.13, 0.9))
+		draw_rect(Rect2(top, Vector2(pw, 20)), Style.c("glitch:3"), false, 1.0)
+		draw_rect(Rect2(top + Vector2(pw / 2.0 - 5, -3), Vector2(10, 4)), Style.c("bone:3"))
+		for i in n:
+			var ic := Icons.spell(Catalog.spell(copied[n - 1 - i][0]))
+			draw_texture(ic, (top + Vector2(3 + i * 18.0 + 9.0, 10.0) - ic.get_size() / 2.0).round())
+

@@ -319,6 +319,55 @@ const ART := {
 }
 
 
+## Design v3: the Infinite Loop's body is a chain of code blocks: a dark rounded block with a
+## lit top edge and a glowing glyph ({ } ; = 0 1), 18x16. `f` 1 is the glyph's flicker frame.
+const CODE_GLYPHS := [
+	[".##", "#..", ".#.", "#..", ".##"],   # {
+	["##.", "..#", ".#.", "..#", "##."],   # }
+	[".#.", "...", ".#.", ".#.", "#.."],   # ;
+	["...", "###", "...", "###", "..."],   # =
+	[".#.", "#.#", "#.#", "#.#", ".#."],   # 0
+	[".#.", "##.", ".#.", ".#.", "###"],   # 1
+]
+
+
+static func code_block(k: int, f := 0) -> Texture2D:
+	return PixelArt.cached("code_block_%d_%d" % [k, f], func() -> Image:
+		var w := 18
+		var h := 16
+		var img := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+		var ink := Style.c("night:0")
+		var body := Style.c("night:3")
+		var rim := Style.c("leaf:2")
+		for y in range(1, h - 1):
+			for x in range(1, w - 1):
+				var corner := (x == 1 or x == w - 2) and (y == 1 or y == h - 2)
+				if not corner:
+					img.set_pixel(x, y, body)
+		# outline, a lit top-left edge (the art's light) and a dark bottom lip
+		for x in range(2, w - 2):
+			img.set_pixel(x, 0, ink)
+			img.set_pixel(x, h - 1, ink)
+			img.set_pixel(x, 2, rim.lerp(Style.c("leaf:4"), 0.4))
+			img.set_pixel(x, h - 3, Style.c("night:1"))
+		for y in range(2, h - 2):
+			img.set_pixel(0, y, ink)
+			img.set_pixel(w - 1, y, ink)
+			img.set_pixel(2, y, rim)
+		img.set_pixel(1, 1, ink)
+		img.set_pixel(w - 2, 1, ink)
+		img.set_pixel(1, h - 2, ink)
+		img.set_pixel(w - 2, h - 2, ink)
+		# the glyph, centred, bright green; on the flicker frame a scanline cuts it
+		var g: Array = CODE_GLYPHS[posmod(k, CODE_GLYPHS.size())]
+		for j in 5:
+			for i in 3:
+				if String(g[j])[i] == "#":
+					var c := Style.c("toxic:4") if not (f == 1 and j == 2) else Style.c("toxic:2")
+					img.fill_rect(Rect2i(6 + i * 2, 3 + j * 2, 2, 2), c)
+		return img)
+
+
 ## The Loop's head (a serpent, facing right): frame 0 closed, frame 1 jaw open (telegraph).
 const LOOP_HEAD := {
 	"pal": {"1": "leaf:1", "2": "leaf:2", "3": "leaf:3", "4": "leaf:4", "y": "gold:3", "Y": "gold:4",

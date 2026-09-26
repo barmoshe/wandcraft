@@ -10,8 +10,8 @@ extends Boss
 ##   Phase 3  at 30%: the head alone chases you, its trail burning behind it for a moment.
 ## At most two kinds of attack are ever in the air at once.
 
-const SEGMENTS := 10
-const SPACING := 14
+const SEGMENTS := 12
+const SPACING := 17
 const SEG_HP := 45.0
 const ARMOR := 100.0
 const DERAIL := 4.0
@@ -33,8 +33,9 @@ var _trail_t := 0.0
 
 func _init_boss() -> void:
 	title = "The Infinite Loop"
-	subtitle = "Boss"
-	max_hp = 850.0
+	subtitle = "World 1 boss"
+	phase_lines = ["", "The loop cracks", "while(alive)"]
+	max_hp = 1300.0   # design v3: the peak of the run (90-150 s on the bench)
 	max_armor = ARMOR
 	armor = ARMOR
 	r = 10.0
@@ -51,7 +52,7 @@ func _init_boss() -> void:
 		{"at": 0.3, "moves": [&"chase", &"while_true"]},
 	]
 	center = world.room_size() / 2.0 + Vector2(0, 6)
-	radius = minf(world.room_size().x * 0.3, 96.0)
+	radius = minf(world.room_size().x * 0.32, 112.0)
 	frames = [Bestiary.loop_head(false), Bestiary.loop_head(true)]
 	# bake every head frame at all 16 headings now, not mid-fight
 	var head := Bestiary.loop_rig()
@@ -67,8 +68,12 @@ func _init_boss() -> void:
 	var glow := world.make_light(Color(0.5, 1.0, 0.6), 0.9, 90.0)
 	add_child(glow)
 	for i in SEGMENTS:
-		var p := make_part(&"loop_seg", 6.0, 0.4)
-		p.sprite.offset = Vector2(0, -3)
+		var p := make_part(&"loop_seg", 7.0, 0.4)
+		# design v3: the body is a chain of glowing code blocks
+		p.clips = {}
+		p.frames = [Bestiary.code_block(i), Bestiary.code_block(i, 1)]
+		p.sprite.texture = p.frames[0]
+		p.sprite.offset = Vector2(0, -6)
 		p.dmg = dmg * 0.4   # brushing the body hurts less than meeting the head
 
 
@@ -259,6 +264,16 @@ func _animate() -> void:
 
 
 func _draw() -> void:
+	# design v3: a glowing spine threads the blocks together (under them, in local space)
+	if phase < 2 and trail.size() > 2:
+		var pts := PackedVector2Array()
+		var n := mini(trail.size(), parts.size() * SPACING + 1)
+		for i in range(0, n, 3):
+			pts.append(trail[i] - position + Vector2(0, -6))
+		if pts.size() > 1:
+			var pulse := 0.35 + 0.2 * sin(t * 6.0)
+			draw_polyline(pts, Color(Style.c("toxic:3"), pulse), 3.0)
+			draw_polyline(pts, Color(Style.c("toxic:4"), pulse + 0.2), 1.0)
 	draw_set_transform(Vector2(0, 4), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, r + 2.0, Color(0, 0, 0, 0.45))
 	draw_set_transform(Vector2.ZERO)

@@ -32,6 +32,8 @@ var _hint_queue: Array[String] = []   # tips wait their turn; each gets its full
 var flash_c := Color.WHITE
 var flash_a := 0.0
 var fade_a := 0.0     # design v3: a quick fade from black when a room opens
+var intro_t := 0.0    # design v3: letterbox bars while a boss makes its entrance
+var banner_low := false
 
 
 func _ready() -> void:
@@ -44,6 +46,7 @@ func _ready() -> void:
 	Events.room_cleared.connect(func() -> void:
 		banner = "ROOM CLEAR"
 		banner_sub = ""
+		banner_low = false
 		banner_t = 1.4)
 	Events.hint.connect(func(s: String) -> void: _hint_queue.append(s))
 	Events.screen_flash.connect(func(c: Color, a: float) -> void:
@@ -53,11 +56,19 @@ func _ready() -> void:
 		boss_title = t
 		banner = t.to_upper()
 		banner_sub = sub
-		banner_t = 2.2)
+		banner_t = 2.2
+		banner_low = true
+		intro_t = 1.8)
+	Events.boss_phase.connect(func(n: int, line: String) -> void:
+		banner = "PHASE %d" % n
+		banner_sub = line
+		banner_t = 1.8
+		banner_low = true)
 
 
 func _on_room(def: Dictionary) -> void:
 	fade_a = 1.0
+	banner_low = false
 	banner = def.get("title", "")
 	var no := int(def["no"])
 	var th := Chapter.threat_of(world.run.room) if world and world.run and def.get("kind", &"") != &"start" else &""
@@ -79,6 +90,7 @@ func _process(dt: float) -> void:
 		hint_t = 5.0
 	flash_a = maxf(0.0, flash_a - dt * 2.5)
 	fade_a = maxf(0.0, fade_a - dt * 3.5)
+	intro_t = maxf(0.0, intro_t - dt)
 	queue_redraw()
 
 
@@ -121,6 +133,13 @@ func _draw() -> void:
 	_draw_hint(sr)
 	if flash_a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(flash_c.r, flash_c.g, flash_c.b, flash_a))
+	if intro_t > 0.0:
+		# letterbox bars slide in, hold, and slide out
+		var v := get_viewport_rect().size
+		var k := clampf(minf((1.8 - intro_t) / 0.25, intro_t / 0.3), 0.0, 1.0)
+		var bh := roundf(22.0 * k)
+		draw_rect(Rect2(0, 0, v.x, bh), Color(0.01, 0.0, 0.03))
+		draw_rect(Rect2(0, v.y - bh, v.x, bh), Color(0.01, 0.0, 0.03))
 	if fade_a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(0.02, 0.01, 0.05, fade_a * fade_a))
 
@@ -454,7 +473,9 @@ func _draw_banner(sr: Rect2) -> void:
 		var a := clampf(banner_t * 2.0, 0.0, 1.0)
 		var f := Game.font("body")
 		var wdt := f.get_string_size(banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-		var r := Rect2(cx - wdt / 2.0 - 12, sr.position.y + 44, wdt + 24, 30 if banner_sub != "" else 20)
+		# boss and phase banners sit low, over the boss bar, so the boss's entrance stays in view
+		var by := (sr.end.y - 92.0) if banner_low else (sr.position.y + 44)
+		var r := Rect2(cx - wdt / 2.0 - 12, by, wdt + 24, 30 if banner_sub != "" else 20)
 		draw_rect(r, Color(0.05, 0.03, 0.1, 0.75 * a))
 		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(GOLD.r, GOLD.g, GOLD.b, a))
 		draw_rect(Rect2(r.position + Vector2(0, r.size.y - 1), Vector2(r.size.x, 1)), Color(GOLD.r, GOLD.g, GOLD.b, a))
