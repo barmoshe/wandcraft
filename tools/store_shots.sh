@@ -11,14 +11,14 @@ mkdir -p "$OUT"
 export RES=1434x660
 scene() {
   local name="$1"; shift
-  "$HERE/shots.sh" "store_$name" "$@" >/dev/null
+  "$HERE/shots.sh" "store_$name" "$@" --nohints >/dev/null
   cp "$HERE/../shots/store_$name.png" "$OUT/$name-half.png" 2>/dev/null || echo "FAILED $name"
 }
-scene 1-combat --showcase --wand=2 --frames=240 --seed=4
-scene 2-boss --demo --kind=boss --step=8 --loadout=strong --frames=900 --seed=4
-scene 3-editor --screen=editor --loadout=strong --frames=30
-scene 4-copy-paste --demo --kind=mini --step=4 --loadout=strong --frames=330 --seed=6
-scene 5-reward --screen=reward --offer=spell --frames=30 --seed=3
+scene 1-combat --showcase --wand=2 --step=7 --frames=240 --seed=4
+scene 2-boss --demo --kind=boss --loadout=strong --frames=420 --seed=3
+scene 3-editor --screen=editor --loadout=strong --frames=60
+scene 4-copy-paste --demo --kind=mini --loadout=strong --frames=330 --seed=3
+scene 5-reward --screen=reward --offer=spell --frames=60 --seed=4
 scene 6-map --screen=map --frames=30 --seed=3
 "$HERE/godot.sh" --headless --path "$HERE/../game" -s "$HERE/lib/upscale.gd" -- "$OUT" 2 >/dev/null 2>&1
 rm -f "$OUT"/*-half.png

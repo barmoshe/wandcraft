@@ -45,6 +45,13 @@ static func show(id: String) -> bool:
 	return true
 
 
+## Tools (store screenshots): every tip counts as seen, in memory only.
+static func mark_all_seen() -> void:
+	_loaded = true
+	for k in TIPS:
+		_seen[k] = true
+
+
 static func reset() -> void:
 	_seen.clear()
 	_loaded = true
