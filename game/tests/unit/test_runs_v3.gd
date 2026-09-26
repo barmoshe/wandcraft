@@ -63,3 +63,19 @@ func test_one_untouched_door_a_run_and_room_twists() -> void:
 	var tm := Chapter.make_map(t)
 	ok(not tm.any(func(st: Array) -> bool: return st.any(func(d: Dictionary) -> bool: return d["kind"] == &"risk")), "none on the lesson run")
 	eq(Rewards.offer(RunState.create(3), &"risk").size(), 3, "an Untouched room offers three relics")
+
+
+func test_the_daily_rule_is_the_same_for_everyone_that_day() -> void:
+	var a := Chapter.daily_rule("2026-09-26")
+	var b := Chapter.daily_rule("2026-09-26")
+	eq(a, b, "one rule per date")
+	ok(RunState.LOADOUTS.has(a["hero"]) and Chapter.DAILY_MODS.has(a["mod"]), "a hero and a modifier (%s)" % a["text"])
+	var r := RunState.create(1)
+	r.daily_mod = &"glass"
+	ok(is_equal_approx(Relics.dmg_mul(r, 10.0), 1.3), "Glass wand: +30% damage")
+	r.daily_mod = &"swarm"
+	var m := Chapter.make_map(r)
+	for st in range(2, m.size()):
+		for d in m[st]:
+			if d["kind"] == &"fight":
+				eq(Chapter.threat_of(d), &"swarm", "Swarm season: every fight a swarm")

@@ -105,7 +105,16 @@ func _paint() -> void:
 	y = r.end.y + 10
 	button(Rect2(cx - 116, y, 110, 30), "again", "NEW RUN", "primary")
 	button(Rect2(cx + 6, y, 110, 30), "title", "TITLE", "ghost")
+	if run.daily != "":
+		button(Rect2(cx + 122, y, 96, 30), "share", "COPY RESULT", "ghost")
 
 
 func _on_button(id: String) -> void:
+	if id == "share":
+		# design v3: a result line to paste to a friend
+		var rule := Chapter.daily_rule(run.daily)
+		DisplayServer.clipboard_set("Wandcraft daily %s (%s): %s" % [run.daily, rule["text"],
+			"cleared World 1" if won else "reached room %d of %d" % [run.step, Chapter.PLAN.size() - 1]])
+		toast("Result copied")
+		return
 	finished.emit({"action": id})

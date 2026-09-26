@@ -66,6 +66,24 @@ const TWISTS := {
 }
 const RISK_ASK := "Clear it without getting hit: a rare relic"
 
+## Design v3: the daily run's rule, picked by the date: a hero (any, locked or not) and one
+## modifier. Everyone plays the same rule on the same day.
+const DAILY_MODS := {
+	&"glass": "Glass wand: 30% less max HP, 30% more damage",
+	&"rich": "Deep pockets: start with 80 gold",
+	&"swarm": "Swarm season: every fight holds a swarm",
+}
+
+
+static func daily_rule(day: String) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(day)
+	var heroes: Array = RunState.LOADOUTS.keys()
+	var mods: Array = DAILY_MODS.keys()
+	var mod: StringName = mods[rng.randi() % mods.size()]
+	var hero: StringName = heroes[rng.randi() % heroes.size()]
+	return {"hero": hero, "mod": mod, "text": "%s: %s" % [RunState.LOADOUTS[hero]["title"], DAILY_MODS[mod]]}
+
 const QUIET := [&"start", &"shop", &"spring", &"forge", &"altar", &"terminal"]
 
 
@@ -148,6 +166,10 @@ static func make_map(run: RunState) -> Array:
 			for d in nodes:
 				if (d["kind"] == &"fight" or d["kind"] == &"challenge") and rng.randf() < 0.75:
 					d["threat"] = THREATS.keys()[rng.randi() % THREATS.size()]
+		if run.daily_mod == &"swarm":
+			for d in nodes:
+				if d["kind"] == &"fight" or d["kind"] == &"challenge":
+					d["threat"] = &"swarm"
 		if step >= 3:
 			for d in nodes:
 				if d["kind"] == &"fight" and rng.randf() < 0.25:
@@ -188,6 +210,9 @@ static func door_options(run: RunState) -> Array:
 			var d: Dictionary = nodes[lane].duplicate()
 			d["lane"] = lane
 			out.append(d)
+	# heat 3+: one fewer door to choose from (the route tightens)
+	if run.heat >= 3 and out.size() > 2:
+		out.remove_at(run.rng.randi() % out.size())
 	return out
 
 

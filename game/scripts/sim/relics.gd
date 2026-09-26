@@ -112,7 +112,7 @@ static func stat(run: RunState, key: String) -> float:
 ## Global damage multiplier for casts from the player's wands (the always-on part; the
 ## per-cast conditions live in SpellRunner.wand_fire).
 static func dmg_mul(run: RunState, room_time: float) -> float:
-	var k := stat(run, "dmg")
+	var k := stat(run, "dmg") * (1.3 if run and run.daily_mod == &"glass" else 1.0)
 	if run.has_relic(&"deadline") and room_time < 6.0:
 		k *= 1.4
 	if run.has_relic(&"uptime"):

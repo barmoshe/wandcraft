@@ -121,8 +121,16 @@ func _show_title() -> void:
 func _daily_run() -> RunState:
 	var d := Time.get_date_dict_from_system()
 	var day := "%04d-%02d-%02d" % [d["year"], d["month"], d["day"]]
-	var r := RunState.create(int(day.replace("-", "")))
+	var rule := Chapter.daily_rule(day)
+	var r := RunState.create(int(day.replace("-", "")), rule["hero"])
 	r.daily = day
+	r.daily_mod = rule["mod"]
+	match r.daily_mod:
+		&"glass":
+			r.max_hp = roundf(r.max_hp * 0.7)
+			r.hp = r.max_hp
+		&"rich":
+			r.gold = 80
 	for k in Meta.extra_slots():
 		r.wands[0].add_slot()
 	return r

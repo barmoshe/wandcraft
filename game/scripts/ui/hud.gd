@@ -79,6 +79,8 @@ func _on_room(def: Dictionary) -> void:
 		banner_sub = String(Chapter.TWISTS[tw])
 	elif th != &"":
 		banner_sub = String(Chapter.THREATS[th]["ask"])   # design v2: what this room asks for
+	elif no == 0 and world and world.run and world.run.daily != "":
+		banner_sub = "Daily - " + String(Chapter.daily_rule(world.run.daily)["text"])
 	elif no == 0:
 		banner_sub = Chapter.area_name(no)
 	else:
