@@ -209,3 +209,14 @@ Each milestone ends with screenshots at 2556×1179 and 1440×810 sent to Bar, pl
 - Jonasson & Purho, Juice It or Lose It (GDC Europe 2012): https://www.gdcvault.com/play/1016487/juice-it-or-lose
 
 ## Progress log
+- V0 `ad2c1c1`..: RunLog (user://runlog.json, window.wandcraftRunLog()), half effect caps and a slower range probe on phones.
+- V1 `4e5265b`: the Cellar and the Grove paint as two places (themes; Grove veins pulse), role rings under enemies, 2-frame kill hit-stop.
+- V2: element trails and deaths, camera kick, cards flip in, room fade, the last cast beside the wand in the HUD.
+- V3 `e9872b4`: boss entrances (letterbox, low name card), phase banners, Copy-Paste's clipboard of your spells, the Loop's code-block body; the Loop at 1500 HP.
+- V4 `fea2980`: music chorus + reverb, a short SFX room, generated ambience beds per area.
+- V5 `a985343`/`42bf89e`: plain relic names with the joke as flavour, Heat and BAN, the end screen with your wand and what ended the run.
+- V6: shop reroll + sale, skip 15, compile from level 2, Gentle mode (`a9d4dcc`); the Grove's Rot Weaver, Blink Tick, Bramble Ram; one Untouched door a run, ambush and dark twists; the daily rule + share line, heat 3 takes a door, a goal per early run (`f064379`); the Garbage Collector mini-boss (`92d0098`).
+- V7 `da5999e`: 0.16.0, store screenshots refreshed. Web live at `da5999e`, `build/wandcraft-0.16.0.apk`.
+- Bench (core pool, 10 seeds): editing 60%, never-editing 0%, mini-bosses 48 s, the Loop 77 s (aim 90; left there so the editing bot stays at 60%), no stalls. 203 tests.
+- Not done: the per-room heal cut (the bench says survival would drop under 60%), hero sprites on the start cards, the Codex sample wands, animated title vistas; the friend playtest (Bar's).
+
