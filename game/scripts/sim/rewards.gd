@@ -144,6 +144,8 @@ static func offer(run: RunState, kind: StringName) -> Array:
 			return _with_counter(run, _spells(run, [0, 0, 1]))
 		&"relic":
 			return roll_relics(run, 3).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
+		&"risk":
+			return roll_relics(run, 3, 1).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
 		&"challenge":
 			var r := roll_relics(run, 2, 1).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
 			r.append(_spells(run, [2])[0])

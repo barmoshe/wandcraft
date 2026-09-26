@@ -447,6 +447,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_repaint()
 	life.reset(_paint_seed)
 	_ambient.color = AMBIENT if biome() == 0 else AMBIENT.lerp(Style.c("violet:4"), 0.12)
+	if run and Chapter.twist_of(run.room) == &"dark" and kind == &"fight":
+		_ambient.color = _ambient.color.darkened(0.6)   # design v3: lights out
 	var vs := RoomPainter.size_px(gw, gh)
 	_vignette_tex.width = vs.x
 	_vignette_tex.height = vs.y
@@ -475,7 +477,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 			_clear_room(false)
 		&"mini", &"boss":
 			boss_t = 1.0
-		&"fight", &"challenge", &"glitch":
+		&"fight", &"challenge", &"glitch", &"risk":
 			waves = _compose_waves(kind)
 		&"empty":
 			cleared = true   # tests and the showcase: a room with nothing in it
@@ -531,7 +533,9 @@ func _compose_waves(kind: StringName) -> Array:
 
 
 func _spawn_wave(list: Array) -> void:
-	var socks := Encounter.spawn_points(self)
+	# design v3: an ambush room's first wave lands in a ring around you
+	var ambush := wave_i == 0 and run != null and Chapter.twist_of(run.room) == &"ambush" and room_kind == &"fight"
+	var socks := Encounter.ambush_points(self) if ambush else Encounter.spawn_points(self)
 	_shuffle(socks)
 	wave_live.clear()
 	for i in list.size():
@@ -601,6 +605,15 @@ func _clear_room(reward := true) -> void:
 				player.heal(run.max_hp)
 		&"challenge", &"glitch":
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
+		&"risk":
+			# the Untouched door: a clean clear earns rare relics, a hit a little gold
+			if not hit_in_room:
+				fx.text(player.position + Vector2(0, -24), "UNTOUCHED", Color("#9fe8ff"), 10)
+				orb = {"pos": mid, "kind": &"risk", "t": 0.0}
+			else:
+				run.gold += 15
+				fx.text(player.position + Vector2(0, -24), "HIT: +15 GOLD", Color("#ffd36b"), 10)
+				_open_doors()
 		_:
 			var r := StringName(run.room.get("reward", "spell"))
 			match r:

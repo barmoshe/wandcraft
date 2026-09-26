@@ -48,7 +48,7 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 	if puzzle != &"":
 		return (PUZZLES[puzzle]["waves"] as Array).duplicate(true)
 	var step := run.step if run else 1
-	var mult := 1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" else 1.0)
+	var mult := 1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" or kind == &"risk" else 1.0)
 	var budget := (6.0 + step * 2.0) * mult
 	var anchors: Array[StringName] = ANCHORS_EARLY if step <= 2 else ANCHORS
 	var pressure: Array[StringName] = PRESSURE_EARLY if step <= 2 else PRESSURE
@@ -126,6 +126,17 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 		picks.append_array(pressure.filter(func(k: StringName) -> bool: return k != &"bugling"))
 		out[n - 1].append([picks[rng.randi() % picks.size()], true])
 	return out
+
+
+## Design v3, an ambush: points in a ring around the player (the first wave of such a room).
+static func ambush_points(world: World) -> Array:
+	var out: Array = []
+	var pl := world.player.position
+	for k in 12:
+		var p := pl + Vector2.from_angle(k * TAU / 12.0) * 80.0
+		if world.body_fits(p, 8.0):
+			out.append(p)
+	return out if out.size() >= 3 else spawn_points(world)
 
 
 ## Spawn points for a wave: sockets clear of the player and out of their aim cone.

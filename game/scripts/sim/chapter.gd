@@ -54,7 +54,17 @@ const INFO := {
 	"mini": {"name": "Mini-boss", "color": "#ff3fa4"},
 	"boss": {"name": "Boss", "color": "#ff3fa4"},
 	"exit": {"name": "Onward", "color": "#ffe066"},
+	"risk": {"name": "Untouched", "color": "#9fe8ff"},
 }
+
+## Design v3: room twists some fights carry (the banner says so): an ambush (the first wave
+## lands around you) or a dark room (your spells light it). One "Untouched" door a run: clear
+## it without a hit for a rare relic (after Hades' Erebus gates).
+const TWISTS := {
+	&"ambush": "Ambush: they come from every side",
+	&"dark": "Lights out: your spells light the way",
+}
+const RISK_ASK := "Clear it without getting hit: a rare relic"
 
 const QUIET := [&"start", &"shop", &"spring", &"forge", &"altar", &"terminal"]
 
@@ -81,6 +91,10 @@ static func door_color(d: Dictionary) -> Color:
 
 static func threat_of(d: Dictionary) -> StringName:
 	return StringName(d.get("threat", ""))
+
+
+static func twist_of(d: Dictionary) -> StringName:
+	return StringName(d.get("twist", ""))
 
 
 static func area_name(step: int) -> String:
@@ -134,12 +148,27 @@ static func make_map(run: RunState) -> Array:
 			for d in nodes:
 				if (d["kind"] == &"fight" or d["kind"] == &"challenge") and rng.randf() < 0.75:
 					d["threat"] = THREATS.keys()[rng.randi() % THREATS.size()]
+		if step >= 3:
+			for d in nodes:
+				if d["kind"] == &"fight" and rng.randf() < 0.25:
+					d["twist"] = TWISTS.keys()[rng.randi() % TWISTS.size()]
 		if step + 1 < PLAN.size() and (PLAN[step + 1] == &"boss" or PLAN[step + 1] == &"mini"):
 			nodes[1] = {"kind": [&"spring", &"shop"][rng.randi() % 2], "reward": &""}
 		# at least one fight on every step, so no stretch is all shopping
 		if not nodes.any(func(o: Dictionary) -> bool: return not is_quiet(o["kind"])):
 			nodes[0] = {"kind": &"fight", "reward": &"spell"}
 		out.append(nodes)
+	# one Untouched door per run, on a room step from the third room on (not the tutorial's)
+	if not run.tutorial:
+		var steps: Array = []
+		for st in range(3, PLAN.size()):
+			if PLAN[st] == &"room" and (out[st] as Array).size() == LANES:
+				steps.append(st)
+		if not steps.is_empty():
+			var at: int = steps[rng.randi() % steps.size()]
+			var lane := rng.randi() % LANES
+			if not is_quiet(out[at][lane]["kind"]) or lane != 1:
+				out[at][lane] = {"kind": &"risk", "reward": &"relic"}
 	return out
 
 

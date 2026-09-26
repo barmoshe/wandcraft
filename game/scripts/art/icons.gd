@@ -185,7 +185,7 @@ const RELIC_GLYPHS := {
 
 const DOOR_GLYPH := {
 	"spell": "star", "relic": "gem", "gold": "coin", "heart": "heart", "wand": "wand", "challenge": "skull", "glitch": "ghost", "altar": "drop", "terminal": "chip",
-	"shop": "coin", "spring": "drop", "forge": "anvil", "mini": "skull", "boss": "skull", "exit": "arrow",
+	"shop": "coin", "spring": "drop", "forge": "anvil", "mini": "skull", "boss": "skull", "exit": "arrow", "risk": "shield",
 }
 
 

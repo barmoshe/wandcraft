@@ -42,3 +42,24 @@ func test_gentle_mode_scales_with_runs_lost() -> void:
 	ok(is_equal_approx(Game.gentle_resist(), 0.1), "five runs lost: 10%% (%.2f)" % Game.gentle_resist())
 	SaveGame.save_meta({"runs": 60, "wins": 1})
 	ok(is_equal_approx(Game.gentle_resist(), 0.4), "capped at 40%")
+
+
+func test_one_untouched_door_a_run_and_room_twists() -> void:
+	var twists := 0
+	for s in 20:
+		var r := RunState.create(100 + s)
+		var m := Chapter.make_map(r)
+		var risks := 0
+		for st in m:
+			for d in st:
+				if d["kind"] == &"risk":
+					risks += 1
+				if Chapter.twist_of(d) != &"":
+					twists += 1
+		ok(risks <= 1, "at most one Untouched door (seed %d)" % s)
+	ok(twists > 5, "twists show up across runs (%d)" % twists)
+	var t := RunState.create(7)
+	t.tutorial = true
+	var tm := Chapter.make_map(t)
+	ok(not tm.any(func(st: Array) -> bool: return st.any(func(d: Dictionary) -> bool: return d["kind"] == &"risk")), "none on the lesson run")
+	eq(Rewards.offer(RunState.create(3), &"risk").size(), 3, "an Untouched room offers three relics")

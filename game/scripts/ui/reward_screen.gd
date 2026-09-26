@@ -10,6 +10,7 @@ const TITLES := {
 	&"spell": ["SPELL", "Pick one spell"],
 	&"relic": ["RELIC", "Pick one relic"],
 	&"challenge": ["CHALLENGE CLEARED", "Pick your prize"],
+	&"risk": ["UNTOUCHED", "A rare relic for a clean clear"],
 	&"glitch": ["GLITCH CLEARED", "Corrupted relics: power with a price"],
 	&"secret": ["A SECRET", "Pick one"],
 	&"altar": ["THE ALTAR", "Each gift costs 15% of your max HP"],
