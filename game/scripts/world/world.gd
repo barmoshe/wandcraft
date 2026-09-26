@@ -564,8 +564,21 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	return e
 
 
+## Design v3: the mini-boss pool. The lesson run always meets Copy-Paste; other runs meet it
+## or the Garbage Collector, by the run's seed.
+var force_mini: StringName = &""   # tests: &"copy_paste" or &"collector"
+
+
+func mini_boss() -> Boss:
+	if force_mini == &"collector":
+		return BossCollector.new()
+	if force_mini == &"copy_paste" or run == null or run.tutorial or run.seed_value % 2 == 1:
+		return BossCopyPaste.new()
+	return BossCollector.new()
+
+
 func _spawn_boss() -> void:
-	var b: Boss = BossCopyPaste.new() if room_kind == &"mini" else BossLoop.new()
+	var b: Boss = mini_boss() if room_kind == &"mini" else BossLoop.new()
 	_uid += 1
 	enemies.append(b)
 	_actors.add_child(b)

@@ -68,6 +68,7 @@ func _fight_boss(step: int, kind: StringName, limit: float) -> Array:
 
 
 func test_copy_paste_can_be_beaten() -> void:
+	world.force_mini = &"copy_paste"
 	var res := _fight_boss(4, &"mini", 150.0)
 	var boss: Boss = res[0]
 	ok(boss is BossCopyPaste, "Copy-Paste appeared")

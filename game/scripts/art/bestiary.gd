@@ -319,6 +319,54 @@ const ART := {
 }
 
 
+## Design v3: the Garbage Collector, a hulking bin on treads (32x30, facing the camera).
+## `open`: its lid lifted and its maw glowing (the Collect move).
+static func collector(open: bool, f := 0) -> Texture2D:
+	return PixelArt.cached("collector_%d_%d" % [int(open), f], func() -> Image:
+		var w := 32
+		var h := 30
+		var img := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+		var ink := Style.c("night:0")
+		# a green dumpster: it pops off the stone floor (grey steel sank into it)
+		var steel := [Style.c("leaf:1"), Style.c("leaf:2"), Style.c("leaf:3"), Style.c("leaf:4")]
+		var moss := Style.c("moss:2")
+		# the body: a steel box, lit top-left, dark bottom-right, with rivets and a dent
+		var top := 10
+		img.fill_rect(Rect2i(2, top, w - 4, h - top - 5), steel[1])
+		img.fill_rect(Rect2i(3, top + 1, w - 7, 1), steel[3])
+		img.fill_rect(Rect2i(3, top + 1, 1, h - top - 8), steel[2])
+		img.fill_rect(Rect2i(w - 4, top + 1, 1, h - top - 7), steel[0])
+		for x in [5, 13, 21, 27]:
+			img.set_pixel(x, top + 3, steel[3])
+			img.set_pixel(x, h - 9, steel[3])
+		img.fill_rect(Rect2i(6, h - 12, 20, 1), steel[0])
+		# moss and grime creeping up from the bottom
+		for x in range(3, w - 3, 3):
+			img.fill_rect(Rect2i(x, h - 8, 2, 2), moss)
+		# the eyes: two gold slits (bright on the flicker frame)
+		var eye := Style.c("gold:4") if f == 0 else Style.c("gold:3")
+		img.fill_rect(Rect2i(9, top + 6, 4, 2), eye)
+		img.fill_rect(Rect2i(19, top + 6, 4, 2), eye)
+		# the lid: closed, a slab on top; open, tilted back with a glowing maw below
+		if open:
+			img.fill_rect(Rect2i(4, 0, w - 8, 3), steel[2])
+			img.fill_rect(Rect2i(4, 0, w - 8, 1), steel[3])
+			img.fill_rect(Rect2i(4, 3, w - 8, 1), ink)
+			img.fill_rect(Rect2i(4, top - 5, w - 8, 5), Style.c("toxic:2"))
+			img.fill_rect(Rect2i(6, top - 4, w - 12, 3), Style.c("toxic:4"))
+		else:
+			img.fill_rect(Rect2i(1, top - 4, w - 2, 4), steel[2])
+			img.fill_rect(Rect2i(1, top - 4, w - 2, 1), steel[3])
+			img.fill_rect(Rect2i(1, top - 1, w - 2, 1), ink)
+			img.fill_rect(Rect2i(12, top - 6, 8, 2), steel[1])
+		# treads
+		img.fill_rect(Rect2i(1, h - 5, w - 2, 4), Style.c("night:2"))
+		for x in range(2 + f, w - 2, 4):
+			img.fill_rect(Rect2i(x, h - 4, 2, 2), Style.c("steel:1"))
+		img.fill_rect(Rect2i(1, h - 1, w - 2, 1), ink)
+		return img)
+
+
 ## Design v3: the Infinite Loop's body is a chain of code blocks: a dark rounded block with a
 ## lit top edge and a glowing glyph ({ } ; = 0 1), 18x16. `f` 1 is the glyph's flicker frame.
 const CODE_GLYPHS := [
