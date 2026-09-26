@@ -381,6 +381,7 @@ func _open_end(won: bool) -> void:
 	Audio.sting("victory" if won else "defeat")
 	var s := EndScreen.new()
 	s.won = won
+	s.killed_by = world.player.last_hurt_by
 	_open(s, func(res: Dictionary) -> void:
 		if res.get("action") == "again":
 			_begin(_new_run())

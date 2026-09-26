@@ -1,8 +1,28 @@
 class_name EndScreen
 extends Screen
-## The end of a run: victory (World 1 cleared) or defeat, the route taken, and the numbers.
+## The end of a run: victory (World 1 cleared) or defeat, the route taken, the wand you
+## ended with (design v3), what ended the run, the numbers, the goals done and the next one.
 
 var won := false
+var killed_by := ""   # Player.last_hurt_by ("shot:weaver", "touch:The Infinite Loop", "spikes")
+
+
+## "a Hex Weaver's shot", "The Infinite Loop", "the spikes".
+static func killer_text(by: String) -> String:
+	if by == "":
+		return ""
+	var parts := by.split(":")
+	var how := parts[0]
+	var who := parts[1] if parts.size() > 1 else ""
+	if who == "":
+		return "the %s" % how
+	var name := String(Enemy.DEFS[StringName(who)]["title"]) if Enemy.DEFS.has(StringName(who)) else who
+	match how:
+		"shot", "burst", "trail":
+			return "%s's %s" % [name, how]
+		"slam":
+			return "%s's slam" % name
+	return name
 
 
 func _paint() -> void:
@@ -32,6 +52,22 @@ func _paint() -> void:
 			icon_at(Icons.door(key), p)
 		else:
 			draw_arc(p, 5.0, 0.0, TAU, 12, Color(0.4, 0.35, 0.5), 1.0)
+	y += 24
+	# the wand you ended with, in its sockets (design v3: the build is the story of the run)
+	var w: WandState = run.wand()
+	var sw := w.slots.size() * 22.0
+	text_right(cx - sw / 2.0 - 8, y + 14, w.def.title.to_upper(), MUTED)
+	for i in w.slots.size():
+		var c := Vector2(cx - sw / 2.0 + i * 22.0 + 11.0, y + 10)
+		var s: Variant = w.slots[i]
+		if s == null:
+			draw_arc(c, 8.0, 0.0, TAU, 16, Color(0.4, 0.35, 0.5), 1.0)
+			continue
+		var d := Catalog.spell(s["id"])
+		socket_shape(c, 9.0, fam(d), Color("#1a1330"), fam_color(d))
+		icon_at(Icons.spell(d), c)
+	if not won and killer_text(killed_by) != "":
+		text(Vector2(cx + sw / 2.0 + 8, y + 14), "Ended by " + killer_text(killed_by), Color("#ff8a9a"))
 	y += 26
 	# the numbers on the left, the goals on the right
 	var r := Rect2(cx - 222, y, 214, 76)
@@ -60,7 +96,7 @@ func _paint() -> void:
 		gy += 14
 	var nxt := Meta.open_goals()
 	if nxt.is_empty():
-		text(Vector2(gr.position.x + 10, gy), "Every goal done. Try Bug Reports.", GOLD)
+		text(Vector2(gr.position.x + 10, gy), "Every goal done. Turn up the heat.", GOLD)
 	else:
 		text(Vector2(gr.position.x + 10, gy), "NEXT GOAL", GOLD, 8, "bold")
 		para(Rect2(gr.position.x + 10, gy + 2, gr.size.x - 20, 22), nxt[0]["text"], TEXT)

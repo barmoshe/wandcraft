@@ -123,7 +123,7 @@ func _paint() -> void:
 		heat = clampi(heat, 0, max_heat)
 		var hy := below + 6
 		button(Rect2(cx - 70, hy, 26, 22), "heat_down", "-", "ghost", heat > 0)
-		text_center(cx, hy + 15, "BUG REPORTS  %d" % heat, Style.c("threat:4") if heat > 0 else MUTED, 8, "bold")
+		text_center(cx, hy + 15, "HEAT  %d" % heat, Style.c("threat:4") if heat > 0 else MUTED, 8, "bold")
 		button(Rect2(cx + 44, hy, 26, 22), "heat_up", "+", "ghost", heat < max_heat)
 		text_center(cx, hy + 34, Meta.HEAT[heat], MUTED)
 	var ver := "v" + str(ProjectSettings.get_setting("application/config/version", ""))

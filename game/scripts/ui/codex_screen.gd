@@ -99,7 +99,8 @@ func _desc(id: StringName) -> String:
 	if Catalog.spells().has(id):
 		return Catalog.spell(id).text_at(1)
 	if Relics.DEFS.has(id):
-		return Rewards.item_desc({"t": &"relic", "id": id})
+		var fl: String = Relics.DEFS[id].get("flavor", "")
+		return Rewards.item_desc({"t": &"relic", "id": id}) + ("  (\"%s\")" % fl if fl != "" else "")
 	if Catalog.wands().has(id):
 		return Rewards.wand_desc(Catalog.wand(id))
 	return "Every run starts with one more empty slot on your first wand."

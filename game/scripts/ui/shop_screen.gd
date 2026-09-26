@@ -96,7 +96,7 @@ func _paint() -> void:
 		button(Rect2(ir.position.x + 8, ir.end.y - 38, bw, 30), "buy", label, "primary", can)
 		if deprecate:
 			var can_ban: bool = not it.get("sold", false) and not run.deprecated_here
-			button(Rect2(ir.position.x + 12 + bw, ir.end.y - 38, bw, 30), "ban", "DEPRECATE", "ghost", can_ban)
+			button(Rect2(ir.position.x + 12 + bw, ir.end.y - 38, bw, 30), "ban", "BAN", "ghost", can_ban)
 	else:
 		para(Rect2(ir.position + Vector2(8, 12), Vector2(ir.size.x - 16, 80)), "Tap an item to see what it does.", MUTED)
 
@@ -126,7 +126,7 @@ func _deprecate() -> void:
 	run.deprecated_here = true
 	it["sold"] = true
 	Audio.sfx("deny", 0.0)
-	toast("%s is deprecated for this run" % Catalog.spell(it["id"]).title)
+	toast("%s is banned for this run" % Catalog.spell(it["id"]).title)
 
 
 func _buy() -> void:

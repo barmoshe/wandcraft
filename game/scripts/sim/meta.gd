@@ -55,20 +55,20 @@ const GOALS := [
 	{"id": "runs3", "text": "Play 3 runs", "check": "runs>=3",
 		"unlocks": [&"slot", &"disc", &"static", &"duck", &"watchdog", &"mirror", &"split", &"reverse",
 			&"empty_set", &"birch", &"fork_branch"]},
-	{"id": "heat1", "text": "Win with Bug Reports 1 or higher", "check": "heat_win>=1",
+	{"id": "heat1", "text": "Win at heat 1 or higher", "check": "heat_win>=1",
 		"unlocks": [&"head", &"ifelse", &"debug_build", &"root_access"]},
-	{"id": "heat3", "text": "Win with Bug Reports 3 or higher", "check": "heat_win>=3",
+	{"id": "heat3", "text": "Win at heat 3 or higher", "check": "heat_win>=3",
 		"unlocks": [&"goto", &"include", &"stack_overflow", &"mirror_rod"]},
 ]
 
 ## Bug Reports (design-plan §6): heat tiers that stack, unlocked one per win (up to five).
 const HEAT := [
-	"No bug reports",
-	"Elite reports: every fight brings an elite",
-	"Load spikes: enemies have 20% more HP",
-	"Race conditions: enemy shots fly 15% faster",
-	"Scope creep: springs heal less, shops charge 25% more",
-	"Hotfix denied: bosses have 25% more HP",
+	"No heat",
+	"Every fight brings an elite",
+	"...and enemies have 20% more HP",
+	"...and enemy shots fly 15% faster",
+	"...and springs heal less, shops charge 25% more",
+	"...and bosses have 25% more HP",
 ]
 
 ## Tests: an in-memory meta record used instead of user://meta.json (and locking applies).

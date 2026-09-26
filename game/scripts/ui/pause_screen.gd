@@ -36,7 +36,10 @@ func _paint() -> void:
 		icon_at(Icons.relic(run.relics[i]), p, 1.0 if i != sel_relic else 1.3)
 		area(Rect2(p - Vector2(10, 10), Vector2(20, 20)), "relic%d" % i)
 	if picked:
-		text(rr.position + Vector2(8, 48), Relics.DEFS[run.relics[sel_relic]]["title"], TEXT, 8, "bold")
+		var rd: Dictionary = Relics.DEFS[run.relics[sel_relic]]
+		text(rr.position + Vector2(8, 48), rd["title"], TEXT, 8, "bold")
+		if rd.has("flavor"):
+			text_right(rr.end.x - 8, rr.position.y + 48, "\"%s\"" % rd["flavor"], MUTED.darkened(0.3))
 		para(Rect2(rr.position + Vector2(8, 50), Vector2(rw - 16, desc_n * 11)), desc, MUTED)
 	y = rr.end.y + 6
 	button(Rect2(cx - 70, y, 140, 28), "resume", "RESUME", "primary")
