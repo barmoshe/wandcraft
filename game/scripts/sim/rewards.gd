@@ -4,7 +4,7 @@ extends RefCounted
 ## answers the "a spell room gives one random spell" complaint about the genre.
 ## Offer items: {"t": spell|relic|wand|gold|heal|loadout|slot, "id": StringName, "v": int}
 
-const SKIP_GOLD := 8
+const SKIP_GOLD := 15          # design v3: enough to tempt (it was 8)
 const SLOT_PRICE := 60        # Forge: +1 slot on the wand in hand (D2)
 const SLOT_MAX := 10
 const ALTAR_COST := 0.15      # share of max HP an Altar pick costs (D5)
@@ -204,8 +204,36 @@ static func shop_stock(run: RunState) -> Array:
 	if run.heat >= 4:
 		for it in out:
 			it["price"] = roundi(int(it["price"]) * 1.25)
+	# design v3: one item on sale at half price, so a visit is a choice, not a price list
+	var sale: Dictionary = out[run.rng.randi() % out.size()]
+	sale["price"] = roundi(int(sale["price"]) * 0.5)
+	sale["sale"] = true
 	run.deprecated_here = false
+	run.rerolls_here = 0
 	return out
+
+
+## Design v3: the shop's reroll price (10, then 20, then 30...).
+static func reroll_price(run: RunState) -> int:
+	return 10 * (run.rerolls_here + 1)
+
+
+## Rerolls the shop's unsold spells.
+static func reroll_shop(run: RunState) -> bool:
+	var price := reroll_price(run)
+	if run.gold < price:
+		return false
+	run.gold -= price
+	run.rerolls_here += 1
+	var seen: Array = run.shop.filter(func(it: Dictionary) -> bool: return it["t"] == &"spell").map(func(it: Dictionary) -> StringName: return it["id"])
+	for it in run.shop:
+		if it["t"] == &"spell" and not it.get("sold", false):
+			var id := roll_spell(run, 0, seen)
+			seen.append(id)
+			it["id"] = id
+			it["price"] = [22, 45, 90][Catalog.spell(id).rarity]
+			it.erase("sale")
+	return true
 
 
 static func forge_price(lv: int) -> int:
@@ -293,7 +321,7 @@ static func _desc(item: Dictionary, lv := 1) -> String:
 		&"compile":
 			var ev: Dictionary = Catalog.EVOLUTIONS[item["id"]]
 			var cat: String = Relics.DEFS[ev["cat"]]["title"] if ev["cat_t"] == &"relic" else Catalog.spell(ev["cat"]).title
-			return "%s Uses up your level-3 %s%s." % [Catalog.spell(item["id"]).desc, Catalog.spell(ev["base"]).title,
+			return "%s Uses up your %s (level 2 or 3)%s." % [Catalog.spell(item["id"]).desc, Catalog.spell(ev["base"]).title,
 				"" if ev["cat_t"] == &"relic" else " and one %s" % cat]
 		&"slot":
 			return "Adds one empty slot to the left end of the wand in your hand (up to %d)." % SLOT_MAX
@@ -361,7 +389,8 @@ static func compilable(run: RunState) -> Array:
 	var out: Array = []
 	for evo in Catalog.EVOLUTIONS:
 		var ev: Dictionary = Catalog.EVOLUTIONS[evo]
-		if _ref_of(run, ev["base"], 3).is_empty():
+		# design v3: a level-2 base is enough (level 3 was out of reach in most runs)
+		if _ref_of(run, ev["base"], 2).is_empty():
 			continue
 		if ev["cat_t"] == &"relic" and not run.has_relic(ev["cat"]):
 			continue
@@ -383,7 +412,7 @@ static func compile_evo(run: RunState, evo: StringName) -> bool:
 	if not compilable(run).has(evo):
 		return false
 	var ev: Dictionary = Catalog.EVOLUTIONS[evo]
-	var base := _ref_of(run, ev["base"], 3)
+	var base := _ref_of(run, ev["base"], 2)
 	base["s"]["id"] = evo
 	base["s"]["lv"] = 3
 	if ev["cat_t"] == &"spell":
@@ -426,7 +455,7 @@ static func enables(run: RunState, item: Dictionary) -> Array:
 				if ev["cat"] == id and owned.has(ev["base"]):
 					out.append("Compile")
 				elif ev["base"] == id and (run.has_relic(ev["cat"]) or owned.has(ev["cat"])):
-					out.append("Compile at level 3")
+					out.append("Compile at level 2")
 	var seen: Array = []
 	for t in out:
 		if not seen.has(t):

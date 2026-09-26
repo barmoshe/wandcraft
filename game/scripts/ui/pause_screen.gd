@@ -47,13 +47,17 @@ func _paint() -> void:
 	var bw := 96.0
 	var s := Game.settings()
 	var rows := [
-		[["auto", "AUTO-FIRE", s["auto_fire"]], ["shake", "SHAKE", s["shake"]], ["flash", "FLASH", s["flash"]]],
+		[["auto", "AUTO-FIRE", s["auto_fire"]], ["shake", "SHAKE", s["shake"]], ["flash", "FLASH", s["flash"]], ["gentle", "GENTLE", s["gentle"]]],
 		[["sound", "SOUND", s["sound"]], ["music", "MUSIC", s["music"]], ["haptics", "VIBRATION", s["haptics"]]],
 	]
+	# design v3: four across (Gentle joins the first row), narrower when the screen is
+	var sbw := minf(bw, (sr.size.x - 30.0) / 4.0)
 	for row in rows:
-		for k in 3:
+		var n: int = row.size()
+		var x0 := cx - (sbw * n + 6.0 * (n - 1)) / 2.0
+		for k in n:
 			var b: Array = row[k]
-			button(Rect2(cx - bw * 1.5 - 6 + k * (bw + 6), y, bw, 26), b[0], "%s %s" % [b[1], "ON" if b[2] else "OFF"])
+			button(Rect2(x0 + k * (sbw + 6), y, sbw, 26), b[0], "%s %s" % [b[1], "ON" if b[2] else "OFF"])
 		y += 30
 	y += 4
 	button(Rect2(cx - bw * 1.5 - 6, y, bw, 26), "gloss", "HOW IT WORKS", "ghost")
@@ -92,12 +96,14 @@ func _on_button(id: String) -> void:
 		"hints":
 			Hints.reset()
 			toast("Tips will show again")
-		"auto", "shake", "flash", "sound", "music", "haptics":
+		"auto", "shake", "flash", "sound", "music", "haptics", "gentle":
 			var s := Game.settings()
-			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash", "sound": "sound", "music": "music", "haptics": "haptics"}[id]
+			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash", "sound": "sound", "music": "music", "haptics": "haptics", "gentle": "gentle"}[id]
 			s[key] = not s[key]
 			Game.apply_settings(s)
 			SaveGame.save_settings(s)
+			if id == "gentle" and Game.gentle:
+				toast("Gentle: you take %d%% less damage now (2%% per run lost, up to 40%%)" % roundi(Game.gentle_resist() * 100.0))
 		_:
 			if id.begins_with("relic"):
 				var i := int(id.substr(5))

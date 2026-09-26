@@ -145,7 +145,19 @@ func font(kind := "small") -> Font:
 
 func settings() -> Dictionary:
 	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx, "haptics": haptics,
-		"sound": sound, "music": music}
+		"sound": sound, "music": music, "gentle": gentle}
+
+
+## Design v3 (after Hades' God Mode): opt in and every run you have lost takes 2% off the
+## damage you take, up to 40%. Never shown as a lesser way to play.
+var gentle := false
+
+
+func gentle_resist() -> float:
+	if not gentle:
+		return 0.0
+	var m := SaveGame.load_meta()
+	return minf(0.4, 0.02 * maxi(0, int(m.get("runs", 0)) - int(m.get("wins", 0))))
 
 
 func apply_settings(d: Dictionary) -> void:
@@ -155,6 +167,7 @@ func apply_settings(d: Dictionary) -> void:
 	haptics = bool(d.get("haptics", haptics))
 	sound = bool(d.get("sound", sound))
 	music = bool(d.get("music", music))
+	gentle = bool(d.get("gentle", gentle))
 	var au := get_node_or_null("/root/Audio")
 	if au:
 		au.apply(settings())

@@ -227,7 +227,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 		world.fx.text(position + head, "CAUGHT", Color("#9ab0ff"))
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
-	amount *= Relics.damage_taken_mul(run)
+	amount *= Relics.damage_taken_mul(run) * (1.0 - Game.gentle_resist())
 	if run.has_relic(&"cornered") and world.cornered():
 		amount *= 0.7
 	if shield > 0.0:

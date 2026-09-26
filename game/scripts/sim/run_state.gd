@@ -29,6 +29,7 @@ var shop: Array = []                # current shop stock (so leaving and coming 
 var banned: Array[StringName] = []  # spells Deprecated out of this run's offers (D2)
 var rare_offset := -0.05            # Slay the Spire-style rarity pacing for spell offers (D2)
 var deprecated_here := false        # one Deprecate per shop visit
+var rerolls_here := 0               # design v3: shop rerolls this visit (the price climbs)
 var map: Array = []                # D5: the 3-lane map (Chapter.make_map), per step an Array of nodes
 var lane := 1                       # the lane the player is on
 var uptime := 0                     # Uptime relic: rooms in a row cleared without a hit

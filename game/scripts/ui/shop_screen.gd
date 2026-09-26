@@ -42,13 +42,16 @@ func _paint() -> void:
 	var v := view()
 	var sr := safe()
 	text(sr.position + Vector2(4, 16), "MERCHANT" if mode == "shop" else "FORGE", GOLD, 16, "body")
-	text(sr.position + Vector2(4, 28), "Tap an item, then buy it." if mode == "shop" else "Upgrade a spell, add a slot, or compile a level-3 spell.", MUTED)
+	text(sr.position + Vector2(4, 28), "Tap an item, then buy it." if mode == "shop" else "Upgrade a spell, add a slot, or compile a level-2 spell.", MUTED)
 	# gold
 	var gr := Rect2(sr.end.x - 150, sr.position.y + 4, 64, 22)
 	panel(gr)
 	icon_at(Icons.glyph("coin", Color("#ffd36b")), gr.position + Vector2(11, 11))
 	text(gr.position + Vector2(22, 15), str(run.gold), GOLD, 8, "bold")
 	button(Rect2(sr.end.x - 80, sr.position.y + 2, 80, 26), "close", "LEAVE", "ghost")
+	if mode == "shop":
+		var rp := Rewards.reroll_price(run)
+		button(Rect2(sr.end.x - 244, sr.position.y + 2, 90, 26), "reroll", "REROLL  %d" % rp, "ghost", run.gold >= rp)
 	var items := _items()
 	var info_w := minf(170.0, sr.size.x * 0.38)
 	var grid := Rect2(sr.position + Vector2(0, 38), Vector2(sr.size.x - info_w - 10, sr.size.y - 40))
@@ -69,6 +72,8 @@ func _paint() -> void:
 		if mode == "forge" and it["t"] == &"spell":
 			text_center(r.get_center().x, r.position.y + 38, "+".repeat(int(it["lv"]) - 1) + " > " + "+".repeat(int(it["lv"])), GOLD)
 		var price_c := GOLD if run.gold >= int(it["price"]) else Color("#ff6b7a")
+		if it.get("sale", false) and not it.get("sold", false):
+			text_center(r.get_center().x, r.position.y + 10, "SALE", Style.c("leaf:4"))
 		text_center(r.get_center().x, r.end.y - 4, ("BANNED" if run.banned.has(it["id"]) else "SOLD") if it.get("sold", false) else ("COMPILE" if it["t"] == &"compile" else str(it["price"])), MUTED if it.get("sold", false) else price_c)
 		area(r, "item%d" % i)
 	# info panel
@@ -112,6 +117,12 @@ func _on_button(id: String) -> void:
 		_buy()
 	elif id == "ban":
 		_deprecate()
+	elif id == "reroll":
+		if Rewards.reroll_shop(run):
+			Audio.sfx("coin", 0.0)
+			sel = -1
+		else:
+			Audio.sfx("deny", 0.0)
 
 
 ## Deprecate: the selected spell leaves the shop and never shows up in this run again.
