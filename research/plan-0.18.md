@@ -42,6 +42,9 @@ The whole session's transcript has been mined (25–27 Sep).
 - **Next:** `ui/world_screen.gd`; `main.gd` wiring (`&"world"` in `_on_ui_request` and `_bot_answer`, and the bench's `_answer`); then the rest of Step 1.
 - **Coordination:** the sound session owns `autoload/audio.gd`, `tools/gen_*`, `tools/audiosheet.sh`, `research/sound-v2*.md`, and all of `game/assets/audio`. Don't edit those. When committing, stage only this plan's files by path; never `git add -A` while the sound session has uncommitted work.
 
+## Step 1b: Voices (added 2026-09-27)
+The Duck and a new robot, LINT, speak real words: Kokoro-82M, pre-rendered and processed per character. The plan is `research/voices-plan.md`; it starts with an audition checkpoint with Bar and needs the sound session to amend its no-voices brief and add a Voice bus.
+
 ## Step 1: Finish the story and the world switch (first, since it's half built)
 - **Design doc:** write `research/story.md`, the story bible.
   - Premise: the Arcanum runs on the Source. Your Friday 4:59 pm push became the Glitch, and the rubber duck guides you down the bug's stack trace.
