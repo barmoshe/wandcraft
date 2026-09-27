@@ -10,8 +10,18 @@ var panels: Array = []      # the lines (Story.INTRO or Story.ENDING)
 var who: Array = []         # who says each one ("" is the narrator, Story.DUCK the Duck)
 var art: Array = []         # a picture per panel: "code", "clock", "glitch", "kernel", "duck"
 var last_label := "DONE"   # the last panel's button ("BEGIN" for the intro)
+var voice_prefix := ""     # "intro" or "ending": each panel is read aloud (Dialogue, "<prefix>.<n>")
 var at := 0
 var _t := 0.0               # time on this panel
+
+
+func _opened() -> void:
+	_speak()
+
+
+func _speak() -> void:
+	if voice_prefix != "":
+		Dialogue.play_now("%s.%d" % [voice_prefix, at], String(who[at]) if at < who.size() else "", String(panels[at]))
 
 
 func _process(dt: float) -> void:
@@ -94,6 +104,7 @@ func _on_button(id: String) -> void:
 		return   # a double tap on the last panel must not finish twice
 	if id == "skip":
 		_done = true
+		Dialogue.clear()
 		finished.emit({"skipped": true})
 	elif id == "next":
 		if _typed() < String(panels[at]).length():
@@ -101,6 +112,7 @@ func _on_button(id: String) -> void:
 		elif at < panels.size() - 1:
 			at += 1
 			_t = 0.0
+			_speak()
 		else:
 			_done = true
 			finished.emit({})

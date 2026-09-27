@@ -34,11 +34,12 @@ var flash_a := 0.0
 var fade_a := 0.0     # design v3: a quick fade from black when a room opens
 var intro_t := 0.0    # design v3: letterbox bars while a boss makes its entrance
 var banner_low := false
-## The story: the Duck's line, in a box at the bottom middle (clear of the thumbs). Lines wait
-## for a banner to finish, so a room title and a line never talk over each other.
+## The story: the line being spoken (Dialogue.line_started), in a box at the bottom middle, clear
+## of the thumbs. The speaker's face and name: the Duck in gold, LINT in cyan.
 var say_text := ""
+var say_who := ""
 var say_t := 0.0
-var _say_queue: Array = []
+var say_len := 0.0
 
 
 func _ready() -> void:
@@ -54,9 +55,11 @@ func _ready() -> void:
 		banner_low = false
 		banner_t = 1.4)
 	Events.hint.connect(func(s: String) -> void: _hint_queue.append(s))
-	Events.say.connect(func(_who: String, s: String) -> void:
-		if _say_queue.size() < 2:
-			_say_queue.append(s))
+	Dialogue.line_started.connect(func(who: String, s: String, _id: String, dur: float) -> void:
+		say_who = who
+		say_text = s
+		say_len = dur
+		say_t = dur)
 	Events.screen_flash.connect(func(c: Color, a: float) -> void:
 		flash_c = c
 		flash_a = maxf(flash_a, a))
@@ -104,10 +107,6 @@ func _process(dt: float) -> void:
 	banner_t = maxf(0.0, banner_t - dt)
 	toast_t = maxf(0.0, toast_t - dt)
 	say_t = maxf(0.0, say_t - dt)
-	if say_t <= 0.0 and banner_t <= 0.0 and not _say_queue.is_empty():
-		say_text = _say_queue.pop_front()
-		Audio.babble(say_text)
-		say_t = 3.2 + minf(3.0, say_text.length() / 22.0)
 	hint_t = maxf(0.0, hint_t - dt)
 	if hint_t <= 0.0 and not _hint_queue.is_empty():
 		hint = _hint_queue.pop_front()
@@ -371,7 +370,9 @@ func _draw_dash(sr: Rect2) -> void:
 
 ## The Duck's box: its face, its name, the line (wrapped to two lines at most).
 func _draw_say(sr: Rect2, cx: float) -> void:
-	var a := clampf(say_t * 3.0, 0.0, 1.0) * clampf((3.2 + minf(3.0, say_text.length() / 22.0) - say_t) * 4.0, 0.0, 1.0)
+	var a := clampf(say_t * 3.0, 0.0, 1.0) * clampf((say_len - say_t) * 6.0, 0.0, 1.0)
+	var lint := say_who == Story.LINT
+	var col := Color("#5ce1ff") if lint else Color(1.0, 0.85, 0.3)
 	var f := Game.font("small")
 	var lines := _wrap_lines(f, say_text, minf(250.0, sr.size.x - 150.0))
 	var wdt := 0.0
@@ -380,11 +381,29 @@ func _draw_say(sr: Rect2, cx: float) -> void:
 	var h := maxf(24.0, lines.size() * 10.0 + 14.0)
 	var r := Rect2(cx - (wdt + 34.0) / 2.0, sr.end.y - 44.0 - h, wdt + 34.0, h)
 	draw_rect(r, Color(0.05, 0.03, 0.1, 0.85 * a))
-	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(1.0, 0.85, 0.3, a))
-	draw_texture(duck_face(), (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
-	_text(r.position + Vector2(26, 10), "DUCK", Color(1.0, 0.85, 0.3, a), 8)
+	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(col, a))
+	draw_texture(lint_face() if lint else duck_face(), (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
+	_text(r.position + Vector2(26, 10), say_who, Color(col, a), 8)
 	for k in lines.size():
 		_text(r.position + Vector2(26, 20 + k * 10), lines[k], Color(0.92, 0.95, 1.0, a), 8)
+
+
+## LINT's face, 12 px: a little monitor with a cyan scanline eye.
+static func lint_face() -> Texture2D:
+	return PixelArt.cached("lint_face", func() -> Image:
+		return PixelArt.paint(PackedStringArray([
+			".ssssssssss.",
+			"sSSSSSSSSSSs",
+			"sSkkkkkkkkSs",
+			"sSkkkkkkkkSs",
+			"sSkcccccckSs",
+			"sSkkkkkkkkSs",
+			"sSkkkkkkkkSs",
+			"sSSSSSSSSSSs",
+			".ssssssssss.",
+			"....sSSs....",
+			"..ssSSSSss..",
+		]), {"s": "steel:2", "S": "steel:3", "k": "night:0", "c": "cyan:4"}))
 
 
 ## The rubber duck's face, 16 px (the Rubber Duck spell's friend).

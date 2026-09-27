@@ -13,3 +13,8 @@ build/
 
 # macOS Finder metadata
 .DS_Store
+
+# voice pipeline (research/voices-plan.md): the venv and the Kokoro model files, never committed
+tools/.venv-voice/
+tools/.voice-models/
+tools/__pycache__/

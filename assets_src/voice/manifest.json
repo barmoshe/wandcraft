@@ -1,0 +1,626 @@
+{
+ "boss_copy_paste.0.0": {
+  "id": "boss:Copy-Paste.0.0",
+  "who": "LINT",
+  "hash": "d1219fc1bc2c9cfc",
+  "seconds": 2.18,
+  "voice": "am_fenrir",
+  "text": "Warning. Duplicate wand detected."
+ },
+ "boss_copy_paste.0.1": {
+  "id": "boss:Copy-Paste.0.1",
+  "who": "DUCK",
+  "hash": "c0764832b7faa29b",
+  "seconds": 2.59,
+  "voice": "af_heart",
+  "text": "It copied your wand. Your own spells, pointed at you."
+ },
+ "boss_copy_paste.1.0": {
+  "id": "boss:Copy-Paste.1.0",
+  "who": "DUCK",
+  "hash": "8515d1444bbf35e5",
+  "seconds": 2.37,
+  "voice": "af_heart",
+  "text": "Copy-Paste again. It learned from your last wand."
+ },
+ "boss_copy_paste.1.1": {
+  "id": "boss:Copy-Paste.1.1",
+  "who": "LINT",
+  "hash": "89c9331d72ee9d2e",
+  "seconds": 1.39,
+  "voice": "am_fenrir",
+  "text": "Plagiarism detected."
+ },
+ "boss_deadlock.0.0": {
+  "id": "boss:Deadlock.0.0",
+  "who": "LINT",
+  "hash": "3028d6efcca1522e",
+  "seconds": 4.32,
+  "voice": "am_fenrir",
+  "text": "Two processes, each waiting for the other. Estimated wait: forever."
+ },
+ "boss_deadlock.0.1": {
+  "id": "boss:Deadlock.0.1",
+  "who": "DUCK",
+  "hash": "0844950c9b5beaa7",
+  "seconds": 2.45,
+  "voice": "af_heart",
+  "text": "Hit the open lock. When the beam flickers, move."
+ },
+ "boss_deadlock.1": {
+  "id": "boss:Deadlock.1",
+  "who": "DUCK",
+  "hash": "700b0cfadf972bd0",
+  "seconds": 1.86,
+  "voice": "af_heart",
+  "text": "When the beam flickers, get out of the circle."
+ },
+ "boss_garbage_collector.0.0": {
+  "id": "boss:Garbage Collector.0.0",
+  "who": "LINT",
+  "hash": "e2355d49988dc304",
+  "seconds": 2.82,
+  "voice": "am_fenrir",
+  "text": "Memory sweep in progress. Please hold still."
+ },
+ "boss_garbage_collector.0.1": {
+  "id": "boss:Garbage Collector.0.1",
+  "who": "DUCK",
+  "hash": "ba0b5f2cf013e5a3",
+  "seconds": 2.97,
+  "voice": "af_heart",
+  "text": "Please don't. Blast its plating, and stop when the lid opens."
+ },
+ "boss_garbage_collector.1": {
+  "id": "boss:Garbage Collector.1",
+  "who": "DUCK",
+  "hash": "49387fb6c9669ff0",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "Don't feed it. When the lid opens, stop shooting."
+ },
+ "boss_the_infinite_loop.0.0": {
+  "id": "boss:The Infinite Loop.0.0",
+  "who": "LINT",
+  "hash": "909ccc511d42ee92",
+  "seconds": 2.01,
+  "voice": "am_fenrir",
+  "text": "Warning. Infinite loop detected."
+ },
+ "boss_the_infinite_loop.0.1": {
+  "id": "boss:The Infinite Loop.0.1",
+  "who": "DUCK",
+  "hash": "507ed5cb0f9a582f",
+  "seconds": 2.63,
+  "voice": "af_heart",
+  "text": "It's why the world runs at a hundred percent. Break it."
+ },
+ "boss_the_infinite_loop.1": {
+  "id": "boss:The Infinite Loop.1",
+  "who": "DUCK",
+  "hash": "96fdd985160ccdfa",
+  "seconds": 3.29,
+  "voice": "af_heart",
+  "text": "Break the body in its second phase. It gets smaller, and angrier."
+ },
+ "boss_the_infinite_loop.2": {
+  "id": "boss:The Infinite Loop.2",
+  "who": "DUCK",
+  "hash": "ccc6e499a0be2c39",
+  "seconds": 2.32,
+  "voice": "af_heart",
+  "text": "Stay out of its lane. It's watching where you stand."
+ },
+ "core.0.0": {
+  "id": "core.0.0",
+  "who": "LINT",
+  "hash": "5175c27bf71915f8",
+  "seconds": 3.46,
+  "voice": "am_fenrir",
+  "text": "Warning. Core temperature: one hundred and four degrees."
+ },
+ "core.0.1": {
+  "id": "core.0.1",
+  "who": "DUCK",
+  "hash": "86f4ce03a394528d",
+  "seconds": 2.08,
+  "voice": "af_heart",
+  "text": "The Molten Core. Don't touch the orange."
+ },
+ "core.1": {
+  "id": "core.1",
+  "who": "DUCK",
+  "hash": "4d3ea30e56bf3cca",
+  "seconds": 2.98,
+  "voice": "af_heart",
+  "text": "Hear that hum? Two locks, waiting for each other. We're close."
+ },
+ "death.0.0": {
+  "id": "death.0.0",
+  "who": "LINT",
+  "hash": "c584560b90487042",
+  "seconds": 0.82,
+  "voice": "am_fenrir",
+  "text": "Build failed."
+ },
+ "death.0.1": {
+  "id": "death.0.1",
+  "who": "DUCK",
+  "hash": "161a6ad52d0ab7a8",
+  "seconds": 1.93,
+  "voice": "af_heart",
+  "text": "The Glitch wins this one. Not the next."
+ },
+ "death.1": {
+  "id": "death.1",
+  "who": "DUCK",
+  "hash": "980dc0de3cd6a6b7",
+  "seconds": 2.25,
+  "voice": "af_heart",
+  "text": "Crash report filed. Let's reproduce it."
+ },
+ "death.2.0": {
+  "id": "death.2.0",
+  "who": "DUCK",
+  "hash": "88da35ed9b831f9e",
+  "seconds": 2.18,
+  "voice": "af_heart",
+  "text": "Everyone crashes. The good ones read the log."
+ },
+ "death.2.1": {
+  "id": "death.2.1",
+  "who": "LINT",
+  "hash": "ecc45a8c39d638e5",
+  "seconds": 2.03,
+  "voice": "am_fenrir",
+  "text": "Log saved. You will not read it."
+ },
+ "death.3": {
+  "id": "death.3",
+  "who": "DUCK",
+  "hash": "f9b4222387d1d4e2",
+  "seconds": 1.43,
+  "voice": "af_heart",
+  "text": "Quack. That hurt to watch."
+ },
+ "death.4": {
+  "id": "death.4",
+  "who": "DUCK",
+  "hash": "488448acad56d7e6",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "We learned something. Mostly about dodging."
+ },
+ "descend.0.0": {
+  "id": "descend.0.0",
+  "who": "LINT",
+  "hash": "9e01f1d11810c793",
+  "seconds": 1.97,
+  "voice": "am_fenrir",
+  "text": "Stack frame complete. Descending."
+ },
+ "descend.0.1": {
+  "id": "descend.0.1",
+  "who": "DUCK",
+  "hash": "10e994a705a5dc4a",
+  "seconds": 1.06,
+  "voice": "af_heart",
+  "text": "Hold on to your wand."
+ },
+ "down_deadlock.0.0": {
+  "id": "down:Deadlock.0.0",
+  "who": "LINT",
+  "hash": "b4555bc3d45ffc50",
+  "seconds": 2.53,
+  "voice": "am_fenrir",
+  "text": "Locks released. Kernel access granted."
+ },
+ "down_deadlock.0.1": {
+  "id": "down:Deadlock.0.1",
+  "who": "DUCK",
+  "hash": "765c199722b11c0f",
+  "seconds": 2.02,
+  "voice": "af_heart",
+  "text": "Behind them: the bug. Let's go see it."
+ },
+ "down_mini.0": {
+  "id": "down:mini.0",
+  "who": "DUCK",
+  "hash": "de18431bf9208fa5",
+  "seconds": 2.31,
+  "voice": "af_heart",
+  "text": "Mini-boss down. Keep the wand, keep going."
+ },
+ "down_mini.1.0": {
+  "id": "down:mini.1.0",
+  "who": "DUCK",
+  "hash": "98911366079b99c9",
+  "seconds": 2.32,
+  "voice": "af_heart",
+  "text": "Nice. That one will be back, with a version number."
+ },
+ "down_mini.1.1": {
+  "id": "down:mini.1.1",
+  "who": "LINT",
+  "hash": "953d87a15c370112",
+  "seconds": 1.9,
+  "voice": "am_fenrir",
+  "text": "Version two point oh: scheduled."
+ },
+ "down_the_infinite_loop.0.0": {
+  "id": "down:The Infinite Loop.0.0",
+  "who": "LINT",
+  "hash": "51a78fcd04f2c6e7",
+  "seconds": 3.02,
+  "voice": "am_fenrir",
+  "text": "Loop terminated. World load: ninety-nine percent."
+ },
+ "down_the_infinite_loop.0.1": {
+  "id": "down:The Infinite Loop.0.1",
+  "who": "DUCK",
+  "hash": "8c5e529515212ca4",
+  "seconds": 2.18,
+  "voice": "af_heart",
+  "text": "It broke! Now, where does all that heat go?"
+ },
+ "down_the_infinite_loop.1": {
+  "id": "down:The Infinite Loop.1",
+  "who": "DUCK",
+  "hash": "b51195c802f2dc14",
+  "seconds": 2.83,
+  "voice": "af_heart",
+  "text": "Loop broken. The trace goes down. Take the stairs."
+ },
+ "ending.0": {
+  "id": "ending.0",
+  "who": "LINT",
+  "hash": "5d3fd872e6ae80ee",
+  "seconds": 4.49,
+  "voice": "am_fenrir",
+  "text": "Deadlock falls. Behind it, the Kernel hums, and one line glows red."
+ },
+ "ending.1": {
+  "id": "ending.1",
+  "who": "LINT",
+  "hash": "beb749720ca9faf8",
+  "seconds": 4.05,
+  "voice": "am_fenrir",
+  "text": "Tiny tweak to mana regen. Friday, four fifty-nine. Yours."
+ },
+ "ending.2": {
+  "id": "ending.2",
+  "who": "LINT",
+  "hash": "dd20b285730008a7",
+  "seconds": 6.02,
+  "voice": "am_fenrir",
+  "text": "You cast the oldest spell there is: revert. The Glitch lets go of the world, one tree at a time."
+ },
+ "ending.3": {
+  "id": "ending.3",
+  "who": "DUCK",
+  "hash": "8b46591b40516c2b",
+  "seconds": 3.05,
+  "voice": "af_heart",
+  "text": "Good debugging. Now, about that folder called world three."
+ },
+ "first_run.0.0": {
+  "id": "first_run.0.0",
+  "who": "LINT",
+  "hash": "b2df26c764e3af21",
+  "seconds": 3.0,
+  "voice": "am_fenrir",
+  "text": "New process started. One apprentice, one duck."
+ },
+ "first_run.0.1": {
+  "id": "first_run.0.1",
+  "who": "DUCK",
+  "hash": "3aae33690540eb56",
+  "seconds": 2.41,
+  "voice": "af_heart",
+  "text": "Quack. You talk, I listen, we find the bug."
+ },
+ "grove.0.0": {
+  "id": "grove.0.0",
+  "who": "LINT",
+  "hash": "0eb6d7b250f7bdca",
+  "seconds": 3.76,
+  "voice": "am_fenrir",
+  "text": "Entering the Corrupted Grove. Duplicate objects detected."
+ },
+ "grove.0.1": {
+  "id": "grove.0.1",
+  "who": "DUCK",
+  "hash": "e21bdfce5dd35866",
+  "seconds": 2.42,
+  "voice": "af_heart",
+  "text": "The Glitch nests here. Everything is copied twice."
+ },
+ "grove.1": {
+  "id": "grove.1",
+  "who": "DUCK",
+  "hash": "89d9bfd61b6e760a",
+  "seconds": 3.24,
+  "voice": "af_heart",
+  "text": "Smell that? Corrupted moss. A cache miss, but for trees."
+ },
+ "grove.2": {
+  "id": "grove.2",
+  "who": "DUCK",
+  "hash": "3ab493e5de62a40c",
+  "seconds": 2.22,
+  "voice": "af_heart",
+  "text": "Deeper in. The stack trace gets louder here."
+ },
+ "heat_1.0.0": {
+  "id": "heat:1.0.0",
+  "who": "LINT",
+  "hash": "404dc25632c581fa",
+  "seconds": 2.78,
+  "voice": "am_fenrir",
+  "text": "Bug report one. Every fight brings an elite."
+ },
+ "heat_2.0.0": {
+  "id": "heat:2.0.0",
+  "who": "LINT",
+  "hash": "e2aeb998380121f9",
+  "seconds": 2.39,
+  "voice": "am_fenrir",
+  "text": "Bug report two. Enemies hit harder."
+ },
+ "heat_3.0.0": {
+  "id": "heat:3.0.0",
+  "who": "LINT",
+  "hash": "4547bca72bd39b49",
+  "seconds": 3.03,
+  "voice": "am_fenrir",
+  "text": "Bug report three. Faster shots, fewer doors."
+ },
+ "heat_4.0.0": {
+  "id": "heat:4.0.0",
+  "who": "LINT",
+  "hash": "2c6a2e8734288641",
+  "seconds": 3.12,
+  "voice": "am_fenrir",
+  "text": "Bug report four. Weaker springs, higher prices."
+ },
+ "heat_5.0.0": {
+  "id": "heat:5.0.0",
+  "who": "LINT",
+  "hash": "b55438742459129b",
+  "seconds": 3.27,
+  "voice": "am_fenrir",
+  "text": "Bug report five. Bosses skip straight to their worst."
+ },
+ "intro.0": {
+  "id": "intro.0",
+  "who": "LINT",
+  "hash": "0289886975c937b4",
+  "seconds": 6.52,
+  "voice": "am_fenrir",
+  "text": "The Arcanum runs on the Source: one great spell-program. Every tree, torch and door is code."
+ },
+ "intro.1": {
+  "id": "intro.1",
+  "who": "LINT",
+  "hash": "3a2d1155a0e2c414",
+  "seconds": 7.59,
+  "voice": "am_fenrir",
+  "text": "Friday, four fifty-nine P.M. On your first day as a spellwright, you pushed one small fix. It compiled."
+ },
+ "intro.2": {
+  "id": "intro.2",
+  "who": "LINT",
+  "hash": "1bd4bc78afaa4ae2",
+  "seconds": 4.47,
+  "voice": "am_fenrir",
+  "text": "Then the moss grew eyes. The Glitch was loose, rewriting everything it touched."
+ },
+ "intro.3": {
+  "id": "intro.3",
+  "who": "DUCK",
+  "hash": "dd4a1794d8238a3a",
+  "seconds": 4.04,
+  "voice": "af_heart",
+  "text": "Quack. I'm your rubber duck. Talk me through it, and we'll trace the bug to its source."
+ },
+ "log.0f1005": {
+  "id": "log.0f1005",
+  "who": "LINT",
+  "hash": "6d32ca4a8f199d62",
+  "seconds": 4.47,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: the Loop. Message: while the world is alive, spin."
+ },
+ "log.10c4ed": {
+  "id": "log.10c4ed",
+  "who": "LINT",
+  "hash": "ad863fa3eb0de6d7",
+  "seconds": 7.07,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: Mutex A. Message: waiting for Mutex B. Mutex B: waiting for Mutex A."
+ },
+ "log.5ca1d0": {
+  "id": "log.5ca1d0",
+  "who": "LINT",
+  "hash": "f812a3dc45b23cad",
+  "seconds": 8.04,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: the Foundry. Message: C.P.U. at one hundred and four degrees. Throttling all spells."
+ },
+ "log.7e57ed": {
+  "id": "log.7e57ed",
+  "who": "LINT",
+  "hash": "4036fc09789be430",
+  "seconds": 6.44,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: the duck. Message: it was you. It's fine. Everyone pushes on a Friday."
+ },
+ "log.a1f00d": {
+  "id": "log.a1f00d",
+  "who": "LINT",
+  "hash": "21a2f0ee8299b775",
+  "seconds": 5.81,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: you. Message: tiny tweak to mana regen. Friday, four fifty-nine."
+ },
+ "log.b00b1e": {
+  "id": "log.b00b1e",
+  "who": "LINT",
+  "hash": "782953eceabbe7a4",
+  "seconds": 5.3,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: Guild C.I. Message: build passed. Deploying to the Source."
+ },
+ "log.c0ffee": {
+  "id": "log.c0ffee",
+  "who": "LINT",
+  "hash": "b56a3cf948aa5ef2",
+  "seconds": 3.7,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: moss. Message: why do I have eyes."
+ },
+ "log.c10ud0": {
+  "id": "log.c10ud0",
+  "who": "LINT",
+  "hash": "faf20a707ff843e1",
+  "seconds": 4.6,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: unknown. Message: make directory, world three."
+ },
+ "log.deadbe": {
+  "id": "log.deadbe",
+  "who": "LINT",
+  "hash": "021b4b4ed0d37106",
+  "seconds": 5.67,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: the Guild. Message: rollback failed. The Glitch has write access."
+ },
+ "log.f00ba4": {
+  "id": "log.f00ba4",
+  "who": "LINT",
+  "hash": "f811c5dc678313c7",
+  "seconds": 6.82,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: Copy-Paste. Message: tiny tweak to mana regen. Friday, four fifty-nine."
+ },
+ "run.0": {
+  "id": "run.0",
+  "who": "DUCK",
+  "hash": "77fd21a765159c46",
+  "seconds": 2.01,
+  "voice": "af_heart",
+  "text": "From the top. The bug is where we left it."
+ },
+ "run.1.0": {
+  "id": "run.1.0",
+  "who": "LINT",
+  "hash": "843469bcb3d0cae7",
+  "seconds": 2.4,
+  "voice": "am_fenrir",
+  "text": "Process restarted. Attempt logged."
+ },
+ "run.1.1": {
+  "id": "run.1.1",
+  "who": "DUCK",
+  "hash": "7c7e99714afe2040",
+  "seconds": 2.19,
+  "voice": "af_heart",
+  "text": "New process, same bug. Let's trace it."
+ },
+ "run.2": {
+  "id": "run.2",
+  "who": "DUCK",
+  "hash": "d8513289eab09534",
+  "seconds": 3.31,
+  "voice": "af_heart",
+  "text": "Tip: a wand reads left to right. The spell on the right fires."
+ },
+ "run.3": {
+  "id": "run.3",
+  "who": "DUCK",
+  "hash": "c89d07addf5287b1",
+  "seconds": 2.48,
+  "voice": "af_heart",
+  "text": "I've been thinking about your wand. Mostly about boosts."
+ },
+ "run.4.0": {
+  "id": "run.4.0",
+  "who": "DUCK",
+  "hash": "538ed9694f1bb2ba",
+  "seconds": 2.26,
+  "voice": "af_heart",
+  "text": "Run it again. Bugs hate being reproduced."
+ },
+ "run.4.1": {
+  "id": "run.4.1",
+  "who": "LINT",
+  "hash": "f27b1b10b7ee6a6c",
+  "seconds": 1.7,
+  "voice": "am_fenrir",
+  "text": "Correction. Bugs are indifferent."
+ },
+ "run.5": {
+  "id": "run.5",
+  "who": "DUCK",
+  "hash": "a68d9ff889853ffc",
+  "seconds": 2.01,
+  "voice": "af_heart",
+  "text": "Every crash was a clue. Let's use them."
+ },
+ "untouched.0.0": {
+  "id": "untouched.0.0",
+  "who": "LINT",
+  "hash": "1f38843dcda3e255",
+  "seconds": 2.96,
+  "voice": "am_fenrir",
+  "text": "No damage taken. Bonus reward unlocked."
+ },
+ "win.0.0": {
+  "id": "win.0.0",
+  "who": "LINT",
+  "hash": "d1586c1f3fffbf2a",
+  "seconds": 2.03,
+  "voice": "am_fenrir",
+  "text": "Build passed. All tests green."
+ },
+ "win.0.1": {
+  "id": "win.0.1",
+  "who": "DUCK",
+  "hash": "93ec6cf2a2c0a4ba",
+  "seconds": 0.83,
+  "voice": "af_heart",
+  "text": "Quack! We did it."
+ },
+ "world2.0.0": {
+  "id": "world2.0.0",
+  "who": "LINT",
+  "hash": "938c64a9c324bec1",
+  "seconds": 4.29,
+  "voice": "am_fenrir",
+  "text": "Entering World 2. The Overheated Foundry. Temperature: unwise."
+ },
+ "world2.0.1": {
+  "id": "world2.0.1",
+  "who": "DUCK",
+  "hash": "9b20a0251ed3817b",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "Where the world's spells are forged. It's running hot."
+ },
+ "world2.1": {
+  "id": "world2.1",
+  "who": "DUCK",
+  "hash": "56b0d9a88a50a077",
+  "seconds": 2.58,
+  "voice": "af_heart",
+  "text": "The Loop's heat drains down here. Follow it to the Kernel."
+ },
+ "world2.2": {
+  "id": "world2.2",
+  "who": "DUCK",
+  "hash": "b344d5f14f8c4676",
+  "seconds": 3.34,
+  "voice": "af_heart",
+  "text": "Welcome back to the Foundry. Mind the Proxies: hit them first."
+ }
+}

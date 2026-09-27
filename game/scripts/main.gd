@@ -132,6 +132,7 @@ func _story_then(which: StringName, then: Callable) -> void:
 	s.who = Story.INTRO_WHO if which == &"intro" else Story.ENDING_WHO
 	s.art = Story.INTRO_ART if which == &"intro" else Story.ENDING_ART
 	s.last_label = "BEGIN" if which == &"intro" else "DONE"
+	s.voice_prefix = String(which)
 	_open(s, func(_res: Dictionary) -> void:
 		Story.mark(key)
 		then.call())
@@ -178,6 +179,7 @@ func _begin(r: RunState) -> void:
 	touch.enabled = true
 	_playing = true
 	Audio.snapshot(&"play")
+	Dialogue.clear()
 	if not world.bot:
 		RunLog.start(r)   # design v3: the local play log for playtests
 	world.start_run(r)
@@ -457,7 +459,12 @@ func _open_end_screen(won: bool) -> void:
 	var s := EndScreen.new()
 	s.won = won
 	s.killed_by = world.player.last_hurt_by
-	s.duck_line = "" if won else Story.line("death")
+	# the end's word, spoken: LINT's build result and the Duck (the screen shows the Duck's)
+	var said := Story.pick("win" if won else "death")
+	s.duck_line = "" if won else Story.duck_text(said)
+	Dialogue.clear()
+	for l in said:
+		Dialogue.enqueue(l["who"], l["text"], l["id"])
 	_open(s, func(res: Dictionary) -> void:
 		if res.get("action") == "again":
 			_begin(_new_run())

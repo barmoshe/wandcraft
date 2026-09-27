@@ -513,6 +513,8 @@ func _story_on_enter(kind: StringName) -> void:
 			Story.say("world2")
 		else:
 			Story.say("first_run" if run.tutorial or not Story.intro_seen() else "run")
+			if run.heat > 0:
+				Story.say("heat:%d" % mini(run.heat, 5))
 	elif run.step == Chapter.AREAS[1]["from"] and kind != &"mini":
 		if run.world == 0:
 			Story.say("grove")
@@ -731,7 +733,7 @@ func reward_taken() -> void:
 	if bonus_orb:
 		bonus_orb = false
 		orb = {"pos": _find_floor(gw / 2, gh / 2), "kind": &"risk", "t": 0.0}
-		Events.toast.emit("No hits taken: a bonus reward")
+		Story.say("untouched")
 		return
 	if not run.bag.is_empty() or run.spell_refs().size() > 2:
 		Hints.show("editor")

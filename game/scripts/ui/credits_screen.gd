@@ -22,6 +22,7 @@ static func lines() -> Array:
 	out.append(["", TEXT, 8])
 	out.append(["Design, code, art and sound: Bar Moshe", TEXT, 8])
 	out.append(["All art is drawn in code. All music and sound are generated in code.", MUTED, 8])
+	out.append(["Voices synthesized with Kokoro-82M (Apache-2.0).", MUTED, 8])
 	var cc := audio_credits()
 	if not cc.is_empty():
 		out.append(["", TEXT, 8])

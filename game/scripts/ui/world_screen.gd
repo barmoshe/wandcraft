@@ -77,7 +77,16 @@ func _paint() -> void:
 	y += 8.0
 	text(Vector2(rx, y), "WORLD CLEAR", Color(Style.UI_GOOD, a), 8, "bold")
 	para(Rect2(rx, y + 4, rw, 24), "+%d max HP and a full heal. Your wands, spells and relics come with you." % bonus_hp, Color(TEXT, a))
+	# what LINT and the Duck are saying, under the stack trace (subtitles: the HUD is hidden here)
+	if not Dialogue.current.is_empty():
+		var who := String(Dialogue.current["who"])
+		text(Vector2(lx, y0 + frames.size() * row + 14), who, Color("#5ce1ff") if who == Story.LINT else GOLD, 8, "bold")
+		para(Rect2(lx, y0 + frames.size() * row + 18, 170, 30), String(Dialogue.current["text"]), TEXT)
 	button(Rect2(v.x / 2.0 - 60, sr.end.y - 32, 120, 28), "descend", "DESCEND", "primary", t >= 1.0)
+
+
+func _opened() -> void:
+	Story.say("descend")
 
 
 func _on_button(id: String) -> void:

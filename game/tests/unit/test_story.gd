@@ -16,13 +16,30 @@ func teardown() -> void:
 
 
 func test_lines_play_in_order_then_pick() -> void:
-	var lines: Array = Story.LINES["death"]
-	for i in lines.size():
-		eq(Story.line("death"), lines[i], "death line %d in order" % i)
+	var n: int = Story.LINES["death"].size()
+	for i in n:
+		eq(Story.pick("death"), Story.entry("death", i), "death entry %d in order" % i)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4
-	ok(lines.has(Story.line("death", rng)), "then any of them")
+	var any := Story.pick("death", rng)
+	ok(range(n).any(func(i: int) -> bool: return Story.entry("death", i) == any), "then any of them")
 	eq(Story.line("no_such_event"), "", "an unknown event says nothing")
+	eq(Story.duck_text(Story.entry("death", 0)), "The Glitch wins this one. Not the next.", "the end screen shows the Duck's line")
+
+
+func test_every_line_has_a_speaker_and_a_unique_id() -> void:
+	var ids := {}
+	for l in Story.all_lines():
+		ok(l["who"] == Story.DUCK or l["who"] == Story.LINT, "%s: the Duck or LINT" % l["id"])
+		ok(not ids.has(l["id"]), "%s is unique" % l["id"])
+		ids[l["id"]] = true
+		ok(String(l["text"]).length() <= 120, "%s is short enough to say in 6 s" % l["id"])
+		ok(not String(l["text"]).contains("\u2014"), "%s has no em dash" % l["id"])
+	ok(ids.size() >= 70, "about 80 voiced lines (%d)" % ids.size())
+	var files := {}
+	for id in ids:
+		files[Story.file_id(id)] = true
+	eq(files.size(), ids.size(), "and unique file names")
 
 
 func test_the_commit_log_is_found_in_order() -> void:

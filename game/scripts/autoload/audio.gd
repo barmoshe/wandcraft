@@ -381,6 +381,8 @@ class Voice:
 		held_left = -1
 
 
+## The music dips under the Duck's and LINT's voices (Dialogue sets this, in dB).
+var voice_db := 0.0
 var sound_on := true
 var music_on := true
 var heartbeat_on := true
@@ -1181,7 +1183,7 @@ func _update_state(dt: float) -> void:
 		_glitch_on = g
 		AudioServer.set_bus_effect_enabled(AudioServer.get_bus_index("Glitch"), 0, g)
 	# the snapshot's values, written only when they change
-	var cur := Vector4(_lp_hz, _snap_music_db + _sting_db, _snap_amb_db, _duck_db)
+	var cur := Vector4(_lp_hz, _snap_music_db + _sting_db + voice_db, _snap_amb_db, _duck_db)
 	if cur != _applied:
 		_applied = cur
 		var mb := AudioServer.get_bus_index("Music")

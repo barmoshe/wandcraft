@@ -145,7 +145,11 @@ func font(kind := "small") -> Font:
 
 func settings() -> Dictionary:
 	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx, "haptics": haptics,
-		"sound": sound, "music": music, "gentle": gentle, "heartbeat": heartbeat}
+		"sound": sound, "music": music, "gentle": gentle, "heartbeat": heartbeat, "voice": voice}
+
+
+## The Duck's and LINT's voices (Voice); the lines still show as text with it off.
+var voice := true
 
 
 ## Sound v2: the low-HP heartbeat and the music closing under it (Audio.player_hp). Some players
@@ -174,6 +178,7 @@ func apply_settings(d: Dictionary) -> void:
 	music = bool(d.get("music", music))
 	gentle = bool(d.get("gentle", gentle))
 	heartbeat = bool(d.get("heartbeat", heartbeat))
+	voice = bool(d.get("voice", voice))
 	var au := get_node_or_null("/root/Audio")
 	if au:
 		au.apply(settings())
