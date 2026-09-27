@@ -73,10 +73,10 @@ const GOALS := [
 const HEAT := [
 	"No heat",
 	"Every fight brings an elite",
-	"...and enemies have 20% more HP",
+	"...and enemies hit 20% harder",
 	"...enemy shots fly 15% faster, one fewer door",
 	"...and springs heal less, shops charge 25% more",
-	"...and bosses have 25% more HP",
+	"...and bosses fight their last phase early, faster",
 ]
 
 ## Tests: an in-memory meta record used instead of user://meta.json (and locking applies).

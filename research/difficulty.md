@@ -272,3 +272,6 @@ The bot takes hits a human would dash through, so every damage and healing chang
 | Before (0.17.1) | `ec7250d` | 60% / 20% | 0% | 42 s / 71 s / 106 s |
 | 1: HP, hit cost, healing | this pass | 40% / 10% | 0% | 28 s / 67 s / 98 s |
 | 2: aim ahead, faster shots, overlapping waves | this pass | 40% / 10% | 0% | 32 s / 69 s / 84 s |
+| 3: bosses press in the last phase; heat 2 and 5 are rules | this pass | 40% / 10% | 0% | 32 s / 78 s / 97 s |
+
+The bench now holds the new bands (`test_balance.gd`): World 1 25-45%, mini 20-75 s, the Loop 50-100 s, Deadlock 60-110 s, and under a minute a room.

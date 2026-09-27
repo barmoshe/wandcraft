@@ -110,7 +110,7 @@ func tick(dt: float) -> void:
 			_act(move, dt, mt)
 			if st_t <= 0.0 or done:
 				sm = &"recover"
-				st_t = float(move_table[move][2]) * (0.8 if phase > 0 else 1.0)
+				st_t = float(move_table[move][2]) * (0.6 if pressed() else (0.8 if phase > 0 else 1.0))
 				_end(move)
 		&"recover":
 			_idle(dt)
@@ -126,6 +126,16 @@ func tick(dt: float) -> void:
 	_animate()
 
 
+## research/difficulty.md: pressure, not HP. The last phase (and at heat 5, every phase after
+## the first) winds up 30% faster, recovers 40% faster and leads its aimed fans.
+func pressed() -> bool:
+	return (phases.size() > 1 and phase == phases.size() - 1) or (_heat() >= 5 and phase > 0)
+
+
+func _heat() -> int:
+	return world.run.heat if world and world.run else 0
+
+
 func _pick_move() -> void:
 	var pool: Array = phases[phase]["moves"].duplicate()
 	if pool.size() > 1:
@@ -133,7 +143,7 @@ func _pick_move() -> void:
 	move = pool[world.rng.randi() % pool.size()]
 	last_move = move
 	sm = &"tele"
-	st_t = float(move_table[move][0]) * (0.85 if phase > 0 else 1.0)
+	st_t = float(move_table[move][0]) * (0.7 if pressed() else (0.85 if phase > 0 else 1.0)) * (0.85 if _heat() >= 5 else 1.0)
 	tele_total = st_t
 	tele.clear()
 	done = false
@@ -212,7 +222,10 @@ func ring(p: Vector2, n: int, speed: float, offset := 0.0, accel := 0.0) -> void
 
 
 func aimed(p: Vector2, n: int, spread: float, speed: float) -> void:
-	var a := (world.player.position - p).angle()
+	var at := world.player.position
+	if pressed() and speed > 0.0:
+		at += world.player.vel * (p.distance_to(at) / speed) * 0.5
+	var a := (at - p).angle()
 	for i in n:
 		world.enemy_shoot(p, a + ((float(i) / (n - 1) - 0.5) * spread if n > 1 else 0.0), speed, ed(), 0.0, "shot:%s" % title)
 

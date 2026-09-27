@@ -12,6 +12,9 @@ extends "res://tests/unit/test_helpers.gd"
 ## the editor is held to the band and the non-editor is reported.
 ## World 2 (0.17): a run is two worlds. The band holds for clearing World 1 (the Loop); the
 ## full-run win rate and Deadlock's time are reported beside it.
+## 0.18 (research/difficulty.md): humans found 60% easy, and the bot never dashes, so the band
+## moved down: the editor clears World 1 25-45% and wins the full run 5-15%; mini-bosses
+## 20-75 s, the Loop 50-100 s, Deadlock 60-110 s; a room averages under a minute.
 
 const DT := 1.0 / 60.0
 const SEEDS := [11, 22, 33, 44, 55, 66, 77, 88, 99, 110]
@@ -75,7 +78,7 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 
 func test_world_one_balance() -> void:
 	var rate := _bench(true)
-	ok(rate >= 0.4 and rate <= 0.85, "editing bot: survival %.0f%% is inside 40-85%%" % (rate * 100.0))
+	ok(rate >= 0.25 and rate <= 0.45, "editing bot: World 1 cleared %.0f%%, inside 25-45%%" % (rate * 100.0))
 	var lazy := _bench(false)
 	print("    editing %.0f%% vs never editing %.0f%%" % [rate * 100.0, lazy * 100.0])
 	ok(lazy < rate, "editing the wand matters (%.0f%% vs %.0f%%)" % [rate * 100.0, lazy * 100.0])
@@ -92,6 +95,8 @@ func _bench(edits: bool) -> float:
 	var bosses2: Array = []
 	var minis: Array = []
 	var bosses: Array = []
+	var room_t := 0.0
+	var rooms := 0
 	print("\n    %s bot" % ("EDITING" if edits else "NEVER-EDITING"))
 	print("    seed  result   w-step  time   hp_lost  rooms  mini   boss  boss2")
 	for s in (ONLY if not ONLY.is_empty() else SEEDS):
@@ -108,17 +113,22 @@ func _bench(edits: bool) -> float:
 			minis.append(r["mini"])
 		if r["boss"] >= 0.0:
 			bosses.append(r["boss"])
+		room_t += r["time"]
+		rooms += maxi(1, r["rooms"])
 		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5d  %5.0f  %5.0f  %5.0f   %s" % [s, "WIN" if r["won"] else ("W1" if r["w1"] else "died"), r["world"], r["step"], r["time"], r["hp_lost"], r["rooms"], r["mini"], r["boss"], r["boss2"], _top_sources(r["by"])])
 	var rate := float(wins) / SEEDS.size()
-	print("    World 1 cleared %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs" % [rate * 100.0, 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2)])
+	print("    World 1 cleared %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs, %.0fs a room" % [rate * 100.0, 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2), room_t / maxi(1, rooms)])
 	SaveGame.enabled = true
 	eq(stalls, 0, "every run ends (a stall means a bot or game bug, not balance)")
 	if not edits:
 		return rate
 	if not minis.is_empty():
-		ok(_avg(minis) >= 20.0 and _avg(minis) <= 90.0, "mini-boss takes 20-90 s (%.0f)" % _avg(minis))
+		ok(_avg(minis) >= 20.0 and _avg(minis) <= 75.0, "mini-boss takes 20-75 s (%.0f)" % _avg(minis))
 	if not bosses.is_empty():
-		ok(_avg(bosses) >= 30.0 and _avg(bosses) <= 150.0, "boss takes 30-150 s (%.0f)" % _avg(bosses))
+		ok(_avg(bosses) >= 50.0 and _avg(bosses) <= 100.0, "the Loop takes 50-100 s (%.0f)" % _avg(bosses))
+	if not bosses2.is_empty():
+		ok(_avg(bosses2) >= 60.0 and _avg(bosses2) <= 110.0, "Deadlock takes 60-110 s (%.0f)" % _avg(bosses2))
+	ok(room_t / maxi(1, rooms) <= 60.0, "a room averages under a minute (%.0f s)" % (room_t / maxi(1, rooms)))
 	return rate
 
 

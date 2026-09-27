@@ -148,3 +148,24 @@ func test_kernel_panic_runs_at_half_hp_and_bursts() -> void:
 	ok(e.dead or e.position.distance_to(world.player.position) < d0, "and runs at you")
 	_steps(1.2)
 	ok(e.dead, "then bursts")
+
+
+func test_heat_changes_rules_not_hp() -> void:
+	world.run.heat = 2
+	var e := world.spawn_enemy(&"weaver", Vector2(100, 100))
+	world.run.heat = 0
+	var f := world.spawn_enemy(&"weaver", Vector2(120, 100))
+	eq(e.max_hp, f.max_hp, "heat 2 adds no HP")
+	ok(is_equal_approx(e.dmg, f.dmg * 1.2), "it makes enemies hit 20% harder")
+
+
+func test_a_bosss_last_phase_presses_harder() -> void:
+	var b := _deadlock()
+	b.phase = 0
+	ok(not b.pressed(), "the first phase plays as it was")
+	b.phase = b.phases.size() - 1
+	ok(b.pressed(), "the last phase presses")
+	b.phase = 1 if b.phases.size() > 2 else 0
+	world.run.heat = 5
+	ok(b.pressed() == (b.phase > 0), "at heat 5, every phase after the first")
+	world.run.heat = 0

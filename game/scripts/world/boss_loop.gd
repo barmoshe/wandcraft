@@ -251,7 +251,7 @@ func _act(m: StringName, dt: float, t_in: float) -> void:
 			if cd <= 0.0:
 				cd = 0.6
 				k += 1
-				ring(center, 10 + phase * 3, 45.0 + k * 12.0, k * 0.2, 10.0)
+				ring(center, 10 + phase * 3, 60.0 + k * 12.0, k * 0.2, 10.0)
 		&"chase":
 			if derail_t > 0.0:
 				Audio.loop("trail_loop", false)

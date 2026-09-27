@@ -594,11 +594,12 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	var e := Enemy.new()
 	_uid += 1
 	var step := Chapter.depth(run) if run else 1
-	# Bug Reports 2+: load spikes, +20% HP
+	# enemy HP climbs with depth (heat 2 now raises damage instead, below)
 	# design v2: ten rooms, so HP climbs a little slower per room and ends where it did; in
 	# World 2 it keeps climbing from where World 1 ended
 	# research/difficulty.md: damage climbs with depth too (x1.3 at the Loop, x1.6 at Deadlock)
-	e.setup(self, kind, pos, _uid, (1.0 + step * 0.055) * (1.2 if run and run.heat >= 2 else 1.0), elite, 1.0 + step * DMG_PER_ROOM)
+	# heat 2 (research/difficulty.md: rules, not HP): enemies hit 20% harder
+	e.setup(self, kind, pos, _uid, 1.0 + step * 0.055, elite, (1.0 + step * DMG_PER_ROOM) * (1.2 if run and run.heat >= 2 else 1.0))
 	enemies.append(e)
 	_actors.add_child(e)
 	return e
@@ -627,9 +628,6 @@ func _spawn_boss() -> void:
 	enemies.append(b)
 	_actors.add_child(b)
 	b.setup_boss(self, Vector2(gw * TS / 2.0, gh * TS * 0.35), _uid)
-	if run and run.heat >= 5:
-		b.max_hp *= 1.25   # Bug Reports 5: hotfix denied
-		b.hp = b.max_hp
 	if run and run.world >= 1 and b.mini:
 		b.max_hp *= 1.7    # World 2's mini-boss: the other one, version 2.0
 		b.hp = b.max_hp
