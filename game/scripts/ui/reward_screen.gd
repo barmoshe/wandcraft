@@ -123,6 +123,11 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
 		_fit_line(r, foot[0], foot[1], foot[2])
 	if item["t"] == &"loadout":
+		# the hero stands beside their wand (0.18: the start cards showed only the wand)
+		var hf: Array = Hero.frames()
+		var ht: Texture2D = hf[int(_age * 2.0 + r.position.x) % 2]
+		var hs := 0.5 if compact else 1.0
+		draw_texture_rect(ht, Rect2(ic + Vector2(-26.0 * hs - ht.get_width() * hs / 2.0, -ht.get_height() * hs / 2.0 + 4.0 * hs), ht.get_size() * hs), false)
 		# the starting spell sits by the wand
 		var first: StringName = RunState.LOADOUTS[item["id"]]["spells"].filter(func(x: Variant) -> bool: return x != null)[0]
 		icon_at(Icons.spell(Catalog.spell(first)), ic + Vector2(22, 10))

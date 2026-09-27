@@ -169,3 +169,27 @@ func test_a_bosss_last_phase_presses_harder() -> void:
 	world.run.heat = 5
 	ok(b.pressed() == (b.phase > 0), "at heat 5, every phase after the first")
 	world.run.heat = 0
+
+
+func test_an_untouched_boss_leaves_a_bonus_orb() -> void:
+	var b := _deadlock()
+	b.dead = true
+	world.hit_in_room = false
+	world.call("_clear_room")
+	eq(world.orb.get("kind"), &"boss", "the boss's own reward first")
+	ok(world.bonus_orb, "a bonus is owed")
+	world.reward_taken()
+	eq(world.orb.get("kind"), &"risk", "then the Untouched orb")
+	world.reward_taken()
+	ok(world.orb.is_empty(), "and only one")
+	world.build_room("arena_ring", &"boss")
+	world.call("_spawn_boss")
+	world.hit_in_room = true
+	world.call("_clear_room")
+	ok(not world.bonus_orb, "a hit loses the bonus")
+
+
+func test_heat_pays_in_gold() -> void:
+	world.run.heat = 3
+	ok(is_equal_approx(Relics.gold_mul(world.run), 1.3), "+10% gold a tier")
+	world.run.heat = 0

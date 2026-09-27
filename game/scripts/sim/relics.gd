@@ -133,7 +133,8 @@ static func tags(id: StringName) -> Array:
 
 
 static func gold_mul(run: RunState) -> float:
-	return stat(run, "gold")
+	# heat pays (research/magicraft-progression.md, lesson 2): +10% gold a tier
+	return stat(run, "gold") * (1.0 + 0.1 * run.heat)
 
 
 ## True when the run may be offered this relic: not owned, not Corrupted (those only come

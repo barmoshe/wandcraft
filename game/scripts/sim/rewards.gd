@@ -14,7 +14,9 @@ const ALTAR_COST := 0.15      # share of max HP an Altar pick costs (D5)
 ## Epic odds follow a pacing offset (D2): +1% for every common rolled, reset on an epic,
 ## so a dry spell always ends. Spells Deprecated at a shop never come back this run.
 static func roll_spell(run: RunState, bias := 0, exclude: Array = []) -> StringName:
-	var weights := [70.0 - bias * 25.0, 25.0 + bias * 10.0, 5.0 + bias * 15.0 + run.rare_offset * 100.0]
+	# heat pays: each tier moves 3 points from common to rare and epic
+	var h := 3.0 * run.heat
+	var weights := [maxf(5.0, 70.0 - bias * 25.0 - h * 2.0), 25.0 + bias * 10.0 + h, 5.0 + bias * 15.0 + run.rare_offset * 100.0 + h]
 	var rar := _weighted_index(weights, run.rng)
 	if rar == 2:
 		run.rare_offset = -0.05

@@ -203,6 +203,9 @@ var _bot_progress_t := 0.0
 
 # move_body results
 var hit_in_room := false        # Uptime: the player was hit in this room
+## A boss or mini-boss beaten without a hit leaves a second orb, Untouched rare relics, once
+## its own reward is taken (research/magicraft-progression.md, lesson 6).
+var bonus_orb := false
 var _leak_t := 0.0              # Memory Leak: time to the next HP lost
 var treasure := Vector2.INF     # a secret chest behind a cracked wall (D5)
 var secret_open := false
@@ -405,6 +408,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	room_kind = kind
 	room_time = 0.0
 	hit_in_room = false
+	bonus_orb = false
 	caught = false
 	var rows: Array = ROOMS[tpl] if ROOMS.has(tpl) else RoomLayouts.ART[tpl]["rows"]
 	treasure = Vector2.INF
@@ -665,6 +669,9 @@ func _clear_room(reward := true) -> void:
 	match room_kind:
 		&"mini", &"boss":
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
+			if not hit_in_room:
+				bonus_orb = true
+				fx.text(player.position + Vector2(0, -24), "UNTOUCHED", Color("#9fe8ff"), 10)
 			if run.daily == "" and boss:
 				var beat := "down:mini" if room_kind == &"mini" else "down:" + boss.title
 				Story.say(beat)
@@ -721,6 +728,11 @@ func _open_doors() -> void:
 func reward_taken() -> void:
 	orb = {}
 	paused = false
+	if bonus_orb:
+		bonus_orb = false
+		orb = {"pos": _find_floor(gw / 2, gh / 2), "kind": &"risk", "t": 0.0}
+		Events.toast.emit("No hits taken: a bonus reward")
+		return
 	if not run.bag.is_empty() or run.spell_refs().size() > 2:
 		Hints.show("editor")
 	_open_doors()
@@ -1362,13 +1374,15 @@ func assist_target(p: Vector2, max_d: float, keep: Enemy = null) -> Enemy:
 		if e.dead or e.spawn_t > 0.0:
 			continue
 		var d := e.position.distance_squared_to(p)
+		if e.locked:
+			d *= 9.0   # Deadlock: a locked guardian takes nothing, so aim prefers the open one
 		if d < bd:
 			bd = d
 			best = e
 		if d < vd and los(p, e.position):
 			vd = d
 			vis = e
-	if keep and keep != vis and not keep.dead and vis and keep.spawn_t <= 0.0:
+	if keep and keep != vis and not keep.dead and not keep.locked and vis and keep.spawn_t <= 0.0:
 		var kd := keep.position.distance_squared_to(p)
 		if kd < max_d * max_d and kd * 0.5625 < vd and los(p, keep.position):
 			return keep

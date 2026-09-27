@@ -35,7 +35,7 @@ var _beam_hit_t := 0.0
 
 func _init_boss() -> void:
 	title = "Deadlock"
-	subtitle = "World 2 boss"
+	subtitle = "Hit the open lock. Dodge the beam."   # say what it asks (magicraft lesson 5)
 	phase_lines = ["", "They close in", "The locks break"]
 	max_hp = 1800.0
 	r = 11.0
