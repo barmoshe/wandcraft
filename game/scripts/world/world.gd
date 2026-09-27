@@ -364,7 +364,7 @@ func room_music(kind: StringName) -> String:
 		return "boss"
 	if kind == &"shop" or kind == &"forge":
 		return "shop"
-	return "cellar" if biome() == 0 else "grove"
+	return "cellar" if biome() % 2 == 0 else "grove"
 
 
 ## Music layers follow the fight (D8): drums while enemies are up, the lead while an elite
@@ -446,7 +446,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_paint_seed = run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()
 	_repaint()
 	life.reset(_paint_seed)
-	_ambient.color = AMBIENT if biome() == 0 else AMBIENT.lerp(Style.c("violet:4"), 0.12)
+	_ambient.color = [AMBIENT, AMBIENT.lerp(Style.c("violet:4"), 0.12), AMBIENT.lerp(Style.c("frost:4"), 0.1), AMBIENT.lerp(Style.c("ember:4"), 0.14)][biome()]
 	if run and Chapter.twist_of(run.room) == &"dark" and kind == &"fight":
 		_ambient.color = _ambient.color.darkened(0.6)   # design v3: lights out
 	var vs := RoomPainter.size_px(gw, gh)
@@ -484,7 +484,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_deco.queue_redraw()
 	if Game.quiet == 0:
 		Audio.music(room_music(kind))
-		Audio.ambience("grove" if biome() == 1 else "cellar")
+		Audio.ambience("grove" if biome() % 2 == 1 else "cellar")
 		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 			"title": _room_title(kind)})
 	room_built.emit()
@@ -497,7 +497,7 @@ func _room_title(kind: StringName) -> String:
 		return Tutorial.title(run).to_upper()
 	match kind:
 		&"start":
-			return "WORLD 1"
+			return "WORLD %d" % (run.world + 1) if run else "WORLD 1"
 		&"mini":
 			return "MINI-BOSS"
 		&"boss":
@@ -555,9 +555,10 @@ func _spawn_wave(list: Array) -> void:
 func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	var e := Enemy.new()
 	_uid += 1
-	var step := run.step if run else 1
+	var step := Chapter.depth(run) if run else 1
 	# Bug Reports 2+: load spikes, +20% HP
-	# design v2: ten rooms, so HP climbs a little slower per room and ends where it did
+	# design v2: ten rooms, so HP climbs a little slower per room and ends where it did; in
+	# World 2 it keeps climbing from where World 1 ended
 	e.setup(self, kind, pos, _uid, (1.0 + step * 0.055) * (1.2 if run and run.heat >= 2 else 1.0), elite)
 	enemies.append(e)
 	_actors.add_child(e)
@@ -569,16 +570,20 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 var force_mini: StringName = &""   # tests: &"copy_paste" or &"collector"
 
 
+## World 2 meets the one World 1 did not.
 func mini_boss() -> Boss:
 	if force_mini == &"collector":
 		return BossCollector.new()
-	if force_mini == &"copy_paste" or run == null or run.tutorial or run.seed_value % 2 == 1:
+	if force_mini == &"copy_paste" or run == null:
 		return BossCopyPaste.new()
-	return BossCollector.new()
+	var cp := run.tutorial or run.seed_value % 2 == 1
+	if run.world % 2 == 1:
+		cp = not cp
+	return BossCopyPaste.new() if cp else BossCollector.new()
 
 
 func _spawn_boss() -> void:
-	var b: Boss = mini_boss() if room_kind == &"mini" else BossLoop.new()
+	var b: Boss = mini_boss() if room_kind == &"mini" else (BossDeadlock.new() if run and run.world >= 1 else BossLoop.new())
 	_uid += 1
 	enemies.append(b)
 	_actors.add_child(b)
@@ -586,6 +591,10 @@ func _spawn_boss() -> void:
 	if run and run.heat >= 5:
 		b.max_hp *= 1.25   # Bug Reports 5: hotfix denied
 		b.hp = b.max_hp
+	if run and run.world >= 1 and b.mini:
+		b.max_hp *= 1.7    # World 2's mini-boss: the other one, version 2.0
+		b.hp = b.max_hp
+		b.title += " 2.0"
 	boss = b
 	Audio.sting("boss")
 	Hints.show("boss")
@@ -607,7 +616,7 @@ func _clear_room(reward := true) -> void:
 	if trig >= 2:
 		run.stats["trigger_rooms"] = int(run.stats.get("trigger_rooms", 0)) + 1
 	run.stats["max_gold"] = maxi(int(run.stats.get("max_gold", 0)), run.gold)
-	player.heal(8.0)
+	player.heal(6.0)   # 0.16.1: 8 before; playtesters found the run easy
 	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
 	Events.room_cleared.emit()
 	var mid := _find_floor(gw / 2, gh / 2)
@@ -616,6 +625,7 @@ func _clear_room(reward := true) -> void:
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
 			if room_kind == &"boss":
 				player.heal(run.max_hp)
+				run.stats["worlds"] = run.world + 1   # the goal "Defeat the Infinite Loop" counts now
 		&"challenge", &"glitch":
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
 		&"risk":
@@ -685,6 +695,9 @@ func _check_doors() -> void:
 
 func go_through(def: Dictionary) -> void:
 	if StringName(def["kind"]) == &"exit":
+		if run.world + 1 < Chapter.WORLDS.size():
+			_next_world()
+			return
 		run.won = true
 		paused = true
 		SaveGame.clear_run()
@@ -702,6 +715,22 @@ func go_through(def: Dictionary) -> void:
 	run.step += 1
 	run.doors = []
 	run.shop = []
+	enter_room()
+
+
+## The boss fell and the exit leads on (research/design-w2.md): the next world's start
+## room, a fresh map, and the lesson run's coaching is over.
+func _next_world() -> void:
+	run.world += 1
+	run.step = 0
+	run.tutorial = false
+	run.room = {}
+	run.doors = []
+	run.shop = []
+	run.lane = 1
+	run.map = []
+	run.map = Chapter.make_map(run)
+	Events.toast.emit("%s cleared. On to %s" % [Chapter.WORLDS[run.world - 1]["name"], Chapter.WORLDS[run.world]["name"]])
 	enter_room()
 
 
@@ -876,7 +905,7 @@ func _update_enemy_bullets(dt: float) -> void:
 			b.alive = false
 			fx.sparks(b.pos, 3, Style.c("gold:4"), 40.0)
 			continue
-		if b.pos.distance_squared_to(player.position + Vector2(0, -4)) < pow(b.r + player.r, 2):
+		if player.hit_by(b.pos, b.r):
 			b.alive = false
 			player.hurt(b.dmg, b.pos, b.by)
 	ebullets.compact()
@@ -978,8 +1007,11 @@ func body_solid_at(p: Vector2) -> bool:
 	return t == 1 or t == 3 or t == 4 or t >= 5
 
 
+## 0 the Cellar, 1 the Grove (World 1); 2 the Cooling Vents, 3 the Molten Core (World 2).
 func biome() -> int:
-	return 1 if run and run.step >= Chapter.AREAS[1]["from"] else 0
+	if run == null:
+		return 0
+	return run.world * 2 + (1 if run.step >= Chapter.AREAS[1]["from"] else 0)
 
 
 func _repaint() -> void:
@@ -1247,8 +1279,10 @@ func nearest_enemy(p: Vector2, max_d: float, exclude := -1) -> Enemy:
 	return best
 
 
-## Auto-aim target: the nearest enemy in line of sight, else the nearest one.
-func assist_target(p: Vector2, max_d: float) -> Enemy:
+## Auto-aim target: the nearest enemy in line of sight, else the nearest one. The current
+## target is kept until another is clearly nearer (by 25%), so aim does not flicker between
+## two about as close (playtest: the view and the shots swung to and fro in a swarm).
+func assist_target(p: Vector2, max_d: float, keep: Enemy = null) -> Enemy:
 	var best: Enemy = null
 	var vis: Enemy = null
 	var bd := max_d * max_d
@@ -1263,6 +1297,10 @@ func assist_target(p: Vector2, max_d: float) -> Enemy:
 		if d < vd and los(p, e.position):
 			vd = d
 			vis = e
+	if keep and keep != vis and not keep.dead and vis and keep.spawn_t <= 0.0:
+		var kd := keep.position.distance_squared_to(p)
+		if kd < max_d * max_d and kd * 0.5625 < vd and los(p, keep.position):
+			return keep
 	return vis if vis else best
 
 
@@ -1275,6 +1313,21 @@ const SOFT := 8
 func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: float, dot := false, kw := 0) -> float:
 	if e.dead or e.spawn_t > 0.0:
 		return 0.0
+	if e.locked and not (kw & SOFT):
+		# Deadlock: the locked guardian takes nothing (a spark off the padlock); what the open
+		# one takes is passed to the pool (SOFT), which lives on the other, locked or not
+		if not dot and e._def_fx <= 0.0:
+			e._def_fx = 0.4
+			fx.text(e.position + Vector2(0, -26), "LOCKED", Style.c("steel:4"))
+		if not dot:
+			fx.sparks(from, 2, Style.c("steel:4"), 50.0)
+		return 0.0
+	if not dot and not e.def.get("proxy", false) and e.ai != &"part" and not (e is Boss):
+		# a Proxy nearby takes the hit instead (its tether shows who it covers)
+		for o in enemies:
+			if o != e and not o.dead and o.spawn_t <= 0.0 and o.def.get("proxy", false) and o.position.distance_squared_to(e.position) < Enemy.PROXY_R * Enemy.PROXY_R:
+				fx.beam(e.position + Vector2(0, -6), o.position + Vector2(0, -6), Style.c("cyan:4"), 0.6)
+				return hurt_enemy(o, dmg, o.position, crit_chance, kb * 0.3, dot, kw)
 	if e.forward:
 		e.flash = 0.07
 		return hurt_enemy(e.forward, dmg * e.fwd_mul, from, crit_chance, 0.0, dot, kw | SOFT)
@@ -2041,6 +2094,19 @@ func _decal(tl: Dictionary, fill: float) -> void:
 			_decals.draw_arc(p, rr, 0.0, TAU, 40, Color(edge, 0.8), 1.0)
 			_decals.draw_circle(p, rr * fill, body)
 			_decals.draw_arc(p, rr * fill, 0.0, TAU, 32, front, 1.0)
+		"track":
+			# the Loop's lap: an oval band, lit from its edge inward as the charge nears
+			var p: Vector2 = (tl["p"] as Vector2).round()
+			var rx := float(tl["r"])
+			var ry := float(tl["ry"])
+			var pts := PackedVector2Array()
+			for k in 49:
+				var a := TAU * k / 48.0
+				pts.append(p + Vector2(cos(a) * rx, sin(a) * ry))
+			_decals.draw_polyline(pts, Color(body, 0.25 + 0.3 * fill), 6.0 + 8.0 * fill)
+			_decals.draw_polyline(pts, Color(edge, 0.8), 1.0)
+			if fill > 0.9:
+				_decals.draw_polyline(pts, front, 2.0)
 		"cone":
 			var p: Vector2 = (tl["p"] as Vector2).round()
 			var a := float(tl["a"])

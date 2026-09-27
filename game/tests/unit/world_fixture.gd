@@ -46,7 +46,7 @@ func _range_setup() -> void:
 	# an empty, cleared room so waves do not interfere
 	world.build_room("hall", &"empty")
 	world.player.position = Vector2(208, 216)
-	for p in [Vector2(208, 176), Vector2(208, 150), Vector2(186, 140), Vector2(230, 140)]:
+	for p in [Vector2(208, 168), Vector2(208, 150), Vector2(186, 140), Vector2(230, 140)]:
 		_dummy(p)
 
 

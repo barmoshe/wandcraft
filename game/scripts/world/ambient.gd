@@ -21,6 +21,11 @@ var glow: Node2D          # the additive child the motes draw on
 ## bakes dark), and its tufts, spores and motes take the Grove's colours.
 var veins: Array = []
 var grove := false
+var mode := 0                 # the biome (World.biome): 2 the Cooling Vents, 3 the Molten Core
+## World 2 (research/design-w2.md): tufts go to wire and ash, the drift rises (steam in the
+## Vents, embers in the Core), and the veins run coolant blue or lava orange.
+const TUFT := [["moss:2", "moss:3"], ["violet:2", "violet:3"], ["steel:1", "steel:2"], ["rust:1", "ember:1"]]
+const VEIN_COL := [Color(0, 0, 0), Color(0.95, 0.25, 0.75), Color(0.25, 0.7, 0.95), Color(1.0, 0.45, 0.12)]
 var _acc := 0.0
 var _t := 0.0
 
@@ -37,8 +42,9 @@ func setup(w: World) -> void:
 ## A new room: scatter tufts on open floor and motes around the torches.
 func reset(seed_value: int) -> void:
 	rng.seed = seed_value
-	grove = world.biome() == 1
-	veins = RoomPainter.veins(world.grid, world.gw, world.gh, seed_value) if grove else []
+	mode = world.biome()
+	grove = mode == 1
+	veins = RoomPainter.veins(world.grid, world.gw, world.gh, seed_value) if mode != 0 else []
 	tufts.clear()
 	motes.clear()
 	leaves.clear()
@@ -85,21 +91,24 @@ func _process(dt: float) -> void:
 		var home: Vector2 = m[2]
 		m[0] = home + Vector2(cos(m[1]) * 18.0, sin(m[1] * 1.3) * 12.0 - 4.0)
 	# a leaf now and then from the top edge
-	if leaves.size() < MAX_LEAVES and rng.randf() < 0.04:
-		leaves.append([Vector2(rng.randf_range(0, world.gw * World.TS), -8.0), Vector2(rng.randf_range(-6, 6), 14.0), rng.randf() * TAU])
+	# (World 2: steam and embers rise from the bottom edge instead)
+	var rises := mode >= 2
+	if leaves.size() < MAX_LEAVES and rng.randf() < (0.08 if rises else 0.04):
+		var y0 := world.gh * World.TS + 8.0 if rises else -8.0
+		leaves.append([Vector2(rng.randf_range(0, world.gw * World.TS), y0), Vector2(rng.randf_range(-6, 6), -18.0 if rises else 14.0), rng.randf() * TAU])
 	for i in range(leaves.size() - 1, -1, -1):
 		var lf: Array = leaves[i]
 		lf[2] += st * 3.0
 		lf[0] += (lf[1] + Vector2(sin(lf[2]) * 10.0, 0.0)) * st
-		if lf[0].y > world.gh * World.TS + 8.0:
+		if lf[0].y > world.gh * World.TS + 8.0 or lf[0].y < -12.0:
 			leaves.remove_at(i)
 	queue_redraw()
 	glow.queue_redraw()
 
 
 func _draw() -> void:
-	var dark := Style.c("violet:2" if grove else "moss:2")
-	var lit := Style.c("violet:3" if grove else "moss:3")
+	var dark := Style.c(TUFT[mode][0])
+	var lit := Style.c(TUFT[mode][1])
 	for tf in tufts:
 		var p := (tf[0] as Vector2).round()
 		var lean := int(tf[1])
@@ -110,8 +119,8 @@ func _draw() -> void:
 		draw_rect(Rect2(p + Vector2(-1 + lean, -2), Vector2.ONE), lit)
 		draw_rect(Rect2(p + Vector2(lean, -3), Vector2.ONE), lit)
 		draw_rect(Rect2(p + Vector2(1 + lean, -2), Vector2.ONE), dark)
-	if grove:
-		return   # the Grove's spores glow (drawn on the additive layer)
+	if mode != 0:
+		return   # the Grove's spores, the Foundry's steam and embers glow (the additive layer)
 	for lf in leaves:
 		var p := (lf[0] as Vector2).round()
 		var flip := sin(lf[2]) > 0.0
@@ -124,13 +133,19 @@ func _draw_motes() -> void:
 		var p := (m[0] as Vector2).round()
 		var tw := 0.35 + 0.25 * sin(m[1] * 3.0)
 		glow.draw_rect(Rect2(p, Vector2.ONE), Color(0.9 * tw, 0.35 * tw, 0.8 * tw) if grove else Color(1.0 * tw, 0.75 * tw, 0.45 * tw))
-	if not grove:
+	if mode == 0:
 		return
-	# spores drifting down, pink and faintly lit
+	# the Grove's spores drift down, pink; the Vents' steam and the Core's embers rise
 	for lf in leaves:
 		var p := (lf[0] as Vector2).round()
 		var k := 0.5 + 0.3 * sin(lf[2] * 2.0)
-		glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * k, 0.35 * k, 0.8 * k))
+		match mode:
+			1:
+				glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * k, 0.35 * k, 0.8 * k))
+			2:
+				glow.draw_rect(Rect2(p, Vector2(2, 1)), Color(0.35 * k, 0.45 * k, 0.55 * k))
+			_:
+				glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * k, 0.5 * k, 0.12 * k))
 	# a slow pulse travels along each vein, from its root outward
 	for vi in veins.size():
 		var line: PackedVector2Array = veins[vi]
@@ -138,5 +153,6 @@ func _draw_motes() -> void:
 			var w := sin(_t * 2.2 - i * 0.18 + vi * 1.7)
 			if w <= 0.4:
 				continue
-			var a := (w - 0.4) / 0.6 * 0.55
-			glow.draw_rect(Rect2(line[i], Vector2.ONE), Color(0.95 * a, 0.25 * a, 0.75 * a))
+			var a := (w - 0.4) / 0.6 * (0.75 if mode == 3 else 0.55)
+			var vc: Color = VEIN_COL[mode]
+			glow.draw_rect(Rect2(line[i], Vector2.ONE), Color(vc.r * a, vc.g * a, vc.b * a))

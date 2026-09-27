@@ -38,6 +38,7 @@ const RAMPS := {
 	"skin": ["#3e2226", "#7d4a40", "#bf8062", "#efb892", "#ffe0c6"],
 	"bone": ["#2a2530", "#56505c", "#948c96", "#cfc8c8", "#f6f2ea"],
 	"steel": ["#16181f", "#2e3340", "#555d6e", "#8c96a8", "#d4dbe6"],
+	"rust": ["#1c0f0d", "#3d1d17", "#68322a", "#9a5639", "#d08e5c"],
 	"toxic": ["#18260a", "#34540e", "#5c8c14", "#9cd01c", "#e0ff7a"],
 	"night": ["#05030d", "#0a0718", "#120d26", "#1c1638", "#2a2250"],
 	# reserved for enemy attacks: bullets, telegraphs, danger. Nothing of the player's uses it.

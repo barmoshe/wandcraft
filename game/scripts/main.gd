@@ -11,6 +11,7 @@ extends Node2D
 ##   --showcase          a staged fight (enemies placed, unlimited mana) for screenshots
 ##   --seed=N            run seed
 ##   --step=N --kind=K   start at chapter step N in a room of kind K (fight, shop, boss...)
+##   --world=N           in world N (1 or 2)
 ##   --loadout=strong    a strong late-run build (for boss screenshots)
 ##   --screen=S          open a screen right away: reward, shop, forge, editor, pause, title, end
 ##   --coach=N           with --screen=editor: the tutorial coach for lesson N (1-3)
@@ -183,6 +184,8 @@ func _start_from_args() -> void:
 	elif _args.get("loadout", "") == "d2":
 		# screenshots of the D2 spells: familiars, a Firewall, Bitrot and orbiting Motes
 		r.wands[0] = WandState.make(Catalog.wand(&"oak"), [&"daemon", &"mote", &"turret", &"firewall", &"rot_coat", &"bitrot", &"orbit", &"mote"])
+	if _args.has("world"):
+		r.world = clampi(int(_args["world"]) - 1, 0, Chapter.WORLDS.size() - 1)
 	if _args.has("step"):
 		r.step = clampi(int(_args["step"]), 0, Chapter.PLAN.size() - 1)
 	if _args.has("kind"):
@@ -200,6 +203,12 @@ func _start_from_args() -> void:
 		_showcase()
 	if _args.has("wand"):
 		r.cur = clampi(int(_args["wand"]) - 1, 0, r.wands.size() - 1)
+	if _args.has("goals"):
+		# screenshots: goals just done (the end screen's panel), in the in-memory save
+		var m := SaveGame.load_meta()
+		m["goals"] = Array(String(_args["goals"]).split(","))
+		m["last_goals"] = m["goals"]
+		SaveGame.save_meta(m)
 	match _args.get("screen", ""):
 		"reward":
 			var ok_ := StringName(_args.get("offer", "spell"))
@@ -235,6 +244,10 @@ func _start_from_args() -> void:
 		"end":
 			world.paused = true
 			_open_end(_args.get("won", "0") == "1")
+			if _args.has("goals"):
+				var m := SaveGame.load_meta()
+				m["last_goals"] = Array(String(_args["goals"]).split(",")).slice(-2)
+				SaveGame.save_meta(m)
 	if _args.has("touchdemo"):
 		var v := get_viewport_rect().size
 		touch.touched_once = true
@@ -523,10 +536,14 @@ const PAD_SIDE := 10.0
 ## Camera feel (design-plan §10): it eases toward its target with a frame-rate independent
 ## factor (the same on 60 and 120 Hz screens), leads a little toward where you aim when the
 ## room is bigger than the view, and shakes by trauma² along smooth noise, in whole pixels.
+## Playtest (design v3): the lead followed the aim, and auto-aim flips between targets when a
+## swarm surrounds you, so in big rooms the view swung to and fro. It leads where you walk
+## now, eased on its own, so it only drifts when you do.
 const CAM_EASE := 0.8          # per 60 Hz frame: 0.8 keeps 80%, closes 20% of the gap
 const CAM_LEAD := 16.0
 const SHAKE_MAX := 7.0
 var _cam_pos := Vector2.ZERO
+var _cam_lead := Vector2.ZERO
 var _shake_noise: FastNoiseLite
 
 
@@ -541,7 +558,9 @@ func _follow_camera(snap := false, dt := 1.0 / 60.0) -> void:
 	var lo := Vector2(-PAD_SIDE, -PAD_TOP)
 	var hi := room + Vector2(PAD_SIDE, PAD_BOTTOM)
 	var c := Vector2.ZERO
-	var lead := Vector2.from_angle(world.player.aim) * CAM_LEAD
+	var want_lead := (world.player.vel / Player.SPEED).limit_length(1.0) * CAM_LEAD
+	_cam_lead = _cam_lead.lerp(want_lead, 1.0 - pow(0.95, dt * 60.0))
+	var lead := _cam_lead
 	for ax in 2:
 		if hi[ax] - lo[ax] <= view[ax]:
 			c[ax] = (lo[ax] + hi[ax]) / 2.0
@@ -572,11 +591,15 @@ func _read_desktop_input() -> void:
 	var pad_aim := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	c.move = mv.normalized() if mv != Vector2.ZERO else (pad_move if pad_move.length() > 0.2 else Vector2.ZERO)
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and hud.hit_button(get_viewport().get_mouse_position()) == "":
-		c.aim = (world.get_local_mouse_position() - world.player.position).normalized()
+		# from the grip, where the spell leaves the wand
+		c.aim = (world.get_local_mouse_position() - world.player.origin()).normalized()
+		c.precise = true
 	elif pad_aim.length() > 0.3:
 		c.aim = pad_aim
+		c.precise = false
 	else:
 		c.aim = Vector2.ZERO
+		c.precise = false
 
 
 func _unhandled_input(event: InputEvent) -> void:

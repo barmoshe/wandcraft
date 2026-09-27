@@ -50,8 +50,12 @@ const GOALS := [
 		"unlocks": [&"hexcursor", &"mine", &"bitrot", &"rot_coat", &"rot_index"]},
 	{"id": "boss", "text": "Reach the Infinite Loop", "check": "reached_boss>=1",
 		"unlocks": [&"gravity", &"orbit", &"cornered", &"uptime"]},
-	{"id": "win", "text": "Win a run", "check": "won>=1",
-		"unlocks": [&"tinkerer", &"pipeline", &"fork", &"wheel"]},
+	# World 2 (research/design-w2.md): a win is both worlds now, so beating the Loop keeps
+	# the Tinkerer where the first win used to open it
+	{"id": "world1", "text": "Defeat the Infinite Loop", "check": "worlds>=1",
+		"unlocks": [&"tinkerer", &"pipeline"]},
+	{"id": "win", "text": "Win a run (clear World 2)", "check": "won>=1",
+		"unlocks": [&"fork", &"wheel"]},
 	# design v3: one per run for the first three, so every early run opens something
 	{"id": "runs1", "text": "Finish a run", "check": "runs>=1",
 		"unlocks": [&"disc", &"static", &"duck"]},
@@ -113,7 +117,13 @@ static func _store(m: Dictionary) -> void:
 
 
 static func goals_done() -> Array:
-	return [] if core_only else _load().get("goals", [])
+	if core_only:
+		return []
+	var done: Array = _load().get("goals", [])
+	# a win from before World 2 counts as beating the Loop too
+	if done.has("win") and not done.has("world1"):
+		done = done + ["world1"]
+	return done
 
 
 ## Ids bought with Source Fragments before design v2: they stay unlocked.
@@ -170,6 +180,7 @@ static func _met(check: String, run: RunState, m: Dictionary) -> bool:
 		"compiled": v = float(st.get("compiled", 0))
 		"reached_boss": v = 1.0 if run.step >= Chapter.PLAN.size() - 1 else 0.0
 		"won": v = 1.0 if run.won else 0.0
+		"worlds": v = float(maxi(run.world, int(st.get("worlds", 0))))
 		"runs": v = float(m.get("runs", 0))
 		"heat_win": v = float(run.heat) if run.won else -1.0
 	return v >= need

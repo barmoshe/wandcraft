@@ -8,6 +8,9 @@ extends Boss
 ##            Loop Jr. that hunts on its own. while(true) rings join the moves.
 ##            The arena's four rune pylons: four pulses DERAIL it for 4 s at x2 damage.
 ##   Phase 3  at 30%: the head alone chases you, its trail burning behind it for a moment.
+## Playtest (design v3): the Lap Charge now swings the track out (or in) to your lane, so
+## standing outside the ring is no hiding place, and the chase is slower than you (it was
+## faster, so it could not be escaped).
 ## At most two kinds of attack are ever in the air at once.
 
 const SEGMENTS := 12
@@ -16,6 +19,10 @@ const SEG_HP := 45.0
 const ARMOR := 100.0
 const DERAIL := 4.0
 const PYLONS_TO_DERAIL := 4
+const RY_MAX := 86.0          # the arena's half height, less a body: the track's widest y
+const R_MIN := 44.0
+const CHASE_SPEED := 78.0
+const BODY_R := 6.0           # the chasing head's size against walls (its hit size stays r)     # below the player's 92: a chase you can run from (and dash)
 
 var center := Vector2.ZERO
 var radius := 92.0
@@ -29,13 +36,16 @@ var broken := 0              # segments broken in phase 2 (every 3: a Loop Jr.)
 var pulses := 0              # pylon pulses toward the next derail
 var derail_t := 0.0
 var _trail_t := 0.0
+var _aw := 0.0               # measured laps speed (radians a second), for aim-ahead
+var base_r := 92.0           # the track's resting size
+var _want_r := 92.0          # where the track is swinging to (a Lap Charge aims it at you)
 
 
 func _init_boss() -> void:
 	title = "The Infinite Loop"
 	subtitle = "World 1 boss"
 	phase_lines = ["", "The loop cracks", "while(alive)"]
-	max_hp = 1500.0   # design v3: the peak of the run (90-150 s on the bench; 1300 gave 80 s)
+	max_hp = 1800.0   # 0.16.1: aim fixes made it a 65 s fight on the bench; playtesters called it easy
 	max_armor = ARMOR
 	armor = ARMOR
 	r = 10.0
@@ -53,12 +63,10 @@ func _init_boss() -> void:
 	]
 	center = world.room_size() / 2.0 + Vector2(0, 6)
 	radius = minf(world.room_size().x * 0.32, 112.0)
+	base_r = radius
+	_want_r = radius
 	frames = [Bestiary.loop_head(false), Bestiary.loop_head(true)]
-	# bake every head frame at all 16 headings now, not mid-fight
-	var head := Bestiary.loop_rig()
-	for c in head.clips:
-		for i in (head.clips[c]["poses"] as Array).size():
-			Bestiary.loop_head_views(c, i)
+	# the head's views bake lazily, one heading at a time (Bestiary.loop_head_view)
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	add_child(sprite)
@@ -75,24 +83,58 @@ func _init_boss() -> void:
 		p.sprite.texture = p.frames[0]
 		p.sprite.offset = Vector2(0, -6)
 		p.dmg = dmg * 0.4   # brushing the body hurts less than meeting the head
+		p.chain = self
 
 
 func _loop_move(dt: float, mul: float) -> void:
 	if derail_t > 0.0:
 		mul = 0.0
 	if on_track:
+		radius = move_toward(radius, _want_r, 80.0 * dt)
 		var prev := ang
 		ang += av * mul * dt
+		if dt > 0.0:
+			_aw = lerpf(_aw, av * mul, 0.3)
 		if floori(prev / TAU) != floori(ang / TAU):
 			laps += 1
 			av = minf(2.4, av + 0.08)
-		position = center + Vector2(cos(ang) * radius, sin(ang) * radius * 0.75)
+		position = track(ang)
 	trail.push_front(position)
 	if trail.size() > SEGMENTS * SPACING + 2:
 		trail.resize(SEGMENTS * SPACING + 2)
 	for i in parts.size():
 		var j := mini(trail.size() - 1, (i + 1) * SPACING)
 		parts[i].position = trail[j]
+
+
+## Aim-ahead (design v3 playtest: auto-aim fired at the wall): on the track the head runs
+## round the ellipse, so a straight-line lead flies off at a tangent. Predict along the path.
+func predict(t: float) -> Vector2:
+	if on_track and derail_t <= 0.0:
+		return track(ang + _aw * t)
+	return super.predict(t)
+
+
+## A block is where the head was (i + 1) * SPACING ticks ago, so its next second is already
+## in the trail; past the trail's front it goes where the head is going.
+func predict_part(p: Enemy, t: float) -> Vector2:
+	var i := parts.find(p)
+	if i < 0 or trail.is_empty():
+		return p.position
+	var j := mini(trail.size() - 1, (i + 1) * SPACING) - roundi(t * Engine.physics_ticks_per_second)
+	return trail[j] if j >= 0 else predict(float(-j) / Engine.physics_ticks_per_second)
+
+
+## The point at angle `a` on the track: an ellipse 3:4, flattened further near the arena's
+## top and bottom walls.
+func track(a: float) -> Vector2:
+	return center + Vector2(cos(a) * radius, sin(a) * minf(radius * 0.75, RY_MAX))
+
+
+## The track size that runs through `p`.
+func _radius_through(p: Vector2) -> float:
+	var d := p - center
+	return clampf(sqrt(d.x * d.x + pow(d.y / 0.75, 2.0)), R_MIN, maxf(base_r, center.x - 40.0))
 
 
 func tick(dt: float) -> void:
@@ -175,7 +217,9 @@ func _start(m: StringName) -> void:
 	k = 0
 	match m:
 		&"lap_charge":
-			tele_circle(center, radius)
+			# the track swings to your lane, and lights up where it will run
+			_want_r = _radius_through(world.player.position)
+			tele.append({"k": "track", "p": center, "r": _want_r, "ry": minf(_want_r * 0.75, RY_MAX)})
 			Audio.sfx("chomp", 0.05)
 		&"while_true":
 			world.fx.text(position + Vector2(0, -22), "while(true)", Color("#7de08a"), 10)
@@ -210,7 +254,17 @@ func _act(m: StringName, dt: float, t_in: float) -> void:
 			if derail_t > 0.0:
 				return
 			var a := (world.player.position - position).angle() + sin(t_in * 5.0) * 0.5
-			position += Vector2.from_angle(a) * 110.0 * dt
+			# round the pylons and the pillar, not into them (a head stuck behind a pylon
+			# could neither reach you nor be seen)
+			_route_t -= dt
+			if _route_t <= 0.0:
+				_route_t = 0.1
+				_route = world.chase_dir(position, BODY_R)
+				_route_direct = world.chase_direct
+			var dir := Vector2.from_angle(a) if _route_direct else _route
+			a = dir.angle()
+			# it moves as a slim body (6 px), so it fits the gap by a corner pylon
+			position = world.move_body(position, BODY_R, dir * CHASE_SPEED * dt)
 			_loop_move(dt, 0.0)
 			# the trail burns for a moment behind the head
 			_trail_t -= dt
@@ -228,9 +282,11 @@ func _fade_trail() -> void:
 
 
 func _end(m: StringName) -> void:
+	if m == &"lap_charge":
+		_want_r = base_r   # it drifts back to its resting lap
 	if m == &"chase" and phase < 2:
 		on_track = true
-		ang = atan2((position.y - center.y) / 0.75, position.x - center.x)
+		ang = atan2((position.y - center.y) / (minf(radius * 0.75, RY_MAX) / radius), position.x - center.x)
 
 
 var _head_clip := "chomp"
@@ -256,9 +312,9 @@ func _animate() -> void:
 	_head_t += get_physics_process_delta_time()
 	var heading := (trail[0] - trail[mini(3, trail.size() - 1)]).angle() if trail.size() > 3 else 0.0
 	var k := posmod(roundi(heading / (TAU / 16.0)), 16)
-	var views := Bestiary.loop_head_views(want, Bestiary.loop_rig().frame_at(want, _head_t))
-	if sprite.texture != views[k]:
-		sprite.texture = views[k]
+	var view := Bestiary.loop_head_view(want, Bestiary.loop_rig().frame_at(want, _head_t), k)
+	if sprite.texture != view:
+		sprite.texture = view
 	_mat.set_shader_parameter("flash", clampf(flash * 12.0, 0.0, 1.0))
 	queue_redraw()
 

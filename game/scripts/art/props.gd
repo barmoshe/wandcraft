@@ -218,7 +218,8 @@ static func bramble(biome := 0) -> Texture2D:
 			".211..2112..112.",
 			"..1122111122211.",
 			"...1111111111...",
-		]), {"1": "wood:1", "2": "leaf:2", "w": "bone:3"} if biome == 0 else {"1": "violet:1", "2": "glitch:2", "w": "glitch:4"}))
+		]), [{"1": "wood:1", "2": "leaf:2", "w": "bone:3"}, {"1": "violet:1", "2": "glitch:2", "w": "glitch:4"},
+			{"1": "steel:1", "2": "steel:3", "w": "frost:4"}, {"1": "rust:1", "2": "rust:3", "w": "ember:4"}][clampi(biome, 0, 3)]))
 
 
 ## A spore pod (a blast, or any hit, sets it off; pods chain). 12x12.

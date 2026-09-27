@@ -6,11 +6,15 @@ extends Node2D
 
 const SPEED := 92.0
 const ASSIST_CONE := 0.45      # radians either side of the stick
+const ASSIST_CONE_MOUSE := 0.12  # a mouse pointer needs only a nudge
 const AUTO_RANGE := 210.0
 
 ## Where the wand is held and spells leave, relative to the feet (Hero art: hands at
 ## the belt, 8 px up). Floating text starts above the hat (`head`, set from the sprite).
-const HAND := Vector2(0, -8)
+const HAND := Vector2(0, -15)   # chest height: where familiars and orbits circle
+## The wand's grip: the drawn hand at the side of the waist, on the side the hero faces
+## (playtest: it used to sit at the middle of the hips, which read as something else).
+const GRIP := Vector2(6, -16)
 ## Busy Wait: seconds standing still (the next cast is charged at 0.6 s).
 var still_t := 0.0
 ## Buffer Overflow: overheal kept as a shield that takes hits first.
@@ -84,7 +88,7 @@ func setup(w: World) -> void:
 	add_child(sprite)
 	wand_sprite = Sprite2D.new()
 	wand_sprite.texture = wand_tex[0]
-	wand_sprite.position = HAND
+	wand_sprite.position = GRIP
 	add_child(wand_sprite)
 	tip_glow = Sprite2D.new()
 	tip_glow.texture = PixelArt.glow_texture(16)
@@ -98,8 +102,25 @@ func wand() -> WandState:
 	return wands[cur]
 
 
+func grip() -> Vector2:
+	return Vector2(GRIP.x * face, GRIP.y)
+
+
+## Where spells start and aim is measured from: the grip, unless the grip is inside a wall
+## (standing against the top wall puts it there: shots spawned in the wall died at once and
+## line of sight failed, which read as "auto-aim shoots the wall"). Then from the waist,
+## which is always in the open, since the body is.
+func origin() -> Vector2:
+	var p := position + grip()
+	if world != null and world.solid_at(p):
+		p = Vector2(position.x, position.y - 4.0)
+	return p
+
+
 func tip() -> Vector2:
-	return position + HAND + Vector2.from_angle(aim) * 11.0
+	var o := origin()
+	var t := o + Vector2.from_angle(aim) * 11.0
+	return t if world == null or not world.solid_at(t) else o
 
 
 func tick(dt: float) -> void:
@@ -154,15 +175,15 @@ func tick(dt: float) -> void:
 	# aim and fire
 	var auto_range := AUTO_RANGE * 1.2
 	still_t = still_t + dt if mv.length() < 0.1 else 0.0
-	target = world.assist_target(position, auto_range)
+	target = world.assist_target(origin(), auto_range, target)
 	var stick := controls.aim
 	var firing := false
 	if stick.length() > 0.3:
 		aim = _assist(stick.angle())
 		firing = true
 	elif target and (controls.fire or Game.auto_fire):
-		# aim from the hand, where the spell leaves the wand (8 px above the feet)
-		var hand := position + HAND
+		# aim from the grip, where the spell leaves the wand
+		var hand := origin()
 		aim = (lead(target) - hand).angle()
 		firing = world.los(hand, target.position)
 	elif mv.length() > 0.1:
@@ -179,40 +200,81 @@ func tick(dt: float) -> void:
 		clip_t = 0.0   # each shot replays the cast clip from its anticipation frame
 		recoil = 2.0
 		world.fx.muzzle(tip(), aim, wand().def.color)
-		world.kick = (world.kick - Vector2.from_angle(aim) * 1.2 * Game.shake_scale).limit_length(3.0)
+		world.kick = (world.kick - Vector2.from_angle(aim) * 0.7 * Game.shake_scale).limit_length(1.5)
 	# hazards
 	if world.hazard_at(position) and world.spikes_up():
 		hurt(6.0, position, "spikes")
 	_animate()
 
 
-## Where to aim to hit a moving target with a bolt of about BOLT_SPEED.
+## Does a shot of radius `rad` at `p` touch the hero? The hurt zone is a short capsule from
+## the waist to the head, as wide as before (playtest: shots that crossed the hero's head
+## passed through, since only a circle at the waist counted).
+const HURT_TOP := Vector2(0, -10)
+const HURT_LOW := Vector2(0, -3)
+
+
+func hit_by(p: Vector2, rad: float) -> bool:
+	var q := Geometry2D.get_closest_point_to_segment(p, position + HURT_TOP, position + HURT_LOW)
+	return p.distance_squared_to(q) < pow(rad + r, 2)
+
+
+## Where to aim to hit a moving target with the wand's bolts (their mean speed; BOLT_SPEED
+## when the wand holds no shooters).
 const BOLT_SPEED := 230.0
+var _speed_sig := ""
+var _speed := BOLT_SPEED
+
+
+func bolt_speed() -> float:
+	var w := wand()
+	var sig := str(w.slots)
+	if sig != _speed_sig:
+		_speed_sig = sig
+		var sum := 0.0
+		var n := 0
+		for sl in w.slots:
+			if sl == null:
+				continue
+			var sp: float = float(Catalog.spell(sl["id"]).params.get("speed", 0.0))
+			if sp > 0.0:
+				sum += sp
+				n += 1
+		_speed = clampf(sum / n, 120.0, 420.0) if n > 0 else BOLT_SPEED
+	return _speed
 
 
 func lead(e: Enemy) -> Vector2:
-	var d := e.position - position
-	var t := minf(0.6, d.length() / BOLT_SPEED)
-	var p := e.position + e.vel * t
-	return p if world.los(position + HAND, p) else e.position
+	var hand := origin()
+	var p := e.position
+	var spd := bolt_speed()
+	# two refinements: the flight time to where it will be, then where it is by then
+	for k in 2:
+		p = e.predict(minf(0.6, hand.distance_to(p) / spd))
+	return p if world.los(hand, p) else e.position
 
 
-## Snaps the stick direction onto an enemy inside the assist cone.
+## Snaps the aim onto an enemy inside the assist cone: one you can see (a shot snapped onto an
+## enemy behind a pillar only hits the pillar), the one nearest the aim line, and led from
+## the hand. A mouse is precise already, so its cone is narrow (playtest: the wide stick
+## cone pulled mouse shots off the Loop into the walls).
 func _assist(ang: float) -> float:
+	var hand := origin()
+	var cone := ASSIST_CONE_MOUSE if controls.precise else ASSIST_CONE
 	var best := ang
-	var bd := ASSIST_CONE
+	var bd := cone
 	for e in world.enemies:
 		if e.dead or e.spawn_t > 0.0:
 			continue
-		var d := e.position - position
+		var d := e.position - hand
 		if d.length_squared() > AUTO_RANGE * AUTO_RANGE:
 			continue
-		var diff := absf(angle_difference(ang, d.angle()))
-		if diff < bd:
+		# a big body's edge counts too: the cone widens by its size at that distance
+		var diff := absf(angle_difference(ang, d.angle())) - atan2(e.r, maxf(d.length(), 1.0))
+		if diff < bd and world.los(hand, e.position):
 			bd = diff
-			best = (lead(e) - position).angle()
+			best = (lead(e) - hand).angle()
 	return best
-
 
 var last_hurt_by := ""
 
@@ -326,10 +388,10 @@ func _animate() -> void:
 	wand_sprite.visible = true
 	tip_glow.visible = true
 	recoil = maxf(0.0, recoil - 0.5)
-	wand_sprite.position = (HAND - Vector2.from_angle(aim) * roundf(recoil)).round()
+	wand_sprite.position = (grip() - Vector2.from_angle(aim) * roundf(recoil)).round()
 	wand_sprite.z_index = -1 if back or sin(aim) < -0.3 else 0
 	var w := wand()
-	tip_glow.position = HAND + Vector2.from_angle(aim) * 11.0
+	tip_glow.position = grip() + Vector2.from_angle(aim) * 11.0
 	var c := w.def.color if w.cd > 0.0 else Color("#8fd8ff")
 	tip_glow.modulate = Color(c.r, c.g, c.b, 0.55 + (0.4 if cast_t > 0.0 else 0.0))
 	queue_redraw()

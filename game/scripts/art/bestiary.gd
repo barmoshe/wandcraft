@@ -485,21 +485,20 @@ static func loop_rig() -> RigDef:
 ## One head frame pre-rotated to 16 headings (index k points along TAU * k / 16). Headings
 ## that point left use the frame flipped upside down first, so the head never swims on its
 ## back. Baked on first use and kept.
-static func loop_head_views(clip: String, i: int) -> Array[Texture2D]:
-	var key := "%s_%d" % [clip, i]
+static func loop_head_view(clip: String, i: int, k: int) -> Texture2D:
+	var key := "%s_%d_%d" % [clip, i, k]
 	if _views.has(key):
 		return _views[key]
+	# baked on first use, one heading at a time (baking all of them at the boss's entrance
+	# froze the web build for seconds): the left-facing half is drawn from the flipped head
 	var src := (clips_of(loop_rig())[clip][i] as Texture2D).get_image()
-	var flipped := src.duplicate() as Image
-	flipped.flip_y()
+	if cos(TAU * k / 16.0) < -0.01:
+		src = src.duplicate() as Image
+		src.flip_y()
 	var piv := Vector2(src.get_width() / 2.0, src.get_height() / 2.0)
-	var up := RigBaker.rotations(src, piv, 16)
-	var down := RigBaker.rotations(flipped, piv, 16)
-	var out: Array[Texture2D] = []
-	for k in 16:
-		out.append(PixelArt.tex(down[k] if cos(TAU * k / 16.0) < -0.01 else up[k]))
-	_views[key] = out
-	return out
+	var tex := PixelArt.tex(RigBaker.rotation(src, piv, TAU * k / 16.0))
+	_views[key] = tex
+	return tex
 
 
 ## Baked clips of any rig, cached by rig id.
@@ -591,6 +590,11 @@ const VARIANTS := {
 	"rot_weaver": ["weaver", {"1": "cyan:1", "2": "cyan:2", "3": "cyan:3", "L": "night:3", "l": "cyan:1", "g": "toxic:3", "G": "toxic:4"}],
 	"blink_tick": ["tick", {"2": "cyan:2", "3": "cyan:3", "k": "cyan:1", "g": "gold:3", "G": "gold:4"}],
 	"thorn_ram": ["ram", {"1": "violet:1", "2": "violet:2", "3": "violet:3", "4": "violet:4", "T": "glitch:3", "t": "glitch:2", "u": "glitch:1", "e": "night:1"}],
+	# World 2, the Foundry: iron and heat
+	"proxy": ["golem", {"1": "rust:1", "2": "rust:2", "3": "rust:3", "4": "rust:4", "y": "cyan:4", "M": "cyan:3", "m": "cyan:2", "S": "steel:4", "s": "steel:3"}],
+	"kernel_panic": ["slime", {"1": "ember:1", "2": "ember:2", "3": "ember:3", "4": "ember:4"}],
+	"spark_plug": ["bugling", {"1": "steel:1", "2": "steel:2", "3": "steel:3", "4": "gold:4"}],
+	"mutex": ["loop_seg", {}],   # Deadlock's second guardian: BossDeadlock swaps in its own art
 }
 
 

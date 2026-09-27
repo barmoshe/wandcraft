@@ -86,16 +86,18 @@ func test_the_infinite_loop_can_be_beaten() -> void:
 	eq((boss as BossLoop).parts.filter(func(p: Enemy) -> bool: return not p.dead).size(), 0, "its body went with it")
 
 
-## The full chapter: start room, 3 rooms, mini-boss, 3 rooms, boss, exit.
-func test_bot_completes_world_one() -> void:
+## The full run: World 1 (start, 4 rooms, mini-boss, 4 rooms, the Loop), then World 2 the
+## same way (its mini-boss, then Deadlock), and the exit.
+func test_bot_completes_both_worlds() -> void:
 	world.start_run(RunState.create(99))
 	var t := 0.0
-	while not victory and t < 1500.0:
+	while not victory and t < 2400.0:
 		world.step(DT)
 		t += DT
 	print("    full run: step %d, %.0f sim-seconds, %d kills, path %s" % [world.run.step, t, world.run.stats["kills"], world.run.path])
 	if not victory:
 		print("    DEBUG room ", world.run.room, " alive: ", world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String: return "%s hp%.0f ward%d arm%.0f sh%d at %s" % [e.kind, e.hp, e.ward_n, e.armor, e.shield_hp, e.position.round()]))
-	ok(victory, "World 1 cleared (reached step %d of %d in %.0fs)" % [world.run.step, Chapter.PLAN.size(), t])
+	ok(victory, "both worlds cleared (reached world %d step %d of %d in %.0fs)" % [world.run.world + 1, world.run.step, Chapter.PLAN.size(), t])
 	ok(world.run.won, "the run is marked won")
-	eq(int(world.run.stats["bosses"]), 2, "both bosses defeated")
+	eq(int(world.run.stats["bosses"]), 4, "all four bosses defeated (two a world)")
+	eq(world.run.world, 1, "and it ended in World 2")

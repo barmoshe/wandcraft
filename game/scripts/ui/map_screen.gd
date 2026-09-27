@@ -10,7 +10,7 @@ func _paint() -> void:
 	var v := view()
 	var sr := safe()
 	text_center(v.x / 2.0, sr.position.y + 18, "WORLD 1", GOLD, 16, "body")
-	text_center(v.x / 2.0, sr.position.y + 32, Chapter.area_name(run.step), MUTED)
+	text_center(v.x / 2.0, sr.position.y + 32, "%s  -  %s" % [Chapter.WORLDS[run.world]["name"], Chapter.area_name(run.step, run.world)], MUTED)
 	if run.map.is_empty():
 		run.map = Chapter.make_map(run)
 	var n := Chapter.PLAN.size()
@@ -60,8 +60,9 @@ func _paint() -> void:
 	var split_x := x0 + (Chapter.AREAS[1]["from"] - 0.5) * gx
 	draw_line(Vector2(split_x, cy - gy - 18), Vector2(split_x, cy + gy + 18), Color(Style.c("violet:3"), 0.4), 1.0)
 	var a1: int = Chapter.AREAS[1]["from"]
-	text_center(x0 + gx * (a1 - 1) / 2.0, cy + gy + 30, Chapter.AREAS[0]["name"].to_upper(), MUTED)
-	text_center(x0 + gx * (a1 + n - 1) / 2.0, cy + gy + 30, Chapter.AREAS[1]["name"].to_upper(), Style.c("violet:4"))
+	var areas: Array = Chapter.WORLDS[run.world]["areas"]
+	text_center(x0 + gx * (a1 - 1) / 2.0, cy + gy + 30, String(areas[0]["name"]).to_upper(), MUTED)
+	text_center(x0 + gx * (a1 + n - 1) / 2.0, cy + gy + 30, String(areas[1]["name"]).to_upper(), Style.c("ember:4") if run.world > 0 else Style.c("violet:4"))
 	# design v2: the threat badges' legend
 	var lx := sr.position.x + 20
 	for th in Chapter.THREATS:

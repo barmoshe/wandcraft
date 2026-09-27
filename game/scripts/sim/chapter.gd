@@ -37,6 +37,12 @@ const POOL := [
 const LANES := 3
 ## World 1's two areas (D5): the room steps each one covers, and its name.
 const AREAS := [{"name": "The Mossy Root Cellar", "from": 0}, {"name": "The Corrupted Grove", "from": 6}]
+## Every world's areas (research/design-w2.md): World 2 is the Overheated Foundry, the same
+## shape, run after the Infinite Loop falls.
+const WORLDS := [
+	{"name": "World 1", "areas": AREAS},
+	{"name": "World 2", "areas": [{"name": "The Cooling Vents", "from": 0}, {"name": "The Molten Core", "from": 6}]},
+]
 
 const INFO := {
 	"spell": {"name": "Spell", "color": "#5ce1ff"},
@@ -115,8 +121,15 @@ static func twist_of(d: Dictionary) -> StringName:
 	return StringName(d.get("twist", ""))
 
 
-static func area_name(step: int) -> String:
-	return AREAS[1]["name"] if step >= AREAS[1]["from"] else AREAS[0]["name"]
+static func area_name(step: int, world := 0) -> String:
+	var areas: Array = WORLDS[clampi(world, 0, WORLDS.size() - 1)]["areas"]
+	return areas[1]["name"] if step >= areas[1]["from"] else areas[0]["name"]
+
+
+## Rooms counted across worlds (World 2's first room is the eleventh): what the difficulty
+## grows with.
+static func depth(run: RunState) -> int:
+	return run.step + run.world * (PLAN.size() - 1) if run else 1
 
 
 ## The visible 3-lane map (D5): every room step has three nodes, the mini-boss and the boss

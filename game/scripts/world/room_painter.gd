@@ -28,6 +28,17 @@ const THEMES := [
 	{"f": ["night:2", "night:3", "violet:1"], "cap": ["violet:2", "violet:1", "violet:3"], "face": ["night:2", "violet:1", "night:1", "violet:2"],
 		"grow": ["violet:1", "glitch:1", "glitch:2"], "floor_mix": "night:3", "canopy": [["night:2", "violet:1", "violet:2", "violet:3"], ["cyan:0", "cyan:1", "cyan:1", "cyan:2"]],
 		"trunk": ["night:1", "violet:1"], "ground": "night:1", "roots": false, "veins": true},
+	# World 2, the Overheated Foundry (research/design-w2.md): iron plates, not stone. The
+	# Cooling Vents run cold steel and frost with coolant lines; the Molten Core runs rust
+	# with lava in the cracks.
+	{"f": ["slate:1", "steel:1", "slate:2"], "cap": ["steel:3", "steel:2", "steel:4"], "face": ["night:3", "steel:1", "steel:0", "steel:2"],
+		"grow": ["frost:1", "frost:2", "cyan:2"], "floor_mix": "steel:1", "canopy": [["night:2", "steel:1", "steel:2", "slate:3"], ["frost:0", "frost:1", "frost:1", "frost:2"]],
+		"trunk": ["rust:1", "rust:2"], "ground": "night:2", "roots": false, "veins": true, "foundry": true,
+		"vein": "frost:1", "glint": ["frost:2", "steel:3"]},
+	{"f": ["night:3", "rust:1", "rust:2"], "cap": ["rust:3", "rust:2", "rust:4"], "face": ["night:2", "rust:1", "night:1", "rust:2"],
+		"grow": ["rust:2", "rust:1", "ember:1"], "floor_mix": "rust:1", "canopy": [["night:2", "rust:1", "rust:2", "ember:1"], ["ember:0", "ember:1", "ember:1", "ember:2"]],
+		"trunk": ["night:1", "rust:1"], "ground": "night:1", "roots": false, "veins": true, "foundry": true, "hot": true,
+		"vein": "ember:1", "glint": ["ember:3", "gold:3"]},
 ]
 
 
@@ -83,6 +94,13 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biom
 			var X := O.x + x * TS
 			var Y := O.y + y * TS
 			var r := rng.randf()
+			if th.get("foundry", false):
+				# the Foundry: vent grates, and in the Core cracks glowing with heat
+				if r < 0.035:
+					_grate(img, X + rng.randi_range(1, 6), Y + rng.randi_range(2, 8))
+				elif r < 0.07 and th.get("hot", false):
+					_hot_crack(img, X + rng.randi_range(2, 10), Y + rng.randi_range(3, 12), rng)
+				continue
 			if th["veins"]:
 				# the Grove: glowing mushrooms and crystal shards instead of tufts and flowers
 				if r < 0.03:
@@ -103,7 +121,9 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biom
 		for v in veins(grid, gw, gh, seed_value):
 			for q in v:
 				var pp := Vector2i(q) + O
-				img.set_pixel(pp.x, pp.y, Style.c("glitch:1"))
+				img.set_pixel(pp.x, pp.y, Style.c(th.get("vein", "glitch:1")))
+	if th.get("foundry", false):
+		_plates(img, gw, gh, at)
 	for y in gh:
 		for x in gw:
 			if at.call(x, y) == 2:
@@ -139,8 +159,44 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biom
 			var gx := rng.randi_range(1, gw - 2)
 			var gy := rng.randi_range(1, gh - 2)
 			if at.call(gx, gy) == 0:
-				img.fill_rect(Rect2i(O.x + gx * TS + rng.randi_range(0, 13), O.y + gy * TS + rng.randi_range(0, 13), rng.randi_range(2, 3), 1), Style.c(["glitch:2", "cyan:2"][rng.randi_range(0, 1)]))
+				img.fill_rect(Rect2i(O.x + gx * TS + rng.randi_range(0, 13), O.y + gy * TS + rng.randi_range(0, 13), rng.randi_range(2, 3), 1), Style.c(th.get("glint", ["glitch:2", "cyan:2"])[rng.randi_range(0, 1)]))
 	return img
+
+
+## The Foundry's floor plates: a dark seam every two tiles and a rivet at each plate corner.
+static func _plates(img: Image, gw: int, gh: int, at: Callable) -> void:
+	var O := MARGIN * TS
+	for y in gh:
+		for x in gw:
+			if at.call(x, y) != 0:
+				continue
+			var X := O.x + x * TS
+			var Y := O.y + y * TS
+			var seam := img.get_pixel(X + 3, Y + 3).darkened(0.35)
+			if x % 2 == 0:
+				img.fill_rect(Rect2i(X, Y, 1, TS), seam)
+			if y % 2 == 0:
+				img.fill_rect(Rect2i(X, Y, TS, 1), seam)
+			if x % 2 == 0 and y % 2 == 0:
+				img.set_pixel(X + 2, Y + 2, seam.lightened(0.5))
+				img.set_pixel(X + TS - 3, Y + 2, seam.lightened(0.5))
+
+
+## A vent grate set in the floor: dark slots in a steel frame.
+static func _grate(img: Image, x: int, y: int) -> void:
+	img.fill_rect(Rect2i(x, y, 9, 6), Style.c("steel:2"))
+	img.fill_rect(Rect2i(x, y, 9, 1), Style.c("steel:3"))
+	for k in 4:
+		img.fill_rect(Rect2i(x + 1 + k * 2, y + 1, 1, 4), Style.c("night:1"))
+
+
+## A crack in the Core's plates with heat showing through.
+static func _hot_crack(img: Image, x: int, y: int, rng: RandomNumberGenerator) -> void:
+	var p := Vector2i(x, y)
+	for k in rng.randi_range(4, 7):
+		img.set_pixel(p.x, p.y, Style.c("ember:2") if k % 3 else Style.c("ember:3"))
+		img.set_pixel(p.x, p.y + 1, Style.c("night:1"))
+		p += Vector2i(1, rng.randi_range(-1, 1))
 
 
 ## The Grove's corruption veins: branching lines from the walls into the floor, in room

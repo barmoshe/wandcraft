@@ -60,9 +60,8 @@ static func anim(s: Node) -> void:
 		for i in (lc[clip] as Array).size():
 			s.add("%d" % i, lc[clip][i])
 	s.section("loop head, 16 headings (chomp 0)")
-	var lv := Bestiary.loop_head_views("chomp", 0)
-	for i in lv.size():
-		s.add("%d" % i, lv[i])
+	for i in 16:
+		s.add("%d" % i, Bestiary.loop_head_view("chomp", 0, i))
 	var cc := Bestiary.clone_clips()
 	s.section("copy-paste: run | cast | hurt")
 	for clip in ["run", "cast", "hurt"]:

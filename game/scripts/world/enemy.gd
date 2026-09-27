@@ -38,7 +38,23 @@ const DEFS := {
 		"role": &"pressure", "blink": true},
 	&"thorn_ram": {"title": "Bramble Ram", "ai": &"charge", "hp": 38.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3,
 		"role": &"pressure", "thorns": true, "dash": {"range": 130.0, "tele": 0.65, "t": 0.55, "spd": 230.0, "stun": true}},
+	# World 2, the Overheated Foundry (research/design-w2.md)
+	#   Proxy         support: hits on allies near it land on the Proxy instead (a tether shows
+	#                 who it covers). Counter: kill it first, or hit the crowd with area
+	#   Kernel Panic  pressure: at half HP it panics, sprints at you and bursts in a ring.
+	#                 Counter: finish it in one go, or keep your distance while it flashes
+	#   Spark Plug    pressure: short fast dashes that leave a live arc. Counter: dodge across
+	&"proxy": {"title": "Proxy", "ai": &"support", "hp": 46.0, "spd": 30.0, "r": 7.0, "dmg": 6.0, "cost": 4, "gold": 4,
+		"role": &"support", "proxy": true},
+	&"kernel_panic": {"title": "Kernel Panic", "ai": &"fuse", "hp": 30.0, "spd": 30.0, "r": 6.0, "dmg": 16.0, "cost": 3, "gold": 3,
+		"role": &"pressure", "panic": true},
+	&"spark_plug": {"title": "Spark Plug", "ai": &"charge", "hp": 16.0, "spd": 46.0, "r": 5.0, "dmg": 6.0, "cost": 2, "gold": 2,
+		"role": &"pressure", "thorns": true, "dash": {"range": 110.0, "tele": 0.45, "t": 0.4, "spd": 270.0, "stun": false}},
+	&"mutex": {"title": "Mutex B", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 11.0, "dmg": 10.0, "cost": 0, "gold": 0},
 }
+
+## A Proxy covers allies within this reach (World.hurt_enemy sends their hits to it).
+const PROXY_R := 48.0
 
 ## Elite affixes (D4): one per elite in World 1, each with an outline colour.
 ##   armored   an armour bar (Blast breaks it)      warded    a 3-hit ward that comes back
@@ -114,6 +130,9 @@ var _route_direct := true
 var _route_t := 0.0
 var vel := Vector2.ZERO        # measured each tick (aim-ahead uses it)
 var _prev := Vector2.ZERO
+var chain: Boss = null          # a body part that follows its boss's path (the Loop's blocks)
+var locked := false             # takes no damage at all (Deadlock's locked guardian)
+var panicked := false           # Kernel Panic: it has started its run
 var burn_t := 0.0
 var burn_dps := 0.0
 var chill_t := 0.0
@@ -208,6 +227,17 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 				spd *= 1.5
 	sprite.visible = false
 	add_child(sprite)
+
+
+## Where this enemy will be in `t` seconds, for aim-ahead. A chained body part asks its boss
+## (it knows the path); anything else runs straight on, but never further than 40 px, and a
+## blink (a jump no walk could make) is not a speed to lead by.
+func predict(t: float) -> Vector2:
+	if chain != null and not chain.dead:
+		return chain.predict_part(self, t)
+	if vel.length_squared() > 300.0 * 300.0:
+		return position
+	return position + (vel * t).limit_length(40.0)
 
 
 ## The ground ring's colour (transparent for body parts and bosses, which have their own art).
@@ -353,7 +383,7 @@ func tick(dt: float) -> void:
 				# no line to the player: walk around the cover until it has one
 				mv = _steer(dt, dir)
 				cd = maxf(cd, 0.4)
-			if ai == &"support" and cd <= 0.0:
+			if ai == &"support" and cd <= 0.0 and not def.get("proxy", false):
 				cd = 4.0
 				_ward_allies()
 		&"charge":
@@ -438,16 +468,28 @@ func tick(dt: float) -> void:
 				world.fx.ring(position, 2.0, 14.0, 0.3, Style.c("glitch:3"))
 		&"fuse":
 			# the Glitch Tick: runs in, blinks for 0.8 s, bursts. Frost holds the fuse.
+			if def.get("panic", false) and not panicked and hp <= max_hp * 0.5 and state != &"fuse":
+				# Kernel Panic: half its HP gone, it runs at you flashing, then bursts
+				panicked = true
+				state = &"fuse"
+				st_t = 1.3
+				world.fx.text(position + Vector2(0, -18), "PANIC", Style.c("threat:4"), 10)
+				Audio.sfx("tele_mid", 0.05)
 			if state == &"fuse":
 				if chill_t <= 0.0 and frozen_t <= 0.0:
 					st_t -= dt
 				flash = 0.8 if sin(st_t * 45.0) > 0.0 else 0.0
+				if panicked:
+					mv = _steer(dt, dir) * 2.0
 				if st_t <= 0.0:
 					Audio.sfx("fuse_pop", 0.08)
 					world.fx.ring(position, 3.0, TICK_R, 0.25, Style.c("threat:3"))
 					world.shake(0.15)
 					if pl.position.distance_to(position) < TICK_R + pl.r:
 						pl.hurt(dmg, position, "burst:%s" % kind)
+					if panicked:
+						for k in 8:
+							world.enemy_shoot(position + Vector2(0, -4), TAU * k / 8.0 + 0.2, 80.0, dmg * 0.4, 0.0, "shot:%s" % kind)
 					world.kill_enemy(self)
 					return
 			elif state == &"blink":
@@ -693,6 +735,12 @@ func _draw() -> void:
 	# defences: a ward ring, a shield arc facing the player
 	if ward_n > 0:
 		draw_arc(Vector2(0, -r), r + 3.0, 0.0, TAU, 20, Color(Style.c("cyan:4"), 0.35 + 0.15 * ward_n), 1.0)
+	if def.get("proxy", false):
+		# the Proxy's tethers: who its hits are covering
+		for o in world.enemies:
+			if o != self and not o.dead and o.spawn_t <= 0.0 and o.ai != &"part" and not o.def.get("proxy", false) and o.position.distance_squared_to(position) < PROXY_R * PROXY_R:
+				draw_dashed_line(Vector2(0, -6), o.position - position + Vector2(0, -6), Color(Style.c("cyan:4"), 0.45), 1.0, 3.0)
+		draw_arc(Vector2(0, -6), PROXY_R, 0.0, TAU, 32, Color(Style.c("cyan:3"), 0.12), 1.0)
 	if shield_hp > 0:
 		var fa := (world.target_pos() - position).angle()
 		draw_arc(muzzle, r + 4.0, fa - 1.0, fa + 1.0, 10, Style.c("steel:4"), 2.0)

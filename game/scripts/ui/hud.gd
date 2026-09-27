@@ -82,10 +82,14 @@ func _on_room(def: Dictionary) -> void:
 	elif no == 0 and world and world.run and world.run.daily != "":
 		banner_sub = "Daily - " + String(Chapter.daily_rule(world.run.daily)["text"])
 	elif no == 0:
-		banner_sub = Chapter.area_name(no)
+		banner_sub = Chapter.area_name(no, _world_no())
 	else:
-		banner_sub = "%s  -  room %d of %d" % [Chapter.area_name(no), no, Chapter.PLAN.size() - 1]
+		banner_sub = "%s  -  room %d of %d" % [Chapter.area_name(no, _world_no()), no, Chapter.PLAN.size() - 1]
 	banner_t = 2.0
+
+
+func _world_no() -> int:
+	return world.run.world if world and world.run else 0
 
 
 func _process(dt: float) -> void:

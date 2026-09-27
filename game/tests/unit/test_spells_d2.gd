@@ -188,7 +188,7 @@ func test_ifelse_picks_by_range() -> void:
 	var e := _alone(Vector2(208, 100))   # far: more than 60 px from the wand
 	_fire([&"ifelse", &"lance", &"ember"])
 	eq(_live(&"ember"), 1, "nobody near: the ELSE branch (Ember Bolt)")
-	e.position = Vector2(208, 180)
+	e.position = Vector2(214, 165)   # in line with the wand tip (the grip is at the side)
 	_steps(1.5)
 	world.damage_done = 0.0
 	_fire([&"ifelse", &"lance", &"ember"])

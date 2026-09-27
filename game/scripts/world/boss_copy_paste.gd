@@ -16,10 +16,14 @@ var copied: Array = []          # [spell id, level] read from the player's wand 
 var ghost: Enemy                # phase 2's decoy
 var _cast_q: Array = []         # Copy Cast: shots still to go, with their delay
 var _box := Rect2()
+var wand_sprite: Sprite2D       # playtest: "Copy-Paste has no wand". It holds a copy of yours
+var _wand_tex: Array[Texture2D] = []
 
 ## The clone is drawn a little larger than the hero (the hero art is 32 px tall).
 const SCALE := 1.25
 const LAG := 1.2
+const HAND := Vector2(0, -19)   # Player.HAND at the clone's scale
+const GRIP := Vector2(7.5, -20)  # Player.GRIP at the clone's scale
 
 
 func _init_boss() -> void:
@@ -50,6 +54,24 @@ func _init_boss() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = _flash_shader()
 	sprite.material = _mat
+	# a copy of the wand in your hand: same gem, glitched
+	_wand_tex = Hero.wand_angles(Hero.gem_ramp(world.run.wand().def.color) if world.run else "glitch")
+	wand_sprite = Sprite2D.new()
+	wand_sprite.texture = _wand_tex[0]
+	wand_sprite.position = GRIP
+	wand_sprite.scale = Vector2(SCALE, SCALE)
+	add_child(wand_sprite)
+
+
+## Where its copied spells leave: the tip of its wand.
+func wand_tip() -> Vector2:
+	var a := (world.player.position - position - HAND).angle()
+	return position + _grip() + Vector2.from_angle(a) * 11.0 * SCALE
+
+
+## The grip on the side it faces (it faces you).
+func _grip() -> Vector2:
+	return Vector2(GRIP.x * (-1.0 if world.player.position.x < position.x else 1.0), GRIP.y)
 
 
 ## The first three shooting spells of a wand, in slot order (a Mote if there are none).
@@ -184,7 +206,7 @@ func _act(m: StringName, dt: float, _t: float) -> void:
 			c["t"] -= dt
 			if c["t"] <= 0.0:
 				_cast_q.erase(c)
-				var from := ghost.position if c.get("from_ghost", false) and ghost and not ghost.dead else position
+				var from := ghost.position if c.get("from_ghost", false) and ghost and not ghost.dead else wand_tip()
 				cast_copy(c["id"], c["lv"], from + Vector2(0, -8))
 
 
@@ -248,6 +270,14 @@ func _animate() -> void:
 	# glitch: occasional horizontal jitter; in phase 2 the real one flickers
 	sprite.position.x = (world.rng.randf_range(-2, 2) if fmod(t, 1.3) < 0.08 else 0.0)
 	sprite.modulate.a = 0.55 if phase > 0 and fmod(t, 0.5) < 0.08 else 1.0
+	# the wand points at you (pre-rotated, 16 angles, like the hero's); it glows while it
+	# winds up a Copy Cast, and glitches with the body
+	var a := (world.player.position - position - HAND).angle()
+	wand_sprite.texture = _wand_tex[posmod(roundi(a / (TAU / 16.0)), 16)]
+	wand_sprite.position = _grip() + Vector2(sprite.position.x, 0)
+	wand_sprite.z_index = -1 if sin(a) < -0.3 else 0
+	var hot := move == &"copy_cast" and sm == &"tele"
+	wand_sprite.modulate = Color(1.6, 0.7, 1.4, sprite.modulate.a) if hot and fmod(t, 0.2) < 0.1 else Color(1, 1, 1, sprite.modulate.a)
 	queue_redraw()
 
 

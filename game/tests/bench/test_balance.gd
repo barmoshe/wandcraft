@@ -10,10 +10,13 @@ extends "res://tests/unit/test_helpers.gd"
 ## offer, leaves the bag alone). The design wants editing to matter: the D4 targets are
 ## 60-80% for the editor and 15-30% for the non-editor; until D4's enemy counters land, only
 ## the editor is held to the band and the non-editor is reported.
+## World 2 (0.17): a run is two worlds. The band holds for clearing World 1 (the Loop); the
+## full-run win rate and Deadlock's time are reported beside it.
 
 const DT := 1.0 / 60.0
 const SEEDS := [11, 22, 33, 44, 55, 66, 77, 88, 99, 110]
 const ONLY := []   # debugging: set to e.g. [99] to bench one seed
+const LIMIT := 2400.0
 
 
 func _play(seed_value: int, edits := true) -> Dictionary:
@@ -22,7 +25,7 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 	runner.root.add_child(world)
 	world.setup(seed_value)
 	world.bot = true
-	var res := {"won": false, "step": 0, "time": 0.0, "hp_lost": 0.0, "rooms": 0, "mini": -1.0, "boss": -1.0, "path": []}
+	var res := {"won": false, "w1": false, "step": 0, "time": 0.0, "hp_lost": 0.0, "rooms": 0, "mini": -1.0, "boss": -1.0, "boss2": -1.0, "path": []}
 	var state := {"victory": false, "defeat": false}
 	world.ui_request.connect(_answer.bind(world, state, edits))
 	var by: Dictionary = {}
@@ -38,7 +41,7 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 	var t := 0.0
 	var boss_t0 := -1.0
 	var last_kind: StringName = &""
-	while t < 1200.0 and not state["victory"] and not state["defeat"]:
+	while t < LIMIT and not state["victory"] and not state["defeat"]:
 		world.step(DT)
 		t += DT
 		if world.room_kind != last_kind:
@@ -46,15 +49,19 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 		if world.boss and not world.boss.dead and boss_t0 < 0.0:
 			boss_t0 = t
 		if world.boss and world.boss.dead and boss_t0 >= 0.0:
-			res["mini" if world.room_kind == &"mini" else "boss"] = t - boss_t0
+			var key := "mini" if world.room_kind == &"mini" else ("boss2" if world.run.world >= 1 else "boss")
+			if res[key] < 0.0:
+				res[key] = t - boss_t0
 			boss_t0 = -1.0
 	Events.player_hurt.disconnect(on_hurt)
 	res["won"] = state["victory"]
+	res["w1"] = world.run.world >= 1 or state["victory"]
+	res["world"] = world.run.world + 1
 	res["step"] = world.run.step
 	res["time"] = t
 	res["rooms"] = int(world.run.stats["rooms"])
 	res["path"] = world.run.path
-	if t >= 1200.0:
+	if t >= LIMIT:
 		res["alive"] = world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String:
 			return "%s hp%.0f sh%d ward%d arm%.0f @%s" % [e.kind, e.hp, e.shield_hp, e.ward_n, e.armor, e.position.round()])
 		res["room"] = world.run.room
@@ -80,24 +87,30 @@ func _bench(edits: bool) -> float:
 	Game.auto_fire = true
 	SaveGame.enabled = false
 	var wins := 0
+	var full := 0
 	var stalls := 0
+	var bosses2: Array = []
 	var minis: Array = []
 	var bosses: Array = []
 	print("\n    %s bot" % ("EDITING" if edits else "NEVER-EDITING"))
-	print("    seed  result   step  time   hp_lost  rooms  mini   boss")
+	print("    seed  result   w-step  time   hp_lost  rooms  mini   boss  boss2")
 	for s in (ONLY if not ONLY.is_empty() else SEEDS):
 		var r := _play(s, edits)
-		if r["won"]:
+		if r["w1"]:
 			wins += 1
-		if r["time"] >= 899.0:
+		if r["won"]:
+			full += 1
+		if r["time"] >= LIMIT - 1.0:
 			stalls += 1
+		if r["boss2"] >= 0.0:
+			bosses2.append(r["boss2"])
 		if r["mini"] >= 0.0:
 			minis.append(r["mini"])
 		if r["boss"] >= 0.0:
 			bosses.append(r["boss"])
-		print("    %4d  %-7s  %4d  %4.0fs  %7.0f  %5d  %5.0f  %5.0f   %s" % [s, "WIN" if r["won"] else "died", r["step"], r["time"], r["hp_lost"], r["rooms"], r["mini"], r["boss"], _top_sources(r["by"])])
+		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5d  %5.0f  %5.0f  %5.0f   %s" % [s, "WIN" if r["won"] else ("W1" if r["w1"] else "died"), r["world"], r["step"], r["time"], r["hp_lost"], r["rooms"], r["mini"], r["boss"], r["boss2"], _top_sources(r["by"])])
 	var rate := float(wins) / SEEDS.size()
-	print("    survival %.0f%%, mini-boss avg %.0fs, boss avg %.0fs" % [rate * 100.0, _avg(minis), _avg(bosses)])
+	print("    World 1 cleared %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs" % [rate * 100.0, 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2)])
 	SaveGame.enabled = true
 	eq(stalls, 0, "every run ends (a stall means a bot or game bug, not balance)")
 	if not edits:

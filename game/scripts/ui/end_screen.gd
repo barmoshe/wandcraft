@@ -31,9 +31,10 @@ func _paint() -> void:
 	var sr := safe()
 	var cx := v.x / 2.0
 	var y := sr.position.y + 26
-	text_center(cx, y, "WORLD 1 CLEARED" if won else "THE GLITCH WINS", GOLD if won else Color("#ff3fa4"), 16, "body")
+	text_center(cx, y, "RUN COMPLETE" if won else "THE GLITCH WINS", GOLD if won else Color("#ff3fa4"), 16, "body")
 	y += 14
-	text_center(cx, y, "The Infinite Loop is broken. For now." if won else "Your run ends in room %d of %d." % [run.step, Chapter.PLAN.size() - 1], MUTED)
+	var lost_at := "Your run ends in %s, room %d of %d." % [Chapter.WORLDS[run.world]["name"], run.step, Chapter.PLAN.size() - 1]
+	text_center(cx, y, "Deadlock is broken. Both worlds are clear." if won else lost_at, MUTED)
 	if run.daily != "":
 		var dl: Dictionary = SaveGame.load_meta().get("daily", {})
 		text_center(cx, y + 11, "DAILY RUN %s  -  best today: %s" % [run.daily, "a win" if dl.get("won", false) else "room %d" % int(dl.get("step", 0))], GOLD)
@@ -70,7 +71,7 @@ func _paint() -> void:
 		text(Vector2(cx + sw / 2.0 + 8, y + 14), "Ended by " + killer_text(killed_by), Color("#ff8a9a"))
 	y += 26
 	# the numbers on the left, the goals on the right
-	var r := Rect2(cx - 222, y, 214, 76)
+	var r := Rect2(cx - 222, y, 214, 84)
 	panel(r, won)
 	var st := run.stats
 	var rows := [
@@ -83,25 +84,34 @@ func _paint() -> void:
 	for i in rows.size():
 		text(r.position + Vector2(10, 14 + i * 12), rows[i][0], MUTED)
 		text_right(r.end.x - 10, r.position.y + 14 + i * 12, rows[i][1], TEXT, 8, "bold")
-	var gr := Rect2(cx + 8, y, 214, 76)
+	var gr := Rect2(cx + 8, y, 214, 84)
 	panel(gr, true)
 	var got: Array = SaveGame.load_meta().get("last_goals", [])
-	var gy := gr.position.y + 14
-	if not got.is_empty():
-		text(Vector2(gr.position.x + 10, gy), "GOALS DONE", Style.UI_GOOD, 8, "bold")
-		for gid in got.slice(0, 2):
-			var g: Dictionary = Meta.GOALS.filter(func(x: Dictionary) -> bool: return x["id"] == gid)[0]
-			gy += 11
-			text(Vector2(gr.position.x + 10, gy), "%s: %s" % [g["text"], Meta.title(g["unlocks"][0])], TEXT)
-		gy += 14
+	# every line is measured, so a long goal wraps inside the panel, never over the next line
+	var gx := gr.position.x + 10
+	var gw := gr.size.x - 20
+	var gy := gr.position.y + 4
 	var nxt := Meta.open_goals()
+	if not got.is_empty():
+		text(Vector2(gx, gy + 10), "GOALS DONE", Style.UI_GOOD, 8, "bold")
+		gy += 12
+		# with a next goal to show, one done line (and a count) leaves it room
+		var shown := got.slice(0, 1 if not nxt.is_empty() else 3)
+		for gid in shown:
+			var g: Dictionary = Meta.GOALS.filter(func(x: Dictionary) -> bool: return x["id"] == gid)[0]
+			var more := " (+%d more)" % (got.size() - 1) if shown.size() == 1 and got.size() > 1 else ""
+			para(Rect2(gx, gy, gw, 11), "%s: %s%s" % [g["text"], Meta.title(g["unlocks"][0]), more], TEXT)
+			gy += 11
+		gy += 4
 	if nxt.is_empty():
-		text(Vector2(gr.position.x + 10, gy), "Every goal done. Turn up the heat.", GOLD)
+		text(Vector2(gx, gy + 10), "Every goal done. Turn up the heat.", GOLD)
 	else:
-		text(Vector2(gr.position.x + 10, gy), "NEXT GOAL", GOLD, 8, "bold")
-		para(Rect2(gr.position.x + 10, gy + 2, gr.size.x - 20, 22), nxt[0]["text"], TEXT)
+		text(Vector2(gx, gy + 10), "NEXT GOAL", GOLD, 8, "bold")
+		gy += 12
+		var room := gr.end.y - 4 - gy - 11   # what is left above the unlocks line
+		var h := minf(para(Rect2(gx, gy, gw, maxf(11.0, room)), nxt[0]["text"], TEXT), maxf(11.0, floorf((room + 1.0) / 11.0) * 11.0))
 		var names: Array = (nxt[0]["unlocks"] as Array).map(func(id: StringName) -> String: return Meta.title(id))
-		para(Rect2(gr.position.x + 10, gy + 13, gr.size.x - 20, 22), "Unlocks " + ", ".join(names.slice(0, 2)), MUTED)
+		para(Rect2(gx, gy + h, gw, 11), "Unlocks " + ", ".join(names.slice(0, 3)), MUTED)
 	y = r.end.y + 10
 	button(Rect2(cx - 116, y, 110, 30), "again", "NEW RUN", "primary")
 	button(Rect2(cx + 6, y, 110, 30), "title", "TITLE", "ghost")

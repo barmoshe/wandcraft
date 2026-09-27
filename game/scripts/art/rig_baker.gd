@@ -152,6 +152,16 @@ static func sheet(rig: RigDef) -> Image:
 ## colours appear. `pivot` is the source pixel that stays put; the result is a square canvas
 ## with the pivot at its centre. Angle k is TAU * k / n, clockwise on screen.
 static func rotations(src: Image, pivot: Vector2, n := 16) -> Array[Image]:
+	var out: Array[Image] = []
+	for k in n:
+		out.append(rotation(src, pivot, TAU * k / n))
+	return out
+
+
+## One angle of `rotations` (the same pixels). Output pixels whose samples all fall outside
+## the source are skipped early, and the vote runs over flat arrays, not a Dictionary: the
+## Infinite Loop's head bakes its views lazily with this, one heading at a time.
+static func rotation(src: Image, pivot: Vector2, a: float) -> Image:
 	var sw := src.get_width()
 	var sh := src.get_height()
 	var reach := 0.0
@@ -159,38 +169,49 @@ static func rotations(src: Image, pivot: Vector2, n := 16) -> Array[Image]:
 		reach = maxf(reach, (c - pivot).length())
 	var size := int(ceilf(reach)) * 2 + 1
 	var mid := Vector2(size / 2, size / 2) + Vector2(0.5, 0.5)
-	var out: Array[Image] = []
-	for k in n:
-		var a := TAU * k / n
-		var ca := cos(a)
-		var sa := sin(a)
-		var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-		for j in size:
-			for i in size:
-				var votes := {}
-				var best := Color(0, 0, 0, 0)
-				var best_n := 0
-				for sj in 3:
-					for si in 3:
-						var d := Vector2(i + (si + 0.5) / 3.0, j + (sj + 0.5) / 3.0) - mid
-						# rotate back into the source
-						var s := Vector2(d.x * ca + d.y * sa, -d.x * sa + d.y * ca) + pivot
-						var x := floori(s.x)
-						var y := floori(s.y)
-						if x < 0 or y < 0 or x >= sw or y >= sh:
-							continue
-						var c := src.get_pixel(x, y)
-						if c.a == 0.0:
-							continue
-						var key := c.to_rgba32()
-						votes[key] = int(votes.get(key, 0)) + 1
-						if votes[key] > best_n:
-							best_n = votes[key]
-							best = c
-				var total := 0
-				for v in votes.values():
-					total += int(v)
-				if total >= 5:
-					img.set_pixel(i, j, best)
-		out.append(img)
-	return out
+	var ca := cos(a)
+	var sa := sin(a)
+	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var keys := PackedInt64Array()
+	var counts := PackedInt32Array()
+	var cols: Array[Color] = []
+	for j in size:
+		for i in size:
+			# the pixel's centre, rotated back: if even it is well outside, every sample is
+			var dc := Vector2(i + 0.5, j + 0.5) - mid
+			var sc := Vector2(dc.x * ca + dc.y * sa, -dc.x * sa + dc.y * ca) + pivot
+			if sc.x < -1.0 or sc.y < -1.0 or sc.x > sw + 1.0 or sc.y > sh + 1.0:
+				continue
+			keys.clear()
+			counts.clear()
+			cols.clear()
+			var best := Color(0, 0, 0, 0)
+			var best_n := 0
+			var total := 0
+			for sj in 3:
+				for si in 3:
+					var d := Vector2(i + (si + 0.5) / 3.0, j + (sj + 0.5) / 3.0) - mid
+					# rotate back into the source
+					var s := Vector2(d.x * ca + d.y * sa, -d.x * sa + d.y * ca) + pivot
+					var x := floori(s.x)
+					var y := floori(s.y)
+					if x < 0 or y < 0 or x >= sw or y >= sh:
+						continue
+					var c := src.get_pixel(x, y)
+					if c.a == 0.0:
+						continue
+					total += 1
+					var key := c.to_rgba32()
+					var at := keys.find(key)
+					if at < 0:
+						keys.append(key)
+						counts.append(1)
+						at = keys.size() - 1
+					else:
+						counts[at] += 1
+					if counts[at] > best_n:
+						best_n = counts[at]
+						best = c
+			if total >= 5:
+				img.set_pixel(i, j, best)
+	return img

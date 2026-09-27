@@ -219,6 +219,11 @@ func tele_circle(p: Vector2, rad: float) -> void:
 	tele.append({"k": "circle", "p": p, "r": rad})
 
 
+## Where a chained part will be in `t` seconds (a boss whose body follows a path overrides it).
+func predict_part(p: Enemy, t: float) -> Vector2:
+	return p.position + (p.vel * t).limit_length(40.0)
+
+
 ## A body segment that forwards its damage to the boss.
 func make_part(k: StringName, rad: float, fwd := 0.6) -> Enemy:
 	var p := world.spawn_enemy(k, position)
