@@ -19,7 +19,7 @@ const PRESSURE: Array[StringName] = [&"slime", &"bugling", &"ram", &"tick"]
 ## World 2 (research/design-w2.md): the Foundry's own pressure joins the familiar kinds, and
 ## a Proxy takes the Lantern Wisp's place beside the anchors half the time.
 const PRESSURE_W2: Array[StringName] = [&"kernel_panic", &"spark_plug", &"kernel_panic", &"spark_plug", &"bugling", &"tick", &"slime"]
-const NEXT_AT := 0.7
+const NEXT_AT := 0.5   # research/difficulty.md: 0.7 before; waves now overlap
 ## Design v3: the Grove's variants of the Cellar's enemies (Enemy.DEFS, Bestiary.VARIANTS).
 const GROVE_SWAP := {&"weaver": &"rot_weaver", &"tick": &"blink_tick", &"ram": &"thorn_ram"}          # share of a wave that must be down before the next one
 const SAFE_R := 96.0
@@ -63,7 +63,7 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 		var b := budget / n * (1.2 if w == n - 1 else 0.9)
 		var list: Array = []
 		# the very first wave of the run is pressure only: learn to move and shoot first
-		var n_anchor := 0 if step <= 1 and w == 0 else (1 if step < 3 else 1 + int(rng.randf() < 0.4))
+		var n_anchor := 0 if step <= 1 and w == 0 else (1 if step < 3 else 1 + int(rng.randf() < 0.6))
 		for k in n_anchor:
 			var a: StringName = anchors[rng.randi() % anchors.size()]
 			if float(Enemy.DEFS[a]["cost"]) > b + 1.0:

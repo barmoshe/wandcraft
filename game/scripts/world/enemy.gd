@@ -10,17 +10,17 @@ const DEFS := {
 		"role": &"pressure", "split": 2},
 	&"slimelet": {"title": "Moss Blob", "ai": &"chase", "hp": 6.0, "spd": 44.0, "r": 4.0, "dmg": 3.0, "cost": 0, "gold": 0},
 	&"weaver": {"title": "Hex Weaver", "ai": &"shoot", "hp": 22.0, "spd": 40.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
-		"role": &"anchor", "shot": {"n": 1, "spd": 85.0, "cd": 2.8, "tele": 0.5, "burst": 3, "bcd": 0.14}},
+		"role": &"anchor", "shot": {"n": 1, "spd": 100.0, "cd": 2.3, "tele": 0.5, "burst": 3, "bcd": 0.14}},
 	&"ram": {"title": "Thornback", "ai": &"charge", "hp": 34.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3,
 		"role": &"pressure", "dash": {"range": 120.0, "tele": 0.65, "t": 0.5, "spd": 240.0, "stun": true}},
 	&"bugling": {"title": "Bugling", "ai": &"charge", "hp": 7.0, "spd": 50.0, "r": 4.0, "dmg": 3.0, "cost": 1, "gold": 1,
 		"role": &"pressure", "dash": {"range": 70.0, "tele": 0.3, "t": 0.28, "spd": 170.0, "stun": false}},
 	&"puffcap": {"title": "Puffcap", "ai": &"turret", "hp": 26.0, "spd": 0.0, "r": 6.0, "dmg": 8.0, "cost": 3, "gold": 3,
-		"role": &"anchor", "shot": {"n": 8, "spd": 62.0, "cd": 3.0, "ring": true}},
+		"role": &"anchor", "shot": {"n": 8, "spd": 75.0, "cd": 2.6, "ring": true}},
 	&"loop_seg": {"title": "Loop Segment", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 6.0, "dmg": 12.0, "cost": 0, "gold": 0},
 	&"loop_jr": {"title": "Loop Jr.", "ai": &"chase", "hp": 50.0, "spd": 62.0, "r": 6.0, "dmg": 8.0, "cost": 0, "gold": 3},
 	&"sentry": {"title": "Rune Sentry", "ai": &"turret", "hp": 44.0, "spd": 0.0, "r": 7.0, "dmg": 10.0, "cost": 4, "gold": 5,
-		"role": &"anchor", "shield": 8, "shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.6, "sight": 0.8}},
+		"role": &"anchor", "shield": 8, "shot": {"n": 1, "spd": 120.0, "cd": 0.45, "burst": 3, "bcd": 2.1, "sight": 0.8}},
 	# D4: four more, each with a counter (design-plan §3)
 	&"golem": {"title": "Bark Golem", "ai": &"slam", "hp": 70.0, "spd": 22.0, "r": 9.0, "dmg": 10.0, "cost": 5, "gold": 5,
 		"role": &"anchor", "armor": 60.0},
@@ -35,7 +35,7 @@ const DEFS := {
 	#   Blink Tick   pressure: blinks next to you (a 0.45 s ring shows where), then fuses
 	#   Bramble Ram  pressure: its charge leaves a line of thorns that lingers (counter: flank)
 	&"rot_weaver": {"title": "Rot Weaver", "ai": &"shoot", "hp": 26.0, "spd": 36.0, "r": 6.0, "dmg": 7.0, "cost": 3, "gold": 3,
-		"role": &"anchor", "shot": {"n": 1, "spd": 115.0, "cd": 3.0, "tele": 0.6, "burst": 6, "bcd": 0.07}},
+		"role": &"anchor", "shot": {"n": 1, "spd": 115.0, "cd": 2.5, "tele": 0.6, "burst": 6, "bcd": 0.07}},
 	&"blink_tick": {"title": "Blink Tick", "ai": &"fuse", "hp": 12.0, "spd": 40.0, "r": 4.0, "dmg": 14.0, "cost": 2, "gold": 2,
 		"role": &"pressure", "blink": true},
 	&"thorn_ram": {"title": "Bramble Ram", "ai": &"charge", "hp": 38.0, "spd": 30.0, "r": 7.0, "dmg": 8.0, "cost": 3, "gold": 3,
@@ -377,7 +377,7 @@ func tick(dt: float) -> void:
 					var shot: Dictionary = def["shot"]
 					if shot.has("tele"):
 						state = &"tele"
-						st_t = shot["tele"]
+						st_t = float(shot["tele"]) * tele_mul()
 					else:
 						shoot(d.angle())
 					cd = float(shot["cd"]) * world.rng.randf_range(0.85, 1.15)
@@ -398,7 +398,7 @@ func tick(dt: float) -> void:
 						cd -= adt
 						if cd <= 0.0:
 							state = &"tele"
-							st_t = dash["tele"]
+							st_t = float(dash["tele"]) * tele_mul()
 				&"tele":
 					st_t -= adt
 					aim_a = d.angle()
@@ -426,7 +426,7 @@ func tick(dt: float) -> void:
 						Audio.sfx("bonk", position)
 					elif st_t <= 0.0 or world.last_hit_x or world.last_hit_y:
 						state = &"move"
-						cd = world.rng.randf_range(1.2, 2.2)
+						cd = world.rng.randf_range(0.9, 1.7)   # research/difficulty.md: 1.2-2.2 before
 				&"stun":
 					st_t -= dt
 					if st_t <= 0.0:
@@ -590,9 +590,9 @@ func _tele_cue() -> void:
 	match state:
 		&"tele":
 			match ai:
-				&"charge": total = float(def["dash"]["tele"]) / haste
+				&"charge": total = float(def["dash"]["tele"]) * tele_mul() / haste
 				&"slam": total = 1.0 / haste
-				&"shoot": total = float(def["shot"]["tele"]) / haste
+				&"shoot": total = float(def["shot"]["tele"]) * tele_mul() / haste
 		&"fuse":
 			total = 0.8
 			_fuse_tick -= get_physics_process_delta_time()
@@ -678,10 +678,34 @@ func _animate() -> void:
 const SHOT_CAP := 40
 
 
+## research/difficulty.md: from the Grove on, aimed shooters lead you by half a step, so a
+## straight walk no longer dodges them (a change of direction still does).
+const LEAD := 0.5
+const LEAD_FROM := 6        # rooms deep: the Grove
+const LEADERS: Array[StringName] = [&"weaver", &"rot_weaver", &"sentry"]
+
+
+## World 2's shooters and chargers wind up 15% faster.
+func tele_mul() -> float:
+	return 0.85 if world and world.run and world.run.world >= 1 else 1.0
+
+
+func _lead(ang: float, spd: float) -> float:
+	if not LEADERS.has(kind) or world.run == null or Chapter.depth(world.run) < LEAD_FROM:
+		return ang
+	var p := world.player
+	if p == null or spd <= 0.0:
+		return ang
+	var t := position.distance_to(p.position) / spd
+	return (p.position + p.vel * t * LEAD - position).angle()
+
+
 func shoot(ang: float) -> void:
 	if world.ebullets.live_count() >= SHOT_CAP:
 		return
 	var shot: Dictionary = def["shot"]
+	if not shot.get("ring", false):
+		ang = _lead(ang, float(shot["spd"]))
 	var n: int = shot["n"]
 	atk_t = 0.2
 	world.shot_sound = "eshot_ring" if shot.get("ring", false) else ("eshot_laser" if kind == &"sentry" else "eshot")
@@ -707,12 +731,12 @@ func telegraph() -> Dictionary:
 				&"charge":
 					var dash: Dictionary = def["dash"]
 					return {"k": "line", "p": position, "a": aim_a, "len": float(dash["spd"]) * float(dash["t"]) * haste,
-						"w": r * 2.0, "fill": 1.0 - st_t / float(dash["tele"])}
+						"w": r * 2.0, "fill": 1.0 - st_t / (float(dash["tele"]) * tele_mul())}
 				&"slam":
 					return {"k": "circle", "p": position, "r": SLAM_R, "fill": 1.0 - st_t}
 				&"shoot":
 					return {"k": "cone", "p": position, "a": to_pl, "spread": 0.35, "len": 70.0,
-						"fill": 1.0 - st_t / float(def["shot"]["tele"])}
+						"fill": 1.0 - st_t / (float(def["shot"]["tele"]) * tele_mul())}
 		&"fuse":
 			return {"k": "circle", "p": position, "r": TICK_R, "fill": 1.0 - st_t / 0.8}
 		&"aim":
