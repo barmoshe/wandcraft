@@ -47,6 +47,12 @@ func _run() -> void:
 	var after: Variant = main.get("screen")
 	print("screen after tap: ", after)
 	_check(after == null or not (after is TitleScreen), "tapping NEW RUN closes the title")
+	# a first run opens the story's intro (research/story.md); SKIP goes on to the run
+	_check(after is StoryScreen, "a first run opens the intro")
+	if after is StoryScreen:
+		await _frames(20)   # past the input guard
+		await _tap(_button_rect(after, "skip").get_center())
+		await _frames(5)
 	_check(bool(main.get("_playing")), "tapping NEW RUN starts a run")
 	await _frames(30)
 	var hud: Hud = main.get("hud")
