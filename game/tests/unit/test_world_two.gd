@@ -31,6 +31,27 @@ func test_the_loops_exit_leads_to_world_two() -> void:
 	ok(world.run.won, "World 2's exit wins the run")
 
 
+func test_the_descent_opens_the_world_screen_then_pays_the_bonus() -> void:
+	var asked := []
+	var answer := func(kind: StringName, data: Dictionary) -> void: asked.append([kind, data])
+	world.ui_request.connect(answer)
+	world.run.step = Chapter.PLAN.size() - 1
+	var hp0 := world.run.max_hp
+	world.run.hp = 30.0
+	world.go_through({"kind": "descend"})
+	world.ui_request.disconnect(answer)
+	eq(asked.size(), 1, "the descent asks for the world screen")
+	eq(asked[0][0], &"world", "by name")
+	eq(int(asked[0][1]["to"]), 1, "into World 2")
+	eq(world.run.world, 0, "and waits for it")
+	ok(world.paused, "with the world paused")
+	world.enter_next_world()
+	eq(world.run.world, 1, "then World 2")
+	eq(world.run.max_hp, hp0 + World.WORLD_BONUS_HP, "+10 max HP")
+	eq(world.run.hp, world.run.max_hp, "and a full heal")
+	ok(not world.paused, "and play goes on")
+
+
 func test_world_two_meets_the_other_mini_boss() -> void:
 	world.run.seed_value = 3   # odd: World 1 meets Copy-Paste
 	world.run.tutorial = false

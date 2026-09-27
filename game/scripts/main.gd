@@ -239,6 +239,9 @@ func _start_from_args() -> void:
 			_open_pause(false)
 			if _args.has("gloss") and screen:
 				screen.show_glossary = true   # screenshots of the glossary sheet
+		"world":
+			world.paused = true
+			_on_ui_request(&"world", {"to": 1})
 		"credits":
 			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: pass)
 		"codex":
@@ -386,8 +389,11 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 			s.mode = String(kind)
 			_open(s, func(_res: Dictionary) -> void: world.ui_done())
 		&"world":
-			# the descent into the next world (WorldScreen comes next; for now, straight on)
-			world.enter_next_world()
+			# the descent between worlds: the stack trace, then the next world
+			var s := WorldScreen.new()
+			s.to = int(data.get("to", world.run.world + 1))
+			s.bonus_hp = int(World.WORLD_BONUS_HP)
+			_open(s, func(_res: Dictionary) -> void: world.enter_next_world())
 		&"victory":
 			_open_end(true)
 		&"defeat":
