@@ -8,6 +8,7 @@ signal player_died
 signal enemy_killed(kind: StringName, pos: Vector2)
 signal wand_cast(slot: int)
 signal toast(text: String)
+signal say(who: String, text: String)   # the story (Story.say): the Duck's lines on the HUD
 signal boss_started(title: String, subtitle: String)
 signal boss_defeated
 signal boss_phase(n: int, line: String)   # design v3: the HUD's phase banner

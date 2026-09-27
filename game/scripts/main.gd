@@ -98,6 +98,7 @@ func _show_title() -> void:
 	touch.enabled = false
 	world.visible = false
 	Audio.music("title")
+	Audio.snapshot(&"play")
 	var t := TitleScreen.new()
 	_open(t, func(res: Dictionary) -> void:
 		if res.get("action") == "credits":
@@ -159,6 +160,7 @@ func _begin(r: RunState) -> void:
 	hud.visible = true
 	touch.enabled = true
 	_playing = true
+	Audio.snapshot(&"play")
 	if not world.bot:
 		RunLog.start(r)   # design v3: the local play log for playtests
 	world.start_run(r)
@@ -337,15 +339,21 @@ func _open(s: Screen, done: Callable) -> void:
 	world.controls.clear()
 	hud.visible = false
 	_screens.add_child(s)
-	Audio.sfx("ui_open", 0.0)
+	# sound v2: default open/close sounds give way to a screen's own; a screen over play is a
+	# menu (the music closes, telegraphs hold)
+	Audio.ui("ui_open")
+	if _playing:
+		Audio.snapshot(&"menu")
 	s.finished.connect(func(res: Dictionary) -> void:
-		Audio.sfx("ui_close", 0.0)
+		Audio.ui("ui_close")
 		if screen == s:
 			screen = null
 		s.queue_free()
 		touch.enabled = _playing
 		hud.visible = _playing
-		done.call(res))
+		done.call(res)
+		if _playing and screen == null:
+			Audio.snapshot(&"play"))
 
 
 func _on_ui_request(kind: StringName, data: Dictionary) -> void:
@@ -377,6 +385,9 @@ func _on_ui_request(kind: StringName, data: Dictionary) -> void:
 			var s := ShopScreen.new()
 			s.mode = String(kind)
 			_open(s, func(_res: Dictionary) -> void: world.ui_done())
+		&"world":
+			# the descent into the next world (WorldScreen comes next; for now, straight on)
+			world.enter_next_world()
 		&"victory":
 			_open_end(true)
 		&"defeat":
@@ -391,6 +402,8 @@ func _bot_answer(kind: StringName, data: Dictionary) -> void:
 		&"shop", &"forge":
 			WandPlanner.bot_answer(world.run, kind)
 			world.ui_done()
+		&"world":
+			world.enter_next_world()
 		&"victory", &"defeat":
 			SaveGame.record_run(world.run)
 			_begin(RunState.create(world.run.seed_value + 1))

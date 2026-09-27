@@ -360,6 +360,8 @@ func enter_room() -> void:
 ## The music a room plays (D8): the boss cue for both bosses, the shop cue where you trade,
 ## otherwise the area's stems (the Cellar for rooms 1-4, the Corrupted Grove after).
 func room_music(kind: StringName) -> String:
+	if kind == &"mini" and Audio.track_ready("mini"):
+		return "mini"
 	if kind == &"mini" or kind == &"boss":
 		return "boss"
 	if kind == &"shop" or kind == &"forge":
@@ -369,21 +371,25 @@ func room_music(kind: StringName) -> String:
 	return "cellar" if biome() == 0 else "grove"
 
 
-## Music layers follow the fight (D8): drums while enemies are up, the lead while an elite
-## is, the boss's phase-2 layer from its second phase.
+## Music layers follow the fight (sound v2 §5.2): intensity 1 (drums) while enemies are up,
+## 2 (the lead) with an elite, eight or more, or a boss; the boss's p2 and p3 layers from its
+## second and third phases. A clear drops the intensity at once.
 func _music_layers() -> void:
-	var fighting := false
+	var alive := 0
 	var elite := false
 	for e in enemies:
 		if not e.dead:
-			fighting = true
+			alive += 1
 			elite = elite or e.elite
-	Audio.layer("drums", fighting and not cleared)
-	Audio.layer("lead", elite)
+	var level := 0 if cleared or alive == 0 else (2 if elite or alive >= 8 or boss != null else 1)
+	Audio.intensity(level, cleared)
 	Audio.layer("p2", boss != null and not boss.dead and boss.phase > 0)
+	Audio.layer("p3", boss != null and not boss.dead and boss.phase > 1)
 
 
 func build_room(tpl: String, kind: StringName) -> void:
+	if Game.quiet == 0:
+		Audio.stop_world()
 	for e in enemies:
 		e.queue_free()
 	enemies.clear()
@@ -489,7 +495,28 @@ func build_room(tpl: String, kind: StringName) -> void:
 		Audio.ambience(["cellar", "grove", "foundry", "foundry"][biome()])
 		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 			"title": _room_title(kind)})
+		_story_on_enter(kind)
 	room_built.emit()
+
+
+## The story's beats as rooms open (research/story.md): the Duck at a run's start, at the
+## second area and at a new world; a Debug Terminal holds the next commit-log entry.
+func _story_on_enter(kind: StringName) -> void:
+	if run == null or run.daily != "":
+		return
+	if kind == &"start":
+		if run.world >= 1:
+			Story.say("world2")
+		else:
+			Story.say("first_run" if run.tutorial or not Story.intro_seen() else "run")
+	elif run.step == Chapter.AREAS[1]["from"] and kind != &"mini":
+		if run.world == 0:
+			Story.say("grove")
+			Story.find_log("grove")
+		else:
+			Story.say("core")
+	elif kind == &"terminal":
+		Story.find_log()
 
 
 func _room_title(kind: StringName) -> String:
@@ -551,6 +578,10 @@ func _spawn_wave(list: Array) -> void:
 		e.spawn_t = 0.8 + rng.randf() * 0.2   # the rune shows 0.8-1.0 s before anything lands
 		wave_live.append(e)
 	Audio.sfx("spawn")
+	if list.any(func(x: Array) -> bool: return bool(x[1])):
+		Audio.sfx("elite_arrive")
+	if wave_i == 0:
+		Audio.sfx("door_shut")
 	Hints.show("aim")
 
 
@@ -601,6 +632,8 @@ func _spawn_boss() -> void:
 	Audio.sting("boss")
 	Hints.show("boss")
 	Events.boss_started.emit(b.title, b.subtitle)
+	if run and run.daily == "":
+		Story.say("boss:" + b.title.trim_suffix(" 2.0"))
 
 
 func _clear_room(reward := true) -> void:
@@ -619,14 +652,22 @@ func _clear_room(reward := true) -> void:
 		run.stats["trigger_rooms"] = int(run.stats.get("trigger_rooms", 0)) + 1
 	run.stats["max_gold"] = maxi(int(run.stats.get("max_gold", 0)), run.gold)
 	player.heal(6.0)   # 0.16.1: 8 before; playtesters found the run easy
+	Audio.sfx("heal_small")
 	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
+	if room_kind == &"mini" or room_kind == &"boss":
+		Audio.sting("boss_down")   # in place of the room-clear stinger
 	Events.room_cleared.emit()
 	var mid := _find_floor(gw / 2, gh / 2)
 	match room_kind:
 		&"mini", &"boss":
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
+			if run.daily == "" and boss:
+				var beat := "down:mini" if room_kind == &"mini" else "down:" + boss.title
+				Story.say(beat)
+				Story.find_log(beat)
 			if room_kind == &"boss":
 				player.heal(run.max_hp)
+				Audio.sfx("heal")
 				run.stats["worlds"] = run.world + 1   # the goal "Defeat the Infinite Loop" counts now
 		&"challenge", &"glitch":
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
@@ -646,11 +687,12 @@ func _clear_room(reward := true) -> void:
 					var g := roundi((18 + run.step * 3) * Relics.gold_mul(run))
 					run.gold += g
 					fx.text(player.position + Vector2(0, -24), "+%d GOLD" % g, Color("#ffd36b"), 10)
-					Audio.sfx("coin")
+					Audio.sfx("coin", player.position)
 					_open_doors()
 				&"heart":
 					run.max_hp += 15.0
 					player.heal(15.0)
+					Audio.sfx("heart")
 					fx.text(player.position + Vector2(0, -24), "MAX HP +15", Color("#ff4d6d"), 10)
 					_open_doors()
 				_:
@@ -661,6 +703,8 @@ func _clear_room(reward := true) -> void:
 func _open_doors() -> void:
 	if not doors_open and room_kind != &"start":
 		Hints.show("doors")
+	if not doors_open and room_time > 0.2:
+		Audio.sfx("door")   # the doors unlock (not the ones already open as a quiet room is built)
 	doors_open = true
 	for d in doors:
 		for dx in 2:
@@ -696,10 +740,17 @@ func _check_doors() -> void:
 
 
 func go_through(def: Dictionary) -> void:
+	if StringName(def["kind"]) == &"descend" or (StringName(def["kind"]) == &"exit" and run.world + 1 < Chapter.WORLDS.size()):
+		# the descent screen (main opens WorldScreen, then calls enter_next_world); with no
+		# one to show it (tests, the bot, the bench) the run goes straight on
+		if bot or ui_request.get_connections().is_empty():
+			enter_next_world()
+		else:
+			paused = true
+			Audio.sting("reward")
+			ui_request.emit(&"world", {"to": run.world + 1})
+		return
 	if StringName(def["kind"]) == &"exit":
-		if run.world + 1 < Chapter.WORLDS.size():
-			_next_world()
-			return
 		run.won = true
 		paused = true
 		SaveGame.clear_run()
@@ -713,6 +764,7 @@ func go_through(def: Dictionary) -> void:
 		run.max_hp = maxf(20.0, run.max_hp - Chapter.GLITCH_COST)
 		run.hp = minf(run.hp, run.max_hp)
 		Events.toast.emit("The Glitch takes %d max HP" % int(Chapter.GLITCH_COST))
+		Audio.sfx("glitch_toll")
 	run.room = def
 	run.step += 1
 	run.doors = []
@@ -720,9 +772,17 @@ func go_through(def: Dictionary) -> void:
 	enter_room()
 
 
-## The boss fell and the exit leads on (research/design-w2.md): the next world's start
-## room, a fresh map, and the lesson run's coaching is over.
-func _next_world() -> void:
+## The boss fell and the descent leads on (research/design-w2.md, research/story.md): the
+## next world's start room, a fresh map, the lesson run's coaching over, and the world-clear
+## bonus (+10 max HP, a full heal).
+const WORLD_BONUS_HP := 10.0
+
+
+func enter_next_world() -> void:
+	paused = false
+	run.max_hp += WORLD_BONUS_HP
+	run.hp = run.max_hp
+	player.hp = run.max_hp
 	run.world += 1
 	run.step = 0
 	run.tutorial = false
@@ -732,13 +792,14 @@ func _next_world() -> void:
 	run.lane = 1
 	run.map = []
 	run.map = Chapter.make_map(run)
-	Events.toast.emit("%s cleared. On to %s" % [Chapter.WORLDS[run.world - 1]["name"], Chapter.WORLDS[run.world]["name"]])
+	Audio.sting("world")
 	enter_room()
+	Events.toast.emit("World clear: +%d max HP" % int(WORLD_BONUS_HP))
 
 
 func _on_player_died() -> void:
 	dead_t = 1.1   # death to the retry screen quickly (design-plan: back in a run in ~3 s)
-	Audio.death_sweep()
+	Audio.snapshot(&"dead")
 	fx.text(player.position + Vector2(0, -30), "THE GLITCH WINS", Color("#ff3fa4"), 10)
 
 
@@ -791,6 +852,8 @@ func step(dt: float) -> void:
 	if bot:
 		_bot_drive()
 	player.tick(dt)
+	if Game.quiet == 0:
+		Audio.player_hp(run.hp / run.max_hp)
 	for e in enemies:
 		if not e.dead:
 			e.tick(dt)
@@ -935,7 +998,7 @@ func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0,
 	b.accel = accel
 	b.by = by
 	b.color = Color.WHITE   # the texture carries the reserved threat colors
-	Audio.sfx(shot_sound, 0.1, -6.0)
+	Audio.enemy_shot(shot_sound, by, pos)
 
 
 ## A soft point light. Lights brighten what the ambient CanvasModulate darkens.
@@ -1064,7 +1127,7 @@ func break_crate(tx: int, ty: int) -> void:
 	var p := _center(tx, ty)
 	fx.dissolve(p + Vector2(0, 7), _crate_texture())
 	fx.sparks(p, 6, Color("#c8a070"), 70.0)
-	Audio.sfx("crate")
+	Audio.sfx("crate", p)
 	if run:
 		var g := rng.randi_range(1, 3)
 		run.gold += g
@@ -1117,7 +1180,7 @@ func pop_pod(tx: int, ty: int) -> void:
 	fx.ring(p, 3.0, POD_R, 0.3, Style.c("ember:3"))
 	fx.sparks(p, 16, Style.c("ember:4"), 140.0)
 	shake(0.15)
-	Audio.sfx("pod_pop", 0.1)
+	Audio.sfx("pod_pop", p)
 	for k in hash.query(p, POD_R + 16.0):
 		var e: Enemy = enemies[k]
 		if not e.dead and e.spawn_t <= 0.0 and e.position.distance_to(p) < POD_R + e.r:
@@ -1134,7 +1197,7 @@ func burn_bramble(tx: int, ty: int) -> void:
 	var p := _center(tx, ty)
 	fx.sparks(p, 10, Style.c("ember:3"), 60.0)
 	fx.ring(p, 2.0, 10.0, 0.25, Style.c("ember:4"))
-	Audio.sfx("bramble_burn", 0.1)
+	Audio.sfx("bramble_burn", p)
 	_deco.queue_redraw()
 
 
@@ -1148,8 +1211,8 @@ func open_cracked(tx: int, ty: int) -> void:
 	fx.sparks(p, 20, Style.c("stone:3"), 100.0)
 	fx.text(p + Vector2(0, -16), "A SECRET!", Style.c("gold:4"), 10)
 	shake(0.2)
-	Audio.sfx("crack_open", 0.05)
-	Audio.sfx("secret", 0.0)
+	Audio.sfx("crack_open", p)
+	Audio.sfx("secret", p)
 	_repaint()
 	_deco.queue_redraw()
 
@@ -1162,7 +1225,8 @@ func pulse_pylon(tx: int, ty: int) -> void:
 	pylon_cd[key] = time + 4.0
 	var p := _center(tx, ty)
 	fx.ring(p + Vector2(0, -8), 4.0, PYLON_R, 0.4, Style.c("cyan:4"))
-	Audio.sfx("pylon", 0.05)
+	# the pylon's note climbs A C E A' with the Loop's derail count (sound v2 §4.8)
+	Audio.sfx("pylon", p, 0.0, (boss as BossLoop).pulses if boss is BossLoop and boss.phase >= 1 else 0)
 	for k in hash.query(p, PYLON_R + 16.0):
 		var e: Enemy = enemies[k]
 		if e.dead or e.spawn_t > 0.0 or e.position.distance_to(p) > PYLON_R + e.r:
@@ -1181,13 +1245,14 @@ func fall_check(e: Enemy) -> void:
 		return
 	if tile_at(floori(e.position.x / TS), floori(e.position.y / TS)) == 5:
 		fx.text(e.position + Vector2(0, -12), "FELL", Style.c("bone:4"))
-		Audio.sfx("pit_fall", 0.1)
+		Audio.sfx("pit_fall", e.position)
 		fx.ring(e.position, 2.0, 8.0, 0.25, Style.c("night:4"))
 		kill_enemy(e)
 
 
 func hitstop(t: float) -> void:
 	_stop = maxf(_stop, t)
+	Audio.on_hitstop(t)
 	_last_stop = time
 
 
@@ -1321,6 +1386,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		if not dot and e._def_fx <= 0.0:
 			e._def_fx = 0.4
 			fx.text(e.position + Vector2(0, -26), "LOCKED", Style.c("steel:4"))
+			Audio.sfx("locked", e.position)
 		if not dot:
 			fx.sparks(from, 2, Style.c("steel:4"), 50.0)
 		return 0.0
@@ -1329,6 +1395,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		for o in enemies:
 			if o != e and not o.dead and o.spawn_t <= 0.0 and o.def.get("proxy", false) and o.position.distance_squared_to(e.position) < Enemy.PROXY_R * Enemy.PROXY_R:
 				fx.beam(e.position + Vector2(0, -6), o.position + Vector2(0, -6), Style.c("cyan:4"), 0.6)
+				Audio.sfx("hit_proxy", o.position)
 				return hurt_enemy(o, dmg, o.position, crit_chance, kb * 0.3, dot, kw)
 	if e.forward:
 		e.flash = 0.07
@@ -1347,12 +1414,12 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		e.flash = 0.07
 		if not dot:
 			fx.sparks(e.position + Vector2(0, -6), 2, Style.c("steel:4"), 50.0)
-			Audio.sfx("hit_armor", 0.08, -4.0)
+			Audio.sfx("hit_armor", e.position)
 			Hints.show("armor")
 		if e.armor <= 0.0:
 			e.armor = 0.0
 			fx.text(e.position + Vector2(0, -18), "ARMOR BROKEN", Style.c("steel:4"))
-			Audio.sfx("armor_break")
+			Audio.sfx("armor_break", e.position)
 			fx.ring(e.position + Vector2(0, -6), 2.0, 16.0, 0.3, Style.c("steel:4"))
 			shake(0.12)
 		return 0.0
@@ -1385,7 +1452,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit, e.uid)
 		fx.hit_spark(e.position + Vector2(0, -6), (e.position - from).angle(), Style.c("gold:4") if crit else Style.c("arcane:4"))
-		Audio.sfx("crit" if crit else hit_sound, 0.1, 0.0 if crit else -6.0)
+		Audio.hit(hit_sound, e.position, crit, e.heavy or e is Boss or e.ai == &"part")
 		if crit:
 			Game.haptic("crit")
 	# Static: a charged enemy passes the next hit on to a neighbour as an arc
@@ -1447,6 +1514,7 @@ func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 			tgt.frozen_t = 0.9
 			fx.ring(tgt.position + Vector2(0, -4), 2.0, 12.0, 0.25, Style.c("frost:4"))
 			fx.text(tgt.position + Vector2(0, -16), "FROZEN", Style.c("frost:4"))
+			Audio.sfx("freeze", tgt.position)
 
 
 ## Thermal Shock: burn and chill cancel in a burst that hurts the target and its neighbours.
@@ -1464,7 +1532,7 @@ func _thermal_shock(e: Enemy, dmg: float) -> void:
 	fx.ring(e.position + Vector2(0, -4), 2.0, reach, 0.3, Style.c("frost:4"))
 	fx.ring(e.position + Vector2(0, -4), 2.0, 16.0, 0.25, Style.c("ember:3"))
 	fx.text(e.position + Vector2(0, -16), "THERMAL SHOCK", Style.c("ember:4"))
-	Audio.sfx("boom", 0.1, -6.0)
+	Audio.sfx("thermal", e.position)
 	for k in hash.query(e.position, reach + 18.0):
 		var o: Enemy = enemies[k]
 		if o != e and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(e.position) < reach + o.r:
@@ -1483,13 +1551,13 @@ func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
 	if e.ward_n > 0:
 		if kw & 4:
 			e.ward_n = 0
-			Audio.sfx("ward_break")
+			Audio.sfx("ward_break", e.position)
 			fx.text(e.position + Vector2(0, -18), "WARD STRIPPED", Style.c("cyan:4"))
 			fx.ring(e.position + Vector2(0, -6), 2.0, e.r + 6.0, 0.25, Style.c("cyan:4"))
 		else:
 			e.ward_n -= 1
 			Hints.show("ward")
-			Audio.sfx("hit_ward", 0.08, -3.0)
+			Audio.sfx("hit_ward", e.position)
 			fx.ring(e.position + Vector2(0, -6), 1.0, e.r + 4.0, 0.15, Style.c("cyan:4"))
 			if e._def_fx <= 0.0:
 				e._def_fx = 0.5
@@ -1501,14 +1569,14 @@ func _through_defences(e: Enemy, from: Vector2, kw: int) -> bool:
 		if absf(angle_difference(to_target, to_hit)) < 1.1:
 			if kw & 1:
 				e.shield_hp = 0
-				Audio.sfx("armor_break")
+				Audio.sfx("shield_break", e.position)
 				fx.text(e.position + Vector2(0, -18), "SHIELD BROKEN", Style.c("steel:4"))
 				fx.sparks(e.position + Vector2(0, -6), 10, Style.c("steel:4"), 90.0)
 				shake(0.1)
 			else:
 				e.shield_hp -= 1
 				Hints.show("shield")
-				Audio.sfx("hit_shield", 0.08, -3.0)
+				Audio.sfx("hit_shield", e.position)
 				fx.sparks(from, 3, Style.c("steel:4"), 60.0)
 				if e._def_fx <= 0.0:
 					e._def_fx = 0.5
@@ -1538,6 +1606,7 @@ func add_rot(e: Enemy, n: int) -> void:
 	fx.ring(tgt.position + Vector2(0, -4), 2.0, 20.0, 0.3, Style.c("glitch:3"))
 	fx.sparks(tgt.position + Vector2(0, -4), 12, Style.c("glitch:3"), 100.0)
 	fx.text(tgt.position + Vector2(0, -16), "CRASH", Style.c("glitch:4"))
+	Audio.sfx("crash", tgt.position)
 	for k in hash.query(tgt.position, 40.0):
 		var o: Enemy = enemies[k]
 		if o != tgt and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(tgt.position) < 26.0 + o.r:
@@ -1601,6 +1670,7 @@ func kill_enemy(e: Enemy) -> void:
 			_kill_streak += 1
 			if _kill_streak % 6 == 0:
 				player.heal(4.0)
+				Audio.sfx("heal_small")
 		if run.has_relic(&"wildfire") and e.burn_t > 0.0:
 			for k in hash.query(e.position, 44.0):
 				var o: Enemy = enemies[k]
@@ -1630,7 +1700,8 @@ func kill_enemy(e: Enemy) -> void:
 	fx.dissolve(e.position, e.sprite.texture if e.sprite else null, e.sprite.flip_h if e.sprite else false, e.sprite.scale.x if e.sprite else 1.0, tint, burst)
 	fx.poof(e.position + Vector2(0, -4))
 	if not (e is Boss):
-		Audio.sfx("kill_big" if e.elite else ("kill_mid" if e.heavy else "kill"), 0.12)
+		var how := &"burn" if e.burn_t > 0.0 else (&"frost" if e.frozen_t > 0.0 or e.chill_t > 0.0 else (&"static" if e.static_t > 0.0 else &""))
+		Audio.kill(e.kind, e.position, 2 if e.elite else (1 if e.heavy else 0), how)
 	if e.elite:
 		hitstop(0.08)
 		shake(0.25)
@@ -1663,6 +1734,8 @@ func _on_death(e: Enemy) -> void:
 	if e is Boss or e.ai == &"part":
 		return
 	var n := int(e.def.get("split", 0))
+	if n > 0:
+		Audio.sfx("split", e.position)
 	for k in n:
 		var s := spawn_enemy(&"slimelet", e.position + Vector2.from_angle(TAU * k / n + 0.5) * 5.0)
 		s.spawn_t = 0.05
@@ -2131,6 +2204,27 @@ func _decal(tl: Dictionary, fill: float) -> void:
 			_decals.draw_rect(inner, front, false, 1.0)
 
 
+## The descent (research/story.md): a vortex in the doorway that pulls sparks in, and a
+## label naming where it goes, so the way down reads from across the arena.
+func _draw_descent(p: Vector2) -> void:
+	var ember := Style.c("ember:3")
+	for k in 3:
+		var rr := 7.0 + k * 5.0 + sin(time * 3.0 + k) * 1.5
+		var a0 := time * (2.5 - k * 0.6) + k * 2.1
+		_top.draw_arc(p, rr, a0, a0 + PI * 1.3, 16, Color(ember.r, ember.g, ember.b, 0.75 - k * 0.2), 1.0)
+	_top.draw_circle(p, 5.0 + sin(time * 6.0), Color(1.0, 0.75, 0.35, 0.35))
+	for k in 6:
+		var t := fmod(time * 0.8 + k / 6.0, 1.0)
+		var ang := k * 1.7 + time * 1.3
+		_top.draw_rect(Rect2(p + Vector2.from_angle(ang) * (30.0 * (1.0 - t)), Vector2.ONE), Color(1.0, 0.8, 0.4, t))
+	var label := "DOWN TO %s" % String(Chapter.WORLDS[mini(run.world + 1, Chapter.WORLDS.size() - 1)]["name"]).to_upper()
+	var f := Game.font("small")
+	var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var at := (p + Vector2(-w / 2.0, 34.0 + sin(time * 3.0))).round()
+	_top.draw_string_outline(f, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0, 0, 0, 0.8))
+	_top.draw_string(f, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.85, 0.5))
+
+
 ## Additive glow on top of the actors: torch flames, door and orb shine, boss telegraphs.
 func _draw_top() -> void:
 	for tp in torches:
@@ -2142,6 +2236,8 @@ func _draw_top() -> void:
 			var c := Chapter.door_color(d["def"])
 			var x := int(d["col"]) * TS + TS
 			_top.draw_circle(Vector2(x, 10), 16.0 + sin(time * 4.0) * 2.0, Color(c.r, c.g, c.b, 0.08))
+			if StringName(d["def"]["kind"]) == &"descend":
+				_draw_descent(Vector2(x, 12))
 	if not orb.is_empty():
 		var p: Vector2 = orb["pos"] + Vector2(0, -12 - sin(time * 3.0) * 2.0)
 		_top.draw_circle(p, 12.0 + sin(time * 5.0), Color(1.0, 0.9, 0.5, 0.12))

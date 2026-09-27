@@ -60,6 +60,7 @@ const INFO := {
 	"mini": {"name": "Mini-boss", "color": "#ff3fa4"},
 	"boss": {"name": "Boss", "color": "#ff3fa4"},
 	"exit": {"name": "Onward", "color": "#ffe066"},
+	"descend": {"name": "Down to the next world", "color": "#ff9a3a"},
 	"risk": {"name": "Untouched", "color": "#9fe8ff"},
 }
 
@@ -211,7 +212,8 @@ static func make_map(run: RunState) -> Array:
 static func door_options(run: RunState) -> Array:
 	var nxt := run.step + 1
 	if nxt >= PLAN.size():
-		return [{"kind": &"exit", "reward": &""}]
+		# a world's boss is down: the way on is a descent into the next world, or the exit
+		return [{"kind": &"descend" if run.world + 1 < WORLDS.size() else &"exit", "reward": &""}]
 	if run.map.is_empty():
 		run.map = make_map(run)
 	var nodes: Array = run.map[nxt]

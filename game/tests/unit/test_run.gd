@@ -103,7 +103,11 @@ func test_chapter_doors() -> void:
 		ok(doors.size() >= 1 and doors.size() <= 3, "step %d offers 1-3 doors" % step)
 		var nxt := step + 1
 		if nxt >= Chapter.PLAN.size():
-			eq(doors[0]["kind"], &"exit", "after the boss: the exit")
+			# World 1's boss opens the descent; the last world's opens the exit
+			eq(doors[0]["kind"], &"descend", "after World 1's boss: the descent")
+			r.world = Chapter.WORLDS.size() - 1
+			eq(Chapter.door_options(r)[0]["kind"], &"exit", "after the last boss: the exit")
+			r.world = 0
 		elif Chapter.PLAN[nxt] == &"mini" or Chapter.PLAN[nxt] == &"boss":
 			eq(doors.size(), 1, "the boss door is the only door")
 		else:

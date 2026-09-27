@@ -142,6 +142,8 @@ func _answer(kind: StringName, data: Dictionary, world: World, state: Dictionary
 		if edits:
 			WandPlanner.bot_answer(world.run, kind)
 		world.ui_done()
+	elif kind == &"world":
+		world.enter_next_world()
 	elif kind == &"victory":
 		state["victory"] = true
 	elif kind == &"defeat":

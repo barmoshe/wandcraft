@@ -34,6 +34,11 @@ var flash_a := 0.0
 var fade_a := 0.0     # design v3: a quick fade from black when a room opens
 var intro_t := 0.0    # design v3: letterbox bars while a boss makes its entrance
 var banner_low := false
+## The story: the Duck's line, in a box at the bottom middle (clear of the thumbs). Lines wait
+## for a banner to finish, so a room title and a line never talk over each other.
+var say_text := ""
+var say_t := 0.0
+var _say_queue: Array = []
 
 
 func _ready() -> void:
@@ -49,6 +54,9 @@ func _ready() -> void:
 		banner_low = false
 		banner_t = 1.4)
 	Events.hint.connect(func(s: String) -> void: _hint_queue.append(s))
+	Events.say.connect(func(_who: String, s: String) -> void:
+		if _say_queue.size() < 2:
+			_say_queue.append(s))
 	Events.screen_flash.connect(func(c: Color, a: float) -> void:
 		flash_c = c
 		flash_a = maxf(flash_a, a))
@@ -95,9 +103,15 @@ func _world_no() -> int:
 func _process(dt: float) -> void:
 	banner_t = maxf(0.0, banner_t - dt)
 	toast_t = maxf(0.0, toast_t - dt)
+	say_t = maxf(0.0, say_t - dt)
+	if say_t <= 0.0 and banner_t <= 0.0 and not _say_queue.is_empty():
+		say_text = _say_queue.pop_front()
+		Audio.babble(say_text)
+		say_t = 3.2 + minf(3.0, say_text.length() / 22.0)
 	hint_t = maxf(0.0, hint_t - dt)
 	if hint_t <= 0.0 and not _hint_queue.is_empty():
 		hint = _hint_queue.pop_front()
+		Audio.sfx("tip")
 		hint_t = 5.0
 	flash_a = maxf(0.0, flash_a - dt * 2.5)
 	fade_a = maxf(0.0, fade_a - dt * 3.5)
@@ -355,6 +369,42 @@ func _draw_dash(sr: Rect2) -> void:
 		buttons["swap"] = Rect2(sc - Vector2(16, 16), Vector2(32, 32))
 
 
+## The Duck's box: its face, its name, the line (wrapped to two lines at most).
+func _draw_say(sr: Rect2, cx: float) -> void:
+	var a := clampf(say_t * 3.0, 0.0, 1.0) * clampf((3.2 + minf(3.0, say_text.length() / 22.0) - say_t) * 4.0, 0.0, 1.0)
+	var f := Game.font("small")
+	var lines := _wrap_lines(f, say_text, minf(250.0, sr.size.x - 150.0))
+	var wdt := 0.0
+	for ln in lines:
+		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+	var h := maxf(24.0, lines.size() * 10.0 + 14.0)
+	var r := Rect2(cx - (wdt + 34.0) / 2.0, sr.end.y - 44.0 - h, wdt + 34.0, h)
+	draw_rect(r, Color(0.05, 0.03, 0.1, 0.85 * a))
+	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(1.0, 0.85, 0.3, a))
+	draw_texture(duck_face(), (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
+	_text(r.position + Vector2(26, 10), "DUCK", Color(1.0, 0.85, 0.3, a), 8)
+	for k in lines.size():
+		_text(r.position + Vector2(26, 20 + k * 10), lines[k], Color(0.92, 0.95, 1.0, a), 8)
+
+
+## The rubber duck's face, 16 px (the Rubber Duck spell's friend).
+static func duck_face() -> Texture2D:
+	return PixelArt.cached("duck_face", func() -> Image:
+		return PixelArt.paint(PackedStringArray([
+			"....yyyy....",
+			"...yYYYYy...",
+			"..yYYwkYYy..",
+			"..yYYkkYYoo.",
+			"..yYYYYYoOo.",
+			"...yYYYYy...",
+			".yyYYYYYYyy.",
+			"yYYYYYYYYYYy",
+			"yYYYYYYYYYYy",
+			".yYYYYYYYYy.",
+			"..yyyyyyyy..",
+		]), {"y": "gold:2", "Y": "gold:3", "w": "#ffffff", "k": "night:0", "o": "ember:3", "O": "ember:4"}))
+
+
 func _wrap_lines(f: Font, s: String, width: float) -> PackedStringArray:
 	var out := PackedStringArray()
 	var line := ""
@@ -480,6 +530,8 @@ func _draw_boss_bar(sr: Rect2) -> void:
 
 func _draw_banner(sr: Rect2) -> void:
 	var cx := sr.get_center().x
+	if say_t > 0.0 and say_text != "":
+		_draw_say(sr, cx)
 	if banner_t > 0.0 and banner != "":
 		var a := clampf(banner_t * 2.0, 0.0, 1.0)
 		var f := Game.font("body")
