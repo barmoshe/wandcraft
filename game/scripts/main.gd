@@ -117,7 +117,24 @@ func _show_title() -> void:
 		if res.get("action") == "daily":
 			_begin(_daily_run())
 			return
-		_begin(_new_run()))
+		_story_then(&"intro", func() -> void: _begin(_new_run())))
+
+
+## The story's panels (research/story.md): the intro before a first run, the ending on a
+## first win. Each shows once; `then` runs after (or straight away once seen).
+func _story_then(which: StringName, then: Callable) -> void:
+	var key := "intro_seen" if which == &"intro" else "ending_seen"
+	if bool(SaveGame.load_meta().get(key, false)) and _args.get("screen", "") != String(which):
+		then.call()
+		return
+	var s := StoryScreen.new()
+	s.panels = Story.INTRO if which == &"intro" else Story.ENDING
+	s.who = Story.INTRO_WHO if which == &"intro" else Story.ENDING_WHO
+	s.art = Story.INTRO_ART if which == &"intro" else Story.ENDING_ART
+	s.last_label = "BEGIN" if which == &"intro" else "DONE"
+	_open(s, func(_res: Dictionary) -> void:
+		Story.mark(key)
+		then.call())
 
 
 ## Design v2: the daily run. Today's date is the seed, so everyone plays the same map and
@@ -242,10 +259,15 @@ func _start_from_args() -> void:
 		"world":
 			world.paused = true
 			_on_ui_request(&"world", {"to": 1})
+		"intro", "ending":
+			world.paused = true
+			_story_then(StringName(_args["screen"]), func() -> void: pass)
 		"credits":
 			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: pass)
 		"codex":
-			_open(CodexScreen.new(), func(_r: Dictionary) -> void: pass)
+			var c := CodexScreen.new()
+			c.tab = _args.get("tab", "goals")
+			_open(c, func(_r: Dictionary) -> void: pass)
 		"end":
 			world.paused = true
 			_open_end(_args.get("won", "0") == "1")
@@ -421,9 +443,21 @@ func _open_end(won: bool) -> void:
 	RunLog.finish(world.run, "" if won else world.player.last_hurt_by)
 	Audio.music("")
 	Audio.sting("victory" if won else "defeat")
+	if won:
+		# a first win: the ending, and the last two commit logs
+		_story_then(&"ending", func() -> void:
+			Story.find_log("win")
+			Story.find_log("win")
+			_open_end_screen(true))
+		return
+	_open_end_screen(false)
+
+
+func _open_end_screen(won: bool) -> void:
 	var s := EndScreen.new()
 	s.won = won
 	s.killed_by = world.player.last_hurt_by
+	s.duck_line = "" if won else Story.line("death")
 	_open(s, func(res: Dictionary) -> void:
 		if res.get("action") == "again":
 			_begin(_new_run())

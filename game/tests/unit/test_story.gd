@@ -57,3 +57,36 @@ func test_descend_waits_for_the_drop() -> void:
 	eq(got.size(), 1, "then DESCEND goes on")
 	eq(Story.WORLD_CARDS.size(), Chapter.WORLDS.size(), "every world has a card")
 	s.free()
+
+
+func test_panels_type_then_advance_then_finish() -> void:
+	var s := StoryScreen.new()
+	s.run = RunState.create(1)
+	s.panels = Story.INTRO
+	s.who = Story.INTRO_WHO
+	s.art = Story.INTRO_ART
+	tree.root.add_child(s)
+	var got := []
+	s.finished.connect(func(res: Dictionary) -> void: got.append(res))
+	s.press("next")
+	eq(s.at, 0, "a tap while typing finishes the line first")
+	for i in Story.INTRO.size() - 1:
+		s.press("next")
+		s.press("next")
+	eq(s.at, Story.INTRO.size() - 1, "then panel by panel to the last")
+	eq(got.size(), 0, "not done yet")
+	s.press("next")
+	s.press("next")
+	eq(got.size(), 1, "the last tap finishes, once")
+	s.free()
+	var k := StoryScreen.new()
+	k.run = RunState.create(1)
+	k.panels = Story.ENDING
+	tree.root.add_child(k)
+	var got2 := []
+	k.finished.connect(func(res: Dictionary) -> void: got2.append(res))
+	k.press("skip")
+	ok(got2.size() == 1 and got2[0].get("skipped", false), "SKIP leaves at once")
+	k.free()
+	eq(Story.INTRO_ART.size(), Story.INTRO.size(), "a picture per intro panel")
+	eq(Story.ENDING_ART.size(), Story.ENDING.size(), "and per ending panel")

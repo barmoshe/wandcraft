@@ -103,6 +103,7 @@ const INTRO := [
 	"Quack. I'm your rubber duck. Talk me through it, and we'll trace the bug to its source.",
 ]
 const INTRO_WHO := ["", "", "", DUCK]
+const INTRO_ART := ["code", "clock", "glitch", "duck"]
 
 const ENDING := [
 	"Deadlock falls. Behind it, the Kernel hums, and one line glows red.",
@@ -111,6 +112,7 @@ const ENDING := [
 	"Good debugging. Now, about that folder called /world3...",
 ]
 const ENDING_WHO := ["", "", "", DUCK]
+const ENDING_ART := ["kernel", "clock", "code", "duck"]
 
 ## World cards for the descent screen (WorldScreen): the stack frame, the name, a line.
 const WORLD_CARDS := [

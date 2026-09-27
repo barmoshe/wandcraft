@@ -69,7 +69,7 @@ static func record_run(run: RunState) -> void:
 	var m := load_meta()
 	m["runs"] = int(m["runs"]) + 1
 	m["wins"] = int(m["wins"]) + (1 if run.won else 0)
-	m["best_step"] = maxi(int(m["best_step"]), run.step)
+	m["best_step"] = maxi(int(m["best_step"]), Chapter.depth(run))   # rooms deep, across worlds
 	m["kills"] = int(m["kills"]) + int(run.stats["kills"])
 	if run.tutorial:
 		m["tutorial_done"] = true

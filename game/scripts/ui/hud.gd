@@ -497,7 +497,9 @@ func _draw_map(tc: Vector2, run: RunState) -> void:
 	var gap := 13.0
 	var x0 := tc.x - (n - 1) * gap / 2.0
 	var y := tc.y + 8
-	draw_rect(Rect2(x0 - 8, y - 7, (n - 1) * gap + 16, 14), Color(0.05, 0.03, 0.1, 0.6))
+	draw_rect(Rect2(x0 - 24, y - 7, (n - 1) * gap + 32, 14), Color(0.05, 0.03, 0.1, 0.6))
+	# which world you're in, before its rooms (research/story.md: the switch is always clear)
+	_text(Vector2(x0 - 21, y + 3), "W%d" % (run.world + 1), Color("#ff9a3a") if run.world > 0 else Color(0.75, 0.7, 0.85), 8, "bold")
 	buttons["map"] = Rect2(x0 - 10, y - 10, (n - 1) * gap + 20, 22)   # tap the strip for the map
 	for i in n:
 		var p := Vector2(x0 + i * gap, y)

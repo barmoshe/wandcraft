@@ -5,6 +5,7 @@ extends Screen
 
 var won := false
 var killed_by := ""   # Player.last_hurt_by ("shot:weaver", "touch:The Infinite Loop", "spikes")
+var duck_line := ""   # the Duck's word on a death (Story.line("death"))
 
 
 ## "a Hex Weaver's shot", "The Infinite Loop", "the spikes".
@@ -38,6 +39,11 @@ func _paint() -> void:
 	if run.daily != "":
 		var dl: Dictionary = SaveGame.load_meta().get("daily", {})
 		text_center(cx, y + 11, "DAILY RUN %s  -  best today: %s" % [run.daily, "a win" if dl.get("won", false) else "room %d" % int(dl.get("step", 0))], GOLD)
+	elif duck_line != "":
+		var f := Game.font("small")
+		var w := f.get_string_size(duck_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		draw_texture(Hud.duck_face(), Vector2(cx - w / 2.0 - 16, y + 2).round(), Color(1, 1, 1, 0.9))
+		text_center(cx, y + 11, duck_line, Color("#ffd05e"))
 	y += 14
 	# the route taken
 	var n := Chapter.PLAN.size()

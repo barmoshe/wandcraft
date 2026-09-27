@@ -8,6 +8,7 @@ extends Screen
 const ROW := 24.0
 const GAP := 3.0
 
+var tab := "goals"   # "goals" or "logs" (the commit log, research/story.md)
 var sel := 0
 var sel_item := -1
 var _scroll := 0.0
@@ -19,8 +20,12 @@ func _paint() -> void:
 	var sr := safe()
 	text(sr.position + Vector2(2, 16), "CODEX", GOLD, 16, "body")
 	var done := Meta.goals_done()
-	text(sr.position + Vector2(68, 15), "GOALS  %d/%d" % [done.size(), Meta.GOALS.size()], MUTED, 8, "bold")
+	button(Rect2(sr.position.x + 68, sr.position.y, 84, 24), "tab_goals", "GOALS %d/%d" % [done.size(), Meta.GOALS.size()], "primary" if tab == "goals" else "ghost")
+	button(Rect2(sr.position.x + 156, sr.position.y, 84, 24), "tab_logs", "LOGS %d/%d" % [Story.logs_found().size(), Story.LOGS.size()], "primary" if tab == "logs" else "ghost")
 	button(Rect2(sr.end.x - 76, sr.position.y, 76, 24), "close", "BACK", "primary")
+	if tab == "logs":
+		_paint_logs(sr)
+		return
 	text(sr.position + Vector2(2, 32), "Do a goal in any run to unlock what it lists, for every run after.", MUTED)
 	# the goals
 	var lw := minf(sr.size.x * 0.5, 250.0)
@@ -67,6 +72,24 @@ func _paint() -> void:
 	if sel_item >= 0 and sel_item < items.size():
 		draw_rect(Rect2(dr.position.x + 6, y + 2, dr.size.x - 12, 1), RIM)
 		para(Rect2(dr.position.x + 8, y + 6, dr.size.x - 16, dr.end.y - y - 10), _desc(items[sel_item]), MUTED)
+
+
+## The commit log: every entry found so far, in log order; the rest wait as "??????".
+func _paint_logs(sr: Rect2) -> void:
+	text(sr.position + Vector2(2, 32), "The Source's commit log. Debug Terminals and story beats give up the entries.", MUTED)
+	var got: Array = Story.logs_found().map(func(l: Dictionary) -> String: return l["id"])
+	var top := sr.position.y + 40
+	var rh := minf(20.0, (sr.end.y - top) / Story.LOGS.size())
+	for i in Story.LOGS.size():
+		var l: Dictionary = Story.LOGS[i]
+		var r := Rect2(sr.position.x, top + i * rh, sr.size.x, rh - 2)
+		var have: bool = got.has(l["id"])
+		draw_rect(r, Color(0.1, 0.07, 0.18, 0.8 if have else 0.4))
+		var y := r.position.y + r.size.y / 2.0 + 3
+		text(Vector2(r.position.x + 6, y), "commit " + (String(l["id"]) if have else "??????"), Style.c("cyan:4") if have else MUTED, 8, "bold")
+		if have:
+			text(Vector2(r.position.x + 96, y), String(l["who"]), GOLD)
+			text(Vector2(r.position.x + 160, y), String(l["text"]), TEXT)
 
 
 func _icon(id: StringName) -> Texture2D:
@@ -121,6 +144,9 @@ func _input(ev: InputEvent) -> void:
 func _on_button(id: String) -> void:
 	if id == "close":
 		finished.emit({})
+	elif id == "tab_goals" or id == "tab_logs":
+		tab = id.substr(4)
+		_scroll = 0.0
 	elif id.begins_with("goal"):
 		sel = int(id.substr(4))
 		sel_item = -1

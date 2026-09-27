@@ -177,6 +177,9 @@ func tick(dt: float) -> void:
 	# aim and fire
 	var auto_range := AUTO_RANGE * 1.2
 	still_t = still_t + dt if mv.length() < 0.1 else 0.0
+	# a target freed since last frame (killed and removed) can't be passed as an Enemy
+	if not is_instance_valid(target):
+		target = null
 	target = world.assist_target(origin(), auto_range, target)
 	var stick := controls.aim
 	var firing := false
