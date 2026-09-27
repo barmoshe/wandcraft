@@ -151,3 +151,14 @@ The full research hand-back is in the session transcript of 2026-09-27; the key 
 - The Godot web build's sample playback and bus effects: https://github.com/godotengine/godot/issues/95991
 - QOA bitrate: https://qoaformat.org
 - The Dalek ring modulator: https://intelligentsoundengineering.wordpress.com/2016/04/04/ring-modulation-in-science-fiction/
+
+## Progress
+- `842c06f` (2026-09-28): all four steps in one pass, on Bar's "do all the work for 0.18".
+  - The engine is `kokoro-onnx` (the same Kokoro-82M, MIT wrapper, onnxruntime), because PyTorch has no Intel-Mac wheels.
+  - The picks were made by `tools/voice_check.py`, which has Whisper tiny.en transcribe every file:
+    - the Duck: `af_heart`, light (0.99 word accuracy)
+    - LINT: `am_fenrir`, medium (a new middle strength with a presence lift; 0.83 mean, and most misses are numbers the scorer reads differently)
+  - The audition (48 files) is in `shots/voice-audition/index.html` for Bar to overrule.
+  - The name stays LINT. The autoload is `Dialogue` (`audio.gd` already has an inner class named Voice), and it adds its own Voice bus.
+  - The music dip is `Audio.voice_db` (one line in `audio.gd`).
+  - The Duck's babble is no longer called; `Audio.babble` stays for the sound session to remove.

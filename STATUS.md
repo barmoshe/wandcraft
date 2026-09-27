@@ -142,6 +142,11 @@
     - Tests 224 of 225 (the one failure is the uncommitted "descend" door in `chapter.gd`, not audio). The tap test runs clean of audio errors.
     - Listen: `tools/audiosheet.sh` writes `shots/audiosheet.html`, and the old sounds are in `shots/audio-v1/` for A/B.
     - Next: Bar's listening notes become a revision pass on the recipes; run `tools/webtest.sh` on the next web build.
+  - **0.18.0 (2026-09-28, ADR 0026, `research/plan-0.18.md`).** The story, the world switch, the voices, a harder game.
+    - Story: a descent screen between worlds (the stack trace), intro and ending panels, a Codex LOGS tab with ten commit-log entries, the Duck on the end screen, a W1/W2 tag on the HUD (`research/story.md`).
+    - Voices: the Duck and LINT speak 78 lines, rendered with Kokoro-82M and baked per character (`tools/voices.sh`, `research/voices-plan.md`); a VOICE toggle.
+    - Difficulty in three benched passes (`research/difficulty.md`): the editing bot clears World 1 40% (from 60%) and wins 10% (from 20%); the Loop 78 s, Deadlock 97 s.
+    - Magicraft lessons: heat 2 and 5 are rules, heat pays in gold and spell odds, an Untouched orb after a clean boss fight, Deadlock readable and beatable by single-target wands, hero sprites on the start cards.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
@@ -276,20 +281,14 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
-- **D0 quick wins:**
-  - Trauma screen shake.
-  - A camera that behaves the same at 60 and 120 fps and leads toward your aim.
-  - Hit-stop when you get hurt.
-  - Death to retry in about 1.1 s.
-  - Muzzle flash and wand recoil.
-  - Audio fixes in `gen_audio.gd`: 44.1 kHz, bass moved into the phone-audible range, a mid thump on booms, loudness normalization.
-- **Then D1:** art direction. A quiet floor, the outline rule, reserved hues per role, the enemy bullet family, and the palette LUT.
-- **Bar:** play each milestone build. Its focus is listed in `research/design-plan.md`.
-- **The POC build stays live for testers:** https://wandcraft-test.vercel.app, and APK 0.4.1.
+- **0.18.0 is the playtest build** (ADR 0026): the story and the descent between worlds, the Duck and LINT speaking, a harder run (start HP 80, hits that cost more, enemies that aim ahead, bosses that press), heat that changes rules and pays, and an Untouched orb for clean boss fights.
+- **Bar:** play it, listen to the voices (and `shots/voice-audition/index.html` to overrule the picks), then send it to the same five testers. Ask whether they ever felt close to dying before a boss, whether the switch between worlds was clear, and whether the voices help or annoy.
+- **Then:** read the run logs (`window.wandcraftRunLog()`). If deaths bunch in one room, or the Loop runs under 70 s for humans, tune there first (`research/difficulty.md`, How to verify).
+- **Open:** the "tell me when it's out" sign-up (Yoaviko) needs Bar to pick where it points; the store is paused on the Apple and Google accounts.
 
 ## How to look at it
 - Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (xvfb). Balance bench: `tools/balance.sh` (a few minutes).
-- Regenerate assets: `tools/audio.sh` (sound and music), `tools/icon.sh` (icon and splash).
+- Regenerate assets: `tools/audio.sh` (sound and music), `tools/voices.sh` (the voices; `--audition`, `--check`), `tools/icon.sh` (icon and splash).
 - Art review: `tools/artsheet.sh chars|icons|tiles|fx|style [-- --only=name --scale=8]` writes contact sheets to `shots/`.
 - Android APK: `tools/build_android.sh`. It writes to `build/`, and the first run downloads the SDK outside the repo.
 - Web (iPhone Safari): `tools/build_web.sh`, then `tools/deploy_web.sh` publishes it to https://wandcraft-test.vercel.app.

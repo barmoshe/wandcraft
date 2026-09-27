@@ -41,7 +41,13 @@ The whole session's transcript has been mined (25–27 Sep).
   2. Enemies aim half a step ahead from the Grove on, shoot faster and more often, and the next wave arrives at 50%.
   3. Bosses: last-phase pressure, not HP. Heat 2 and 5 become rules (this is also Step 2, item 1).
   - Bench re-band: the editing bot clears World 1 25-45% and wins the full run 5-15%; Loop 50-90 s; Deadlock 60-100 s.
-- **Coordination:** stage by path only; the sound session owns `autoload/audio.gd`, `tools/gen_*` and `game/assets/audio`.
+- **Done (2026-09-28, Bar: "do all the work for 0.18 and deploy"):**
+  - `f900b93`, `2b6a2bf`, `bc4acc3` the three difficulty passes, benched (World 1 40%, full 10%, the Loop 78 s, Deadlock 97 s); the bench re-banded.
+  - `060d64c` Step 2: heat pays, the Untouched orb, Deadlock for every build (auto-aim prefers the open lock), hero sprites on start cards; the second slot is the "Play 3 runs" goal already.
+  - `842c06f` Step 1b: the voices (78 lines; Duck af_heart, LINT am_fenrir, picked by a Whisper intelligibility check; audition set in `shots/voice-audition/`).
+  - ADR 0026, STATUS, the design-w2 log. Then 0.18.0: web, APK, screenshots.
+  - Not done: the "tell me when it's out" link (Bar picks where); the Loop at 90 s (it is 78 s, and World 1 clears are 40%, under the 50% condition); Codex sample wands and the animated title (deferred); the story research merge (the agent never reported).
+- **Coordination:** stage by path only; the sound session owns `autoload/audio.gd` (0.18 added one line: `voice_db`, the music dip), `tools/gen_*` and `game/assets/audio`.
 
 ## Step 1b: Voices (added 2026-09-27)
 The Duck and a new robot, LINT, speak real words: Kokoro-82M, pre-rendered and processed per character. The plan is `research/voices-plan.md`; it starts with an audition checkpoint with Bar and needs the sound session to amend its no-voices brief and add a Voice bus.

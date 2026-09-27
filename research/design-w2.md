@@ -51,3 +51,7 @@ World 1 enemies join them with more elites, and HP scaling continues from World 
 - Kill both to clear the world.
 
 **Goals:** "Win a run" now means clearing World 2. "Defeat the Infinite Loop" is a new goal that takes over the old first-win unlock (the Tinkerer), so a first-time player still unlocks something at the old point.
+
+## Progress log
+- `290f37b`, `0947d83` (0.17.0): the playtest fixes and World 2.
+- 0.18 (ADR 0026): the descent screen between the worlds (`5d18b84`), the Foundry's voiced entry (LINT: "Temperature: unwise"), the difficulty passes (`f900b93`, `2b6a2bf`, `bc4acc3`), and Deadlock: its subtitle now says what it asks, and auto-aim prefers the open lock so single-target wands can break it (`060d64c`).
