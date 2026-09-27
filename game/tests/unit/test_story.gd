@@ -107,3 +107,14 @@ func test_panels_type_then_advance_then_finish() -> void:
 	k.free()
 	eq(Story.INTRO_ART.size(), Story.INTRO.size(), "a picture per intro panel")
 	eq(Story.ENDING_ART.size(), Story.ENDING.size(), "and per ending panel")
+
+
+func test_an_old_save_is_wiped_once() -> void:
+	# in memory, so the real save is never touched
+	SaveGame.in_memory = true
+	SaveGame.enabled = true
+	SaveGame._mem = {}
+	ok(not SaveGame.reset_if_stale(), "in-memory saves are never wiped")
+	SaveGame.in_memory = false
+	SaveGame.enabled = false
+	ok(not SaveGame.reset_if_stale(), "nor with saving off (tests)")

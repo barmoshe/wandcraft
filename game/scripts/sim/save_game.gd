@@ -7,6 +7,13 @@ extends RefCounted
 const RUN_PATH := "user://run.json"
 const SETTINGS_PATH := "user://settings.json"
 const META_PATH := "user://meta.json"
+## A progress reset for every player (Bar, 2026-09-28, 0.18.1: a clean slate for playtest
+## round 2). A save from an older epoch is wiped on launch: the run, the meta record (goals,
+## unlocks, heat, logs, the story seen) and the play log. Settings stay. Raise EPOCH to reset
+## everyone again.
+const EPOCH := 2
+const EPOCH_PATH := "user://epoch.json"
+const WIPE := [RUN_PATH, META_PATH, "user://runlog.json"]
 
 ## Tests switch saving off so they never touch the real save.
 static var enabled := true
@@ -14,6 +21,22 @@ static var enabled := true
 ## player's files and every shot starts from a first-time player's state.
 static var in_memory := false
 static var _mem := {}
+
+
+## Wipes progress saved under an older epoch. Returns true when it did.
+static func reset_if_stale() -> bool:
+	if not enabled or in_memory:
+		return false
+	var d: Variant = _read(EPOCH_PATH)
+	if d is Dictionary and int(d.get("epoch", 0)) >= EPOCH:
+		return false
+	var wiped := false
+	for p in WIPE:
+		if FileAccess.file_exists(p):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
+			wiped = true
+	_write(EPOCH_PATH, {"epoch": EPOCH})
+	return wiped
 
 
 static func save_run(run: RunState) -> void:

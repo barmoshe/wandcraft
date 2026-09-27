@@ -38,6 +38,7 @@ func _ready() -> void:
 		_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	if _args.has("shot"):
 		SaveGame.in_memory = true   # screenshots never touch the player's save
+	SaveGame.reset_if_stale()       # 0.18.1: everyone starts over (SaveGame.EPOCH)
 	if _args.has("nohints"):
 		Hints.mark_all_seen()       # store screenshots: no first-run tips over the scene
 	if _args.has("resethints"):
