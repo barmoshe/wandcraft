@@ -78,7 +78,7 @@ func test_the_starting_slot_upgrade() -> void:
 
 func test_heroes_start_different() -> void:
 	var a := RunState.create(1, &"apprentice")
-	eq(a.max_hp, 140.0, "the Apprentice has 20 more max HP")
+	eq(a.max_hp, RunState.BASE_HP + 20.0, "the Apprentice has 20 more max HP")
 	var t := RunState.create(1, &"tinkerer")
 	eq(t.wand().trig_mul, 0.7, "the Tinkerer's triggers cost less")
 	eq(t.wand().slots.map(func(x: Variant) -> Variant: return x["id"] if x != null else null), [null, &"seed", &"burst"], "Carry and Rune Burst")

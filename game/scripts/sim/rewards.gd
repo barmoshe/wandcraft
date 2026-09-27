@@ -170,7 +170,7 @@ static func offer(run: RunState, kind: StringName) -> Array:
 			return alt
 		&"terminal":
 			# the Debug Terminal: a patch of your choice
-			return [{"t": &"slot", "id": &"slot"}, {"t": &"gold", "id": &"gold", "v": 40}, {"t": &"heal", "id": &"heal", "v": 35}]
+			return [{"t": &"slot", "id": &"slot"}, {"t": &"gold", "id": &"gold", "v": 40}, {"t": &"heal", "id": &"heal", "v": 30}]
 		&"glitch":
 			var g := roll_relics(run, 2, 0, true).map(func(id: StringName) -> Dictionary: return {"t": &"relic", "id": id})
 			g.append(_spells(run, [2])[0])
@@ -199,7 +199,7 @@ static func shop_stock(run: RunState) -> Array:
 	var rl := roll_relics(run, 1)
 	if not rl.is_empty():
 		out.append({"t": &"relic", "id": rl[0], "price": 70 + 30 * int(Relics.DEFS[rl[0]]["rar"]), "sold": false})
-	out.append({"t": &"heal", "id": &"heal", "v": 35, "price": 25, "sold": false})
+	out.append({"t": &"heal", "id": &"heal", "v": 30, "price": 30, "sold": false})
 	var wid := roll_wand(run)
 	out.append({"t": &"wand", "id": wid, "price": 65 + 25 * Catalog.wand(wid).rarity, "sold": false})
 	# Bug Reports 4+: scope creep, everything costs a quarter more

@@ -200,7 +200,8 @@ func _idle(dt: float) -> void:
 
 # ---- emitters
 func ed() -> float:
-	return 6.0
+	# research/difficulty.md: 6 before; World 2's bosses hit 30% harder
+	return 8.0 * (1.3 if world and world.run and world.run.world >= 1 else 1.0)
 
 
 func ring(p: Vector2, n: int, speed: float, offset := 0.0, accel := 0.0) -> void:

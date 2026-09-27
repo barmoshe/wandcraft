@@ -265,3 +265,9 @@ The bot takes hits a human would dash through, so every damage and healing chang
 - [25] Steam discussion, Hades, "How many attempts did it take you to escape?", 30 Dec 2019: https://steamcommunity.com/app/1145360/discussions/0/2632850028529196918/
 - [26] Graham McAllister, "A Guide To iOS Twin Stick Shooter Usability", Game Developer, 30 Mar 2011: https://www.gamedeveloper.com/design/a-guide-to-ios-twin-stick-shooter-usability
 - [27] Scott Fine, "Finding the Fun: Archero Part 1 - Gameplay", 2 Jul 2019: http://scottfinegamedesign.com/design-blog/2019/7/2/archero-part-1-gameplay
+
+## Results (bench log)
+| Pass | Commit | Editing bot: World 1 / full run | Never-editing | Mini / Loop / Deadlock |
+|---|---|---|---|---|
+| Before (0.17.1) | `ec7250d` | 60% / 20% | 0% | 42 s / 71 s / 106 s |
+| 1: HP, hit cost, healing | this pass | 40% / 10% | 0% | 28 s / 67 s / 98 s |

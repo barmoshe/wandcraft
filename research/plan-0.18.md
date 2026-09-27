@@ -29,18 +29,19 @@ The whole session's transcript has been mined (25–27 Sep).
 - `STATUS.md`'s "Next action" section is stale.
 - The store is paused by Bar (Apple and Google accounts).
 
-## Progress (2026-09-27, paused by Bar: another session is doing sound v2)
-- **Done in the working tree, uncommitted and untested:**
-  - `sim/story.gd`
-  - The Duck's speech box: `autoload/events.gd` (`say`) and `ui/hud.gd`
-  - The story hooks in `world.gd`: `_story_on_enter`, boss entrance and fall
-  - The "descend" door: `chapter.gd` `door_options` and INFO, `icons.gd` DOOR_GLYPH
-  - `world.gd`:
-    - `go_through` emits `ui_request(&"world")`, or switches straight away when there is no listener or it's the bot
-    - `enter_next_world()` with `WORLD_BONUS_HP`
-    - `_draw_descent()` for the portal
-- **Next:** `ui/world_screen.gd`; `main.gd` wiring (`&"world"` in `_on_ui_request` and `_bot_answer`, and the bench's `_answer`); then the rest of Step 1.
-- **Coordination:** the sound session owns `autoload/audio.gd`, `tools/gen_*`, `tools/audiosheet.sh`, `research/sound-v2*.md`, and all of `game/assets/audio`. Don't edit those. When committing, stage only this plan's files by path; never `git add -A` while the sound session has uncommitted work.
+## Progress
+- **2026-09-27/28, resumed on Bar's go** (sound v2 finished; ADR 0025 is sound's, so this plan's ADR is 0026):
+  - `661f002` Sound v2 committed as the sound session left it. `e0f84c8` Story part 1 (with sound's hooks in the shared files).
+  - `ec7250d` **0.17.1 deployed to the web** (Bar: "push to main and deploy").
+  - `5d18b84` Story part 2: WorldScreen, the descent between worlds.
+  - `1b618ef` (committed from the app) plus `1cf4c44` Story part 3: StoryScreen intro and ending, the Duck on deaths, Codex LOGS, the HUD world tag, `best_step` by depth, `research/story.md`, and the tap test skipping the intro. It also carries the auto-aim fix (a freed target is dropped before `assist_target`).
+  - Step 1 is done, except the story research merge (that agent never reported).
+- **New ask (Bar, 2026-09-27): "the game overall is too easy, also the bosses and AI enemies; maybe less start HP?"** The research is in `research/difficulty.md`. Three passes, each benched:
+  1. Start HP 120 → 80, shots carry 0.75 of enemy damage, enemy damage +3% per room, boss bullets 8 (×1.3 in World 2), room heal 6 → 3, spring 60% → 50%, shop and terminal heals 30. In progress.
+  2. Enemies aim half a step ahead from the Grove on, shoot faster and more often, and the next wave arrives at 50%.
+  3. Bosses: last-phase pressure, not HP. Heat 2 and 5 become rules (this is also Step 2, item 1).
+  - Bench re-band: the editing bot clears World 1 25-45% and wins the full run 5-15%; Loop 50-90 s; Deadlock 60-100 s.
+- **Coordination:** stage by path only; the sound session owns `autoload/audio.gd`, `tools/gen_*` and `game/assets/audio`.
 
 ## Step 1b: Voices (added 2026-09-27)
 The Duck and a new robot, LINT, speak real words: Kokoro-82M, pre-rendered and processed per character. The plan is `research/voices-plan.md`; it starts with an audition checkpoint with Bar and needs the sound session to amend its no-voices brief and add a Voice bus.

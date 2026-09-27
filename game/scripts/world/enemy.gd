@@ -3,6 +3,8 @@ extends Node2D
 ## A World 1 enemy. Four behaviours for the slice: chase, shoot (keeps range), charge
 ## (telegraph then dash), turret (bursts). Names and numbers are original (decisions/0002).
 
+## A shot carries this share of the enemy's damage (0.6 before research/difficulty.md).
+const BULLET_SHARE := 0.75
 const DEFS := {
 	&"slime": {"title": "Moss Blob", "ai": &"chase", "hp": 16.0, "spd": 34.0, "r": 6.0, "dmg": 5.0, "cost": 1, "gold": 1,
 		"role": &"pressure", "split": 2},
@@ -174,7 +176,7 @@ var _clip_t := 0.0
 var _mat: ShaderMaterial
 
 
-func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_elite := false) -> void:
+func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_elite := false, dmg_mul := 1.0) -> void:
 	world = w
 	kind = k
 	def = DEFS[k]
@@ -185,7 +187,7 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	hp = max_hp
 	r = float(def["r"]) + (2.0 if elite else 0.0)
 	spd = def["spd"]
-	dmg = def["dmg"]
+	dmg = float(def["dmg"]) * dmg_mul
 	heavy = ai == &"turret" or ai == &"summon" or ai == &"slam"
 	position = pos
 	ph = w.rng.randf() * TAU
@@ -688,7 +690,7 @@ func shoot(ang: float) -> void:
 	for i in n:
 		var a := off + TAU * i / n if shot.get("ring", false) else ang
 		for sp in spread:
-			world.enemy_shoot(position + muzzle * sprite.scale.y, a + sp, float(shot["spd"]), dmg * 0.6, 0.0, "shot:%s" % kind)
+			world.enemy_shoot(position + muzzle * sprite.scale.y, a + sp, float(shot["spd"]), dmg * BULLET_SHARE, 0.0, "shot:%s" % kind)
 	world.shot_sound = "eshot"
 	world.fx.ring(position + muzzle * sprite.scale.y, 1.0, 7.0, 0.15, Style.c("threat:3"))
 

@@ -585,6 +585,11 @@ func _spawn_wave(list: Array) -> void:
 	Hints.show("aim")
 
 
+const DMG_PER_ROOM := 0.03
+const ROOM_HEAL := 3.0      # research/difficulty.md: 6 before (8 before 0.16.1)
+const SPRING_HEAL := 0.5    # of max HP (0.3 at heat 4+); 0.6 / 0.4 before
+
+
 func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	var e := Enemy.new()
 	_uid += 1
@@ -592,7 +597,8 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	# Bug Reports 2+: load spikes, +20% HP
 	# design v2: ten rooms, so HP climbs a little slower per room and ends where it did; in
 	# World 2 it keeps climbing from where World 1 ended
-	e.setup(self, kind, pos, _uid, (1.0 + step * 0.055) * (1.2 if run and run.heat >= 2 else 1.0), elite)
+	# research/difficulty.md: damage climbs with depth too (x1.3 at the Loop, x1.6 at Deadlock)
+	e.setup(self, kind, pos, _uid, (1.0 + step * 0.055) * (1.2 if run and run.heat >= 2 else 1.0), elite, 1.0 + step * DMG_PER_ROOM)
 	enemies.append(e)
 	_actors.add_child(e)
 	return e
@@ -651,7 +657,7 @@ func _clear_room(reward := true) -> void:
 	if trig >= 2:
 		run.stats["trigger_rooms"] = int(run.stats.get("trigger_rooms", 0)) + 1
 	run.stats["max_gold"] = maxi(int(run.stats.get("max_gold", 0)), run.gold)
-	player.heal(6.0)   # 0.16.1: 8 before; playtesters found the run easy
+	player.heal(ROOM_HEAL)
 	Audio.sfx("heal_small")
 	fx.text(player.position + Vector2(0, -34), "ROOM CLEAR", Color("#ffe066"), 10)
 	if room_kind == &"mini" or room_kind == &"boss":
@@ -911,7 +917,7 @@ func _update_room(dt: float) -> void:
 				&"spring":
 					if not npc["used"]:
 						npc["used"] = true
-						player.heal(run.max_hp * (0.4 if run.heat >= 4 else 0.6))
+						player.heal(run.max_hp * (SPRING_HEAL - 0.2 if run.heat >= 4 else SPRING_HEAL))
 						Audio.sfx("heal")
 						fx.ring(npc["pos"], 4.0, 50.0, 0.6, Color("#6fb8ff"))
 						Events.toast.emit("The spring restores you")

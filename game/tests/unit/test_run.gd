@@ -146,7 +146,7 @@ func test_relics_that_act_on_pickup() -> void:
 	var r := RunState.create(3)
 	r.hp = 50.0
 	r.add_relic(&"hot_patch")
-	eq(r.max_hp, 160.0, "Hot Patch: max HP +20 (the Apprentice starts at 140)")
+	eq(r.max_hp, RunState.BASE_HP + 40.0, "Hot Patch: max HP +20 (the Apprentice starts at base +20)")
 	eq(r.hp, 70.0, "and heals 20")
 	var n := r.wand().slots.size()
 	r.add_relic(&"off_by_one")
@@ -156,7 +156,7 @@ func test_relics_that_act_on_pickup() -> void:
 	ok(Relics.dmg_mul(r, 0.0) == 1.0, "no damage relic yet")
 	r.add_relic(&"heap_overflow")
 	ok(is_equal_approx(Relics.dmg_mul(r, 10.0), 1.3), "Heap Overflow: +30% damage")
-	eq(r.max_hp, 140.0, "and max HP -20")
+	eq(r.max_hp, RunState.BASE_HP + 20.0, "and max HP -20")
 
 
 func test_wands_are_capped_and_replacing_keeps_spells() -> void:

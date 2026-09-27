@@ -18,8 +18,10 @@ var step := 0                       # index into Chapter.PLAN
 var path: Array = []                # door kinds taken, for the map strip
 var room: Dictionary = {}           # the door that led here: {"kind", "reward"}
 var doors: Array = []               # the doors this room will offer once cleared
-var hp := 120.0
-var max_hp := 120.0
+## research/difficulty.md: 120 made a mistake cost 3-6% of HP; testers found the run easy.
+const BASE_HP := 80.0
+var hp := BASE_HP
+var max_hp := BASE_HP
 var gold := 0
 var wands: Array[WandState] = []
 var cur := 0
@@ -78,7 +80,7 @@ func _start_as(loadout: StringName) -> void:
 		wands.append(w)
 	else:
 		wands[0] = w
-	max_hp = 120.0 + float(lo.get("hp", 0))
+	max_hp = BASE_HP + float(lo.get("hp", 0))
 	hp = max_hp
 	apply_relics()
 
