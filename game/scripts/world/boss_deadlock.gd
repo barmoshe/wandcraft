@@ -151,6 +151,8 @@ func tick(dt: float) -> void:
 		swap_t -= dt
 		if swap_t <= 0.0 or hp_at_swap - hp >= SWAP_DMG:
 			_swap()
+	if mutex_b and not mutex_b.dead and mutex_b.position.distance_squared_to(world.player.position) < pow(r + world.player.r - 2.0, 2):
+		world.player.hurt(dmg, mutex_b.position, "touch:%s" % title)   # B is as solid as A
 	_beam_hit_t = maxf(0.0, _beam_hit_t - dt)
 	if beam == 2 and _beam_hit_t <= 0.0 and mutex_b:
 		var pl := world.player

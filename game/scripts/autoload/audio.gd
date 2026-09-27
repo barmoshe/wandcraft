@@ -45,6 +45,7 @@ const TRACKS := {
 	"shop": {"stems": ["music_shop"]},
 	"cellar": {"stems": ["music_cellar_base", "music_cellar_drums", "music_cellar_lead"], "layers": ["", "drums", "lead"]},
 	"grove": {"stems": ["music_grove_base", "music_grove_drums", "music_grove_lead"], "layers": ["", "drums", "lead"]},
+	"foundry": {"stems": ["music_foundry_base", "music_foundry_drums", "music_foundry_lead"], "layers": ["", "drums", "lead"]},
 	"boss": {"intro": "music_boss_intro", "stems": ["music_boss_loop", "music_boss_p2"], "layers": ["", "p2"], "bpm": 128.0, "intro_bars": 4},
 }
 const MUSIC_DB := -4.0

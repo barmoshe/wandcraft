@@ -27,7 +27,7 @@ static func room_entered(run: RunState, kind: StringName) -> void:
 		return
 	_room_t0 = float(run.stats["time"])
 	_room_hp0 = run.hp
-	(_cur["rooms"] as Array).append({"step": run.step, "kind": String(kind),
+	(_cur["rooms"] as Array).append({"world": run.world + 1, "step": run.step, "kind": String(kind),
 		"threat": String(Chapter.threat_of(run.room)), "t": 0.0, "hp_lost": 0.0, "cleared": false})
 
 
@@ -61,6 +61,7 @@ static func finish(run: RunState, killed_by: String) -> void:
 		return
 	_cur["result"] = "win" if run.won else "death"
 	_cur["killed_by"] = killed_by
+	_cur["world"] = run.world + 1
 	_cur["step"] = run.step
 	_cur["time"] = roundi(float(run.stats["time"]))
 	_cur["first_edit"] = snappedf(float(run.stats.get("first_edit", -1.0)), 0.1)

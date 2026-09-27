@@ -66,6 +66,9 @@ func _initialize() -> void:
 	# earlier cues draw from is unchanged and their files stay byte-identical)
 	_cue({"amb_cellar": _amb_cellar()})
 	_cue({"amb_grove": _amb_grove()})
+	# World 2 (research/design-w2.md): the Foundry's music and ambience, last again
+	_cue({"foundry_base": _foundry_base(), "foundry_drums": _foundry_drums(), "foundry_lead": _foundry_lead()}, "foundry_base")
+	_cue({"amb_foundry": _amb_foundry()})
 	print("gen_music: done in %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	quit()
 
@@ -676,4 +679,68 @@ func _amb_grove() -> PackedFloat32Array:
 		noise(b, rng.randf() * 16.0, 0.35, 0.18, 1800.0, 6000.0, true, 12)
 	for k in 5:
 		noise(b, k * 3.1 + rng.randf(), 2.6, 0.08, 2500.0, 5200.0)
+	return b
+
+
+# ------------------------------------------------------------------ World 2: the Foundry (D minor, 112 bpm)
+
+## Dm Dm Bb C | Dm Dm Gm A: a machine that keeps turning over, the A pulling it round again.
+const F_BPM := 112.0
+const F_PROG := [[62, 65, 69], [62, 65, 69], [58, 62, 65], [60, 64, 67], [62, 65, 69], [62, 65, 69], [55, 58, 62], [57, 61, 64]]
+const F_ROOTS := [38, 38, 34, 36, 38, 38, 31, 33]
+const F_LEAD := [
+	[0, 74, 2], [2, 72, 2], [4, 69, 4], [8, 74, 2], [10, 76, 2], [12, 77, 4],
+	[16, 76, 2], [18, 74, 2], [20, 72, 4], [24, 69, 8],
+	[32, 70, 2], [34, 69, 2], [36, 67, 4], [40, 70, 2], [42, 72, 2], [44, 74, 4],
+	[48, 72, 4], [52, 76, 4], [56, 73, 8],
+	[64, 74, 2], [66, 72, 2], [68, 69, 4], [72, 74, 2], [74, 76, 2], [76, 77, 4],
+	[80, 79, 4], [84, 77, 2], [86, 76, 2], [88, 74, 8],
+	[96, 70, 4], [100, 74, 4], [104, 77, 4], [108, 76, 4],
+	[112, 73, 8], [120, 74, 8],
+]
+
+
+func _foundry_base() -> PackedFloat32Array:
+	var b := blank(32, F_BPM)
+	pads(b, F_BPM, 32, F_PROG, INST["pad_dark"], 0.8)
+	# the engine: a driving eighth-note bass, and stabs that hiss like steam every other bar
+	bassline(b, F_BPM, 32, F_ROOTS, "x.xxx.xxx.xxx.x.")
+	arpeggio(b, F_BPM, 16, F_PROG, [0, 1, 2, 1], 0, 0.6, 2)
+	arpeggio(b, F_BPM, 16, F_PROG, [0, 2, 1, 3, 2, 1], 16, 0.7)
+	var bar := 4 * 60.0 / F_BPM
+	for k in 16:
+		noise(b, (k * 2 + 1) * bar + bar * 0.75, 0.22, 0.05, 2500.0, 7000.0)
+	return b
+
+
+func _foundry_drums() -> PackedFloat32Array:
+	var b := blank(4, F_BPM)
+	drums(b, F_BPM, 3, "x..x..x.x..x..x.", "....x.......x...", "xxxxxxxxxxxxxxxx", "..........x.....")
+	drums(b, F_BPM, 1, "x..x..x.x..x.xx.", "....x.......x.xx", "xxxxxxxxxxxxxxox", "..x.......x...x.", 3)
+	return b
+
+
+func _foundry_lead() -> PackedFloat32Array:
+	var b := blank(16, F_BPM)
+	melody(b, F_BPM, 0, F_LEAD, INST["bell"])
+	# the second pass: the lead takes the tune, the bell answers an octave up, quieter
+	melody(b, F_BPM, 8, F_LEAD, INST["lead_thin"], 0.85)
+	var up: Array = F_LEAD.map(func(n: Array) -> Array: return [n[0], int(n[1]) + 12, n[2]])
+	melody(b, F_BPM, 8, up, INST["bell"], 0.35)
+	return b
+
+
+## The Foundry: a low machine hum that never stops, steam letting off now and then, and a
+## far-off clank of metal. 16 s loop.
+func _amb_foundry() -> PackedFloat32Array:
+	var b := PackedFloat32Array()
+	b.resize(int(16.0 * SR))
+	for m in [26.0, 38.0]:
+		note(b, 0.0, 16.0, m, INST["sub"], 0.35)
+	for k in 5:
+		noise(b, k * 3.2 + rng.randf() * 0.8, 1.1, 0.12, 1800.0, 6500.0)
+	for k in 6:
+		var t := rng.randf() * 16.0
+		note(b, t, 0.2, 76.0 + rng.randi_range(-3, 3), INST["bell"], 0.18)
+		noise(b, t, 0.05, 0.14, 800.0, 3000.0)
 	return b

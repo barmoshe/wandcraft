@@ -1,6 +1,6 @@
 # wandcraft — STATUS
 
-- Updated: 2026-09-25
+- Updated: 2026-09-27
 
 ## MVP: design-first (ADR 0011, `research/design-plan.md`)
 - **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
@@ -115,6 +115,26 @@
   - **Design v2, the 1.0 reinvention (2026-09-25/26, ADR 0022, `research/design-v2.md`):** Bar opened every aspect and gave full autonomy; bar: a friend plays 3 runs unprompted. Done so far: the workbench editor with a live firing range and measured damage/s, four kinds with socket shapes, one vocabulary (tested), a core pool with goals instead of fragments, three heroes, ten rooms with threat doors, a ghost-hand coach, a daily run, the Starwheel spiral fix. Bench: 80% editing vs 0% never-editing. A self-playtest of the web build (a new player's first two rooms) found and fixed five UX bugs. Version 0.15.0: web live, `build/wandcraft-0.15.0.apk`. Log in `research/design-v2.md`.
   - **Design v3 (2026-09-26, ADR 0023, `research/design-v3.md`):** Bar's weakest-area answer was "looks/sounds unfinished" (assets stay code-generated). The two areas now paint as two places, enemies read by role, kills punch, element trails and deaths, boss entrances and phase banners, Copy-Paste shows the spells it copied, the Loop has a code-block body, reverb and ambience beds, plain relic names, an end screen with your wand; and runs differ: the Grove's own three enemies, a second mini-boss (the Garbage Collector), an Untouched door, ambush and dark rooms, shop reroll and sale, compile from level 2, Gentle mode, a daily rule. 0.16.0: web live, `build/wandcraft-0.16.0.apk`, store screenshots refreshed. Bench 60% vs 0%. Next: the friend playtest (the run log is in the build).
   - **Next up, when Bar resumes:** his steps in `store/ios-release.md` (enrolment, Xcode sign-in, Team ID, app record; disk space is done), then TestFlight and review on his word. For Android: the Play Console account, a release keystore, the AAB build and a closed test.
+  - **First playtest and World 2 (2026-09-27, 0.17.0, `research/design-w2.md`).**
+    - Five friends played the web build and the APK. They liked it (it reminded one of them of Enter the Gungeon) and reported problems.
+    - **Fixed from their reports:**
+      - Auto-aim at the boss: shots spawned inside the top wall. The lead now follows the Loop's path, and mouse assist is narrow and needs line of sight.
+      - A multi-second stall at the boss entrance (the Loop's head was pre-drawn at every angle when it spawned).
+      - A last-phase head that was faster than you.
+      - A safe spot outside the snake's ring.
+      - Shots passing through the hero's head.
+      - A Copy-Paste with no wand.
+      - The wand held at the hips.
+      - An overflowing end screen.
+      - A camera that swung in big rooms.
+      - "Too easy": the Loop now has 1800 HP, and each room heals 6 instead of 8.
+    - **World 2, the Overheated Foundry:** the run goes on after the Loop.
+      - Two new areas: the Cooling Vents and the Molten Core.
+      - New enemies: the Proxy, Kernel Panic and Spark Plug.
+      - The other mini-boss, as a 2.0 version.
+      - Deadlock: two locked guardians and a sweeping beam.
+      - Foundry music and ambience.
+      - A new goal, "Defeat the Infinite Loop".
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**

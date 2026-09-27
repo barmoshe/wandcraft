@@ -364,7 +364,9 @@ func room_music(kind: StringName) -> String:
 		return "boss"
 	if kind == &"shop" or kind == &"forge":
 		return "shop"
-	return "cellar" if biome() % 2 == 0 else "grove"
+	if biome() >= 2:
+		return "foundry"
+	return "cellar" if biome() == 0 else "grove"
 
 
 ## Music layers follow the fight (D8): drums while enemies are up, the lead while an elite
@@ -484,7 +486,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_deco.queue_redraw()
 	if Game.quiet == 0:
 		Audio.music(room_music(kind))
-		Audio.ambience("grove" if biome() % 2 == 1 else "cellar")
+		Audio.ambience(["cellar", "grove", "foundry", "foundry"][biome()])
 		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 			"title": _room_title(kind)})
 	room_built.emit()

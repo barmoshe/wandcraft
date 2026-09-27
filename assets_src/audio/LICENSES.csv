@@ -1,5 +1,6 @@
 file,title,source,license,author,credit_required
 music_amb_cellar.wav,music amb cellar,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_foundry.wav,music amb foundry,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_amb_grove.wav,music amb grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_intro.wav,music boss intro,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_loop.wav,music boss loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
@@ -7,6 +8,9 @@ music_boss_p2.wav,music boss p2,tools/gen_music.gd,original,Bar Moshe (generated
 music_cellar_base.wav,music cellar base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_cellar_drums.wav,music cellar drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_cellar_lead.wav,music cellar lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_foundry_base.wav,music foundry base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_foundry_drums.wav,music foundry drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_foundry_lead.wav,music foundry lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_grove_base.wav,music grove base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_grove_drums.wav,music grove drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_grove_lead.wav,music grove lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
