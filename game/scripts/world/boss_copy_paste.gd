@@ -127,7 +127,6 @@ func _start(m: StringName) -> void:
 		&"copy_cast":
 			# a glitch flash first, so the player sees their own program coming
 			world.fx.text(position + Vector2(0, -26), "CASTING YOUR SPELLS", Style.c("glitch:4"), 10)
-			Audio.sfx("copy_cast", 0.0)
 			tele_circle(position, 14.0)
 		&"undo":
 			set_meta("to", _mirror_target())
@@ -143,7 +142,6 @@ func _start(m: StringName) -> void:
 			_box = Rect2(pp - Vector2(44, 34), Vector2(88, 60))
 			tele_rect(_box)
 			world.fx.text(pp + Vector2(0, -44), "SELECT ALL", Style.c("threat:4"), 10)
-			Audio.sfx("select_all", 0.0)
 	cd = 0.0
 
 
@@ -162,7 +160,7 @@ func _go(m: StringName) -> void:
 				_cast_q.append({"t": delay, "id": rev[0][0], "lv": rev[0][1], "from_ghost": true})
 		&"undo":
 			var to: Vector2 = get_meta("to")
-			Audio.sfx("ctrl_z", 0.0)
+			Audio.sfx("ctrl_z", to)
 			world.fx.beam(position, to, Color("#5ce1ff"), 2.0)
 			position = to
 			ring(position, 8 + phase * 4, 62.0, world.rng.randf())
@@ -177,6 +175,7 @@ func _go(m: StringName) -> void:
 					world.enemy_shoot(Vector2(x, y + i * 16.0), 0.0 if left else PI, 95.0, ed(), 0.0, "shot:Copy-Paste")
 		&"paste":
 			world.fx.text(position + Vector2(0, -24), "CTRL+V", Color("#ff3fa4"), 10)
+			Audio.sfx("paste", position)
 			for k in 2:
 				var e := world.spawn_enemy(&"bugling", position + Vector2(-30.0 if k == 0 else 30.0, 0))
 				e.spawn_t = 0.3
@@ -214,6 +213,7 @@ func _end(m: StringName) -> void:
 	if m == &"undo":
 		# it lags after the jump: the weak window
 		weaken(LAG, 1.5, "LAG")
+		Audio.sfx("weak_open", position)
 
 
 ## One of your spells, as an enemy attack: a bolt becomes an aimed shot, a spray becomes a

@@ -74,8 +74,8 @@ func tick(dt: float) -> void:
 		world.fx.text(position + Vector2(0, -28), "PHASE %d" % (phase + 1), Color("#ff3fa4"), 10)
 		if Game.quiet == 0:
 			Events.boss_phase.emit(phase + 1, String(phase_lines[phase]) if phase < phase_lines.size() else "")
-		Audio.sfx("phase", 0.0)
-		Audio.sfx("roar", 0.05)
+		Audio.sfx("phase")
+		Audio.sfx("roar")
 		Game.haptic("boss_phase")
 		world.hitstop(0.12)
 		world.flash(0.35)
@@ -95,6 +95,9 @@ func tick(dt: float) -> void:
 			if st_t <= 0.0:
 				_pick_move()
 		&"tele":
+			# the move's one wind-up cue, ending as it releases (sound v2 §4.7.1)
+			Audio.tele_tick(Audio.tele_for_move(move), st_t, _tele_prev, position)
+			_tele_prev = st_t
 			_tele_update(dt)
 			if st_t <= 0.0:
 				sm = &"act"
@@ -135,7 +138,7 @@ func _pick_move() -> void:
 	tele.clear()
 	done = false
 	mt = 0.0
-	Audio.sfx("tele", 0.05, -4.0)
+	_tele_prev = INF
 	_start(move)
 
 
@@ -202,7 +205,9 @@ func ed() -> float:
 
 func ring(p: Vector2, n: int, speed: float, offset := 0.0, accel := 0.0) -> void:
 	for i in n:
+		world.shot_sound = "eshot_ring"
 		world.enemy_shoot(p, offset + TAU * i / n, speed, ed(), accel, "shot:%s" % title)
+		world.shot_sound = "eshot"
 
 
 func aimed(p: Vector2, n: int, spread: float, speed: float) -> void:
@@ -241,7 +246,11 @@ func make_part(k: StringName, rad: float, fwd := 0.6) -> Enemy:
 	return p
 
 
+var _tele_prev := INF
+
+
 func die() -> void:
+	Audio.loops_off()
 	for p in parts:
 		p.dead = true
 		p.visible = false

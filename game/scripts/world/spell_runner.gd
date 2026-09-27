@@ -84,6 +84,7 @@ func cast_bonus(w: WandState, low: bool, tenth: bool) -> float:
 	if tenth:
 		k *= 2.0
 		world.fx.ring(world.player.position + Vector2(0, -8), 2.0, 14.0, 0.25, Style.c("gold:4"))
+		Audio.sfx("relic_proc", world.player.position)
 	if run.has_relic(&"empty_set"):
 		k *= 1.0 + 0.08 * w.slots.count(null)
 	return k
@@ -112,6 +113,9 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		cost = 0.0
 	if w.mana < cost:
 		w.cd = 0.06
+		# sound v2: one "empty" per dry spell, not one per retry
+		if world.time - w.dry_at > 0.25:
+			Audio.sfx("mana_empty", origin)
 		w.dry_at = world.time
 		return false
 	var low := w.mana < w.max_mana() * 0.25
@@ -119,6 +123,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.idle = 0.0
 	if free:
 		world.fx.ring(origin, 2.0, 10.0, 0.2, Style.c("leaf:4"))
+		Audio.sfx("relic_proc", origin)
 	w.ptr = plan.ptr
 	w.acc = plan.acc
 	w.casts += 1
@@ -132,6 +137,9 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	if plan.wrapped:
 		w.rech = rc
 		w.rech_max = rc
+		# the cadence of a program that took more than one cast (a one-cast wand wraps every time)
+		if plan.groups[0].slot > 0:
+			Audio.sfx("wand_recharge", origin)
 	max_depth = int(Relics.stat(run, "depth"))
 	knock_mul = Relics.stat(run, "knock")
 	legacy_slot = w.slots.size() - 1 if run != null and run.has_relic(&"legacy_code") else -1
@@ -152,6 +160,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	if run and run.has_relic(&"race_condition") and world.rng.randf() < 0.2:
 		world.fx.sparks(origin, 6, Style.c("glitch:3"), 60.0)
 		world.fx.text(origin + Vector2(0, -10), "FIZZLE", Style.c("glitch:4"))
+		Audio.sfx("fizzle", origin)
 		return true
 	for g in plan.groups:
 		emit_cast(g, origin, ang, opt)
@@ -166,7 +175,14 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		for g in plan.groups:
 			emit_cast(g, origin, ang + 0.18, opt)
 	world.fx.ring(origin, 1.0, 6.0, 0.12, plan.groups[0].spell.color)
-	Audio.cast(plan.groups[0].spell.id)
+	# sound v2: the first spell's timbre (walked by its slot), a second element's after it, and
+	# the heavy variant when Heavy or Empower is in the cast
+	var ids: Array[StringName] = []
+	var heavy := false
+	for g in plan.groups:
+		ids.append(g.spell.id)
+		heavy = heavy or g.mods.slam or g.mods.dmg > 1.0
+	Audio.cast_plan(ids, origin, plan.groups[0].slot, heavy)
 	if Game.quiet == 0:
 		Events.wand_cast.emit(w.flash)
 	return true
@@ -426,7 +442,7 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 			_strike(ps, e, pos, dmg, 1.3)
 	world.shake(0.1)
 	world.break_crates_in(pos, r, ps.burn > 0)
-	Audio.sfx("boom", 0.1, -3.0)
+	Audio.sfx("boom", pos)
 	end_bullet(ps, null)
 
 
@@ -563,7 +579,7 @@ func decoy_takes(p: Vector2, r: float) -> bool:
 func _soak(dk: Summon) -> void:
 	dk.soak -= 1
 	world.fx.sparks(dk.pos + Vector2(0, -4), 5, dk.color, 60.0)
-	Audio.sfx("hit", 0.2, -6.0)
+	Audio.sfx("duck_soak", dk.pos)
 	if dk.soak <= 0:
 		dk.life = 0.0
 
@@ -593,6 +609,7 @@ func _update_summons(dt: float) -> void:
 		if s.life <= 0.0:
 			world.fx.sparks(s.pos, 8, s.color, 60.0)
 			world.fx.ring(s.pos, 2.0, 10.0, 0.25, s.color)
+			Audio.sfx("familiar_end", s.pos)
 			summons.remove_at(i)
 			continue
 		i += 1
@@ -642,6 +659,7 @@ func _familiar_cast(s: Summon, ang: float) -> void:
 	opt.depth = 1
 	cast_seq += 1
 	world.fx.ring(s.pos, 1.0, 6.0, 0.12, s.color)
+	Audio.familiar_shot(s.payload.spell.id, s.pos)
 	emit_cast(s.payload, s.pos, ang, opt, true)
 
 
@@ -662,6 +680,7 @@ func _familiar_bolt(s: Summon, p: Vector2, ang: float, dmg: float) -> void:
 	b.depth = MAX_DEPTH
 	b.src = s.src
 	world.fx.muzzle(p, ang, s.color)
+	Audio.familiar_shot(&"mote", p)
 
 
 ## Draws familiars: the ground ones (turret, duck) under the actors, the daemon on top.
@@ -735,7 +754,7 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 			_apply(b, e)
 	world.shake(0.08)
 	world.break_crates_in(b.pos, r, b.burn > 0)
-	Audio.sfx("boom", 0.12, -5.0)
+	Audio.sfx("boom", b.pos)
 
 
 func update(dt: float) -> void:
@@ -886,6 +905,7 @@ func _run_later(dt: float) -> void:
 		if e["hand"] and world.player and not world.player.dead:
 			pos = world.player.tip()
 			ang = world.player.aim
+		Audio.sfx("cast_delayed", pos, 0.0, (e["c"] as CastNode).slot)
 		emit_cast(e["c"], pos, ang, e["opt"], true)
 
 
@@ -986,8 +1006,8 @@ func _next_unhit(b: Bullet, p: Vector2, max_d: float) -> Enemy:
 ## wall slam, then the trigger events. Hot path (hundreds of hits a tick in a storm): the
 ## cheap checks come before any call.
 func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
-	# the hit sounds like the spell's element (D8)
-	world.hit_sound = Audio.hit_for(b.cast.spell.id) if b.cast else "hit"
+	# the hit sounds like the spell's element (D8), or its coat's (sound v2)
+	world.hit_sound = Audio.hit_for_bullet(b.cast.spell.id if b.cast else &"", b.burn, b.chill, b.static_on, b.rot)
 	world.hurt_enemy(e, dmg, from, b.crit, kb * b.knock, false, b.kw)
 	world.hit_sound = "hit"
 	if b.burn > 0 or b.chill > 0 or b.static_on or b.rot > 0 or b.mark > 0.0:
@@ -1150,7 +1170,7 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 			a0 = (tgt.position - b.pos).angle()
 	if ev != &"nova":
 		world.fx.ring(b.pos, 1.0, 9.0, 0.18, Color("#ffe066"))
-		Audio.sfx("trigger", 0.1, -4.0)
+		Audio.sfx("trigger", b.pos, 0.0, b.depth)
 	var opt := Opt.new()
 	opt.gm = b.gm
 	opt.mul = mul

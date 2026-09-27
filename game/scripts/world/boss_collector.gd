@@ -59,7 +59,6 @@ func _start(m: StringName) -> void:
 			eaten = 0
 			tele_circle(position, PULL_R)
 			world.fx.text(position + Vector2(0, -40), "COLLECTING", Style.c("toxic:4"), 10)
-			Audio.sfx("tele_mid", 0.05)
 		&"compact":
 			_charge_dir = (world.player.position - position).normalized()
 			tele_line(position, _charge_dir.angle(), 150.0, 22.0)
@@ -79,8 +78,10 @@ func _act(m: StringName, dt: float, _t_in: float) -> void:
 				if dist < EAT_R:
 					b.alive = false
 					eaten += 1
+					Audio.sfx("gulp", position)
 					if b.kw & 2:
 						weaken(2.0, 2.0, "CHOKED")   # a blast in the maw staggers it
+						Audio.sfx("choked", position)
 				elif dist < PULL_R:
 					b.vel = b.vel.lerp(d.normalized() * b.vel.length(), 0.18)
 		&"compact":
@@ -109,7 +110,7 @@ func _end(m: StringName) -> void:
 				world.enemy_shoot(position + Vector2(0, -16), a, 105.0, ed(), 0.0, "shot:Garbage Collector")
 			if eaten > 0:
 				world.fx.text(position + Vector2(0, -40), "RETURNED %d" % eaten, Style.c("toxic:4"), 10)
-			Audio.sfx("eshot", 0.05)
+			Audio.sfx("eshot", position)
 		&"compact":
 			world.shake(0.2)
 			_fade_trash()

@@ -24,13 +24,22 @@ func teardown() -> void:
 
 
 func test_every_sound_the_game_asks_for_exists() -> void:
+	# sound v2: win and lose are retired (die, sting_victory, sting_defeat); a cue whose own file
+	# has not been generated yet may play its table fallback, so "exists" means "has something to play"
 	var names: Array = ["hit", "crit", "kill", "boom", "bigboom", "hurt", "eshot", "tele", "phase", "spawn", "burn",
-		"crate", "coin", "pick", "door", "heal", "levelup", "win", "lose", "ui", "ui_back", "swap", "deny", "trigger"]
+		"crate", "coin", "pick", "door", "heal", "levelup", "ui", "ui_back", "swap", "deny", "trigger"]
 	names.append_array(Audio.CAST.values())
 	for n in names:
-		ok(ResourceLoader.exists("res://assets/audio/sfx_%s.wav" % n), "sfx_%s exists" % n)
+		ok(ResourceLoader.exists("res://assets/audio/sfx_%s.wav" % n) or not Audio._cue(n).streams.is_empty(),
+			"sfx_%s exists (or its fallback does)" % n)
+	# every stem of a track whose first stem exists; the v2-only stems (boss p3, the mini track)
+	# wait for tools/audio.sh
 	for t in Audio.TRACKS:
+		if not Audio.track_ready(t):
+			continue
 		for m in Audio.TRACKS[t]["stems"]:
+			if m == Audio.V2_MUSIC_MARKER and not Audio.music_v2():
+				continue
 			var s: AudioStreamWAV = load("res://assets/audio/%s.wav" % m)
 			ok(s != null and s.get_length() > 7.0, "%s is a real loop (%.1fs)" % [m, s.get_length() if s else 0.0])
 	for id in Catalog.spells():

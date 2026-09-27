@@ -48,9 +48,9 @@ func _paint() -> void:
 	var s := Game.settings()
 	var rows := [
 		[["auto", "AUTO-FIRE", s["auto_fire"]], ["shake", "SHAKE", s["shake"]], ["flash", "FLASH", s["flash"]], ["gentle", "GENTLE", s["gentle"]]],
-		[["sound", "SOUND", s["sound"]], ["music", "MUSIC", s["music"]], ["haptics", "VIBRATION", s["haptics"]]],
+		[["sound", "SOUND", s["sound"]], ["music", "MUSIC", s["music"]], ["haptics", "VIBRATION", s["haptics"]], ["heartbeat", "HEARTBEAT", s["heartbeat"]]],
 	]
-	# design v3: four across (Gentle joins the first row), narrower when the screen is
+	# design v3: four across (Gentle joins the first row, the low-HP heartbeat the second), narrower when the screen is
 	var sbw := minf(bw, (sr.size.x - 30.0) / 4.0)
 	for row in rows:
 		var n: int = row.size()
@@ -96,9 +96,9 @@ func _on_button(id: String) -> void:
 		"hints":
 			Hints.reset()
 			toast("Tips will show again")
-		"auto", "shake", "flash", "sound", "music", "haptics", "gentle":
+		"auto", "shake", "flash", "sound", "music", "haptics", "gentle", "heartbeat":
 			var s := Game.settings()
-			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash", "sound": "sound", "music": "music", "haptics": "haptics", "gentle": "gentle"}[id]
+			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash", "sound": "sound", "music": "music", "haptics": "haptics", "gentle": "gentle", "heartbeat": "heartbeat"}[id]
 			s[key] = not s[key]
 			Game.apply_settings(s)
 			SaveGame.save_settings(s)

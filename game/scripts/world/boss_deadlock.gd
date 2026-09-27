@@ -135,7 +135,7 @@ func _swap() -> void:
 	var open_at := mutex_b.position if b_open else position
 	world.fx.text(open_at + Vector2(0, -44), "UNLOCKED", Style.c("gold:4"), 10)
 	world.fx.ring(open_at, 3.0, r + 12.0, 0.3, Style.c("gold:4"))
-	Audio.sfx("tele_mid", 0.05)
+	Audio.sfx("key_turn", open_at)
 
 
 ## The open guardian (where the volley comes from).
@@ -154,6 +154,9 @@ func tick(dt: float) -> void:
 	if mutex_b and not mutex_b.dead and mutex_b.position.distance_squared_to(world.player.position) < pow(r + world.player.r - 2.0, 2):
 		world.player.hurt(dmg, mutex_b.position, "touch:%s" % title)   # B is as solid as A
 	_beam_hit_t = maxf(0.0, _beam_hit_t - dt)
+	# the live beam hums (sound v2 §4.7), a whole tone faster from phase 2
+	Audio.loop("beam", beam == 2 and mutex_b != null, (position + mutex_b.position) * 0.5 if mutex_b else position,
+		pow(2.0, 2.0 / 12.0) if phase > 0 else 1.0)
 	if beam == 2 and _beam_hit_t <= 0.0 and mutex_b:
 		var pl := world.player
 		var q := Geometry2D.get_closest_point_to_segment(pl.position + Vector2(0, -6), position + CORE, mutex_b.position + CORE)
@@ -180,6 +183,7 @@ func _on_phase(p: int) -> void:
 		2:
 			_apply_locks()
 			world.fx.text(position + Vector2(0, -34), "LOCKS BROKEN", Style.c("gold:4"), 10)
+			Audio.sfx("weak_open", position)
 
 
 func _start(m: StringName) -> void:
@@ -187,7 +191,6 @@ func _start(m: StringName) -> void:
 	match m:
 		&"sweep":
 			beam = 1
-			Audio.sfx("chomp", 0.05)
 		&"crossfire":
 			tele_circle(position, 20.0)
 			tele_circle(mutex_b.position, 20.0)

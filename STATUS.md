@@ -135,6 +135,13 @@
       - Deadlock: two locked guardians and a sweeping beam.
       - Foundry music and ambience.
       - A new goal, "Defeat the Infinite Loop".
+  - **Sound v2 (2026-09-27, ADR 0025, `research/sound-v2.md`, `research/sound-v2-runtime-audit.md`).** Every sound, the whole score and the audio runtime are redesigned. Everything is still generated in code.
+    - Research and a measured critique of D8. The booms, `hurt` and `hit` sat outside what a phone plays, crits and telegraphs shared bands, and the Foundry broke the bar rule. About 30 events were silent and 10 files were never played.
+    - A shared synth, `tools/lib_dsp.gd`: SVF, FM, Karplus-Strong, modal materials, saturation, grains and a baked room. It feeds 152 effect cues in 325 files with 8 baked loudness families, plus a new score on the leitmotif "The Incantation": the Foundry in F minor at 125 bpm, folded boss and mini-boss intros, a boss `p3` layer, stereo ambience, new stingers.
+    - The runtime: a priority voice manager with a per-frame budget, stereo pan, snapshots (menu, death, low HP), a heartbeat, key-locked streak walks, telegraphs that end on the attack frame, a bar clock from the music itself, and every audit hook wired.
+    - Tests 224 of 225 (the one failure is the uncommitted "descend" door in `chapter.gd`, not audio). The tap test runs clean of audio errors.
+    - Listen: `tools/audiosheet.sh` writes `shots/audiosheet.html`, and the old sounds are in `shots/audio-v1/` for A/B.
+    - Next: Bar's listening notes become a revision pass on the recipes; run `tools/webtest.sh` on the next web build.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**

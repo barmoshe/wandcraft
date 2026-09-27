@@ -131,6 +131,8 @@ func tick(dt: float) -> void:
 	cast_t = maxf(0.0, cast_t - dt)
 	if controls.select_wand >= 0:
 		if controls.select_wand < wands.size():
+			if cur != controls.select_wand:
+				Audio.sfx("swap")
 			cur = controls.select_wand
 		controls.select_wand = -1
 	# a wand with nothing to shoot is no use in hand: switch to one that can cast
@@ -153,7 +155,7 @@ func tick(dt: float) -> void:
 			dash_cd = DASH_T + DASH_CD
 			dash_inv = DASH_IFRAMES
 			_ghost_t = 0.0
-			Audio.sfx("dash", 0.06)
+			Audio.sfx("dash", position)
 			Game.haptic("dash")
 	if dash_t > 0.0:
 		dash_t -= dt
@@ -281,12 +283,16 @@ var last_hurt_by := ""
 
 func hurt(amount: float, from: Vector2, by := "") -> void:
 	if dead or inv > 0.0 or dash_inv > 0.0 or Game.god_mode:
+		# sound v2: a dash through a shot on i-frames is a near miss you hear
+		if dash_inv > 0.0 and not dead and not by.begins_with("touch") and by != "spikes":
+			Audio.sfx("graze", position)
 		return
 	var run := world.run
 	if run.has_relic(&"try_catch") and not world.caught:
 		world.caught = true
 		inv = 0.7
 		world.fx.text(position + head, "CAUGHT", Color("#9ab0ff"))
+		Audio.sfx("caught")
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
 	amount *= Relics.damage_taken_mul(run) * (1.0 - Game.gentle_resist())
@@ -297,6 +303,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 		shield -= soak
 		amount -= soak
 		world.fx.ring(position + Vector2(0, -12), 2.0, 14.0, 0.25, Color("#9ab0ff"))
+		Audio.sfx("shield_soak", position)
 		if amount <= 0.0:
 			inv = 0.4
 			return
@@ -318,6 +325,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	if hp <= 0.0:
 		hp = 0.0
 		dead = true
+		Audio.sfx("die")
 		Events.player_died.emit()
 
 

@@ -124,8 +124,8 @@ func _on_button(id: String) -> void:
 	elif id.begins_with("goal"):
 		sel = int(id.substr(4))
 		sel_item = -1
-		Audio.sfx("ui", 0.05)
+		Audio.sfx("ui")
 	elif id.begins_with("item"):
 		var k := int(id.substr(4))
 		sel_item = -1 if sel_item == k else k
-		Audio.sfx("ui", 0.05)
+		Audio.sfx("ui")

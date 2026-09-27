@@ -471,6 +471,7 @@ func _on_drag(p: Vector2) -> void:
 	if not _dragging and p.distance_to(_press_pos) > 6.0:
 		_dragging = true
 		sel = {}
+		Audio.sfx("ui_drag")
 
 
 func _on_up(p: Vector2) -> bool:
@@ -490,18 +491,19 @@ func _move(from: Dictionary, to: Dictionary) -> void:
 	if to["w"] < 0 and to["i"] >= run.bag.size():
 		to = {"w": -1, "i": run.bag.size()}
 		if run.bag.size() >= RunState.BAG_MAX and from["w"] >= 0:
+			Audio.sfx("deny")
 			toast("The bag is full")
 			return
-	run.place_spell(from, to)
+	var how := run.place_spell(from, to)
 	RunLog.edited()
 	_sel_cast = -1
 	# a spell snapping into a wand slot is an equip (with a light buzz); into the bag, a drop
 	if to["w"] >= 0:
-		Audio.sfx("ui_equip", 0.03)
+		Audio.sfx("swap" if how == "swap" else "ui_equip")
 		Game.haptic("ui_snap")
 		focus_wand = to["w"]
 	else:
-		Audio.sfx("ui_drop", 0.05)
+		Audio.sfx("ui_drop")
 
 
 func _on_button(id: String) -> void:
@@ -527,6 +529,7 @@ func _on_button(id: String) -> void:
 		if sel.is_empty():
 			if _spell_at(ref) != null:
 				sel = ref
+				Audio.sfx("ui_pick")
 		elif sel == ref:
 			sel = {}
 		else:

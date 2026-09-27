@@ -127,7 +127,8 @@ func _input(ev: InputEvent) -> void:
 ## Activates a button by id (also used by tests and by keyboard shortcuts).
 func press(id: String) -> void:
 	if not id.begins_with("slot:") and not id.begins_with("card") and not id.begins_with("item"):
-		Audio.sfx("ui_back" if id in ["close", "done", "resume", "skip", "title", "gloss_close"] else "ui", 0.0)
+		# the default press sound gives way to a handler's own (sound v2 §4.10: one tap, one sound)
+		Audio.ui("ui_back" if id in ["close", "done", "resume", "skip", "title", "gloss_close"] else "ui")
 	if id == "gloss":
 		show_glossary = true
 		return

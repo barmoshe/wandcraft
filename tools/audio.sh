@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Regenerates every sound effect and music cue into game/assets/audio/ (gen_audio.gd for the
-# effects, gen_music.gd for the music, about 3 minutes), re-imports them, and keeps the
+# effects, gen_music.gd for the music, about 5 minutes), re-imports them, and keeps the
 # licence manifest (assets_src/audio/LICENSES.csv) in step. Deterministic: run it twice,
 # same bytes.
 #
-# Import settings: music loops (except the boss intro, which hands over to the loop) and
-# every file is QOA-compressed in the build. Godot's WAV writer does not store loop points,
-# so they are set in the .import files here.
+# Import settings: music and ambience loop over the window gen_music reports (the folded boss
+# and mini-boss intros play once), the two looping effects (sfx_beam, sfx_trail_loop) loop
+# over the whole file, and every file is QOA-compressed in the build. Godot's WAV writer does
+# not store loop points, so they are set in the .import files here.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/platform.sh"
@@ -16,18 +17,31 @@ MANIFEST="$HERE/../assets_src/audio/LICENSES.csv"
 
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true   # registers Loudness
 "$HERE/godot.sh" --headless --path "$GAME" -s "$HERE/gen_audio.gd"
-"$HERE/godot.sh" --headless --path "$GAME" -s "$HERE/gen_music.gd"
+# gen_music prints one "LOOP|<file>|loop_begin=<n>|loop_end=<n>" line per looping file: the
+# window the engine loops. Each file ends with one guard sample past loop_end (the sample at
+# loop_begin), so the resampler interpolates across the seam.
+LOOPS="$(mktemp)"
+"$HERE/godot.sh" --headless --path "$GAME" -s "$HERE/gen_music.gd" | tee "$LOOPS"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
 
 for f in "$AUDIO"/*.wav.import; do
   base="$(basename "$f" .wav.import)"
   loop=1   # disabled
+  lb=0
+  le=-1    # the end of the file
   case "$base" in
-    music_boss_intro) loop=1 ;;
     music_*) loop=2 ;;   # forward
+    sfx_beam|sfx_trail_loop) loop=2 ;;   # sound v2: seamless whole-file SFX loops (the Deadlock beam, the Loop's trail)
   esac
-  sed_inplace -e "s/^edit\/loop_mode=.*/edit\/loop_mode=$loop/" -e "s/^compress\/mode=.*/compress\/mode=2/" "$f"
+  row="$(grep "^LOOP|$base|" "$LOOPS" || true)"
+  if [ -n "$row" ]; then
+    lb="$(echo "$row" | sed -E 's/.*loop_begin=([0-9]+).*/\1/')"
+    le="$(echo "$row" | sed -E 's/.*loop_end=([0-9]+).*/\1/')"
+  fi
+  sed_inplace -e "s/^edit\/loop_mode=.*/edit\/loop_mode=$loop/" -e "s/^edit\/loop_begin=.*/edit\/loop_begin=$lb/" \
+    -e "s/^edit\/loop_end=.*/edit\/loop_end=$le/" -e "s/^compress\/mode=.*/compress\/mode=2/" "$f"
 done
+rm -f "$LOOPS"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
 
 # the manifest: one row per shipped audio file. Rows for generated files are rewritten;

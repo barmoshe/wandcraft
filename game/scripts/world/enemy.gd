@@ -269,7 +269,7 @@ func statuses(dt: float) -> float:
 		if _st_tick <= 0.0:
 			_st_tick = 0.25
 			world.hurt_enemy(self, burn_dps * 0.25, position, 0.0, 0.0, true)
-			Audio.sfx("burn", 0.2, -8.0)
+			Audio.sfx("burn", position)
 			world.fx.sparks(position + Vector2(0, -6), 1, Color("#ff8a3c"), 30.0)
 	static_t = maxf(0.0, static_t - dt)
 	mark_t = maxf(0.0, mark_t - dt)
@@ -402,7 +402,7 @@ func tick(dt: float) -> void:
 					aim_a = d.angle()
 					flash = 0.6 if sin(st_t * 40.0) > 0.0 else 0.0
 					if st_t <= 0.0:
-						Audio.sfx("charge", 0.08)
+						Audio.sfx("charge", position)
 						atk_t = float(dash["t"])
 						state = &"dash"
 						st_t = dash["t"]
@@ -421,7 +421,7 @@ func tick(dt: float) -> void:
 						st_t = 1.0
 						world.shake(0.12)
 						world.fx.text(position + Vector2(0, -12), "BONK", Color.WHITE)
-						Audio.sfx("bonk", 0.1)
+						Audio.sfx("bonk", position)
 					elif st_t <= 0.0 or world.last_hit_x or world.last_hit_y:
 						state = &"move"
 						cd = world.rng.randf_range(1.2, 2.2)
@@ -445,7 +445,7 @@ func tick(dt: float) -> void:
 						state = &"move"
 						cd = 2.4
 						atk_t = 0.3
-						Audio.sfx("slam", 0.05)
+						Audio.sfx("slam", position)
 						world.shake(0.2)
 						world.fx.ring(position, 4.0, SLAM_R, 0.3, Style.c("threat:3"))
 						world.break_crates_in(position, SLAM_R)
@@ -458,7 +458,7 @@ func tick(dt: float) -> void:
 			if cd <= 0.0 and brood > 0:
 				cd = 5.0
 				atk_t = 0.25
-				Audio.sfx("summon", 0.08, -3.0)
+				Audio.sfx("summon", position)
 				var mine := world.enemies.filter(func(e: Enemy) -> bool: return not e.dead and e.parent_uid == uid).size()
 				for k in mini(2, 4 - mine):
 					var e := world.spawn_enemy(&"bugling", position + Vector2.from_angle(ph + k * PI) * (r + 6.0))
@@ -474,7 +474,7 @@ func tick(dt: float) -> void:
 				state = &"fuse"
 				st_t = 1.3
 				world.fx.text(position + Vector2(0, -18), "PANIC", Style.c("threat:4"), 10)
-				Audio.sfx("tele_mid", 0.05)
+				Audio.sfx("panic", position)
 			if state == &"fuse":
 				if chill_t <= 0.0 and frozen_t <= 0.0:
 					st_t -= dt
@@ -482,7 +482,7 @@ func tick(dt: float) -> void:
 				if panicked:
 					mv = _steer(dt, dir) * 2.0
 				if st_t <= 0.0:
-					Audio.sfx("fuse_pop", 0.08)
+					Audio.sfx("fuse_pop", position)
 					world.fx.ring(position, 3.0, TICK_R, 0.25, Style.c("threat:3"))
 					world.shake(0.15)
 					if pl.position.distance_to(position) < TICK_R + pl.r:
@@ -500,7 +500,7 @@ func tick(dt: float) -> void:
 					world.fx.sparks(position, 6, Style.c("glitch:4"), 50.0)
 					position = world.move_body(blink_to, r, Vector2.ZERO)
 					world.fx.ring(position, 2.0, 12.0, 0.2, Style.c("glitch:4"))
-					Audio.sfx("tele_short", 0.1, -6.0)
+					Audio.sfx("blink_land", position)
 					state = &"move"
 					blink_cd = world.rng.randf_range(2.4, 3.4)
 			else:
@@ -514,6 +514,7 @@ func tick(dt: float) -> void:
 							st_t = 0.45
 							blink_to = to
 							world.fx.ring(to, 12.0, 4.0, 0.45, Style.c("threat:3"))
+							Audio.sfx("blink_charge", to)
 				if dd < 26.0:
 					state = &"fuse"
 					st_t = 0.8
@@ -576,8 +577,8 @@ func tick(dt: float) -> void:
 	_animate()
 
 
-## D8: every wind-up gets a rising cue that ends exactly as the attack is released (design-plan
-## §9): the longest cue that fits the wind-up starts when that much time is left.
+## Every wind-up gets its attack class's telegraph (sound v2 §4.6: shot, charge or area), which
+## ends exactly as the attack is released: Audio.tele_tick starts it from the right offset.
 var _cue_prev := INF
 var _fuse_tick := 0.0
 
@@ -595,17 +596,14 @@ func _tele_cue() -> void:
 			_fuse_tick -= get_physics_process_delta_time()
 			if _fuse_tick <= 0.0:
 				_fuse_tick = 0.2
-				Audio.sfx("fuse", 0.0, -6.0)
+				Audio.sfx("fuse", position)
 		&"aim":
 			total = float(def["shot"]["sight"]) / haste
 	if total <= 0.0:
 		_cue_prev = INF
 		return
-	var cue := "tele_long" if total >= 1.0 else ("tele_mid" if total >= 0.5 else "tele_short")
-	var length := 1.0 if cue == "tele_long" else (0.5 if cue == "tele_mid" else 0.3)
 	var left := st_t / haste
-	if _cue_prev > length and left <= length:
-		Audio.sfx(cue, 0.0, -3.0)
+	Audio.tele_tick(Audio.tele_for_ai(ai, panicked), left, _cue_prev, position)
 	_cue_prev = left
 
 
@@ -622,7 +620,7 @@ func _ward_allies() -> void:
 		e.ward_n = WARD_HITS
 		world.fx.beam(position + Vector2(0, -6), e.position + Vector2(0, -6), Style.c("cyan:4"), 1.0)
 	world.fx.ring(position + Vector2(0, -6), 2.0, 12.0, 0.3, Style.c("cyan:4"))
-	Audio.sfx("ward_up", 0.05, -3.0)
+	Audio.sfx("ward_up", position)
 
 
 ## The way toward the player: straight at them while the lane is clear, otherwise the

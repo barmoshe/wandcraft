@@ -145,7 +145,12 @@ func font(kind := "small") -> Font:
 
 func settings() -> Dictionary:
 	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx, "haptics": haptics,
-		"sound": sound, "music": music, "gentle": gentle}
+		"sound": sound, "music": music, "gentle": gentle, "heartbeat": heartbeat}
+
+
+## Sound v2: the low-HP heartbeat and the music closing under it (Audio.player_hp). Some players
+## find a heartbeat stressful, so it has its own switch.
+var heartbeat := true
 
 
 ## Design v3 (after Hades' God Mode): opt in and every run you have lost takes 2% off the
@@ -168,6 +173,7 @@ func apply_settings(d: Dictionary) -> void:
 	sound = bool(d.get("sound", sound))
 	music = bool(d.get("music", music))
 	gentle = bool(d.get("gentle", gentle))
+	heartbeat = bool(d.get("heartbeat", heartbeat))
 	var au := get_node_or_null("/root/Audio")
 	if au:
 		au.apply(settings())

@@ -144,4 +144,5 @@ func _on_button(id: String) -> void:
 	elif id == "heat_down":
 		heat -= 1
 	elif id == "continue" or id == "new" or id == "daily":
+		Audio.sfx("ui_confirm")
 		finished.emit({"action": id, "heat": heat})

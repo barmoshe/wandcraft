@@ -112,17 +112,17 @@ func _on_button(id: String) -> void:
 	elif id.begins_with("item"):
 		var i := int(id.substr(4))
 		sel = -1 if sel == i else i
-		Audio.sfx("ui", 0.05)
+		Audio.sfx("ui")
 	elif id == "buy":
 		_buy()
 	elif id == "ban":
 		_deprecate()
 	elif id == "reroll":
 		if Rewards.reroll_shop(run):
-			Audio.sfx("coin", 0.0)
+			Audio.sfx("coin")
 			sel = -1
 		else:
-			Audio.sfx("deny", 0.0)
+			Audio.sfx("deny")
 
 
 ## Deprecate: the selected spell leaves the shop and never shows up in this run again.
@@ -136,7 +136,7 @@ func _deprecate() -> void:
 	run.banned.append(it["id"])
 	run.deprecated_here = true
 	it["sold"] = true
-	Audio.sfx("deny", 0.0)
+	Audio.sfx("deny")
 	toast("%s is banned for this run" % Catalog.spell(it["id"]).title)
 
 
@@ -147,12 +147,13 @@ func _buy() -> void:
 	var it: Dictionary = items[sel]
 	var price := int(it["price"])
 	if it.get("sold", false) or run.gold < price:
-		Audio.sfx("deny", 0.0)
+		Audio.sfx("deny")
 		return
-	Audio.sfx("forge" if mode == "forge" else "buy", 0.0)
+	if not (mode == "forge" and it["t"] == &"compile"):
+		Audio.sfx("forge" if mode == "forge" else "buy")
 	if mode == "forge" and it["t"] == &"compile":
 		Rewards.compile_evo(run, it["id"])
-		Audio.sfx("levelup", 0.0)
+		Audio.sfx("compile")   # sound v2: an evolution is its own moment, not forge + level-up
 		toast("Compiled %s" % Catalog.spell(it["id"]).title)
 		_refresh()
 		sel = -1

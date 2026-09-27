@@ -142,6 +142,7 @@ func tick(dt: float) -> void:
 		derail_t -= dt
 		if derail_t <= 0.0:
 			world.fx.text(position + Vector2(0, -26), "BACK ON TRACK", Color("#7de08a"), 10)
+			Audio.sfx("back_on_track", position)
 	_check_segments()
 	super.tick(dt)
 
@@ -183,6 +184,7 @@ func _check_segments() -> void:
 	var i := 0
 	while i < parts.size():
 		if parts[i].dead or parts[i].hp <= 0.0:
+			Audio.sfx("segment_break", parts[i].position)
 			parts.remove_at(i)
 			broken += 1
 			hp = maxf(1.0, hp - max_hp * 0.03)   # breaking the body hurts the loop too
@@ -197,6 +199,7 @@ func _spawn_junior() -> void:
 	var jr := world.spawn_enemy(&"loop_jr", at)
 	jr.spawn_t = 0.2
 	world.fx.text(at + Vector2(0, -18), "LOOP JR.", Color("#7de08a"), 10)
+	Audio.sfx("loop_jr", at)
 
 
 func on_pylon() -> void:
@@ -207,7 +210,7 @@ func on_pylon() -> void:
 	if pulses >= PYLONS_TO_DERAIL:
 		pulses = 0
 		derail_t = DERAIL
-		Audio.sfx("derail", 0.0)
+		Audio.sfx("derail")
 		weaken(DERAIL, 2.0, "DERAILED")
 		world.shake(0.3)
 
@@ -220,7 +223,6 @@ func _start(m: StringName) -> void:
 			# the track swings to your lane, and lights up where it will run
 			_want_r = _radius_through(world.player.position)
 			tele.append({"k": "track", "p": center, "r": _want_r, "ry": minf(_want_r * 0.75, RY_MAX)})
-			Audio.sfx("chomp", 0.05)
 		&"while_true":
 			world.fx.text(position + Vector2(0, -22), "while(true)", Color("#7de08a"), 10)
 		&"chase":
@@ -252,7 +254,9 @@ func _act(m: StringName, dt: float, t_in: float) -> void:
 				ring(center, 10 + phase * 3, 45.0 + k * 12.0, k * 0.2, 10.0)
 		&"chase":
 			if derail_t > 0.0:
+				Audio.loop("trail_loop", false)
 				return
+			Audio.loop("trail_loop", true, position)   # the burning trail behind the head
 			var a := (world.player.position - position).angle() + sin(t_in * 5.0) * 0.5
 			# round the pylons and the pillar, not into them (a head stuck behind a pylon
 			# could neither reach you nor be seen)
@@ -284,6 +288,8 @@ func _fade_trail() -> void:
 func _end(m: StringName) -> void:
 	if m == &"lap_charge":
 		_want_r = base_r   # it drifts back to its resting lap
+	if m == &"chase":
+		Audio.loop("trail_loop", false)
 	if m == &"chase" and phase < 2:
 		on_track = true
 		ang = atan2((position.y - center.y) / (minf(radius * 0.75, RY_MAX) / radius), position.x - center.x)

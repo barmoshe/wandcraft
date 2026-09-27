@@ -219,18 +219,18 @@ func _on_button(id: String) -> void:
 	if id.begins_with("card"):
 		var i := int(id.substr(4))
 		if offer[i].get("locked", false):
-			Audio.sfx("deny", 0.0)
+			Audio.sfx("deny")
 			toast("Unlock: %s" % Meta.goal_for(offer[i]["id"]).get("text", ""))
 			return
 		sel = -1 if sel == i else i
-		Audio.sfx("ui", 0.05)
+		Audio.sfx("ui")
 	elif (id == "take" or id == "equip") and sel >= 0:
 		var item: Dictionary = offer[sel]
 		if not Rewards.grant(run, item):
-			Audio.sfx("deny", 0.0)
+			Audio.sfx("deny")
 			toast("Your bag is full. Skip this one to take the gold instead.")
 			return
-		Audio.sfx("levelup" if _merged(item) else "pick", 0.0)
+		Audio.sfx("altar" if kind == &"altar" else ("levelup" if _merged(item) else ("ui_confirm" if id == "equip" else "pick")))
 		finished.emit({"taken": item, "equip": id == "equip"})
 	elif id == "skip":
 		Audio.sfx("coin")
