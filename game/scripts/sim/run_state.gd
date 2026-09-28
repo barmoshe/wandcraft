@@ -42,6 +42,15 @@ var lesson_target: Array = []       # D9: the wand layout the editor coach is wa
 var heat := 0                       # D9: Bug Reports tier (0-5), chosen on the title
 var daily := ""                     # design v2: the date of a daily run ("" for a normal run)
 var daily_mod: StringName = &""     # design v3: the daily rule's modifier (Chapter.DAILY_MODS)
+## 0.19: the Workshop's run (the hub and its training ground). It is never saved, never
+## counts toward bounties, Bits or the Compendium.
+var sandbox := false
+## 0.19: the hero was chosen before the run (the Workshop's Hero Hall), so the start room
+## offers no hero orb. Old saves have false and keep the orb.
+var picked := false
+## 0.19: the Compendium's discoveries this run, folded into meta by Meta.fold_dex:
+## "s"/"r"/"w" spell/relic/wand id -> 1 seen, 2 used; "e" enemy kind -> kills (0 = seen).
+var dex := {}
 
 
 ## Heroes (design v2): a starting wand with a clear identity plus one twist, so runs start
@@ -109,6 +118,27 @@ func wand() -> WandState:
 	return wands[cur]
 
 
+## The Compendium: notes that this run met `id` (kind "s" spell, "r" relic, "w" wand) at
+## `level` 1 (seen) or 2 (used). Enemies go through see_enemy.
+func see(kind: StringName, id: StringName, level := 1) -> void:
+	if sandbox:
+		return
+	var k := String(kind)
+	var d: Dictionary = dex.get(k, {})
+	if int(d.get(String(id), 0)) < level:
+		d[String(id)] = level
+		dex[k] = d
+
+
+## The Compendium: an enemy seen (kill = false) or killed.
+func see_enemy(kind: StringName, kill := false) -> void:
+	if sandbox:
+		return
+	var d: Dictionary = dex.get("e", {})
+	d[String(kind)] = int(d.get(String(kind), 0)) + (1 if kill else 0)
+	dex["e"] = d
+
+
 ## True if the wand holds at least one shooting spell (so it can actually cast).
 static func can_cast(w: WandState) -> bool:
 	for s in w.slots:
@@ -125,6 +155,7 @@ func add_relic(id: StringName) -> void:
 	if relics.has(id):
 		return
 	relics.append(id)
+	see(&"r", id, 2)
 	Relics.on_gain(self, id)
 
 
@@ -134,6 +165,7 @@ func add_relic(id: StringName) -> void:
 ## Returns false when there is no room at all.
 func add_spell(id: StringName, lv := 1) -> bool:
 	var entry := {"id": id, "lv": lv}
+	see(&"s", id, 2)
 	var w := wand()
 	var empty := w.slots.rfind(null)
 	if empty >= 0 and not can_cast(w) and Catalog.is_caster(Catalog.spell(id)):
@@ -288,6 +320,7 @@ func _ref_set(r: Dictionary, v: Variant) -> void:
 
 func add_wand(id: StringName) -> void:
 	var w := WandState.make(Catalog.wand(id))
+	see(&"w", id, 2)
 	for k in int(Relics.stat(self, "slots")):
 		w.add_slot()
 	w.rune_mul = Relics.stat(self, "rune")
@@ -326,7 +359,7 @@ func to_dict() -> Dictionary:
 		"bag": bag.map(_entry_out), "relics": relics.map(func(r: StringName) -> String: return String(r)),
 		"shop": shop.map(_dict_out), "stats": stats.duplicate(), "won": won,
 		"banned": banned.map(func(b: StringName) -> String: return String(b)), "rare_offset": rare_offset,
-		"uptime": uptime, "tutorial": tutorial, "daily_mod": String(daily_mod), "daily": daily, "heat": heat, "hero": String(hero), "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
+		"uptime": uptime, "tutorial": tutorial, "daily_mod": String(daily_mod), "daily": daily, "heat": heat, "hero": String(hero), "picked": picked, "dex": dex.duplicate(true), "lesson_target": lesson_target.map(func(x: Variant) -> Variant: return String(x) if x != null else null),
 		"map": map.map(func(step: Array) -> Array: return step.map(_dict_out)), "lane": lane,
 	}
 
@@ -364,6 +397,8 @@ static func from_dict(d: Dictionary) -> RunState:
 	r.heat = int(d.get("heat", 0))
 	r.daily = String(d.get("daily", ""))
 	r.daily_mod = StringName(d.get("daily_mod", ""))
+	r.picked = bool(d.get("picked", false))
+	r.dex = d.get("dex", {})
 	r.hero = LOADOUT_ALIAS.get(StringName(d.get("hero", "apprentice")), StringName(d.get("hero", "apprentice")))
 	for x in d.get("lesson_target", []):
 		r.lesson_target.append(StringName(x) if x != null else null)

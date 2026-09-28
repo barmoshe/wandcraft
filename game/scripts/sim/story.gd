@@ -102,6 +102,55 @@ const LINES := {
 	"heat:3": [[[LINT, "Bug report three. Faster shots, fewer doors."]]],
 	"heat:4": [[[LINT, "Bug report four. Weaker springs, higher prices."]]],
 	"heat:5": [[[LINT, "Bug report five. Bosses skip straight to their worst."]]],
+	# the Workshop (0.19, research/workshop-0.19.md): one line as you walk in, fitted to how
+	# the last run went (Hub.greeting), and a word from the Duck or LINT when you talk to them
+	"hub_first": [
+		[[LINT, "Workshop online. All stations ready."], [DUCK, "Walk up to anything and use it. The portal starts a run."]],
+	],
+	"hub_back": [
+		"Back in the Workshop. The bug hasn't moved.",
+		[[LINT, "Session resumed."], [DUCK, "Pick a station. Or just the portal."]],
+		"The coffee here is compiled. Don't ask how.",
+	],
+	"hub_death": [
+		[[DUCK, "That run crashed. The log has the answer."], [LINT, "Crash report pinned to the Commit Wall."]],
+		"Walk it off. Then try a different wand.",
+		[[LINT, "Failure logged."], [DUCK, "Logged, not forgotten. Again?"]],
+	],
+	"hub_boss": [
+		[[DUCK, "So close. That boss knew your wand."], [LINT, "Suggestion: change the wand."]],
+		"Next time, save a dash for its big attack.",
+	],
+	"hub_win": [
+		[[LINT, "Build passed. The Guild is impressed."], [DUCK, "Now try the heat. I dare you."]],
+		"A win. Somewhere deep, the bug is sulking.",
+	],
+	"hub_quit": [
+		"Quitting counts as debugging. Sometimes.",
+		[[LINT, "Process terminated by user."], [DUCK, "Fresh start, fresh wand."]],
+	],
+	"hub_unlock": [
+		[[LINT, "New station online."], [DUCK, "Go on, have a look."]],
+	],
+	"hub_hero": [
+		"New hero, same bug.",
+		[[LINT, "Hero profile updated."], [DUCK, "Looking sharp."]],
+	],
+	"pkg_bought": [
+		[[LINT, "Package installed. Every run after has it."], [DUCK, "Try it on the dummy first."]],
+		"More spells. More ways to break things.",
+	],
+	"hub_duck": [
+		"Quack.",
+		"Tell me about your wand. Slowly.",
+		"Bounties pay Bits. Bits buy packs. Packs make wands weird.",
+		"I believe in you. Mostly.",
+	],
+	"hub_lint": [
+		[[LINT, "Linting your wand. Three warnings."]],
+		[[LINT, "Recommendation: fix the bugs on the board."]],
+		[[LINT, "Your commit history is educational."]],
+	],
 }
 
 ## The commit log: found one at a time. `at` marks entries a story beat unlocks (the rest

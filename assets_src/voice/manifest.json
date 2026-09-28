@@ -391,6 +391,262 @@
   "voice": "am_fenrir",
   "text": "Bug report five. Bosses skip straight to their worst."
  },
+ "hub_back.0": {
+  "id": "hub_back.0",
+  "who": "DUCK",
+  "hash": "512d7e858a3f083e",
+  "seconds": 2.05,
+  "voice": "af_heart",
+  "text": "Back in the Workshop. The bug hasn't moved."
+ },
+ "hub_back.1.0": {
+  "id": "hub_back.1.0",
+  "who": "LINT",
+  "hash": "1aaff285b83230c8",
+  "seconds": 1.07,
+  "voice": "am_fenrir",
+  "text": "Session resumed."
+ },
+ "hub_back.1.1": {
+  "id": "hub_back.1.1",
+  "who": "DUCK",
+  "hash": "ff6163afc34798b1",
+  "seconds": 1.83,
+  "voice": "af_heart",
+  "text": "Pick a station. Or just the portal."
+ },
+ "hub_back.2": {
+  "id": "hub_back.2",
+  "who": "DUCK",
+  "hash": "a188695c778d4a48",
+  "seconds": 2.18,
+  "voice": "af_heart",
+  "text": "The coffee here is compiled. Don't ask how."
+ },
+ "hub_boss.0.0": {
+  "id": "hub_boss.0.0",
+  "who": "DUCK",
+  "hash": "7eaf33801859bac2",
+  "seconds": 1.83,
+  "voice": "af_heart",
+  "text": "So close. That boss knew your wand."
+ },
+ "hub_boss.0.1": {
+  "id": "hub_boss.0.1",
+  "who": "LINT",
+  "hash": "ca7b1e99f1086d04",
+  "seconds": 1.62,
+  "voice": "am_fenrir",
+  "text": "Suggestion: change the wand."
+ },
+ "hub_boss.1": {
+  "id": "hub_boss.1",
+  "who": "DUCK",
+  "hash": "4efe008454ac2ed9",
+  "seconds": 2.14,
+  "voice": "af_heart",
+  "text": "Next time, save a dash for its big attack."
+ },
+ "hub_death.0.0": {
+  "id": "hub_death.0.0",
+  "who": "DUCK",
+  "hash": "18c00e9673885389",
+  "seconds": 2.15,
+  "voice": "af_heart",
+  "text": "That run crashed. The log has the answer."
+ },
+ "hub_death.0.1": {
+  "id": "hub_death.0.1",
+  "who": "LINT",
+  "hash": "3b9813bf4b6057f7",
+  "seconds": 1.89,
+  "voice": "am_fenrir",
+  "text": "Crash report pinned to the Commit Wall."
+ },
+ "hub_death.1": {
+  "id": "hub_death.1",
+  "who": "DUCK",
+  "hash": "fbbe3f4e5e7b8dfc",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "Walk it off. Then try a different wand."
+ },
+ "hub_death.2.0": {
+  "id": "hub_death.2.0",
+  "who": "LINT",
+  "hash": "fd60bd9dd4b390b2",
+  "seconds": 0.9,
+  "voice": "am_fenrir",
+  "text": "Failure logged."
+ },
+ "hub_death.2.1": {
+  "id": "hub_death.2.1",
+  "who": "DUCK",
+  "hash": "d7983b315f2fbabd",
+  "seconds": 1.71,
+  "voice": "af_heart",
+  "text": "Logged, not forgotten. Again?"
+ },
+ "hub_duck.0": {
+  "id": "hub_duck.0",
+  "who": "DUCK",
+  "hash": "5b15ab81e4a68bcd",
+  "seconds": 0.5,
+  "voice": "af_heart",
+  "text": "Quack."
+ },
+ "hub_duck.1": {
+  "id": "hub_duck.1",
+  "who": "DUCK",
+  "hash": "7731e577c8dde643",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "Tell me about your wand. Slowly."
+ },
+ "hub_duck.2": {
+  "id": "hub_duck.2",
+  "who": "DUCK",
+  "hash": "e95c326af220b089",
+  "seconds": 3.37,
+  "voice": "af_heart",
+  "text": "Bounties pay Bits. Bits buy packs. Packs make wands weird."
+ },
+ "hub_duck.3": {
+  "id": "hub_duck.3",
+  "who": "DUCK",
+  "hash": "9ba59fd0f37b77c0",
+  "seconds": 1.6,
+  "voice": "af_heart",
+  "text": "I believe in you. Mostly."
+ },
+ "hub_first.0.0": {
+  "id": "hub_first.0.0",
+  "who": "LINT",
+  "hash": "7d37f039874dfe2c",
+  "seconds": 2.42,
+  "voice": "am_fenrir",
+  "text": "Workshop online. All stations ready."
+ },
+ "hub_first.0.1": {
+  "id": "hub_first.0.1",
+  "who": "DUCK",
+  "hash": "72477951efa1a7ab",
+  "seconds": 2.76,
+  "voice": "af_heart",
+  "text": "Walk up to anything and use it. The portal starts a run."
+ },
+ "hub_hero.0": {
+  "id": "hub_hero.0",
+  "who": "DUCK",
+  "hash": "d4a6972f7bad8f4e",
+  "seconds": 1.23,
+  "voice": "af_heart",
+  "text": "New hero, same bug."
+ },
+ "hub_hero.1.0": {
+  "id": "hub_hero.1.0",
+  "who": "LINT",
+  "hash": "ca0601b5a628292d",
+  "seconds": 1.49,
+  "voice": "am_fenrir",
+  "text": "Hero profile updated."
+ },
+ "hub_hero.1.1": {
+  "id": "hub_hero.1.1",
+  "who": "DUCK",
+  "hash": "c92dc9225a378367",
+  "seconds": 0.79,
+  "voice": "af_heart",
+  "text": "Looking sharp."
+ },
+ "hub_lint.0.0": {
+  "id": "hub_lint.0.0",
+  "who": "LINT",
+  "hash": "4901ee5b5bb1ded2",
+  "seconds": 1.81,
+  "voice": "am_fenrir",
+  "text": "Linting your wand. Three warnings."
+ },
+ "hub_lint.1.0": {
+  "id": "hub_lint.1.0",
+  "who": "LINT",
+  "hash": "e6fc1a7e799ec7ff",
+  "seconds": 2.49,
+  "voice": "am_fenrir",
+  "text": "Recommendation: fix the bugs on the board."
+ },
+ "hub_lint.2.0": {
+  "id": "hub_lint.2.0",
+  "who": "LINT",
+  "hash": "d9b885c79ec11d53",
+  "seconds": 2.08,
+  "voice": "am_fenrir",
+  "text": "Your commit history is educational."
+ },
+ "hub_quit.0": {
+  "id": "hub_quit.0",
+  "who": "DUCK",
+  "hash": "c42a5f084daa9155",
+  "seconds": 2.21,
+  "voice": "af_heart",
+  "text": "Quitting counts as debugging. Sometimes."
+ },
+ "hub_quit.1.0": {
+  "id": "hub_quit.1.0",
+  "who": "LINT",
+  "hash": "8c16ae0b49b68b7f",
+  "seconds": 1.59,
+  "voice": "am_fenrir",
+  "text": "Process terminated by user."
+ },
+ "hub_quit.1.1": {
+  "id": "hub_quit.1.1",
+  "who": "DUCK",
+  "hash": "8b67b1fed8b80843",
+  "seconds": 1.28,
+  "voice": "af_heart",
+  "text": "Fresh start, fresh wand."
+ },
+ "hub_unlock.0.0": {
+  "id": "hub_unlock.0.0",
+  "who": "LINT",
+  "hash": "49b4f42af2d7020d",
+  "seconds": 1.28,
+  "voice": "am_fenrir",
+  "text": "New station online."
+ },
+ "hub_unlock.0.1": {
+  "id": "hub_unlock.0.1",
+  "who": "DUCK",
+  "hash": "4b01ae716402c252",
+  "seconds": 1.05,
+  "voice": "af_heart",
+  "text": "Go on, have a look."
+ },
+ "hub_win.0.0": {
+  "id": "hub_win.0.0",
+  "who": "LINT",
+  "hash": "c9af44f77c224005",
+  "seconds": 2.02,
+  "voice": "am_fenrir",
+  "text": "Build passed. The Guild is impressed."
+ },
+ "hub_win.0.1": {
+  "id": "hub_win.0.1",
+  "who": "DUCK",
+  "hash": "1e8653319691ef47",
+  "seconds": 1.71,
+  "voice": "af_heart",
+  "text": "Now try the heat. I dare you."
+ },
+ "hub_win.1": {
+  "id": "hub_win.1",
+  "who": "DUCK",
+  "hash": "f1e5bd79823bff8a",
+  "seconds": 2.12,
+  "voice": "af_heart",
+  "text": "A win. Somewhere deep, the bug is sulking."
+ },
  "intro.0": {
   "id": "intro.0",
   "who": "LINT",
@@ -502,6 +758,30 @@
   "seconds": 6.82,
   "voice": "am_fenrir",
   "text": "Commit found. Author: Copy-Paste. Message: tiny tweak to mana regen. Friday, four fifty-nine."
+ },
+ "pkg_bought.0.0": {
+  "id": "pkg_bought.0.0",
+  "who": "LINT",
+  "hash": "078469e95610f924",
+  "seconds": 2.61,
+  "voice": "am_fenrir",
+  "text": "Package installed. Every run after has it."
+ },
+ "pkg_bought.0.1": {
+  "id": "pkg_bought.0.1",
+  "who": "DUCK",
+  "hash": "664bd6e4b2b2e853",
+  "seconds": 1.36,
+  "voice": "af_heart",
+  "text": "Try it on the dummy first."
+ },
+ "pkg_bought.1": {
+  "id": "pkg_bought.1",
+  "who": "DUCK",
+  "hash": "5723c38401fb28d1",
+  "seconds": 1.92,
+  "voice": "af_heart",
+  "text": "More spells. More ways to break things."
  },
  "run.0": {
   "id": "run.0",

@@ -14,6 +14,8 @@ const META_PATH := "user://meta.json"
 const EPOCH := 2
 const EPOCH_PATH := "user://epoch.json"
 const WIPE := [RUN_PATH, META_PATH, "user://runlog.json"]
+## Plan kinds that are boss fights (the Commit Wall marks a death there).
+const PLAN_BOSS := [&"mini", &"boss"]
 
 ## Tests switch saving off so they never touch the real save.
 static var enabled := true
@@ -40,7 +42,7 @@ static func reset_if_stale() -> bool:
 
 
 static func save_run(run: RunState) -> void:
-	if not enabled or in_memory or run == null or run.won:
+	if not enabled or in_memory or run == null or run.won or run.sandbox:
 		return
 	_write(RUN_PATH, run.to_dict())
 
@@ -74,11 +76,11 @@ static func save_settings(d: Dictionary) -> void:
 ## Lifetime numbers shown on the title screen.
 static func load_meta() -> Dictionary:
 	var d: Variant = _read(META_PATH)
-	var m := {"runs": 0, "wins": 0, "best_step": 0, "kills": 0, "hints": []}
+	var m := {"runs": 0, "wins": 0, "best_step": 0, "kills": 0, "hints": [], "hero": "apprentice", "heat": 0}
 	if d is Dictionary:
 		for k in d:
 			m[k] = d[k]
-	return m
+	return Meta.migrate(m)
 
 
 static func save_meta(m: Dictionary) -> void:
@@ -86,10 +88,35 @@ static func save_meta(m: Dictionary) -> void:
 		_write(META_PATH, m)
 
 
-static func record_run(run: RunState) -> void:
-	if not enabled:
+## How many runs the Commit Wall keeps.
+const HISTORY := 30
+
+
+## A finished run: the lifetime numbers, the daily best, the Commit Wall, the Compendium,
+## its Bits and the bounties it fixed. `how` is "abandon" when the player quit; `by` is what
+## ended it (Player.last_hurt_by).
+static func record_run(run: RunState, how := "", by := "") -> void:
+	if not enabled or run.sandbox:
 		return
+	Meta.fold_dex(run)
 	var m := load_meta()
+	var bits := Meta.bits_for(run, int(m["runs"]))
+	m["bits"] = int(m.get("bits", 0)) + bits
+	m["bits_life"] = int(m.get("bits_life", 0)) + bits
+	m["last_bits"] = bits
+	if run.daily != "":
+		m["dailies"] = int(m.get("dailies", 0)) + 1
+	# the Commit Wall: this run as a commit, newest first
+	var at := PLAN_BOSS.has(Chapter.PLAN[clampi(run.step, 0, Chapter.PLAN.size() - 1)])
+	var entry := {"id": "%06x" % (hash(str(run.seed_value) + str(m["runs"])) & 0xffffff), "won": run.won,
+		"world": run.world, "step": run.step, "heat": run.heat, "hero": String(run.hero), "by": by,
+		"quit": how == "abandon", "boss": at, "daily": run.daily, "wand": run.wand().def.title,
+		"rooms": int(run.stats.get("rooms", 0)), "time": roundi(float(run.stats.get("time", 0.0))),
+		"date": Time.get_date_string_from_system()}
+	var hist: Array = m.get("history", [])
+	hist.push_front(entry)
+	m["history"] = hist.slice(0, HISTORY)
+	m["last_run"] = entry
 	m["runs"] = int(m["runs"]) + 1
 	m["wins"] = int(m["wins"]) + (1 if run.won else 0)
 	m["best_step"] = maxi(int(m["best_step"]), Chapter.depth(run))   # rooms deep, across worlds
@@ -105,10 +132,11 @@ static func record_run(run: RunState) -> void:
 		if better:
 			m["daily"] = mine
 	_write(META_PATH, m)
-	# design v2: goals the finished run met (the end screen lists them)
-	var got := Meta.check(run).map(func(g: Dictionary) -> String: return g["id"])
+	# meta v2: bounties the finished run fixed (the end screen lists them; their Bits wait
+	# at the Workshop's board)
+	var got := Meta.check(run).map(func(b: Dictionary) -> String: return b["id"])
 	m = load_meta()
-	m["last_goals"] = got
+	m["last_bounties"] = got
 	_write(META_PATH, m)
 
 

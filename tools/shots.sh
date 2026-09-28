@@ -25,3 +25,10 @@ shot combat --demo --frames=420 --seed=3
 shot combat-cross --demo --frames=360 --room=cross --seed=5
 shot treasure --kind=treasure --frames=60
 RES=2556x1179 shot iphone-touch --demo --frames=300 --touchdemo --room=pillars
+# 0.19: the Workshop and its stations (a player with a few runs behind them)
+shot workshop --screen=hub --runs=3 --wins=1 --bits=140 --frames=150
+shot workshop-shop --screen=hub --runs=3 --bits=140 --at=pkg --frames=90
+shot merchant --screen=pkg --runs=3 --bits=140 --frames=60
+shot bounties --screen=board --runs=3 --frames=60
+shot compendium --screen=docs --runs=3 --frames=60
+RES=2556x1179 shot iphone-workshop --screen=hub --runs=3 --frames=150

@@ -12,8 +12,8 @@ func test_nothing_is_locked_when_saving_is_off() -> void:
 
 
 func test_a_new_player_meets_only_the_core() -> void:
-	Meta.test_meta = {"goals": [], "unlocked": []}
-	ok(Meta.is_locked(&"include") and Meta.is_locked(&"pyromancer"), "runes and later heroes wait on goals")
+	Meta.test_meta = {"meta_v": 2, "bounties": [], "packs": [], "unlocked": []}
+	ok(Meta.is_locked(&"include") and Meta.is_locked(&"pyromancer"), "runes and later heroes wait on packs and bounties")
 	ok(not Meta.is_locked(&"mote") and not Meta.is_locked(&"apprentice"), "the core is open")
 	var run := RunState.create(7)
 	var seen := {}
@@ -29,45 +29,61 @@ func test_a_new_player_meets_only_the_core() -> void:
 			ok(Meta.CORE_SPELLS.has(it["id"]), "%s in a whole offer is core (the counter pick too)" % it["id"])
 	var starts: Array = Rewards.offer(run, &"start")
 	var free: Array = starts.filter(func(o: Dictionary) -> bool: return not o["locked"]).map(func(o: Dictionary) -> StringName: return o["id"])
-	eq(free, [&"apprentice"], "only the Apprentice until a goal opens more")
+	eq(free, [&"apprentice"], "only the Apprentice until a bounty opens more")
 	var pyro: Dictionary = starts.filter(func(o: Dictionary) -> bool: return o["id"] == &"pyromancer")[0]
 	ok(not Rewards.grant(run, pyro), "a locked hero cannot be taken")
 	run.tutorial = true
 	eq(Rewards.offer(run, &"start").size(), 1, "the first run (a lesson) offers only the Apprentice")
 
 
-func test_every_locked_thing_has_a_goal() -> void:
+func test_every_locked_thing_has_a_source() -> void:
 	for id in Catalog.spells():
 		if not Catalog.is_evolved(id) and id != &"apprentice":
-			ok(Meta.CORE_SPELLS.has(id) or not Meta.goal_for(id).is_empty(), "spell %s: core or a goal" % id)
+			ok(Meta.CORE_SPELLS.has(id) or Meta.source_text(id) != "", "spell %s: core, a pack or a bounty" % id)
 	for id in Relics.DEFS:
-		ok(Meta.CORE_RELICS.has(id) or not Meta.goal_for(id).is_empty(), "relic %s: core or a goal" % id)
+		ok(Meta.CORE_RELICS.has(id) or Meta.source_text(id) != "", "relic %s: core, a pack or a bounty" % id)
 	for id in Catalog.wands():
 		if id != &"apprentice":
-			ok(Meta.CORE_WANDS.has(id) or not Meta.goal_for(id).is_empty(), "wand %s: core or a goal" % id)
+			ok(Meta.CORE_WANDS.has(id) or Meta.source_text(id) != "", "wand %s: core, a pack or a bounty" % id)
 	for id in Meta.CORE_SPELLS + Meta.CORE_RELICS + Meta.CORE_WANDS:
-		ok(Meta.goal_for(id).is_empty(), "%s is core and never behind a goal" % id)
+		ok(Meta.is_core(id), "%s is core and never in a pack or behind a bounty" % id)
+	var once := {}
+	for p in Meta.PACKS:
+		for id in p["items"]:
+			ok(not once.has(id), "%s sits in one pack only" % id)
+			once[id] = true
+			ok(Meta.bounty_for(id).is_empty(), "%s is not also a bounty's" % id)
+			ok(Catalog.spells().has(id) or Relics.DEFS.has(id) or Catalog.wands().has(id), "pack item %s exists" % id)
 
 
-func test_goals_unlock_their_bundles() -> void:
-	Meta.test_meta = {"goals": [], "unlocked": [], "runs": 0}
+func test_bounties_unlock_their_items() -> void:
+	Meta.test_meta = {"meta_v": 2, "bounties": [], "packs": [], "unlocked": [], "runs": 0}
 	var run := RunState.create(7)
 	eq(Meta.check(run).size(), 0, "a fresh run met nothing")
 	run.stats["rooms"] = 1
 	run.stats["clean"] = 1
 	var got := Meta.check(run).map(func(g: Dictionary) -> String: return g["id"])
-	ok(got.has("room") and got.has("clean"), "a clean first room meets two goals (%s)" % [got])
-	ok(not Meta.is_locked(&"chorus") and not Meta.is_locked(&"deadline"), "their bundles open")
-	eq(Meta.check(run).size(), 0, "a goal is met once")
+	ok(got.has("room") and got.has("clean"), "a clean first room fixes two bounties (%s)" % [got])
+	ok(not Meta.is_locked(&"chorus") and not Meta.is_locked(&"deadline"), "their items open at once")
+	eq(Meta.check(run).size(), 0, "a bounty is fixed once")
 	run.stats["bosses"] = 1
 	Meta.check(run)
-	ok(not Meta.is_locked(&"pyromancer"), "beating Copy-Paste opens the Pyromancer")
-	eq(Meta.open_goals()[0]["id"], "triggers", "the next goal to show")
+	ok(not Meta.is_locked(&"pyromancer"), "beating a mini-boss opens the Pyromancer")
+	eq(Meta.open_bounties()[0]["id"], "runs1", "the next ticket on the board")
+	eq(Meta.board().size(), Meta.BOARD_SIZE, "the board shows three")
+	eq(Meta.bits(), 0, "Bits wait at the board")
+	eq(Meta.claim("room"), 10, "claiming pays the ticket")
+	eq(Meta.claim("room"), 0, "once")
+	eq(Meta.bits(), 10, "into the bank")
+	var sandbox := RunState.create(7)
+	sandbox.sandbox = true
+	sandbox.stats["kills"] = 500
+	eq(Meta.check(sandbox).size(), 0, "the Workshop's sandbox never counts")
 
 
 func test_the_starting_slot_upgrade() -> void:
-	Meta.test_meta = {"goals": [], "unlocked": [], "runs": 3}
-	ok(Meta.extra_slots() == 0, "no extra slot before its goal")
+	Meta.test_meta = {"meta_v": 2, "bounties": [], "packs": [], "unlocked": [], "runs": 3}
+	ok(Meta.extra_slots() == 0, "no extra slot before its bounty")
 	Meta.check(RunState.create(7))
 	ok(Meta.extra_slots() == 1, "three runs played: one extra slot")
 	var run := RunState.create(7)

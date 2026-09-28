@@ -35,7 +35,24 @@ var _sel_cast := -1               # a tapped cast in the preview: its slots are 
 var _cast_slots: Array = []       # per preview cast: the slot indices it read
 
 
+## 0.19: the Workshop's wand bench. The bag is a library of every open spell, a page at a
+## time: taking one copies it, dropping a wand's spell in the bag clears that slot.
+var library: Array = []
+var page := 0
+
+
+func _pages() -> int:
+	return maxi(1, ceili(float(library.size()) / RunState.BAG_MAX))
+
+
+func _fill_page() -> void:
+	page = clampi(page, 0, _pages() - 1)
+	run.bag = library.slice(page * RunState.BAG_MAX, (page + 1) * RunState.BAG_MAX).map(func(e: Dictionary) -> Dictionary: return e.duplicate())
+
+
 func _opened() -> void:
+	if not library.is_empty():
+		_fill_page()
 	focus_wand = run.cur
 	_snapshot = _snap()
 	_lab = WandLab.new()
@@ -85,7 +102,12 @@ func _paint() -> void:
 	for wi in run.wands.size():
 		y = _wand_row(wi, Vector2(left.position.x, y), left.size.x) + 5
 	# bag
-	text(Vector2(left.position.x + 2, y + 9), "BAG  %d/%d" % [run.bag.size(), RunState.BAG_MAX], MUTED, 8, "bold")
+	if library.is_empty():
+		text(Vector2(left.position.x + 2, y + 9), "BAG  %d/%d" % [run.bag.size(), RunState.BAG_MAX], MUTED, 8, "bold")
+	else:
+		text(Vector2(left.position.x + 2, y + 9), "EVERY SPELL YOU OWN  %d/%d" % [page + 1, _pages()], MUTED, 8, "bold")
+		button(Rect2(left.end.x - 58, y - 2, 26, 14), "page_prev", "<", "ghost", page > 0)
+		button(Rect2(left.end.x - 28, y - 2, 26, 14), "page_next", ">", "ghost", page < _pages() - 1)
 	y += 12
 	var per_row := mini(12, maxi(1, int((left.size.x + GAP) / (SOCK + GAP))))
 	for i in RunState.BAG_MAX:
@@ -487,6 +509,9 @@ func _on_up(p: Vector2) -> bool:
 
 
 func _move(from: Dictionary, to: Dictionary) -> void:
+	if not library.is_empty():
+		_move_library(from, to)
+		return
 	# moving into the bag past its end appends
 	if to["w"] < 0 and to["i"] >= run.bag.size():
 		to = {"w": -1, "i": run.bag.size()}
@@ -506,7 +531,34 @@ func _move(from: Dictionary, to: Dictionary) -> void:
 		Audio.sfx("ui_drop")
 
 
+## The wand bench's moves: the library copies out and takes back; wand to wand is a move.
+func _move_library(from: Dictionary, to: Dictionary) -> void:
+	_sel_cast = -1
+	if from["w"] < 0 and to["w"] >= 0:
+		var e: Variant = _spell_at(from)
+		if e == null:
+			return
+		run.wands[to["w"]].slots[to["i"]] = (e as Dictionary).duplicate()
+		focus_wand = to["w"]
+		Audio.sfx("ui_equip")
+	elif from["w"] >= 0 and to["w"] < 0:
+		run.wands[from["w"]].slots[from["i"]] = null
+		Audio.sfx("ui_drop")
+	elif from["w"] >= 0 and to["w"] >= 0:
+		run.place_spell(from, to)
+		focus_wand = to["w"]
+		Audio.sfx("ui_equip")
+	for w in run.wands:
+		w.ptr = 0
+		w.acc = Mods.new()
+	_fill_page()
+
+
 func _on_button(id: String) -> void:
+	if id == "page_prev" or id == "page_next":
+		page += -1 if id == "page_prev" else 1
+		_fill_page()
+		return
 	if id == "done":
 		finished.emit({})
 	elif id == "revert":

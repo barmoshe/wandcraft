@@ -22,7 +22,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	SaveGame.enabled = false
+	SaveGame.in_memory = true   # a first-time player, the same on every machine
 	var rotate := OS.get_cmdline_user_args().has("--rotate")
 	_ios = OS.get_cmdline_user_args().has("--ios")
 	if rotate:
@@ -35,20 +35,20 @@ func _run() -> void:
 		DisplayServer.window_set_size(Vector2i(2340, 1080))
 		await _frames(10)
 	var s: Screen = main.get("screen")
-	_check(s is TitleScreen, "the title screen is open")
+	_check(s is TitleCard, "the title card is open")
 	if s == null:
 		return _done()
 	print("window %s  viewport %s  screen rect %s" % [DisplayServer.window_get_size(), root.get_visible_rect().size, s.get_global_rect()])
 	await _frames(20)   # past the input guard
-	var new_btn := _button_rect(s, "new")
-	_check(new_btn.size != Vector2.ZERO, "NEW RUN is registered")
-	await _tap(new_btn.get_center())
+	var play_btn := _button_rect(s, "play")
+	_check(play_btn.size != Vector2.ZERO, "TAP TO PLAY is registered")
+	await _tap(play_btn.get_center())
 	await _frames(5)
 	var after: Variant = main.get("screen")
 	print("screen after tap: ", after)
-	_check(after == null or not (after is TitleScreen), "tapping NEW RUN closes the title")
-	# a first run opens the story's intro (research/story.md); SKIP goes on to the run
-	_check(after is StoryScreen, "a first run opens the intro")
+	_check(after == null or not (after is TitleCard), "a tap closes the title card")
+	# a first launch opens the story's intro (research/story.md); SKIP goes on to the lessons
+	_check(after is StoryScreen, "a first launch opens the intro")
 	if after is StoryScreen:
 		await _frames(20)   # past the input guard
 		await _tap(_button_rect(after, "skip").get_center())
@@ -121,7 +121,47 @@ func _run() -> void:
 			Input.parse_input_event(m)
 			await _frames(2)
 		_check(main.get("screen") == null, "a mouse click on RESUME closes pause")
+	await _hub_phase()
 	_done()
+
+
+## The Workshop (0.19): walk up to the Terminal, USE it, BACK; MENU, the portal, NEW RUN.
+func _hub_phase() -> void:
+	var m := SaveGame.load_meta()
+	m["runs"] = 1
+	m["tutorial_done"] = true
+	SaveGame.save_meta(m)
+	main.call("_show_hub", false)
+	await _frames(20)
+	var world: World = main.get("world")
+	var hud: Hud = main.get("hud")
+	_check(world.hub != null and bool(main.get("_hub")), "the Workshop opens")
+	if world.hub == null:
+		return
+	world.player.position = (world.hub.anchors["terminal"][0] as Vector2) + Vector2(-14, 8)
+	await _frames(10)
+	_check(world.hub.near == "terminal" and hud.buttons.has("use"), "USE shows by the Terminal")
+	if hud.buttons.has("use"):
+		await _tap((hud.buttons["use"] as Rect2).get_center())
+		await _frames(20)
+		var s: Variant = main.get("screen")
+		_check(s is PauseScreen and s.hub, "USE opens the Terminal")
+		if s is PauseScreen:
+			await _tap(_button_rect(s, "resume").get_center())
+			await _frames(5)
+	await _tap((hud.buttons["menu"] as Rect2).get_center())
+	await _frames(20)
+	var menu: Variant = main.get("screen")
+	_check(menu is HubMenu, "MENU lists the stations")
+	if menu is HubMenu:
+		await _tap(_button_rect(menu, "portal").get_center())
+		await _frames(25)
+		var sheet: Variant = main.get("screen")
+		_check(sheet is RunSheet, "the menu's Portal opens the run sheet")
+		if sheet is RunSheet:
+			await _tap(_button_rect(sheet, "new").get_center())
+			await _frames(10)
+			_check(bool(main.get("_playing")) and not bool(main.get("_hub")) and world.hub == null, "NEW RUN leaves the Workshop for a run")
 
 
 func _filled(run: RunState) -> int:

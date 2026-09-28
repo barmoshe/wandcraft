@@ -82,6 +82,10 @@ func _on_room(def: Dictionary) -> void:
 	banner_low = false
 	banner = def.get("title", "")
 	var no := int(def["no"])
+	if def.get("kind", &"") == &"hub":
+		banner_sub = "Walk to a station to use it"
+		banner_t = 2.0
+		return
 	var th := Chapter.threat_of(world.run.room) if world and world.run and def.get("kind", &"") != &"start" else &""
 	var tw := Chapter.twist_of(world.run.room) if world and world.run and def.get("kind", &"") == &"fight" else &""
 	if def.get("kind", &"") == &"risk":
@@ -144,6 +148,9 @@ func _draw() -> void:
 	var sr := safe()
 	var run := world.run
 	buttons.clear()
+	if world.hub:
+		_draw_hub(sr, run)
+		return
 	_draw_low_hp(run)
 	_draw_wands(sr.position, run)
 	_draw_vitals(Vector2(sr.position.x, sr.end.y), run)
@@ -366,6 +373,51 @@ func _draw_dash(sr: Rect2) -> void:
 		draw_texture(wt, (sc - wt.get_size() / 2.0).round())
 		_text(sc + Vector2(5, 11), str((run.cur + 1) % run.wands.size() + 1), GOLD, 8, "bold")
 		buttons["swap"] = Rect2(sc - Vector2(16, 16), Vector2(32, 32))
+
+
+## The Workshop (0.19): no vitals or map, the Bits in the bank, a MENU that lists every
+## station, the wands only at the training ground, and USE in the dash slot when a station
+## is in reach (its glyph says which).
+func _draw_hub(sr: Rect2, run: RunState) -> void:
+	var h := world.hub
+	# the Bits, top left
+	var bits := Meta.bits()
+	draw_rect(Rect2(sr.position, Vector2(92, 18)), Color(0.05, 0.03, 0.1, 0.7))
+	draw_texture(Icons.glyph("chip", Color("#7cf0c8")), (sr.position + Vector2(2, 1)).round())
+	_text(sr.position + Vector2(20, 13), "%d BITS" % bits, Color("#7cf0c8"), 8, "bold")
+	var waiting := Meta.unclaimed().size()
+	if waiting > 0:
+		_text(sr.position + Vector2(2, 28), "%d bount%s to claim" % [waiting, "y" if waiting == 1 else "ies"], Style.UI_GOOD, 8)
+	# MENU, top right
+	var mc := Vector2(sr.end.x - 16, sr.position.y + 14)
+	draw_circle(mc, 13.0, INK)
+	draw_circle(mc, 11.0, Style.c("night:2"))
+	for k in 3:
+		draw_rect(Rect2(mc + Vector2(-5, -4 + k * 4), Vector2(10, 1.5)), GOLD)
+	buttons["menu"] = Rect2(mc - Vector2(16, 16), Vector2(32, 32))
+	# the wands, only where they fire
+	if h.in_fire_zone(world.player.position):
+		_draw_wands(sr.position + Vector2(0, 40), run)
+	# USE (or the dash, on touch, when nothing is in reach)
+	if h.near != "":
+		var st: Dictionary = Hub.STATIONS[h.near]
+		var c := Vector2(sr.end.x - 26, sr.end.y - 74)
+		var col := Color(st["color"]) if h.open(h.near) else Color(0.5, 0.45, 0.6)
+		draw_circle(c, 17.0, INK)
+		draw_circle(c, 15.0, Style.c("night:2"))
+		draw_arc(c, 15.0, 0.0, TAU, 24, col, 2.0)
+		var g := Icons.glyph(st["glyph"], col)
+		draw_texture(g, (c - g.get_size() / 2.0).round())
+		_text(c + Vector2(-9, 26), "USE", col, 8, "bold")
+		if not (Game.is_touch() or Game.touch_seen):
+			_text(c + Vector2(-26, 26), "E", Style.UI_MUTED, 8, "bold")
+		buttons["use"] = Rect2(c - Vector2(18, 18), Vector2(36, 36))
+	elif Game.is_touch() or Game.touch_seen:
+		_draw_dash(sr)
+	_draw_banner(sr)
+	_draw_hint(sr)
+	if fade_a > 0.0:
+		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(0.02, 0.01, 0.05, fade_a * fade_a))
 
 
 ## The Duck's box: its face, its name, the line (wrapped to two lines at most).

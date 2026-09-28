@@ -6,16 +6,21 @@ extends Screen
 var sel_relic := -1
 var confirm_abandon := false
 var resumed := false     # opened by "continue": says so in the title
+## 0.19: the Workshop's Terminal. Settings and credits; no run to resume or abandon.
+var hub := false
 
 
 func _paint() -> void:
 	dim()
 	var v := view()
 	var sr := safe()
+	var cx := v.x / 2.0
+	if hub:
+		_paint_terminal(sr, cx)
+		return
 	text_center(v.x / 2.0, sr.position.y + 22, "PAUSED" if not resumed else "WELCOME BACK", GOLD, 16, "body")
 	var step_txt := ("%s  -  %s" % [Chapter.WORLDS[run.world]["name"], Chapter.area_name(0, run.world)]) if run.step == 0 else "%s, room %d of %d  -  %s" % [Chapter.WORLDS[run.world]["name"], run.step, Chapter.PLAN.size() - 1, Chapter.area_name(run.step, run.world)]
 	text_center(v.x / 2.0, sr.position.y + 36, step_txt, MUTED)
-	var cx := v.x / 2.0
 	var y := sr.position.y + 48
 	# relics
 	var rw := minf(sr.size.x - 20, 360.0)
@@ -44,6 +49,32 @@ func _paint() -> void:
 	y = rr.end.y + 6
 	button(Rect2(cx - 70, y, 140, 28), "resume", "RESUME", "primary")
 	y += 34
+	y = _settings_rows(sr, cx, y)
+	var bw := 96.0
+	button(Rect2(cx - bw * 1.5 - 6, y, bw, 26), "gloss", "HOW IT WORKS", "ghost")
+	button(Rect2(cx - bw / 2.0, y, bw, 26), "hints", "SHOW TIPS", "ghost")
+	button(Rect2(cx + bw / 2.0 + 6, y, bw, 26), "abandon", "SURE? TAP" if confirm_abandon else "ABANDON RUN", "danger")
+	_web_diag(sr, cx, y)
+	if show_glossary:
+		glossary_panel()
+
+
+## The Terminal (the Workshop): a monitor's worth of settings, how it works, and credits.
+func _paint_terminal(sr: Rect2, cx: float) -> void:
+	text_center(cx, sr.position.y + 22, "TERMINAL", Color("#5ce1ff"), 16, "body")
+	text_center(cx, sr.position.y + 36, "guild@source:~$ settings", Style.UI_GOOD)
+	var y := _settings_rows(sr, cx, sr.position.y + 50)
+	var bw := 96.0
+	button(Rect2(cx - bw * 1.5 - 6, y, bw, 26), "gloss", "HOW IT WORKS", "ghost")
+	button(Rect2(cx - bw / 2.0, y, bw, 26), "hints", "SHOW TIPS", "ghost")
+	button(Rect2(cx + bw / 2.0 + 6, y, bw, 26), "credits", "CREDITS", "ghost")
+	button(Rect2(cx - 70, y + 34, 140, 28), "resume", "BACK", "primary")
+	_web_diag(sr, cx, y + 34)
+	if show_glossary:
+		glossary_panel()
+
+
+func _settings_rows(sr: Rect2, cx: float, y: float) -> float:
 	var bw := 96.0
 	var s := Game.settings()
 	var rows := [
@@ -59,10 +90,10 @@ func _paint() -> void:
 			var b: Array = row[k]
 			button(Rect2(x0 + k * (sbw + 6), y, sbw, 26), b[0], "%s %s" % [b[1], "ON" if b[2] else "OFF"])
 		y += 30
-	y += 4
-	button(Rect2(cx - bw * 1.5 - 6, y, bw, 26), "gloss", "HOW IT WORKS", "ghost")
-	button(Rect2(cx - bw / 2.0, y, bw, 26), "hints", "SHOW TIPS", "ghost")
-	button(Rect2(cx + bw / 2.0 + 6, y, bw, 26), "abandon", "SURE? TAP" if confirm_abandon else "ABANDON RUN", "danger")
+	return y + 4
+
+
+func _web_diag(sr: Rect2, cx: float, y: float) -> void:
 	var diag := Game.web_sound()
 	if diag != "":
 		# web only: lets a tester report why a phone is silent without a Mac inspector.
@@ -79,8 +110,6 @@ func _paint() -> void:
 				text(Vector2(sr.position.x + 4, sr.end.y - 2 - (lines.size() - 1 - i) * 10), lines[i], faint)
 		else:
 			text_center(cx, y + 26 + 11, "  -  ".join(lines), faint)
-	if show_glossary:
-		glossary_panel()
 
 
 func _on_button(id: String) -> void:
@@ -89,6 +118,8 @@ func _on_button(id: String) -> void:
 	match id:
 		"resume":
 			finished.emit({})
+		"credits":
+			finished.emit({"credits": true})
 		"abandon":
 			if confirm_abandon:
 				finished.emit({"abandon": true})

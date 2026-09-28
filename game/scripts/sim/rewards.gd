@@ -133,6 +133,21 @@ static func _spells(run: RunState, biases: Array) -> Array:
 
 
 static func offer(run: RunState, kind: StringName) -> Array:
+	var out := _offer(run, kind)
+	see_all(run, out)
+	return out
+
+
+## The Compendium (0.19): everything shown in an offer or a shop counts as seen.
+static func see_all(run: RunState, items: Array) -> void:
+	for it in items:
+		match it.get("t", &""):
+			&"spell": run.see(&"s", it["id"])
+			&"relic": run.see(&"r", it["id"])
+			&"wand": run.see(&"w", it["id"])
+
+
+static func _offer(run: RunState, kind: StringName) -> Array:
 	if kind == &"spell" and Tutorial.active(run):
 		return Tutorial.offer(run)
 	match kind:
@@ -214,6 +229,7 @@ static func shop_stock(run: RunState) -> Array:
 	sale["sale"] = true
 	run.deprecated_here = false
 	run.rerolls_here = 0
+	see_all(run, out)
 	return out
 
 

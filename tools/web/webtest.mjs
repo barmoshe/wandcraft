@@ -49,7 +49,7 @@ await page.waitForFunction(() => !document.getElementById('status'), null, { tim
 await page.waitForTimeout(3000);
 const box = await page.locator('canvas').boundingBox();
 check(box && box.x === 0 && box.y === 0 && box.width === 932 && box.height === 430, `canvas fills the window (${JSON.stringify(box)})`);
-// NEW RUN sits at about 63% x 47% of the title; iPhone-style large touch id
+// 0.19: the title card takes a tap anywhere (it is also the tap iOS needs before sound); iPhone-style large touch id
 await tap(932 * 0.63, 430 * 0.47, 1234567);
 let peak = 0;
 for (let i = 0; i < 30; i++) {
@@ -57,7 +57,7 @@ for (let i = 0; i < 30; i++) {
 	peak = Math.max(peak, await page.evaluate(() => window.__peak()));
 }
 check(peak > 0.01, `sound comes out (peak level ${peak.toFixed(3)})`);
-// D8: the music bus itself, once the run's first room has started its area music
+// D8: the music bus itself (the title theme, under the intro or the Workshop)
 let music = -200;
 let track = '';
 for (let i = 0; i < 20; i++) {

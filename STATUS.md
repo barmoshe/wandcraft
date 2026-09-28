@@ -281,9 +281,18 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
-- **0.18.0 is the playtest build** (ADR 0026): the story and the descent between worlds, the Duck and LINT speaking, a harder run (start HP 80, hits that cost more, enemies that aim ahead, bosses that press), heat that changes rules and pays, and an Untouched orb for clean boss fights.
-- **Bar:** play it, listen to the voices (and `shots/voice-audition/index.html` to overrule the picks), then send it to the same five testers. Ask whether they ever felt close to dying before a boss, whether the switch between worlds was clear, and whether the voices help or annoy.
-- **Then:** read the run logs (`window.wandcraftRunLog()`). If deaths bunch in one room, or the Loop runs under 70 s for humans, tune there first (`research/difficulty.md`, How to verify).
+- **0.19.0 is the playtest build** (ADR 0027, `research/workshop-0.19.md`): the Workshop, a playable hub that replaces the title menu. You walk it with the run's controls, and USE opens a station:
+  - the Portal (new run, continue, daily, heat)
+  - the Hero Hall (each hero now has their own look)
+  - the Merchant, selling spell packs for Bits (a currency that carries over between runs; 4 new packs with 12 new spells)
+  - the Wand Bench with a DPS dummy
+  - the Bug Bounty Board (replaces goals)
+  - the Compendium (replaces the Codex)
+  - the Commit Wall (your runs)
+  - the Terminal (settings before a run)
+  - the Duck and LINT, who react to your last run
+- **Bar:** play it on a phone. Is the Workshop quick to cross, is USE easy to hit, and does a pack every one or two runs feel right? Then send it to the same testers along with 0.18's questions.
+- **Then:** read the run logs. If the first pack takes more than two runs, raise `Meta.BITS_ROOM` or lower the legacy pack prices (`Meta.PACKS`).
 - **Open:** the "tell me when it's out" sign-up (Yoaviko) needs Bar to pick where it points; the store is paused on the Apple and Google accounts.
 
 ## How to look at it
@@ -296,6 +305,7 @@
   - A staged fight: `--showcase --wand=2`.
   - A boss: `--demo --kind=boss --loadout=strong --frames=480`.
   - A screen: `--screen=editor|reward|shop|forge|pause|end|title`.
+  - The Workshop: `--screen=hub|runsheet|heroes|bench|pkg|board|docs|wall|terminal|hubmenu --runs=N --wins=N --bits=N` (`--at=<station>` stands you by one).
 - Playing on the Mac: open `game/project.godot` in Godot 4.7.2 and press Play.
   - Controls: WASD to move, hold the mouse button to aim and fire, 1/2/3 to switch wands, Tab/E for the wand editor, Esc to pause, F to toggle auto-fire.
 

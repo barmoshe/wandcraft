@@ -84,7 +84,7 @@ func _player_texts() -> Array:
 		out.append_array(Hints.TIPS[k])
 	for id in RunState.LOADOUTS:
 		out.append(Rewards.hero_text(id))
-	for g in Meta.GOALS:
+	for g in Meta.BOUNTIES:
 		out.append(g["text"])
 	return out
 

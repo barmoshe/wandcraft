@@ -61,6 +61,7 @@ var clip_t := 0.0
 var back := false          # aiming up: the hero turns away from the camera
 var hurt_t := 0.0          # seconds of the hurt clip left
 var _gem := "frost"        # the held wand's gem ramp (follows the wand in hand)
+var _hero := &"apprentice" # 0.19: whose look is drawn (Hero.LOOKS; set_look)
 ## D9: the dash (design-plan §10): 0.18 s, 0.14 s of i-frames, three afterimages, then a
 ## 0.35 s cooldown. It goes where you move, or where you aim when standing still.
 const DASH_T := 0.18
@@ -77,9 +78,7 @@ var _ghost_t := 0.0
 func setup(w: World) -> void:
 	world = w
 	controls = w.controls
-	frames = Hero.frames()
-	clips_front = Hero.clips(false)
-	clips_back = Hero.clips(true)
+	set_look(_hero)
 	wand_tex = Hero.wand_angles()
 	head = Vector2(0, -frames[0].get_height() - 2.0)
 	sprite = Sprite2D.new()
@@ -96,6 +95,16 @@ func setup(w: World) -> void:
 	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	tip_glow.material = mat
 	add_child(tip_glow)
+
+
+## 0.19: draws the hero as `hero` (Hero.LOOKS): the run's start, and a start-room pick.
+func set_look(hero: StringName) -> void:
+	_hero = hero
+	frames = Hero.frames(hero)
+	clips_front = Hero.clips(false, hero)
+	clips_back = Hero.clips(true, hero)
+	if sprite:
+		sprite.texture = frames[0]
 
 
 func wand() -> WandState:
@@ -193,6 +202,10 @@ func tick(dt: float) -> void:
 		firing = world.los(hand, target.position)
 	elif mv.length() > 0.1:
 		aim = mv.angle()
+	# the Workshop (0.19): the wand only fires at the training ground; elsewhere the stick
+	# just turns you
+	if world.hub and not world.hub.in_fire_zone(position):
+		firing = false
 	var regen_mul := Relics.mana_regen_mul(run)
 	for w in wands:
 		var k: float = regen_mul * w.regen_mul()
@@ -325,6 +338,15 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	Game.haptic("hurt")
 	if Game.quiet == 0:
 		Events.player_hurt.emit(amount)
+	if hp <= 0.0 and run.has_relic(&"last_good_commit") and int(run.stats.get("checkpoint", 0)) == 0:
+		# Checkpoint: once per run, a fatal hit rolls you back to the HP you entered the room with
+		run.stats["checkpoint"] = 1
+		hp = maxf(1.0, float(run.stats.get("room_hp", max_hp)))
+		inv = 1.5
+		world.fx.text(position + head, "ROLLBACK", Style.c("leaf:4"))
+		world.fx.ring(position + Vector2(0, -6), 2.0, 22.0, 0.4, Style.c("leaf:4"))
+		Audio.sfx("relic_proc", position)
+		return
 	if hp <= 0.0:
 		hp = 0.0
 		dead = true
@@ -360,7 +382,7 @@ func death_tick(dt: float) -> void:
 		clip_t = 0.0
 	clip_t += dt
 	var fr: Array = (clips_back if back else clips_front)["death"]
-	sprite.texture = fr[Hero.rig(back).frame_at("death", clip_t)]
+	sprite.texture = fr[Hero.rig(back, _hero).frame_at("death", clip_t)]
 	sprite.visible = true
 	wand_sprite.visible = false
 	tip_glow.visible = false
@@ -383,7 +405,7 @@ func _animate() -> void:
 		clip = want
 		clip_t = 0.0
 	clip_t += dt
-	var rig := Hero.rig(back)
+	var rig := Hero.rig(back, _hero)
 	var t := walk_t * 0.75 if clip == "run" else clip_t
 	var fr: Array = (clips_back if back else clips_front)[clip]
 	sprite.texture = fr[rig.frame_at(clip, t)]

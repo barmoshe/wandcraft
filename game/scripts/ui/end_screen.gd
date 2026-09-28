@@ -92,35 +92,37 @@ func _paint() -> void:
 		text_right(r.end.x - 10, r.position.y + 14 + i * 12, rows[i][1], TEXT, 8, "bold")
 	var gr := Rect2(cx + 8, y, 214, 84)
 	panel(gr, true)
-	var got: Array = SaveGame.load_meta().get("last_goals", [])
-	# every line is measured, so a long goal wraps inside the panel, never over the next line
+	var meta := SaveGame.load_meta()
+	var got: Array = meta.get("last_bounties", [])
+	# every line is measured, so a long ticket wraps inside the panel, never over the next line
 	var gx := gr.position.x + 10
 	var gw := gr.size.x - 20
 	var gy := gr.position.y + 4
-	var nxt := Meta.open_goals()
+	# meta v2: the Bits this run paid, then the bounties it fixed, then the next ticket
+	text(Vector2(gx, gy + 10), "+%d BITS" % int(meta.get("last_bits", 0)), Color("#7cf0c8"), 8, "bold")
+	text_right(gr.end.x - 10, gy + 10, "%d in the bank" % int(meta.get("bits", 0)), MUTED)
+	gy += 14
+	var nxt := Meta.open_bounties()
 	if not got.is_empty():
-		text(Vector2(gx, gy + 10), "GOALS DONE", Style.UI_GOOD, 8, "bold")
+		text(Vector2(gx, gy + 10), "BOUNTIES FIXED", Style.UI_GOOD, 8, "bold")
 		gy += 12
-		# with a next goal to show, one done line (and a count) leaves it room
-		var shown := got.slice(0, 1 if not nxt.is_empty() else 3)
-		for gid in shown:
-			var g: Dictionary = Meta.GOALS.filter(func(x: Dictionary) -> bool: return x["id"] == gid)[0]
+		var shown := got.slice(0, 1 if not nxt.is_empty() else 2)
+		for bid in shown:
+			var b := Meta.bounty(bid)
 			var more := " (+%d more)" % (got.size() - 1) if shown.size() == 1 and got.size() > 1 else ""
-			para(Rect2(gx, gy, gw, 11), "%s: %s%s" % [g["text"], Meta.title(g["unlocks"][0]), more], TEXT)
+			para(Rect2(gx, gy, gw, 11), "%s: +%d Bits%s" % [b.get("text", bid), int(b.get("bits", 0)), more], TEXT)
 			gy += 11
-		gy += 4
+		gy += 3
 	if nxt.is_empty():
-		text(Vector2(gx, gy + 10), "Every goal done. Turn up the heat.", GOLD)
+		text(Vector2(gx, gy + 10), "Every bounty fixed. Turn up the heat.", GOLD)
 	else:
-		text(Vector2(gx, gy + 10), "NEXT GOAL", GOLD, 8, "bold")
+		text(Vector2(gx, gy + 10), "NEXT BOUNTY", GOLD, 8, "bold")
 		gy += 12
-		var room := gr.end.y - 4 - gy - 11   # what is left above the unlocks line
-		var h := minf(para(Rect2(gx, gy, gw, maxf(11.0, room)), nxt[0]["text"], TEXT), maxf(11.0, floorf((room + 1.0) / 11.0) * 11.0))
-		var names: Array = (nxt[0]["unlocks"] as Array).map(func(id: StringName) -> String: return Meta.title(id))
-		para(Rect2(gx, gy + h, gw, 11), "Unlocks " + ", ".join(names.slice(0, 3)), MUTED)
+		var room := gr.end.y - 4 - gy
+		para(Rect2(gx, gy, gw, maxf(11.0, room)), "%s  (+%d Bits)" % [nxt[0]["text"], int(nxt[0]["bits"])], TEXT)
 	y = r.end.y + 10
 	button(Rect2(cx - 116, y, 110, 30), "again", "NEW RUN", "primary")
-	button(Rect2(cx + 6, y, 110, 30), "title", "TITLE", "ghost")
+	button(Rect2(cx + 6, y, 110, 30), "title", "WORKSHOP", "ghost")
 	if run.daily != "":
 		button(Rect2(cx + 122, y, 96, 30), "share", "COPY RESULT", "ghost")
 

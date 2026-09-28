@@ -66,15 +66,18 @@ func _ready() -> void:
 	_build_shockwave()
 	# design v2: goals are checked at every room clear; a new one says what it unlocked
 	Events.room_entered.connect(func(def: Dictionary) -> void:
-		if world.run and not world.bot:
+		if world.run and not world.bot and not world.run.sandbox:
 			RunLog.room_entered(world.run, StringName(def.get("kind", ""))))
 	Events.room_cleared.connect(func() -> void:
-		if world.run == null or world.bot:
+		if world.run == null or world.bot or world.run.sandbox:
 			return
 		RunLog.room_cleared(world.run)
-		for g in Meta.check(world.run):
-			var names: Array = (g["unlocks"] as Array).map(func(id: StringName) -> String: return Meta.title(id))
-			Events.toast.emit("Goal: %s. Unlocked %s" % [g["text"], ", ".join(names.slice(0, 3))]))
+		Meta.fold_dex(world.run)
+		# meta v2: a bounty fixed mid-run says so; its items open now, its Bits wait at the board
+		for b in Meta.check(world.run):
+			var names: Array = (b.get("unlocks", []) as Array).map(func(id: StringName) -> String: return Meta.title(id))
+			var got := (". Unlocked " + ", ".join(names.slice(0, 3))) if not names.is_empty() else ""
+			Events.toast.emit("Bounty fixed: %s%s (+%d Bits)" % [b["text"], got, int(b["bits"])]))
 	Events.shockwave.connect(_on_shockwave)
 	_screens = CanvasLayer.new()
 	_screens.layer = 20
@@ -85,40 +88,197 @@ func _ready() -> void:
 		add_child(rot)
 		rot.add_child(RotateHint.new())
 	var direct := _args.has("demo") or _args.has("showcase") or _args.has("step") or _args.has("kind") or _args.has("screen")
-	if direct and _args.get("screen", "") != "title":
+	if _args.has("runs") or _args.has("wins"):
+		# screenshots and tests: a player with this many runs and wins (in the in-memory save)
+		var m := SaveGame.load_meta()
+		m["runs"] = int(_args.get("runs", "0"))
+		m["wins"] = int(_args.get("wins", "0"))
+		m["tutorial_done"] = m["runs"] > 0
+		m["intro_seen"] = m["runs"] > 0
+		m["bits"] = int(_args.get("bits", "0"))
+		SaveGame.save_meta(m)
+	if direct and not _args.get("screen", "") in ["title", "hub"] and not _HUB_SCREENS.has(_args.get("screen", "")):
 		_start_from_args()
+	elif _HUB_SCREENS.has(_args.get("screen", "")):
+		_show_hub(false)
+		_hub_use(_HUB_SCREENS[_args["screen"]], int(_args.get("arg", "0")))
+	elif _args.get("screen", "") == "hub":
+		_show_hub(false)
+		if _args.has("at"):
+			world.player.position = world.hub.anchors.get(String(_args["at"]), [world.player.position])[0] + Vector2(0, 14)
 	else:
-		_show_title()
+		_launch_app()
 
 
 # ------------------------------------------------------------------ flow
 
-func _show_title() -> void:
-	_playing = false
-	hud.visible = false
-	touch.enabled = false
-	world.visible = false
-	Audio.music("title")
+## Screens a screenshot can open straight in the Workshop (--screen=NAME).
+const _HUB_SCREENS := {"runsheet": "portal", "heroes": "heroes", "bench": "repl", "pkg": "pkg",
+	"board": "bounty", "docs": "docs", "wall": "log", "terminal": "terminal", "hubmenu": "menu"}
+
+## True while the player walks the Workshop (between runs).
+var _hub := false
+
+
+## The app opens (0.19): a first-time player gets the title, the intro and straight into the
+## lessons run; everyone else gets the title over the live Workshop.
+func _launch_app() -> void:
+	var m := SaveGame.load_meta()
+	if int(m.get("runs", 0)) == 0 and not bool(m.get("tutorial_done", false)) and not SaveGame.has_run():
+		_playing = false
+		hud.visible = false
+		touch.enabled = false
+		world.visible = false
+		Audio.music("title")
+		_open(TitleCard.new(), func(_r: Dictionary) -> void:
+			_story_then(&"intro", func() -> void: _begin(_new_run())))
+		return
+	_show_hub(true)
+
+
+## The Workshop (research/workshop-0.19.md): walk it with the run's controls; stations open
+## with USE (main._hub_use). `card` shows the title over it first.
+func _show_hub(card := false) -> void:
+	_hub = true
+	_playing = true
+	world.visible = true
+	hud.visible = true
+	touch.enabled = true
 	Audio.snapshot(&"play")
-	var t := TitleScreen.new()
-	_open(t, func(res: Dictionary) -> void:
-		if res.get("action") == "credits":
-			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: _show_title())
+	Dialogue.clear()
+	var meta := SaveGame.load_meta()
+	world.enter_hub(Hub.make_run(meta))
+	_follow_camera(true)
+	if card:
+		_open(TitleCard.new(), func(res: Dictionary) -> void:
+			if res.get("action") == "continue":
+				var r := SaveGame.load_run()
+				if r:
+					_begin(r)
+					_open_pause(true)
+					return
+			_hub_greet())
+	else:
+		_hub_greet()
+
+
+## The Duck or LINT says one line that fits the last run (Hub.greeting).
+func _hub_greet() -> void:
+	var m := SaveGame.load_meta()
+	var ev := Hub.greeting(m)
+	m["hub_seen"] = true
+	m["greeted"] = int(m.get("runs", 0))
+	SaveGame.save_meta(m)
+	if ev != "":
+		get_tree().create_timer(0.8).timeout.connect(func() -> void:
+			if _hub and screen == null:
+				Story.say(ev))
+
+
+## A station in the Workshop: its screen, then back to walking.
+func _hub_use(id := "", arg := -1) -> void:
+	if not _hub or screen or world.hub == null:
+		return
+	if id == "":
+		id = world.hub.near
+		arg = world.hub.near_arg
+	if id == "menu":
+		world.paused = true
+		_open(HubMenu.new(), func(res: Dictionary) -> void:
+			world.paused = false
+			if res.has("station"):
+				_hub_use.call_deferred(String(res["station"]), 0))
+		return
+	if id == "" or not Hub.STATIONS.has(id):
+		return
+	if not world.hub.open(id):
+		Events.toast.emit(String(Hub.STATIONS[id].get("locked", "")))
+		Audio.sfx("deny")
+		return
+	var back := func(_res: Dictionary) -> void: world.paused = false
+	match id:
+		"duck", "lint":
+			Story.say("hub_" + id)
 			return
-		if res.get("action") == "codex":
-			_open(CodexScreen.new(), func(_r: Dictionary) -> void: _show_title())
+		"portal":
+			world.paused = true
+			_open(RunSheet.new(), func(res: Dictionary) -> void:
+				world.paused = false
+				if res.has("action"):
+					_launch(res))
 			return
-		heat = int(res.get("heat", 0))
-		if res.get("action") == "continue":
+		"heroes":
+			var h := HeroScreen.new()
+			h.focus = clampi(arg, 0, Hub.HEROES.size() - 1)
+			world.paused = true
+			_open(h, func(res: Dictionary) -> void:
+				world.paused = false
+				if res.has("hero"):
+					var m := SaveGame.load_meta()
+					m["hero"] = String(res["hero"])
+					SaveGame.save_meta(m)
+					var at := world.player.position
+					world.enter_hub(Hub.make_run(m))
+					world.player.position = at
+					Story.say("hub_hero"))
+			return
+		"repl":
+			var e := EditorScreen.new()
+			e.library = Hub.library()
+			world.paused = true
+			_open(e, func(_res: Dictionary) -> void:
+				world.paused = false
+				world.run.bag = []
+				var m := SaveGame.load_meta()
+				m["bench"] = Hub.bench_of(world.run)
+				SaveGame.save_meta(m))
+			return
+		"pkg":
+			world.paused = true
+			_open(PackScreen.new(), func(res: Dictionary) -> void:
+				world.paused = false
+				if res.has("bought"):
+					Story.say("pkg_bought")
+				if res.get("try", false):
+					_hub_use.call_deferred("repl", 0))
+			return
+		"bounty":
+			world.paused = true
+			_open(BountyScreen.new(), back)
+		"docs":
+			world.paused = true
+			_open(CompendiumScreen.new(), back)
+		"log":
+			world.paused = true
+			_open(WallScreen.new(), back)
+		"terminal":
+			var t := PauseScreen.new()
+			t.hub = true
+			world.paused = true
+			_open(t, func(res: Dictionary) -> void:
+				world.paused = false
+				if res.get("credits", false):
+					world.paused = true
+					_open.call_deferred(CreditsScreen.new(), back))
+
+
+## The portal's choice: a new run as your hero, the saved run, or the daily.
+func _launch(res: Dictionary) -> void:
+	var m := SaveGame.load_meta()
+	m["heat"] = int(res.get("heat", 0))
+	SaveGame.save_meta(m)
+	match res.get("action"):
+		"continue":
 			var r := SaveGame.load_run()
 			if r:
 				_begin(r)
 				_open_pause(true)
 				return
-		if res.get("action") == "daily":
+			_begin(_new_run())
+		"daily":
 			_begin(_daily_run())
-			return
-		_story_then(&"intro", func() -> void: _begin(_new_run())))
+		_:
+			_begin(_new_run())
 
 
 ## The story's panels (research/story.md): the intro before a first run, the ending on a
@@ -148,6 +308,7 @@ func _daily_run() -> RunState:
 	var r := RunState.create(int(day.replace("-", "")), rule["hero"])
 	r.daily = day
 	r.daily_mod = rule["mod"]
+	r.picked = true
 	match r.daily_mod:
 		&"glass":
 			r.max_hp = roundf(r.max_hp * 0.7)
@@ -161,20 +322,20 @@ func _daily_run() -> RunState:
 
 ## A fresh run. A player's very first run is the curriculum (D9, Tutorial).
 func _new_run() -> RunState:
-	var r := RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1)
 	var m := SaveGame.load_meta()
-	r.tutorial = int(m.get("runs", 0)) == 0 and not bool(m.get("tutorial_done", false))
-	r.heat = mini(heat, int(m.get("wins", 0)))
+	var tut := int(m.get("runs", 0)) == 0 and not bool(m.get("tutorial_done", false))
+	# 0.19: the hero is chosen at the Workshop's Hero Hall (the lessons run is the Apprentice's)
+	var r := RunState.create(int(Time.get_unix_time_from_system()) % 100000 + 1, &"apprentice" if tut else Hub.next_hero(m))
+	r.tutorial = tut
+	r.picked = true
+	r.heat = mini(int(m.get("heat", 0)), int(m.get("wins", 0)))
 	for k in Meta.extra_slots():
 		r.wands[0].add_slot()
 	return r
 
 
-## D9: the Bug Reports tier picked on the title for the next run.
-var heat := 0
-
-
 func _begin(r: RunState) -> void:
+	_hub = false
 	world.visible = true
 	hud.visible = true
 	touch.enabled = true
@@ -225,11 +386,11 @@ func _start_from_args() -> void:
 		_showcase()
 	if _args.has("wand"):
 		r.cur = clampi(int(_args["wand"]) - 1, 0, r.wands.size() - 1)
-	if _args.has("goals"):
-		# screenshots: goals just done (the end screen's panel), in the in-memory save
+	if _args.has("bounties"):
+		# screenshots: bounties just fixed (the end screen's panel), in the in-memory save
 		var m := SaveGame.load_meta()
-		m["goals"] = Array(String(_args["goals"]).split(","))
-		m["last_goals"] = m["goals"]
+		m["bounties"] = Array(String(_args["bounties"]).split(","))
+		m["last_bounties"] = m["bounties"]
 		SaveGame.save_meta(m)
 	match _args.get("screen", ""):
 		"reward":
@@ -267,17 +428,9 @@ func _start_from_args() -> void:
 			_story_then(StringName(_args["screen"]), func() -> void: pass)
 		"credits":
 			_open(CreditsScreen.new(), func(_r: Dictionary) -> void: pass)
-		"codex":
-			var c := CodexScreen.new()
-			c.tab = _args.get("tab", "goals")
-			_open(c, func(_r: Dictionary) -> void: pass)
 		"end":
 			world.paused = true
 			_open_end(_args.get("won", "0") == "1")
-			if _args.has("goals"):
-				var m := SaveGame.load_meta()
-				m["last_goals"] = Array(String(_args["goals"]).split(",")).slice(-2)
-				SaveGame.save_meta(m)
 	if _args.has("touchdemo"):
 		var v := get_viewport_rect().size
 		touch.touched_once = true
@@ -440,9 +593,9 @@ func _bot_answer(kind: StringName, data: Dictionary) -> void:
 			_begin(RunState.create(world.run.seed_value + 1))
 
 
-func _open_end(won: bool) -> void:
+func _open_end(won: bool, how := "") -> void:
 	_playing = false
-	SaveGame.record_run(world.run)
+	SaveGame.record_run(world.run, how, "" if won else world.player.last_hurt_by)
 	RunLog.finish(world.run, "" if won else world.player.last_hurt_by)
 	Audio.music("")
 	Audio.sting("victory" if won else "defeat")
@@ -470,11 +623,14 @@ func _open_end_screen(won: bool) -> void:
 		if res.get("action") == "again":
 			_begin(_new_run())
 		else:
-			_show_title())
+			_show_hub(false))
 
 
 func _open_pause(resumed: bool) -> void:
 	if screen or not _playing:
+		return
+	if _hub:
+		_hub_use("terminal")
 		return
 	world.paused = true
 	var s := PauseScreen.new()
@@ -483,13 +639,13 @@ func _open_pause(resumed: bool) -> void:
 		if res.get("abandon", false):
 			SaveGame.clear_run()
 			world.run.won = false
-			_open_end(false)
+			_open_end(false, "abandon")
 			return
 		world.paused = false)
 
 
 func _open_editor(lesson := -1) -> void:
-	if screen or not _playing:
+	if screen or not _playing or _hub:
 		return
 	world.paused = true
 	var s := EditorScreen.new()
@@ -509,6 +665,10 @@ func _on_hud(id: String) -> void:
 			_open_map()
 		"dash":
 			world.controls.dash = true
+		"use":
+			_hub_use()
+		"menu":
+			_hub_use("menu")
 		"swap":
 			world.controls.select_wand = (world.run.cur + 1) % world.run.wands.size()
 		_:
@@ -518,7 +678,7 @@ func _on_hud(id: String) -> void:
 
 
 func _open_map() -> void:
-	if screen or not _playing:
+	if screen or not _playing or _hub:
 		return
 	world.paused = true
 	_open(MapScreen.new(), func(_res: Dictionary) -> void: world.paused = false)
@@ -527,7 +687,7 @@ func _open_map() -> void:
 ## Save when the app goes to the background, and come back paused (never into live combat).
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		if _playing and world.run and not world.run.won and not world.player.dead:
+		if _playing and not _hub and world.run and not world.run.won and not world.player.dead:
 			SaveGame.save_run(world.run)
 			if not world.bot and screen == null:
 				_open_pause(false)
@@ -675,6 +835,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		var wi := hud.hit_wand(event.position)
 		if wi >= 0:
 			world.controls.select_wand = wi
+	if _hub and event is InputEventKey and event.pressed and not event.echo:
+		# the Workshop: E or Enter uses the station in reach, Esc lists them all
+		match event.physical_keycode:
+			KEY_E, KEY_ENTER, KEY_KP_ENTER:
+				_hub_use()
+				return
+			KEY_ESCAPE, KEY_P, KEY_TAB:
+				if event.physical_keycode != KEY_TAB:
+					_hub_use("menu")
+				return
+	if _hub and event is InputEventJoypadButton and event.pressed:
+		match event.button_index:
+			JOY_BUTTON_A:
+				if world.hub and world.hub.near != "":
+					_hub_use()
+					return
+			JOY_BUTTON_START, JOY_BUTTON_BACK:
+				_hub_use("menu")
+				return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
 			KEY_1, KEY_2, KEY_3:

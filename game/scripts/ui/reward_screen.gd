@@ -123,8 +123,9 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)
 		_fit_line(r, foot[0], foot[1], foot[2])
 	if item["t"] == &"loadout":
-		# the hero stands beside their wand (0.18: the start cards showed only the wand)
-		var hf: Array = Hero.frames()
+		# the hero stands beside their wand (0.18: the start cards showed only the wand), in
+		# their own look (0.19)
+		var hf: Array = Hero.frames(item["id"])
 		var ht: Texture2D = hf[int(_age * 2.0 + r.position.x) % 2]
 		var hs := 0.5 if compact else 1.0
 		draw_texture_rect(ht, Rect2(ic + Vector2(-26.0 * hs - ht.get_width() * hs / 2.0, -ht.get_height() * hs / 2.0 + 4.0 * hs), ht.get_size() * hs), false)
@@ -196,8 +197,8 @@ func _footer(item: Dictionary, lv: int) -> Array:
 			return [st, "  ".join(st.split("  ").slice(0, 2)), cyan]   # short: mana and damage only
 		&"loadout":
 			if item.get("locked", false):
-				var goal := String(Meta.goal_for(item["id"]).get("text", "")).to_upper()
-				return ["UNLOCK: " + goal, "LOCKED", GOLD]
+				var goal := Meta.source_text(item["id"])
+				return [goal, "LOCKED", GOLD]
 			var wd := Catalog.wand(RunState.LOADOUTS[item["id"]]["wand"])
 			return ["%d SLOTS  %d MANA" % [wd.slots, int(wd.max_mana)], "%d SLOTS  %d MP" % [wd.slots, int(wd.max_mana)], cyan]
 	return ["", "", cyan]
@@ -225,7 +226,7 @@ func _on_button(id: String) -> void:
 		var i := int(id.substr(4))
 		if offer[i].get("locked", false):
 			Audio.sfx("deny")
-			toast("Unlock: %s" % Meta.goal_for(offer[i]["id"]).get("text", ""))
+			toast("Unlock: %s" % Meta.source_text(offer[i]["id"]))
 			return
 		sel = -1 if sel == i else i
 		Audio.sfx("ui")

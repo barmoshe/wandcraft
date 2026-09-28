@@ -183,6 +183,8 @@ var wave_live: Array = []       # the enemies of the latest wave (the next comes
 var puzzle: StringName = &""    # a themed puzzle room (Encounter.PUZZLES), or none
 var orb: Dictionary = {}       # reward orb: {"pos", "kind", "t"}
 var npc: Dictionary = {}       # {"pos", "kind": shop|forge|spring, "used", "near"}
+## 0.19: the Workshop, while the player is in it (null during a run).
+var hub: Hub = null
 var boss: Boss
 var boss_t := 0.0
 var dead_t := 0.0
@@ -312,12 +314,29 @@ func setup(seed_value: int) -> void:
 
 ## Starts (or resumes) a run: builds the room the run is standing in.
 func start_run(r: RunState) -> void:
+	hub = null
 	run = r
 	rng.seed = r.seed_value * 7919 + r.step
+	player.set_look(r.hero)
 	player.dead = false
 	dead_t = 0.0
 	paused = false
 	enter_room()
+
+
+## 0.19: the Workshop between runs (world/hub.gd). It never calls enter_room, so nothing
+## is saved.
+func enter_hub(r: RunState) -> void:
+	assert(not bot, "the bot never enters the Workshop")
+	run = r
+	rng.seed = 4242
+	player.set_look(r.hero)
+	player.dead = false
+	dead_t = 0.0
+	paused = false
+	hub = Hub.new(self)
+	build_room("hub", &"hub")
+	hub.populate()
 
 
 # ------------------------------------------------------------------ rooms
@@ -355,6 +374,7 @@ func enter_room() -> void:
 	build_room(tpl, kind)
 	if run.has_relic(&"interest") and run.gold >= 60:
 		run.gold += 3
+	run.stats["room_hp"] = run.hp   # Checkpoint: a fatal hit puts you back here
 	if run.step == 0:
 		Hints.show("move")
 	SaveGame.save_run(run)
@@ -363,6 +383,8 @@ func enter_room() -> void:
 ## The music a room plays (D8): the boss cue for both bosses, the shop cue where you trade,
 ## otherwise the area's stems (the Cellar for rooms 1-4, the Corrupted Grove after).
 func room_music(kind: StringName) -> String:
+	if kind == &"hub":
+		return "title"
 	if kind == &"mini" and Audio.track_ready("mini"):
 		return "mini"
 	if kind == &"mini" or kind == &"boss":
@@ -410,7 +432,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	hit_in_room = false
 	bonus_orb = false
 	caught = false
-	var rows: Array = ROOMS[tpl] if ROOMS.has(tpl) else RoomLayouts.ART[tpl]["rows"]
+	var rows: Array = Hub.ROWS if tpl == "hub" else (ROOMS[tpl] if ROOMS.has(tpl) else RoomLayouts.ART[tpl]["rows"])
 	treasure = Vector2.INF
 	secret_open = false
 	pylon_cd.clear()
@@ -482,7 +504,11 @@ func build_room(tpl: String, kind: StringName) -> void:
 	var mid := _find_floor(gw / 2, gh / 2 - 1)
 	match kind:
 		&"start":
-			orb = {"pos": mid, "kind": &"start", "t": 0.0}
+			# 0.19: a hero chosen at the Workshop's Hero Hall means no hero orb here
+			if run and not run.picked:
+				orb = {"pos": mid, "kind": &"start", "t": 0.0}
+			else:
+				_open_doors()
 			cleared = true
 		&"shop", &"forge", &"spring", &"altar", &"terminal":
 			npc = {"pos": mid, "kind": kind, "used": false, "near": false}
@@ -491,8 +517,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 			boss_t = 1.0
 		&"fight", &"challenge", &"glitch", &"risk":
 			waves = _compose_waves(kind)
-		&"empty":
-			cleared = true   # tests and the showcase: a room with nothing in it
+		&"empty", &"hub":
+			cleared = true   # tests and the showcase: a room with nothing in it; the Workshop
 	_deco.queue_redraw()
 	if Game.quiet == 0:
 		Audio.music(room_music(kind))
@@ -506,7 +532,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 ## The story's beats as rooms open (research/story.md): the Duck at a run's start, at the
 ## second area and at a new world; a Debug Terminal holds the next commit-log entry.
 func _story_on_enter(kind: StringName) -> void:
-	if run == null or run.daily != "":
+	if run == null or run.daily != "" or kind == &"hub":
 		return
 	if kind == &"start":
 		if run.world >= 1:
@@ -531,6 +557,8 @@ func _room_title(kind: StringName) -> String:
 	if Tutorial.active(run) and kind == &"fight":
 		return Tutorial.title(run).to_upper()
 	match kind:
+		&"hub":
+			return "THE WORKSHOP"
 		&"start":
 			return "WORLD %d" % (run.world + 1) if run else "WORLD 1"
 		&"mini":
@@ -608,7 +636,15 @@ func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	e.setup(self, kind, pos, _uid, 1.0 + step * 0.055, elite, (1.0 + step * DMG_PER_ROOM) * (1.2 if run and run.heat >= 2 else 1.0))
 	enemies.append(e)
 	_actors.add_child(e)
+	if run:
+		run.see_enemy(kind)
 	return e
+
+
+## Meta v2's run counters (bounties: elites, thermal shocks, bitrot crashes, clean bosses).
+func _count(key: String, n := 1) -> void:
+	if run:
+		run.stats[key] = int(run.stats.get(key, 0)) + n
 
 
 ## Design v3: the mini-boss pool. The lesson run always meets Copy-Paste; other runs meet it
@@ -673,6 +709,7 @@ func _clear_room(reward := true) -> void:
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
 			if not hit_in_room:
 				bonus_orb = true
+				_count("untouched")
 				fx.text(player.position + Vector2(0, -24), "UNTOUCHED", Color("#9fe8ff"), 10)
 			if run.daily == "" and boss:
 				var beat := "down:mini" if room_kind == &"mini" else "down:" + boss.title
@@ -730,6 +767,8 @@ func _open_doors() -> void:
 func reward_taken() -> void:
 	orb = {}
 	paused = false
+	# the start orb may have swapped the hero (Rewards.grant -> set_loadout): dress the part
+	player.set_look(run.hero)
 	if bonus_orb:
 		bonus_orb = false
 		orb = {"pos": _find_floor(gw / 2, gh / 2), "kind": &"risk", "t": 0.0}
@@ -887,6 +926,9 @@ func step(dt: float) -> void:
 
 
 func _update_room(dt: float) -> void:
+	if hub:
+		hub.update(dt)
+		return
 	if not cleared:
 		if room_kind == &"mini" or room_kind == &"boss":
 			if boss == null:
@@ -984,7 +1026,12 @@ func _update_enemy_bullets(dt: float) -> void:
 			b.alive = false
 			fx.sparks(b.pos, 3, b.color, 40.0)
 			continue
-		if (not spells.blockers.is_empty() and spells.blocked(b.pos, b.r)) or (not spells.summons.is_empty() and spells.decoy_takes(b.pos, b.r)):
+		if not spells.blockers.is_empty() and spells.blocked(b.pos, b.r):
+			b.alive = false
+			fx.sparks(b.pos, 3, Style.c("gold:4"), 40.0)
+			shots_stopped(1)
+			continue
+		if not spells.summons.is_empty() and spells.decoy_takes(b.pos, b.r):
 			b.alive = false
 			fx.sparks(b.pos, 3, Style.c("gold:4"), 40.0)
 			continue
@@ -999,6 +1046,25 @@ func clear_enemy_bullets() -> void:
 		if b.alive:
 			b.alive = false
 			fx.sparks(b.pos, 1, b.color, 20.0)
+
+
+## EMP: wipes out the enemy shots within r of p. Returns how many.
+func clear_enemy_bullets_in(p: Vector2, r: float) -> int:
+	var n := 0
+	for b in ebullets.active:
+		if b.alive and b.pos.distance_squared_to(p) < (r + b.r) * (r + b.r):
+			b.alive = false
+			fx.sparks(b.pos, 2, Style.c("cyan:4"), 40.0)
+			n += 1
+	return n
+
+
+## Enemy shots your spells stopped (a blocker or EMP). Shot Recycler refills the wand in hand.
+func shots_stopped(n: int) -> void:
+	if n <= 0 or run == null or not run.has_relic(&"liquid_cooling"):
+		return
+	var w := run.wand()
+	w.mana = minf(w.max_mana(), w.mana + 2.0 * n)
 
 
 func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0, by := "") -> void:
@@ -1364,6 +1430,20 @@ func nearest_enemy(p: Vector2, max_d: float, exclude := -1) -> Enemy:
 	return best
 
 
+## Blame: the live enemy with the most HP left (a locked guardian only when nothing else is).
+func toughest_enemy(exclude := -1) -> Enemy:
+	var best: Enemy = null
+	var bh := -1.0
+	for e in enemies:
+		if e.dead or e.spawn_t > 0.0 or e.uid == exclude:
+			continue
+		var h := e.hp * (0.01 if e.locked else 1.0)
+		if h > bh:
+			bh = h
+			best = e
+	return best
+
+
 ## Auto-aim target: the nearest enemy in line of sight, else the nearest one. The current
 ## target is kept until another is clearly nearer (by 25%), so aim does not flicker between
 ## two about as close (playtest: the view and the shots swung to and fro in a swarm).
@@ -1451,6 +1531,9 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		dmg *= 2.0
 	if run and run.has_relic(&"cold_boot") and e.chill_t > 0.0:
 		dmg *= 1.25
+	# Target Lock: the marked enemy takes 30% more
+	if run and e == marked and e.mark_t > 0.0 and run.has_relic(&"keep_alive"):
+		dmg *= 1.3
 	if not dot and run and run.has_relic(&"null_pointer") and e.hp >= e.max_hp:
 		dmg *= 2.0
 	# Overclocked (D2): two or more statuses at once and every hit lands 20% harder
@@ -1539,6 +1622,7 @@ func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 
 ## Thermal Shock: burn and chill cancel in a burst that hurts the target and its neighbours.
 func _thermal_shock(e: Enemy, dmg: float) -> void:
+	_count("thermal")
 	e.shock_t = 0.6
 	e.burn_t = 0.0
 	e.chill_t = 0.0
@@ -1622,6 +1706,7 @@ func add_rot(e: Enemy, n: int) -> void:
 	if tgt.rot_n < (3 if run and run.has_relic(&"rot_index") else 5):
 		return
 	tgt.rot_n = 0
+	_count("crashes")
 	var hit := 20.0 + minf(tgt.max_hp * 0.2, 40.0)
 	fx.ring(tgt.position + Vector2(0, -4), 2.0, 20.0, 0.3, Style.c("glitch:3"))
 	fx.sparks(tgt.position + Vector2(0, -4), 12, Style.c("glitch:3"), 100.0)
@@ -1639,7 +1724,7 @@ func mark(e: Enemy, t: float) -> void:
 	var tgt := e.forward if e.forward else e
 	if tgt.dead:
 		return
-	tgt.mark_t = t
+	tgt.mark_t = t * (2.0 if run and run.has_relic(&"keep_alive") else 1.0)   # Target Lock
 	marked = tgt
 
 
@@ -1682,6 +1767,9 @@ func kill_enemy(e: Enemy) -> void:
 	e.visible = false
 	if run:
 		run.stats["kills"] += 1
+		run.see_enemy(e.kind, true)
+		if e.elite:
+			_count("elites")
 		run.gold += roundi(int(e.def.get("gold", 1)) * (4 if e.elite else 1) * Relics.gold_mul(run) * 0.5)
 		if run.has_relic(&"garbage_collector"):
 			for w in run.wands:
@@ -2111,6 +2199,8 @@ func _draw_deco() -> void:
 	if not npc.is_empty():
 		_draw_npc(npc)
 	spells.draw_summons(_deco, false)
+	if hub:
+		hub.draw_deco(_deco)
 	var crate := _crate_texture()
 	for y in gh:
 		for x in gw:
@@ -2263,6 +2353,8 @@ func _draw_top() -> void:
 		_top.draw_circle(p, 12.0 + sin(time * 5.0), Color(1.0, 0.9, 0.5, 0.12))
 		_top.draw_arc(p, 9.0, time * 2.0, time * 2.0 + PI * 1.2, 12, Color(1.0, 0.95, 0.7, 0.8), 1.0)
 	spells.draw_summons(_top, true)
+	if hub:
+		hub.draw_top(_top)
 	# Hex Cursor: brackets around the marked enemy
 	if marked and not marked.dead and marked.mark_t > 0.0:
 		var mp := marked.position + Vector2(0, -6)
