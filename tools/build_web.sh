@@ -34,8 +34,13 @@ log "exporting to $OUT"
 # the kill switch for the old worker, and the build stamp the title shows.
 cp "$HERE/web/index.manifest.json" "$HERE/web/index.service.worker.js" "$OUT/"
 for n in 144 180 512; do cp "$GAME/assets/icon/pwa_$n.png" "$OUT/index.${n}x${n}.png"; done
-STAMP="$(git -C "$HERE" rev-parse --short HEAD 2>/dev/null || echo dev)"
-git -C "$HERE" diff --quiet HEAD -- "$GAME" 2>/dev/null || STAMP="$STAMP+"
+# WANDCRAFT_STAMP: a stamp from outside (tools/vercel_build.sh, whose checkout has no .git)
+if [ -n "${WANDCRAFT_STAMP:-}" ]; then
+  STAMP="$WANDCRAFT_STAMP"
+else
+  STAMP="$(git -C "$HERE" rev-parse --short HEAD 2>/dev/null || echo dev)"
+  git -C "$HERE" diff --quiet HEAD -- "$GAME" 2>/dev/null || STAMP="$STAMP+"
+fi
 sed_inplace "s|__WANDCRAFT_BUILD__|$STAMP|" "$OUT/index.html"
 grep -q "wandcraftBuild = '$STAMP'" "$OUT/index.html" || { log "build stamp missing from index.html"; exit 1; }
 log "build stamp: $STAMP"
