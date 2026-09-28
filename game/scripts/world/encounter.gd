@@ -21,7 +21,8 @@ const PRESSURE: Array[StringName] = [&"slime", &"bugling", &"ram", &"tick"]
 const PRESSURE_W2: Array[StringName] = [&"kernel_panic", &"spark_plug", &"kernel_panic", &"spark_plug", &"bugling", &"tick", &"slime"]
 ## World 3, the Kernel (0.20, research/world3-0.20.md): Dangling Pointers lead the pressure,
 ## Page Leaks join the anchors, and an Interrupt takes the support slot most of the time.
-const PRESSURE_W3: Array[StringName] = [&"null_ptr", &"null_ptr", &"null_ptr", &"kernel_panic", &"spark_plug", &"blink_tick", &"bugling"]
+# 0.21 tuning (research/world3-0.20.md §4): two Dangling Pointers, not three
+const PRESSURE_W3: Array[StringName] = [&"null_ptr", &"null_ptr", &"kernel_panic", &"spark_plug", &"blink_tick", &"bugling"]
 const ANCHORS_W3: Array[StringName] = [&"leak", &"leak", &"rot_weaver", &"puffcap", &"golem", &"proxy"]
 const NEXT_AT := 0.5   # research/difficulty.md: 0.7 before; waves now overlap
 ## Design v3: the Grove's variants of the Cellar's enemies (Enemy.DEFS, Bestiary.VARIANTS).

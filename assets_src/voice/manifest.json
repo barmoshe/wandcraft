@@ -1,4 +1,1476 @@
 {
+ "archive.0.0": {
+  "id": "archive.0.0",
+  "who": "LINT",
+  "hash": "40dfd8d3489181ee",
+  "seconds": 2.41,
+  "voice": "am_fenrir",
+  "text": "The Page Archive. Memory, in rows."
+ },
+ "archive.0.1": {
+  "id": "archive.0.1",
+  "who": "DUCK",
+  "hash": "a685b8a40baabf83",
+  "seconds": 2.02,
+  "voice": "af_heart",
+  "text": "Every shelf is something the world remembers."
+ },
+ "archive.1": {
+  "id": "archive.1",
+  "who": "DUCK",
+  "hash": "9ca3bf8ad79f335b",
+  "seconds": 2.58,
+  "voice": "af_heart",
+  "text": "Shh. It's a library. Blast quietly."
+ },
+ "archive.2.0": {
+  "id": "archive.2.0",
+  "who": "DUCK",
+  "hash": "1455a7239e8053e0",
+  "seconds": 1.6,
+  "voice": "af_heart",
+  "text": "Somewhere in here is your Friday."
+ },
+ "archive.2.1": {
+  "id": "archive.2.1",
+  "who": "LINT",
+  "hash": "da7922c62d3669cb",
+  "seconds": 1.4,
+  "voice": "am_fenrir",
+  "text": "Indexed under: regret."
+ },
+ "archive.3.0": {
+  "id": "archive.3.0",
+  "who": "LINT",
+  "hash": "646127ee96bff7d5",
+  "seconds": 1.75,
+  "voice": "am_fenrir",
+  "text": "Page fault. Memory missing."
+ },
+ "archive.3.1": {
+  "id": "archive.3.1",
+  "who": "DUCK",
+  "hash": "3866c4e486b93684",
+  "seconds": 1.87,
+  "voice": "af_heart",
+  "text": "Cache would know. She files everything."
+ },
+ "bark.big_hit.0": {
+  "id": "bark.big_hit.0",
+  "who": "DUCK",
+  "hash": "f9239bd23c61d6f0",
+  "seconds": 1.36,
+  "voice": "af_heart",
+  "text": "Ooh. They felt that one."
+ },
+ "bark.big_hit.1": {
+  "id": "bark.big_hit.1",
+  "who": "LINT",
+  "hash": "bb6076b3dd0e9951",
+  "seconds": 1.8,
+  "voice": "am_fenrir",
+  "text": "Damage exceeds sensible limits."
+ },
+ "bark.big_hit.2": {
+  "id": "bark.big_hit.2",
+  "who": "DUCK",
+  "hash": "e0458d977fb325b5",
+  "seconds": 1.42,
+  "voice": "af_heart",
+  "text": "Big number! Do it again!"
+ },
+ "bark.big_hit.3": {
+  "id": "bark.big_hit.3",
+  "who": "LINT",
+  "hash": "fd88f8aa6c61b95b",
+  "seconds": 2.32,
+  "voice": "am_fenrir",
+  "text": "Overkill detected. Not a complaint."
+ },
+ "bark.big_hit_huge.0": {
+  "id": "bark.big_hit_huge.0",
+  "who": "LINT",
+  "hash": "c48df7a1716e6dbb",
+  "seconds": 1.65,
+  "voice": "am_fenrir",
+  "text": "That number nearly broke the math."
+ },
+ "bark.big_hit_huge.1": {
+  "id": "bark.big_hit_huge.1",
+  "who": "DUCK",
+  "hash": "ffbfe2e055bbeb64",
+  "seconds": 1.23,
+  "voice": "af_heart",
+  "text": "I felt that from over here!"
+ },
+ "bark.big_hit_huge.2": {
+  "id": "bark.big_hit_huge.2",
+  "who": "LINT",
+  "hash": "f812ef3e4367def5",
+  "seconds": 1.65,
+  "voice": "am_fenrir",
+  "text": "Damage value: frankly rude."
+ },
+ "bark.carry_big.0.0": {
+  "id": "bark.carry_big.0.0",
+  "who": "DUCK",
+  "hash": "77868d5bb21e7fce",
+  "seconds": 1.78,
+  "voice": "af_heart",
+  "text": "That huge hit last run. Wow."
+ },
+ "bark.carry_big.0.1": {
+  "id": "bark.carry_big.0.1",
+  "who": "LINT",
+  "hash": "1ce9b4fee49097eb",
+  "seconds": 2.58,
+  "voice": "am_fenrir",
+  "text": "Replay unavailable. The number was big."
+ },
+ "bark.carry_elite.0.0": {
+  "id": "bark.carry_elite.0.0",
+  "who": "DUCK",
+  "hash": "4327cef1bcb39407",
+  "seconds": 1.95,
+  "voice": "af_heart",
+  "text": "You beat an elite back there. I missed it!"
+ },
+ "bark.carry_elite.0.1": {
+  "id": "bark.carry_elite.0.1",
+  "who": "LINT",
+  "hash": "0a72f52f7d323b08",
+  "seconds": 1.46,
+  "voice": "am_fenrir",
+  "text": "I did not. Logged."
+ },
+ "bark.carry_fast.0": {
+  "id": "bark.carry_fast.0",
+  "who": "DUCK",
+  "hash": "b189f59830689dd3",
+  "seconds": 2.4,
+  "voice": "af_heart",
+  "text": "That quick room last run? I timed it. Wow."
+ },
+ "bark.carry_low.0": {
+  "id": "bark.carry_low.0",
+  "who": "DUCK",
+  "hash": "9f4c65614849b07a",
+  "seconds": 1.84,
+  "voice": "af_heart",
+  "text": "You were nearly out back there. Careful."
+ },
+ "bark.carry_rule.0.0": {
+  "id": "bark.carry_rule.0.0",
+  "who": "DUCK",
+  "hash": "18d35ae9b74019c6",
+  "seconds": 1.9,
+  "voice": "af_heart",
+  "text": "That new wand last run. I have notes."
+ },
+ "bark.carry_rule.0.1": {
+  "id": "bark.carry_rule.0.1",
+  "who": "LINT",
+  "hash": "5d7c8b2418c03f03",
+  "seconds": 1.4,
+  "voice": "am_fenrir",
+  "text": "The duck always has notes."
+ },
+ "bark.carry_status.0.0": {
+  "id": "bark.carry_status.0.0",
+  "who": "LINT",
+  "hash": "e1d8ac8fee483fce",
+  "seconds": 1.68,
+  "voice": "am_fenrir",
+  "text": "Status report from last run."
+ },
+ "bark.carry_status.0.1": {
+  "id": "bark.carry_status.0.1",
+  "who": "DUCK",
+  "hash": "182a0f2940738dde",
+  "seconds": 2.15,
+  "voice": "af_heart",
+  "text": "Short version: chaos. Good chaos."
+ },
+ "bark.elite_kill.0": {
+  "id": "bark.elite_kill.0",
+  "who": "DUCK",
+  "hash": "9a7f33d0a202cd6d",
+  "seconds": 1.76,
+  "voice": "af_heart",
+  "text": "Elite down. Not so elite now."
+ },
+ "bark.elite_kill.1": {
+  "id": "bark.elite_kill.1",
+  "who": "LINT",
+  "hash": "b13d3689fae15a8d",
+  "seconds": 1.49,
+  "voice": "am_fenrir",
+  "text": "Elite process terminated."
+ },
+ "bark.elite_kill.2": {
+  "id": "bark.elite_kill.2",
+  "who": "DUCK",
+  "hash": "865a65fd7292ab38",
+  "seconds": 1.88,
+  "voice": "af_heart",
+  "text": "Fancy one gone. Fancy work."
+ },
+ "bark.elite_kill.3": {
+  "id": "bark.elite_kill.3",
+  "who": "LINT",
+  "hash": "7dc6e54bc5c0d2f0",
+  "seconds": 1.46,
+  "voice": "am_fenrir",
+  "text": "Threat level: formerly high."
+ },
+ "bark.elite_many.0": {
+  "id": "bark.elite_many.0",
+  "who": "DUCK",
+  "hash": "29f89ad5078aabfa",
+  "seconds": 1.7,
+  "voice": "af_heart",
+  "text": "Five elites! You're collecting them."
+ },
+ "bark.elite_many.1": {
+  "id": "bark.elite_many.1",
+  "who": "LINT",
+  "hash": "2b6b729d794a4cbc",
+  "seconds": 2.42,
+  "voice": "am_fenrir",
+  "text": "Elite count: high. Elite supply: low."
+ },
+ "bark.elite_many.2": {
+  "id": "bark.elite_many.2",
+  "who": "DUCK",
+  "hash": "714229a1d8688d91",
+  "seconds": 1.87,
+  "voice": "af_heart",
+  "text": "They send their best. You send them off."
+ },
+ "bark.lint_clean.0": {
+  "id": "bark.lint_clean.0",
+  "who": "LINT",
+  "hash": "cae5750d8cb19f22",
+  "seconds": 2.62,
+  "voice": "am_fenrir",
+  "text": "No smells found. Suspicious. Approved."
+ },
+ "bark.lint_clean.1": {
+  "id": "bark.lint_clean.1",
+  "who": "LINT",
+  "hash": "a933576159859f55",
+  "seconds": 2.23,
+  "voice": "am_fenrir",
+  "text": "Zero warnings. Rare. Framing it."
+ },
+ "bark.lint_fixed.0.0": {
+  "id": "bark.lint_fixed.0.0",
+  "who": "LINT",
+  "hash": "63ec35950760fd47",
+  "seconds": 2.64,
+  "voice": "am_fenrir",
+  "text": "Warning resolved. Wand quality improved."
+ },
+ "bark.lint_fixed.0.1": {
+  "id": "bark.lint_fixed.0.1",
+  "who": "DUCK",
+  "hash": "5cc1434d60a9fa63",
+  "seconds": 1.98,
+  "voice": "af_heart",
+  "text": "LINT's pleased. You can tell. Barely."
+ },
+ "bark.lint_fixed.1": {
+  "id": "bark.lint_fixed.1",
+  "who": "LINT",
+  "hash": "756f8a3bd5d361eb",
+  "seconds": 2.19,
+  "voice": "am_fenrir",
+  "text": "You listened. Unexpected. Logged."
+ },
+ "bark.lint_fixed.2": {
+  "id": "bark.lint_fixed.2",
+  "who": "LINT",
+  "hash": "1e4a4f5031e44b0b",
+  "seconds": 1.51,
+  "voice": "am_fenrir",
+  "text": "Smell gone. Review passed."
+ },
+ "bark.lint_trick.0.0": {
+  "id": "bark.lint_trick.0.0",
+  "who": "LINT",
+  "hash": "47dec0aaeda22123",
+  "seconds": 2.52,
+  "voice": "am_fenrir",
+  "text": "Three warnings fixed. Trust level raised."
+ },
+ "bark.lint_trick.0.1": {
+  "id": "bark.lint_trick.0.1",
+  "who": "LINT",
+  "hash": "e1c88be483769b46",
+  "seconds": 2.55,
+  "voice": "am_fenrir",
+  "text": "Enabling Red Squiggle. I'll mark targets."
+ },
+ "bark.lint_trick.0.2": {
+  "id": "bark.lint_trick.0.2",
+  "who": "DUCK",
+  "hash": "446f13a46ac3f371",
+  "seconds": 1.76,
+  "voice": "af_heart",
+  "text": "LINT made you a present. That's huge."
+ },
+ "bark.low_hp.0": {
+  "id": "bark.low_hp.0",
+  "who": "DUCK",
+  "hash": "5123d8402d006ba4",
+  "seconds": 1.61,
+  "voice": "af_heart",
+  "text": "You're blinking red. Please don't."
+ },
+ "bark.low_hp.1": {
+  "id": "bark.low_hp.1",
+  "who": "LINT",
+  "hash": "07eaa9de9a77c74c",
+  "seconds": 2.42,
+  "voice": "am_fenrir",
+  "text": "Health critical. Recommend: not dying."
+ },
+ "bark.low_hp.2": {
+  "id": "bark.low_hp.2",
+  "who": "DUCK",
+  "hash": "cdf8ed38ddabb4a7",
+  "seconds": 2.07,
+  "voice": "af_heart",
+  "text": "Low health. Dodge now, be brave later."
+ },
+ "bark.low_hp.3": {
+  "id": "bark.low_hp.3",
+  "who": "LINT",
+  "hash": "4b7d30b983fdad7a",
+  "seconds": 1.79,
+  "voice": "am_fenrir",
+  "text": "Error: too much damage taken."
+ },
+ "bark.low_hp.4": {
+  "id": "bark.low_hp.4",
+  "who": "DUCK",
+  "hash": "27b8e9fb03fdb526",
+  "seconds": 1.88,
+  "voice": "af_heart",
+  "text": "Deep breath. Find a gap. Go."
+ },
+ "bark.low_hp_boss.0": {
+  "id": "bark.low_hp_boss.0",
+  "who": "DUCK",
+  "hash": "ec3e96d9c2a2c436",
+  "seconds": 1.56,
+  "voice": "af_heart",
+  "text": "Hang on! It's hurting too."
+ },
+ "bark.low_hp_boss.1": {
+  "id": "bark.low_hp_boss.1",
+  "who": "LINT",
+  "hash": "2e4cdcc712bea7fe",
+  "seconds": 2.17,
+  "voice": "am_fenrir",
+  "text": "Two low health bars. Who blinks first?"
+ },
+ "bark.low_hp_boss.2": {
+  "id": "bark.low_hp_boss.2",
+  "who": "DUCK",
+  "hash": "e9836be7b6bff49d",
+  "seconds": 2.09,
+  "voice": "af_heart",
+  "text": "Patience. Dodge first, then finish it."
+ },
+ "bark.mana_empty.0": {
+  "id": "bark.mana_empty.0",
+  "who": "DUCK",
+  "hash": "9d70bbfebc54ce67",
+  "seconds": 1.53,
+  "voice": "af_heart",
+  "text": "Out of mana. Let it breathe."
+ },
+ "bark.mana_empty.1": {
+  "id": "bark.mana_empty.1",
+  "who": "LINT",
+  "hash": "f5d573a2b302a5f1",
+  "seconds": 2.07,
+  "voice": "am_fenrir",
+  "text": "Mana: zero. Casting: denied."
+ },
+ "bark.mana_empty.2": {
+  "id": "bark.mana_empty.2",
+  "who": "DUCK",
+  "hash": "16b46d09b824b00c",
+  "seconds": 2.05,
+  "voice": "af_heart",
+  "text": "Wand's empty. Dodge while it refills."
+ },
+ "bark.mana_empty.3": {
+  "id": "bark.mana_empty.3",
+  "who": "LINT",
+  "hash": "ca893f30067df600",
+  "seconds": 2.04,
+  "voice": "am_fenrir",
+  "text": "Insufficient funds. Try later."
+ },
+ "bark.mana_recycle.0": {
+  "id": "bark.mana_recycle.0",
+  "who": "DUCK",
+  "hash": "e7da6a9b747b4550",
+  "seconds": 2.12,
+  "voice": "af_heart",
+  "text": "Recycle Bin's dry. Kills refill it."
+ },
+ "bark.mana_recycle.1": {
+  "id": "bark.mana_recycle.1",
+  "who": "LINT",
+  "hash": "a53ba4d5cd80be9b",
+  "seconds": 2.2,
+  "voice": "am_fenrir",
+  "text": "No kills, no mana. Bin rules."
+ },
+ "bark.mana_recycle.2": {
+  "id": "bark.mana_recycle.2",
+  "who": "DUCK",
+  "hash": "75903ef89e92f576",
+  "seconds": 1.81,
+  "voice": "af_heart",
+  "text": "Feed the bin. Somebody nearby."
+ },
+ "bark.phase.0": {
+  "id": "bark.phase.0",
+  "who": "DUCK",
+  "hash": "89ab42881bc1b070",
+  "seconds": 1.74,
+  "voice": "af_heart",
+  "text": "It changed. Watch the new moves."
+ },
+ "bark.phase.1": {
+  "id": "bark.phase.1",
+  "who": "LINT",
+  "hash": "c1cb453819646763",
+  "seconds": 1.97,
+  "voice": "am_fenrir",
+  "text": "Phase two. New patterns loaded."
+ },
+ "bark.phase_copy.0": {
+  "id": "bark.phase_copy.0",
+  "who": "DUCK",
+  "hash": "7752eb602a8e885d",
+  "seconds": 1.91,
+  "voice": "af_heart",
+  "text": "It's copying faster. Keep moving."
+ },
+ "bark.phase_copy.1": {
+  "id": "bark.phase_copy.1",
+  "who": "LINT",
+  "hash": "b3bbb526ebb9e283",
+  "seconds": 1.91,
+  "voice": "am_fenrir",
+  "text": "Clipboard full. Expect repeats."
+ },
+ "bark.phase_deadlock.0": {
+  "id": "bark.phase_deadlock.0",
+  "who": "LINT",
+  "hash": "d91e26b6628988b0",
+  "seconds": 2.71,
+  "voice": "am_fenrir",
+  "text": "Lock states changed. Find the open one."
+ },
+ "bark.phase_deadlock.1": {
+  "id": "bark.phase_deadlock.1",
+  "who": "DUCK",
+  "hash": "9bfa726bb3fb1833",
+  "seconds": 1.66,
+  "voice": "af_heart",
+  "text": "Beam's coming. Out of the circle!"
+ },
+ "bark.phase_gc.0": {
+  "id": "bark.phase_gc.0",
+  "who": "DUCK",
+  "hash": "8c68dbd6c685fc75",
+  "seconds": 1.7,
+  "voice": "af_heart",
+  "text": "Lid's opening? Stop shooting!"
+ },
+ "bark.phase_gc.1": {
+  "id": "bark.phase_gc.1",
+  "who": "LINT",
+  "hash": "84bb9ca7c68c5117",
+  "seconds": 1.68,
+  "voice": "am_fenrir",
+  "text": "Sweep cycle. Do not feed it."
+ },
+ "bark.phase_glitch.0": {
+  "id": "bark.phase_glitch.0",
+  "who": "LINT",
+  "hash": "9108609687904126",
+  "seconds": 2.18,
+  "voice": "am_fenrir",
+  "text": "It's rewriting the room. Stay mobile."
+ },
+ "bark.phase_glitch.1": {
+  "id": "bark.phase_glitch.1",
+  "who": "DUCK",
+  "hash": "1f3e2d0219f5622a",
+  "seconds": 1.85,
+  "voice": "af_heart",
+  "text": "It's changing the rules. So do we."
+ },
+ "bark.phase_last.0": {
+  "id": "bark.phase_last.0",
+  "who": "LINT",
+  "hash": "e8e3ae3b0cda1503",
+  "seconds": 2.21,
+  "voice": "am_fenrir",
+  "text": "Final phase. Its worst is next."
+ },
+ "bark.phase_last.1": {
+  "id": "bark.phase_last.1",
+  "who": "DUCK",
+  "hash": "ece93d2c4d7e6dd9",
+  "seconds": 1.68,
+  "voice": "af_heart",
+  "text": "Angry means hurt. Keep at it."
+ },
+ "bark.phase_loop.0": {
+  "id": "bark.phase_loop.0",
+  "who": "DUCK",
+  "hash": "0b4a490b5b2142be",
+  "seconds": 1.96,
+  "voice": "af_heart",
+  "text": "Smaller and faster. Break the body!"
+ },
+ "bark.phase_loop.1": {
+  "id": "bark.phase_loop.1",
+  "who": "LINT",
+  "hash": "27a64db0a8c91646",
+  "seconds": 1.95,
+  "voice": "am_fenrir",
+  "text": "Loop body exposed. Hit it."
+ },
+ "bark.phase_race.0": {
+  "id": "bark.phase_race.0",
+  "who": "DUCK",
+  "hash": "653b461321209a86",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "Keep them even. Both at once!"
+ },
+ "bark.phase_race.1": {
+  "id": "bark.phase_race.1",
+  "who": "LINT",
+  "hash": "7f4019891b32ab83",
+  "seconds": 2.36,
+  "voice": "am_fenrir",
+  "text": "Threads diverging. Balance the damage."
+ },
+ "bark.pm_copy.0": {
+  "id": "bark.pm_copy.0",
+  "who": "DUCK",
+  "hash": "f11496ddce00ca26",
+  "seconds": 2.07,
+  "voice": "af_heart",
+  "text": "Copy-Paste used your wand on you. Rude."
+ },
+ "bark.pm_copy.1.0": {
+  "id": "bark.pm_copy.1.0",
+  "who": "LINT",
+  "hash": "864a5cf260fde527",
+  "seconds": 1.18,
+  "voice": "am_fenrir",
+  "text": "Cause: your own spells."
+ },
+ "bark.pm_copy.1.1": {
+  "id": "bark.pm_copy.1.1",
+  "who": "DUCK",
+  "hash": "c7285181a277da43",
+  "seconds": 1.31,
+  "voice": "af_heart",
+  "text": "Try a wand it hasn't seen."
+ },
+ "bark.pm_deadlock.0.0": {
+  "id": "bark.pm_deadlock.0.0",
+  "who": "DUCK",
+  "hash": "50f383bbcaff0351",
+  "seconds": 1.92,
+  "voice": "af_heart",
+  "text": "Deadlock. It waited. We didn't."
+ },
+ "bark.pm_deadlock.0.1": {
+  "id": "bark.pm_deadlock.0.1",
+  "who": "LINT",
+  "hash": "be26d2fd7a6f989a",
+  "seconds": 1.53,
+  "voice": "am_fenrir",
+  "text": "Waiting was the correct move."
+ },
+ "bark.pm_deadlock.1": {
+  "id": "bark.pm_deadlock.1",
+  "who": "DUCK",
+  "hash": "b6b3c826fd311210",
+  "seconds": 2.13,
+  "voice": "af_heart",
+  "text": "Hit the open lock. Leave the beam alone."
+ },
+ "bark.pm_death.0": {
+  "id": "bark.pm_death.0",
+  "who": "DUCK",
+  "hash": "8302d661efbe8420",
+  "seconds": 1.94,
+  "voice": "af_heart",
+  "text": "We'll get it. Bugs can't hide forever."
+ },
+ "bark.pm_death.1.0": {
+  "id": "bark.pm_death.1.0",
+  "who": "LINT",
+  "hash": "f2a23a9a0df0c0a8",
+  "seconds": 2.42,
+  "voice": "am_fenrir",
+  "text": "Post-mortem filed. Cause: damage."
+ },
+ "bark.pm_death.1.1": {
+  "id": "bark.pm_death.1.1",
+  "who": "DUCK",
+  "hash": "dfc5b4c7a4b26ae9",
+  "seconds": 1.2,
+  "voice": "af_heart",
+  "text": "Very insightful, LINT."
+ },
+ "bark.pm_death.2": {
+  "id": "bark.pm_death.2",
+  "who": "DUCK",
+  "hash": "6e2a4fa0a495c9df",
+  "seconds": 2.2,
+  "voice": "af_heart",
+  "text": "Bad run. Good data. That's the job."
+ },
+ "bark.pm_first_win.0.0": {
+  "id": "bark.pm_first_win.0.0",
+  "who": "DUCK",
+  "hash": "659f5c3e0a13ccfa",
+  "seconds": 1.81,
+  "voice": "af_heart",
+  "text": "Our first win. I'm framing this."
+ },
+ "bark.pm_first_win.0.1": {
+  "id": "bark.pm_first_win.0.1",
+  "who": "LINT",
+  "hash": "a4d244b23d5973e4",
+  "seconds": 1.76,
+  "voice": "am_fenrir",
+  "text": "Framed. Wall space allocated."
+ },
+ "bark.pm_gc.0": {
+  "id": "bark.pm_gc.0",
+  "who": "DUCK",
+  "hash": "d0c62a61c9680355",
+  "seconds": 2.04,
+  "voice": "af_heart",
+  "text": "The Collector kept everything. Even you."
+ },
+ "bark.pm_gc.1.0": {
+  "id": "bark.pm_gc.1.0",
+  "who": "LINT",
+  "hash": "7e32ce7096836308",
+  "seconds": 1.79,
+  "voice": "am_fenrir",
+  "text": "Collected. Filed under garbage."
+ },
+ "bark.pm_gc.1.1": {
+  "id": "bark.pm_gc.1.1",
+  "who": "DUCK",
+  "hash": "abccb64e6a5afe0c",
+  "seconds": 1.52,
+  "voice": "af_heart",
+  "text": "Stop shooting when the lid opens."
+ },
+ "bark.pm_glitch.0.0": {
+  "id": "bark.pm_glitch.0.0",
+  "who": "DUCK",
+  "hash": "9ee23562cfd35d48",
+  "seconds": 1.75,
+  "voice": "af_heart",
+  "text": "So close. Your own bug beat you."
+ },
+ "bark.pm_glitch.0.1": {
+  "id": "bark.pm_glitch.0.1",
+  "who": "LINT",
+  "hash": "5e8e6ab63068e526",
+  "seconds": 2.06,
+  "voice": "am_fenrir",
+  "text": "It had a head start. Since Friday."
+ },
+ "bark.pm_glitch.1": {
+  "id": "bark.pm_glitch.1",
+  "who": "DUCK",
+  "hash": "22f0923456ab1f55",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "At the Glitch. That's the last step."
+ },
+ "bark.pm_heat_death.0.0": {
+  "id": "bark.pm_heat_death.0.0",
+  "who": "LINT",
+  "hash": "10471ce12ddc0fe7",
+  "seconds": 1.95,
+  "voice": "am_fenrir",
+  "text": "High heat. Failure expected."
+ },
+ "bark.pm_heat_death.0.1": {
+  "id": "bark.pm_heat_death.0.1",
+  "who": "DUCK",
+  "hash": "f395085896947668",
+  "seconds": 1.94,
+  "voice": "af_heart",
+  "text": "Expected. Not accepted. Again?"
+ },
+ "bark.pm_heat_win.0.0": {
+  "id": "bark.pm_heat_win.0.0",
+  "who": "LINT",
+  "hash": "41a18f1691da35d6",
+  "seconds": 2.41,
+  "voice": "am_fenrir",
+  "text": "Won with bug reports open. Noted."
+ },
+ "bark.pm_heat_win.0.1": {
+  "id": "bark.pm_heat_win.0.1",
+  "who": "DUCK",
+  "hash": "c887e1e0e58bb966",
+  "seconds": 1.83,
+  "voice": "af_heart",
+  "text": "Hot and winning. One more report?"
+ },
+ "bark.pm_heat_win.1.0": {
+  "id": "bark.pm_heat_win.1.0",
+  "who": "DUCK",
+  "hash": "841080e8e941d677",
+  "seconds": 1.48,
+  "voice": "af_heart",
+  "text": "A win at heat! Show-off."
+ },
+ "bark.pm_heat_win.1.1": {
+  "id": "bark.pm_heat_win.1.1",
+  "who": "LINT",
+  "hash": "f39c9a241dbef98b",
+  "seconds": 2.03,
+  "voice": "am_fenrir",
+  "text": "Heat survived. Barely a scratch."
+ },
+ "bark.pm_loop.0.0": {
+  "id": "bark.pm_loop.0.0",
+  "who": "DUCK",
+  "hash": "e5caf2d7fd510754",
+  "seconds": 1.81,
+  "voice": "af_heart",
+  "text": "The Loop got us. It does go on."
+ },
+ "bark.pm_loop.0.1": {
+  "id": "bark.pm_loop.0.1",
+  "who": "LINT",
+  "hash": "c9d4ad458138fe86",
+  "seconds": 1.25,
+  "voice": "am_fenrir",
+  "text": "And on. And on. And on."
+ },
+ "bark.pm_loop.1": {
+  "id": "bark.pm_loop.1",
+  "who": "DUCK",
+  "hash": "04983f7b4cbd5869",
+  "seconds": 2.16,
+  "voice": "af_heart",
+  "text": "Break its body in phase two. Promise?"
+ },
+ "bark.pm_nemesis.0.0": {
+  "id": "bark.pm_nemesis.0.0",
+  "who": "DUCK",
+  "hash": "2d306a1b89db530d",
+  "seconds": 1.83,
+  "voice": "af_heart",
+  "text": "Three times now. That's a nemesis."
+ },
+ "bark.pm_nemesis.0.1": {
+  "id": "bark.pm_nemesis.0.1",
+  "who": "LINT",
+  "hash": "6f2427318fef5bfe",
+  "seconds": 1.9,
+  "voice": "am_fenrir",
+  "text": "Nemesis: officially registered."
+ },
+ "bark.pm_nemesis.1": {
+  "id": "bark.pm_nemesis.1",
+  "who": "DUCK",
+  "hash": "6b5b3435c3704a69",
+  "seconds": 1.72,
+  "voice": "af_heart",
+  "text": "It again. I'm starting to hate it."
+ },
+ "bark.pm_pack.0.0": {
+  "id": "bark.pm_pack.0.0",
+  "who": "DUCK",
+  "hash": "c9e2fca94b272429",
+  "seconds": 1.93,
+  "voice": "af_heart",
+  "text": "New pack, first run. How was it?"
+ },
+ "bark.pm_pack.0.1": {
+  "id": "bark.pm_pack.0.1",
+  "who": "LINT",
+  "hash": "b42689fb2f4ce139",
+  "seconds": 1.72,
+  "voice": "am_fenrir",
+  "text": "Early data: inconclusive."
+ },
+ "bark.pm_pack.1": {
+  "id": "bark.pm_pack.1",
+  "who": "DUCK",
+  "hash": "d532eb1efc50a8a2",
+  "seconds": 2.08,
+  "voice": "af_heart",
+  "text": "New spells, first try. Any favourites?"
+ },
+ "bark.pm_quit.0.0": {
+  "id": "bark.pm_quit.0.0",
+  "who": "LINT",
+  "hash": "420d9b4b0c3f87c7",
+  "seconds": 1.3,
+  "voice": "am_fenrir",
+  "text": "Run abandoned by user."
+ },
+ "bark.pm_quit.0.1": {
+  "id": "bark.pm_quit.0.1",
+  "who": "DUCK",
+  "hash": "cf9b40e5a64e8552",
+  "seconds": 1.55,
+  "voice": "af_heart",
+  "text": "Sometimes stopping is the fix."
+ },
+ "bark.pm_quit.1": {
+  "id": "bark.pm_quit.1",
+  "who": "DUCK",
+  "hash": "1d1722ad155307ea",
+  "seconds": 1.98,
+  "voice": "af_heart",
+  "text": "Walked out? Fair. Fresh wand time."
+ },
+ "bark.pm_race.0.0": {
+  "id": "bark.pm_race.0.0",
+  "who": "LINT",
+  "hash": "524e9189d9d461a7",
+  "seconds": 1.8,
+  "voice": "am_fenrir",
+  "text": "Race condition: unresolved."
+ },
+ "bark.pm_race.0.1": {
+  "id": "bark.pm_race.0.1",
+  "who": "DUCK",
+  "hash": "7bf4d29458cabe77",
+  "seconds": 1.86,
+  "voice": "af_heart",
+  "text": "Even them out. Then finish together."
+ },
+ "bark.pm_race.1": {
+  "id": "bark.pm_race.1",
+  "who": "DUCK",
+  "hash": "51a13d807f7810f4",
+  "seconds": 2.11,
+  "voice": "af_heart",
+  "text": "The twins again. Hurt both, end both."
+ },
+ "bark.pm_record.0.0": {
+  "id": "bark.pm_record.0.0",
+  "who": "LINT",
+  "hash": "f1326206a8123237",
+  "seconds": 1.81,
+  "voice": "am_fenrir",
+  "text": "New depth record. Logged."
+ },
+ "bark.pm_record.0.1": {
+  "id": "bark.pm_record.0.1",
+  "who": "DUCK",
+  "hash": "316599c8a16ac003",
+  "seconds": 1.84,
+  "voice": "af_heart",
+  "text": "Deeper than ever. The bug felt that."
+ },
+ "bark.pm_record.1": {
+  "id": "bark.pm_record.1",
+  "who": "DUCK",
+  "hash": "c6f87e6ca182df27",
+  "seconds": 1.88,
+  "voice": "af_heart",
+  "text": "Furthest yet! Not that I'm counting."
+ },
+ "bark.pm_relics_many.0.0": {
+  "id": "bark.pm_relics_many.0.0",
+  "who": "DUCK",
+  "hash": "c05d061118d513fd",
+  "seconds": 1.78,
+  "voice": "af_heart",
+  "text": "So many relics. You were a museum."
+ },
+ "bark.pm_relics_many.0.1": {
+  "id": "bark.pm_relics_many.0.1",
+  "who": "LINT",
+  "hash": "aa6d4ad19f8c046f",
+  "seconds": 2.32,
+  "voice": "am_fenrir",
+  "text": "Inventory: heavy. Results: mixed."
+ },
+ "bark.pm_relics_none.0": {
+  "id": "bark.pm_relics_none.0",
+  "who": "DUCK",
+  "hash": "bf3dcd1ce024bc54",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "No relics at all? Brave. Or busy."
+ },
+ "bark.pm_rule.0.0": {
+  "id": "bark.pm_rule.0.0",
+  "who": "LINT",
+  "hash": "a28ce5f67d2d6461",
+  "seconds": 1.8,
+  "voice": "am_fenrir",
+  "text": "Wand rule in use. Bold."
+ },
+ "bark.pm_rule.0.1": {
+  "id": "bark.pm_rule.0.1",
+  "who": "DUCK",
+  "hash": "8f038c0d90d18b70",
+  "seconds": 1.84,
+  "voice": "af_heart",
+  "text": "Weird wands win runs. Keep it."
+ },
+ "bark.pm_rule.1": {
+  "id": "bark.pm_rule.1",
+  "who": "DUCK",
+  "hash": "89bdc3dd7db00f9c",
+  "seconds": 2.16,
+  "voice": "af_heart",
+  "text": "Odd wand, good ideas. Odd is good."
+ },
+ "bark.pm_same.0.0": {
+  "id": "bark.pm_same.0.0",
+  "who": "DUCK",
+  "hash": "0e00d948772d825e",
+  "seconds": 1.23,
+  "voice": "af_heart",
+  "text": "Same thing got you twice."
+ },
+ "bark.pm_same.0.1": {
+  "id": "bark.pm_same.0.1",
+  "who": "LINT",
+  "hash": "f00d275b3eac64ba",
+  "seconds": 1.93,
+  "voice": "am_fenrir",
+  "text": "Reproducible. That is good news."
+ },
+ "bark.pm_same.1.0": {
+  "id": "bark.pm_same.1.0",
+  "who": "DUCK",
+  "hash": "fb42e2e5aee53d43",
+  "seconds": 1.58,
+  "voice": "af_heart",
+  "text": "Again? It's learning your moves."
+ },
+ "bark.pm_same.1.1": {
+  "id": "bark.pm_same.1.1",
+  "who": "LINT",
+  "hash": "293a596bce189161",
+  "seconds": 1.28,
+  "voice": "am_fenrir",
+  "text": "Or you are not learning its."
+ },
+ "bark.pm_short.0.0": {
+  "id": "bark.pm_short.0.0",
+  "who": "DUCK",
+  "hash": "d60ca4b5ece21b3c",
+  "seconds": 1.75,
+  "voice": "af_heart",
+  "text": "That was short. A warm-up, right?"
+ },
+ "bark.pm_short.0.1": {
+  "id": "bark.pm_short.0.1",
+  "who": "LINT",
+  "hash": "5b5f30264a399dc3",
+  "seconds": 2.21,
+  "voice": "am_fenrir",
+  "text": "Duration: brief. Lessons: some."
+ },
+ "bark.pm_short.1": {
+  "id": "bark.pm_short.1",
+  "who": "DUCK",
+  "hash": "dbea6d6f154029ef",
+  "seconds": 1.53,
+  "voice": "af_heart",
+  "text": "Everyone trips on the first step."
+ },
+ "bark.pm_win.0.0": {
+  "id": "bark.pm_win.0.0",
+  "who": "LINT",
+  "hash": "3bdec0bbc7c1b058",
+  "seconds": 2.49,
+  "voice": "am_fenrir",
+  "text": "Post-mortem: success. A rare format."
+ },
+ "bark.pm_win.0.1": {
+  "id": "bark.pm_win.0.1",
+  "who": "DUCK",
+  "hash": "0ebffb01d78e976e",
+  "seconds": 1.54,
+  "voice": "af_heart",
+  "text": "No bugs. Well. Fewer bugs."
+ },
+ "bark.pm_win.1": {
+  "id": "bark.pm_win.1",
+  "who": "DUCK",
+  "hash": "67abcb3b46de99eb",
+  "seconds": 1.91,
+  "voice": "af_heart",
+  "text": "Another win. The bug's getting nervous."
+ },
+ "bark.pm_win.2": {
+  "id": "bark.pm_win.2",
+  "who": "DUCK",
+  "hash": "be0a1f1b61324841",
+  "seconds": 1.15,
+  "voice": "af_heart",
+  "text": "I could get used to winning."
+ },
+ "bark.pm_win_wall.0.0": {
+  "id": "bark.pm_win_wall.0.0",
+  "who": "DUCK",
+  "hash": "2d5dbf5378ff9a13",
+  "seconds": 1.09,
+  "voice": "af_heart",
+  "text": "Another win for the wall."
+ },
+ "bark.pm_win_wall.0.1": {
+  "id": "bark.pm_win_wall.0.1",
+  "who": "LINT",
+  "hash": "6de0ae016a04c187",
+  "seconds": 1.75,
+  "voice": "am_fenrir",
+  "text": "Wall capacity: concerning."
+ },
+ "bark.pm_win_wall.1": {
+  "id": "bark.pm_win_wall.1",
+  "who": "DUCK",
+  "hash": "4f2838cb9b09211e",
+  "seconds": 1.1,
+  "voice": "af_heart",
+  "text": "I'll need a bigger frame."
+ },
+ "bark.pm_world2.0": {
+  "id": "bark.pm_world2.0",
+  "who": "DUCK",
+  "hash": "d5ce21fbe9306caa",
+  "seconds": 1.81,
+  "voice": "af_heart",
+  "text": "The Foundry cooked us. Bring frost?"
+ },
+ "bark.pm_world2.1.0": {
+  "id": "bark.pm_world2.1.0",
+  "who": "LINT",
+  "hash": "a5a1e47abfb1ce0e",
+  "seconds": 2.08,
+  "voice": "am_fenrir",
+  "text": "World 2 runs hot. Literally."
+ },
+ "bark.pm_world2.1.1": {
+  "id": "bark.pm_world2.1.1",
+  "who": "DUCK",
+  "hash": "649feae5e7e27b07",
+  "seconds": 1.88,
+  "voice": "af_heart",
+  "text": "Cool heads win. Cool spells too."
+ },
+ "bark.pm_world3.0.0": {
+  "id": "bark.pm_world3.0.0",
+  "who": "DUCK",
+  "hash": "f5875881629589f2",
+  "seconds": 1.69,
+  "voice": "af_heart",
+  "text": "The Kernel is tough. We're tougher."
+ },
+ "bark.pm_world3.0.1": {
+  "id": "bark.pm_world3.0.1",
+  "who": "LINT",
+  "hash": "9964cc7f789d6ea6",
+  "seconds": 1.18,
+  "voice": "am_fenrir",
+  "text": "Claim unverified."
+ },
+ "bark.room_fast.0": {
+  "id": "bark.room_fast.0",
+  "who": "DUCK",
+  "hash": "25a4c34c0d19212d",
+  "seconds": 1.59,
+  "voice": "af_heart",
+  "text": "That was quick! Blink and done."
+ },
+ "bark.room_fast.1": {
+  "id": "bark.room_fast.1",
+  "who": "LINT",
+  "hash": "22369b59520c6d6c",
+  "seconds": 1.85,
+  "voice": "am_fenrir",
+  "text": "Room cleared. Faster than my boot."
+ },
+ "bark.room_fast.2": {
+  "id": "bark.room_fast.2",
+  "who": "DUCK",
+  "hash": "4074d3e7882afa83",
+  "seconds": 1.59,
+  "voice": "af_heart",
+  "text": "Speedrun! I barely quacked."
+ },
+ "bark.room_fast.3": {
+  "id": "bark.room_fast.3",
+  "who": "LINT",
+  "hash": "b3f7d3470cae32c2",
+  "seconds": 2.31,
+  "voice": "am_fenrir",
+  "text": "Runtime: short. Efficiency: noted."
+ },
+ "bark.rule_pages.0": {
+  "id": "bark.rule_pages.0",
+  "who": "LINT",
+  "hash": "e8cd0517805ef50f",
+  "seconds": 2.26,
+  "voice": "am_fenrir",
+  "text": "Double Buffer. One page at a time."
+ },
+ "bark.rule_pages.1": {
+  "id": "bark.rule_pages.1",
+  "who": "DUCK",
+  "hash": "cf0ed1f2d249d5a7",
+  "seconds": 1.68,
+  "voice": "af_heart",
+  "text": "Half the wand now, half next time."
+ },
+ "bark.rule_pages.2": {
+  "id": "bark.rule_pages.2",
+  "who": "LINT",
+  "hash": "3f643892c960c23b",
+  "seconds": 1.97,
+  "voice": "am_fenrir",
+  "text": "Page flipped. Other half loaded."
+ },
+ "bark.rule_palindrome.0": {
+  "id": "bark.rule_palindrome.0",
+  "who": "DUCK",
+  "hash": "6198a3cc1fea86e9",
+  "seconds": 1.8,
+  "voice": "af_heart",
+  "text": "There and back again. Like a yo-yo."
+ },
+ "bark.rule_palindrome.1": {
+  "id": "bark.rule_palindrome.1",
+  "who": "LINT",
+  "hash": "503fa73ae02f56fd",
+  "seconds": 2.05,
+  "voice": "am_fenrir",
+  "text": "Reading forwards. Then backwards."
+ },
+ "bark.rule_palindrome.2": {
+  "id": "bark.rule_palindrome.2",
+  "who": "LINT",
+  "hash": "5fd0b4dc68f10640",
+  "seconds": 2.29,
+  "voice": "am_fenrir",
+  "text": "Same both ways. Like the word level."
+ },
+ "bark.rule_pinned.0": {
+  "id": "bark.rule_pinned.0",
+  "who": "LINT",
+  "hash": "8a942932131eedf4",
+  "seconds": 2.59,
+  "voice": "am_fenrir",
+  "text": "Slot 1 pinned. It joins every cast."
+ },
+ "bark.rule_pinned.1": {
+  "id": "bark.rule_pinned.1",
+  "who": "DUCK",
+  "hash": "ca87be5f836a56d8",
+  "seconds": 2.0,
+  "voice": "af_heart",
+  "text": "Pinned! That first slot is always on."
+ },
+ "bark.rule_pinned.2": {
+  "id": "bark.rule_pinned.2",
+  "who": "LINT",
+  "hash": "d258046208cdf766",
+  "seconds": 1.71,
+  "voice": "am_fenrir",
+  "text": "A pinned boost powers everything."
+ },
+ "bark.rule_recycle.0": {
+  "id": "bark.rule_recycle.0",
+  "who": "DUCK",
+  "hash": "9513f81700c18698",
+  "seconds": 1.95,
+  "voice": "af_heart",
+  "text": "Recycle Bin! Kills fill its mana."
+ },
+ "bark.rule_recycle.1": {
+  "id": "bark.rule_recycle.1",
+  "who": "LINT",
+  "hash": "8bdae1742be0dace",
+  "seconds": 2.1,
+  "voice": "am_fenrir",
+  "text": "No refills. Feed it enemies."
+ },
+ "bark.rule_recycle.2": {
+  "id": "bark.rule_recycle.2",
+  "who": "DUCK",
+  "hash": "046fe3fe532009bb",
+  "seconds": 1.96,
+  "voice": "af_heart",
+  "text": "It eats defeat. Theirs, not yours."
+ },
+ "bark.rule_shuffle.0": {
+  "id": "bark.rule_shuffle.0",
+  "who": "DUCK",
+  "hash": "df373a56e13a6452",
+  "seconds": 1.72,
+  "voice": "af_heart",
+  "text": "Shuffle! Your spells, in a new order."
+ },
+ "bark.rule_shuffle.1": {
+  "id": "bark.rule_shuffle.1",
+  "who": "LINT",
+  "hash": "a0ca01772ef3b897",
+  "seconds": 2.19,
+  "voice": "am_fenrir",
+  "text": "Order randomised. I disapprove."
+ },
+ "bark.rule_shuffle.2": {
+  "id": "bark.rule_shuffle.2",
+  "who": "DUCK",
+  "hash": "ef0963f3b3303ce4",
+  "seconds": 1.87,
+  "voice": "af_heart",
+  "text": "Surprise order. Watch the slots."
+ },
+ "bark.smell_boost_tail.0.0": {
+  "id": "bark.smell_boost_tail.0.0",
+  "who": "LINT",
+  "hash": "a0f7d3c3e988cdf3",
+  "seconds": 2.03,
+  "voice": "am_fenrir",
+  "text": "Smell: a boost with nothing on its right."
+ },
+ "bark.smell_boost_tail.0.1": {
+  "id": "bark.smell_boost_tail.0.1",
+  "who": "DUCK",
+  "hash": "cff5d58c0c13a58e",
+  "seconds": 1.48,
+  "voice": "af_heart",
+  "text": "Boosts power what's on their right."
+ },
+ "bark.smell_boost_tail.1": {
+  "id": "bark.smell_boost_tail.1",
+  "who": "LINT",
+  "hash": "60e1a77bd8dd8e47",
+  "seconds": 2.49,
+  "voice": "am_fenrir",
+  "text": "That boost boosts nothing. Move it left."
+ },
+ "bark.smell_copy3.0.0": {
+  "id": "bark.smell_copy3.0.0",
+  "who": "LINT",
+  "hash": "ed8c1bb1fda9782c",
+  "seconds": 2.09,
+  "voice": "am_fenrir",
+  "text": "Smell: one spell three times in a row."
+ },
+ "bark.smell_copy3.0.1": {
+  "id": "bark.smell_copy3.0.1",
+  "who": "DUCK",
+  "hash": "65dc3cee92a1e354",
+  "seconds": 1.53,
+  "voice": "af_heart",
+  "text": "Copy-paste is how we got here."
+ },
+ "bark.smell_copy3.1": {
+  "id": "bark.smell_copy3.1",
+  "who": "LINT",
+  "hash": "e88ba07254b96f31",
+  "seconds": 2.29,
+  "voice": "am_fenrir",
+  "text": "Three copies. A Twin Cast does that."
+ },
+ "bark.smell_gap.0.0": {
+  "id": "bark.smell_gap.0.0",
+  "who": "LINT",
+  "hash": "0a910f4d5aae0d1d",
+  "seconds": 1.99,
+  "voice": "am_fenrir",
+  "text": "Smell: an empty slot between spells."
+ },
+ "bark.smell_gap.0.1": {
+  "id": "bark.smell_gap.0.1",
+  "who": "DUCK",
+  "hash": "2b19206af97186ee",
+  "seconds": 1.82,
+  "voice": "af_heart",
+  "text": "Harmless. LINT won't let it go, though."
+ },
+ "bark.smell_gap.1": {
+  "id": "bark.smell_gap.1",
+  "who": "LINT",
+  "hash": "ce18ebf1b9607e67",
+  "seconds": 2.42,
+  "voice": "am_fenrir",
+  "text": "Dead space in the wand. Fill that slot."
+ },
+ "bark.smell_no_spell.0.0": {
+  "id": "bark.smell_no_spell.0.0",
+  "who": "LINT",
+  "hash": "de142043ac7114cd",
+  "seconds": 1.73,
+  "voice": "am_fenrir",
+  "text": "Smell: nothing on this wand shoots."
+ },
+ "bark.smell_no_spell.0.1": {
+  "id": "bark.smell_no_spell.0.1",
+  "who": "DUCK",
+  "hash": "e91bade038af02af",
+  "seconds": 1.87,
+  "voice": "af_heart",
+  "text": "All boosts, no bang. Add a spell."
+ },
+ "bark.smell_no_spell.1": {
+  "id": "bark.smell_no_spell.1",
+  "who": "LINT",
+  "hash": "a8ae728e8b436a1e",
+  "seconds": 2.1,
+  "voice": "am_fenrir",
+  "text": "No shooting spell found. Bold."
+ },
+ "bark.smell_trig_tail.0.0": {
+  "id": "bark.smell_trig_tail.0.0",
+  "who": "LINT",
+  "hash": "275b2b7e1fb036ba",
+  "seconds": 2.11,
+  "voice": "am_fenrir",
+  "text": "Smell: a trigger with no spell after it."
+ },
+ "bark.smell_trig_tail.0.1": {
+  "id": "bark.smell_trig_tail.0.1",
+  "who": "DUCK",
+  "hash": "96e68678cd5dd061",
+  "seconds": 1.57,
+  "voice": "af_heart",
+  "text": "A trigger needs a spell to call."
+ },
+ "bark.smell_trig_tail.1": {
+  "id": "bark.smell_trig_tail.1",
+  "who": "LINT",
+  "hash": "5d5bce05b4c57d48",
+  "seconds": 2.28,
+  "voice": "am_fenrir",
+  "text": "That trigger calls nothing. Add a spell."
+ },
+ "bark.status_burn.0": {
+  "id": "bark.status_burn.0",
+  "who": "DUCK",
+  "hash": "2ac4893d8240edd5",
+  "seconds": 1.85,
+  "voice": "af_heart",
+  "text": "Everything's on fire. On purpose?"
+ },
+ "bark.status_burn.1": {
+  "id": "bark.status_burn.1",
+  "who": "LINT",
+  "hash": "3c7c580339c22de6",
+  "seconds": 1.82,
+  "voice": "am_fenrir",
+  "text": "Temperature rising. Theirs."
+ },
+ "bark.status_burn.2": {
+  "id": "bark.status_burn.2",
+  "who": "DUCK",
+  "hash": "3ecd28b75d34488e",
+  "seconds": 1.47,
+  "voice": "af_heart",
+  "text": "Toasty. Keep them burning."
+ },
+ "bark.status_frost.0": {
+  "id": "bark.status_frost.0",
+  "who": "LINT",
+  "hash": "5b47a11116878eba",
+  "seconds": 2.21,
+  "voice": "am_fenrir",
+  "text": "Target not responding. Frozen."
+ },
+ "bark.status_frost.1": {
+  "id": "bark.status_frost.1",
+  "who": "DUCK",
+  "hash": "da47d0a2d8f4b53e",
+  "seconds": 1.72,
+  "voice": "af_heart",
+  "text": "Chilly. They're slowing right down."
+ },
+ "bark.status_frost.2": {
+  "id": "bark.status_frost.2",
+  "who": "DUCK",
+  "hash": "466d6c2d0b5cfb80",
+  "seconds": 1.95,
+  "voice": "af_heart",
+  "text": "Frozen solid. Like my inbox."
+ },
+ "bark.status_rot.0": {
+  "id": "bark.status_rot.0",
+  "who": "DUCK",
+  "hash": "03371da76a364da5",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "The rot spreads. Good rot, for once."
+ },
+ "bark.status_rot.1": {
+  "id": "bark.status_rot.1",
+  "who": "LINT",
+  "hash": "f983ffeed5c514f2",
+  "seconds": 2.23,
+  "voice": "am_fenrir",
+  "text": "Data corrupted. Theirs, fortunately."
+ },
+ "bark.status_rot.2": {
+  "id": "bark.status_rot.2",
+  "who": "DUCK",
+  "hash": "8696483bd9b56db3",
+  "seconds": 1.32,
+  "voice": "af_heart",
+  "text": "Rotten luck. For them."
+ },
+ "bark.status_shock.0": {
+  "id": "bark.status_shock.0",
+  "who": "LINT",
+  "hash": "cc34edd3d115e809",
+  "seconds": 1.85,
+  "voice": "am_fenrir",
+  "text": "Voltage high. Wards: stripped."
+ },
+ "bark.status_shock.1": {
+  "id": "bark.status_shock.1",
+  "who": "DUCK",
+  "hash": "0ac6bcc9dc3ce623",
+  "seconds": 1.41,
+  "voice": "af_heart",
+  "text": "Zap! They're buzzing now."
+ },
+ "bark.status_shock.2": {
+  "id": "bark.status_shock.2",
+  "who": "DUCK",
+  "hash": "f648ed569e41d2ba",
+  "seconds": 1.39,
+  "voice": "af_heart",
+  "text": "Did you turn them off and on again?"
+ },
  "boss_copy_paste.0.0": {
   "id": "boss:Copy-Paste.0.0",
   "who": "LINT",
@@ -263,6 +1735,38 @@
   "voice": "af_heart",
   "text": "Hold on to your wand."
  },
+ "descend.1": {
+  "id": "descend.1",
+  "who": "DUCK",
+  "hash": "c63261c317c756c5",
+  "seconds": 1.91,
+  "voice": "af_heart",
+  "text": "Down a frame. The bug is deeper still."
+ },
+ "descend.2.0": {
+  "id": "descend.2.0",
+  "who": "LINT",
+  "hash": "29eb076173a4eb1e",
+  "seconds": 2.54,
+  "voice": "am_fenrir",
+  "text": "Returning to caller. Caller: further down."
+ },
+ "descend.2.1": {
+  "id": "descend.2.1",
+  "who": "DUCK",
+  "hash": "61ea49dd78879fc5",
+  "seconds": 1.93,
+  "voice": "af_heart",
+  "text": "Every floor down is one step closer."
+ },
+ "descend.3": {
+  "id": "descend.3",
+  "who": "DUCK",
+  "hash": "7ce9648e70f5a2c5",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "Mind the drop. Stack frames are steep."
+ },
  "down_data_race.0.0": {
   "id": "down:Data Race.0.0",
   "who": "LINT",
@@ -279,6 +1783,30 @@
   "voice": "af_heart",
   "text": "Wait. There's a commit in the log with my name on it."
  },
+ "down_data_race.1.0": {
+  "id": "down:Data Race.1.0",
+  "who": "LINT",
+  "hash": "2920f0c7c1565cb9",
+  "seconds": 1.89,
+  "voice": "am_fenrir",
+  "text": "Both threads stopped. Together."
+ },
+ "down_data_race.1.1": {
+  "id": "down:Data Race.1.1",
+  "who": "DUCK",
+  "hash": "f84c761d360a4987",
+  "seconds": 2.15,
+  "voice": "af_heart",
+  "text": "Teamwork. Theirs failed. Ours didn't."
+ },
+ "down_data_race.2": {
+  "id": "down:Data Race.2",
+  "who": "DUCK",
+  "hash": "42f30adc9411f9b7",
+  "seconds": 2.37,
+  "voice": "af_heart",
+  "text": "Race over. Nobody won. That's the point."
+ },
  "down_deadlock.0.0": {
   "id": "down:Deadlock.0.0",
   "who": "LINT",
@@ -294,6 +1822,30 @@
   "seconds": 2.02,
   "voice": "af_heart",
   "text": "Behind them: the bug. Let's go see it."
+ },
+ "down_deadlock.1.0": {
+  "id": "down:Deadlock.1.0",
+  "who": "LINT",
+  "hash": "6c000a45632a2b60",
+  "seconds": 2.3,
+  "voice": "am_fenrir",
+  "text": "Deadlock resolved. Both locks free."
+ },
+ "down_deadlock.1.1": {
+  "id": "down:Deadlock.1.1",
+  "who": "DUCK",
+  "hash": "e2260f5ea34b1c34",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "They just needed someone to go first."
+ },
+ "down_deadlock.2": {
+  "id": "down:Deadlock.2",
+  "who": "DUCK",
+  "hash": "6375a3fda63f5682",
+  "seconds": 2.09,
+  "voice": "af_heart",
+  "text": "The locks let go. The Kernel is below."
  },
  "down_mini.0": {
   "id": "down:mini.0",
@@ -319,6 +1871,30 @@
   "voice": "am_fenrir",
   "text": "Version two point oh: scheduled."
  },
+ "down_mini.2.0": {
+  "id": "down:mini.2.0",
+  "who": "LINT",
+  "hash": "4fea18991d7b0a7b",
+  "seconds": 1.12,
+  "voice": "am_fenrir",
+  "text": "Mini-boss removed."
+ },
+ "down_mini.2.1": {
+  "id": "down:mini.2.1",
+  "who": "DUCK",
+  "hash": "09e3960f8cc254f9",
+  "seconds": 1.67,
+  "voice": "af_heart",
+  "text": "Keep the loot. Leave the grudge."
+ },
+ "down_mini.3": {
+  "id": "down:mini.3",
+  "who": "DUCK",
+  "hash": "c2add6420ccdc9a1",
+  "seconds": 1.99,
+  "voice": "af_heart",
+  "text": "Small boss, big mess. On we go."
+ },
  "down_the_glitch.0.0": {
   "id": "down:The Glitch.0.0",
   "who": "LINT",
@@ -334,6 +1910,38 @@
   "seconds": 1.54,
   "voice": "af_heart",
   "text": "Your call. It always was."
+ },
+ "down_the_glitch.1.0": {
+  "id": "down:The Glitch.1.0",
+  "who": "LINT",
+  "hash": "d750466742997cfb",
+  "seconds": 1.64,
+  "voice": "am_fenrir",
+  "text": "Glitch contained. Again."
+ },
+ "down_the_glitch.1.1": {
+  "id": "down:The Glitch.1.1",
+  "who": "DUCK",
+  "hash": "7252bd8edff7cbf2",
+  "seconds": 1.95,
+  "voice": "af_heart",
+  "text": "Same bug, same Friday. Your call."
+ },
+ "down_the_glitch.2.0": {
+  "id": "down:The Glitch.2.0",
+  "who": "DUCK",
+  "hash": "007d462e20a95619",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "It's down. It looks almost sorry."
+ },
+ "down_the_glitch.2.1": {
+  "id": "down:The Glitch.2.1",
+  "who": "LINT",
+  "hash": "94010ee8d767e20f",
+  "seconds": 1.4,
+  "voice": "am_fenrir",
+  "text": "Bugs do not feel sorry."
  },
  "down_the_infinite_loop.0.0": {
   "id": "down:The Infinite Loop.0.0",
@@ -358,6 +1966,30 @@
   "seconds": 2.83,
   "voice": "af_heart",
   "text": "Loop broken. The trace goes down. Take the stairs."
+ },
+ "down_the_infinite_loop.2.0": {
+  "id": "down:The Infinite Loop.2.0",
+  "who": "DUCK",
+  "hash": "3f37e189aa6a11b1",
+  "seconds": 1.92,
+  "voice": "af_heart",
+  "text": "It stopped! First loop ever to stop."
+ },
+ "down_the_infinite_loop.2.1": {
+  "id": "down:The Infinite Loop.2.1",
+  "who": "LINT",
+  "hash": "1d14c1021c490406",
+  "seconds": 1.56,
+  "voice": "am_fenrir",
+  "text": "Exit condition: you."
+ },
+ "down_the_infinite_loop.3": {
+  "id": "down:The Infinite Loop.3",
+  "who": "DUCK",
+  "hash": "3ce5568127540f67",
+  "seconds": 2.1,
+  "voice": "af_heart",
+  "text": "The world spins a little slower. Nice."
  },
  "ending.0": {
   "id": "ending.0",
@@ -407,6 +2039,46 @@
   "voice": "af_heart",
   "text": "Quack. You talk, I listen, we find the bug."
  },
+ "first_run.1.0": {
+  "id": "first_run.1.0",
+  "who": "DUCK",
+  "hash": "39067e61006488d5",
+  "seconds": 2.16,
+  "voice": "af_heart",
+  "text": "First run. Nobody expects it to work."
+ },
+ "first_run.1.1": {
+  "id": "first_run.1.1",
+  "who": "LINT",
+  "hash": "c58314bb090333e0",
+  "seconds": 1.49,
+  "voice": "am_fenrir",
+  "text": "Expectation: logged."
+ },
+ "first_run.2": {
+  "id": "first_run.2",
+  "who": "DUCK",
+  "hash": "a0d0af05b2a49b48",
+  "seconds": 2.28,
+  "voice": "af_heart",
+  "text": "Aim at the moss. Not at me. I'm the duck."
+ },
+ "first_run.3.0": {
+  "id": "first_run.3.0",
+  "who": "LINT",
+  "hash": "8c76453d124fbefb",
+  "seconds": 1.9,
+  "voice": "am_fenrir",
+  "text": "Practice mode. Mistakes are free."
+ },
+ "first_run.3.1": {
+  "id": "first_run.3.1",
+  "who": "DUCK",
+  "hash": "1389d5d304df18c4",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "So make lots. That's how we learn."
+ },
  "glitch_revert.0.0": {
   "id": "glitch:revert.0.0",
   "who": "DUCK",
@@ -423,6 +2095,30 @@
   "voice": "am_fenrir",
   "text": "Revert points on the floor. Green."
  },
+ "glitch_revert.1.0": {
+  "id": "glitch:revert.1.0",
+  "who": "LINT",
+  "hash": "b2c77c72230e0dcb",
+  "seconds": 1.29,
+  "voice": "am_fenrir",
+  "text": "Revert points available."
+ },
+ "glitch_revert.1.1": {
+  "id": "glitch:revert.1.1",
+  "who": "DUCK",
+  "hash": "9c6e8b5708219505",
+  "seconds": 1.65,
+  "voice": "af_heart",
+  "text": "Green bits! Grab them, quick!"
+ },
+ "glitch_revert.2": {
+  "id": "glitch:revert.2",
+  "who": "DUCK",
+  "hash": "1aa66e71047588dd",
+  "seconds": 1.98,
+  "voice": "af_heart",
+  "text": "Stand on the green. That's the old code."
+ },
  "glitch_unwind.0.0": {
   "id": "glitch:unwind.0.0",
   "who": "LINT",
@@ -438,6 +2134,30 @@
   "seconds": 2.2,
   "voice": "af_heart",
   "text": "The Loop and the locks. It remembers them too."
+ },
+ "glitch_unwind.1.0": {
+  "id": "glitch:unwind.1.0",
+  "who": "LINT",
+  "hash": "934b386c46a54bc9",
+  "seconds": 1.66,
+  "voice": "am_fenrir",
+  "text": "Unwinding. Frame by frame."
+ },
+ "glitch_unwind.1.1": {
+  "id": "glitch:unwind.1.1",
+  "who": "DUCK",
+  "hash": "07a2c0fcadb9eac1",
+  "seconds": 1.87,
+  "voice": "af_heart",
+  "text": "It's replaying every boss. Rude."
+ },
+ "glitch_unwind.2": {
+  "id": "glitch:unwind.2",
+  "who": "DUCK",
+  "hash": "5a0a58153868b8d6",
+  "seconds": 2.18,
+  "voice": "af_heart",
+  "text": "It's rewinding the whole run. Keep moving."
  },
  "grove.0.0": {
   "id": "grove.0.0",
@@ -479,6 +2199,30 @@
   "voice": "am_fenrir",
   "text": "Bug report one. Every fight brings an elite."
  },
+ "heat_1.1.0": {
+  "id": "heat:1.1.0",
+  "who": "LINT",
+  "hash": "ce66fe06faf6a1e5",
+  "seconds": 2.61,
+  "voice": "am_fenrir",
+  "text": "Bug report one. Elites in every fight."
+ },
+ "heat_1.1.1": {
+  "id": "heat:1.1.1",
+  "who": "DUCK",
+  "hash": "e8a6967f60bb6a46",
+  "seconds": 1.72,
+  "voice": "af_heart",
+  "text": "Every fight? Bring your best wand."
+ },
+ "heat_1.2": {
+  "id": "heat:1.2",
+  "who": "DUCK",
+  "hash": "d2ad1095cc4a1383",
+  "seconds": 2.52,
+  "voice": "af_heart",
+  "text": "One bug report. Elites everywhere. Fun."
+ },
  "heat_2.0.0": {
   "id": "heat:2.0.0",
   "who": "LINT",
@@ -486,6 +2230,30 @@
   "seconds": 2.39,
   "voice": "am_fenrir",
   "text": "Bug report two. Enemies hit harder."
+ },
+ "heat_2.1.0": {
+  "id": "heat:2.1.0",
+  "who": "LINT",
+  "hash": "ead25dbbddbd0eab",
+  "seconds": 1.78,
+  "voice": "am_fenrir",
+  "text": "Bug report two. They hit harder."
+ },
+ "heat_2.1.1": {
+  "id": "heat:2.1.1",
+  "who": "DUCK",
+  "hash": "649f254232e4eb45",
+  "seconds": 1.67,
+  "voice": "af_heart",
+  "text": "So we dodge harder. Simple."
+ },
+ "heat_2.2": {
+  "id": "heat:2.2",
+  "who": "DUCK",
+  "hash": "d28c7ce30ced2e18",
+  "seconds": 2.12,
+  "voice": "af_heart",
+  "text": "Report two. Everything bites a bit more."
  },
  "heat_3.0.0": {
   "id": "heat:3.0.0",
@@ -495,6 +2263,30 @@
   "voice": "am_fenrir",
   "text": "Bug report three. Faster shots, fewer doors."
  },
+ "heat_3.1.0": {
+  "id": "heat:3.1.0",
+  "who": "LINT",
+  "hash": "8e7d8f2aae388fa8",
+  "seconds": 2.19,
+  "voice": "am_fenrir",
+  "text": "Bug report three. Faster shots."
+ },
+ "heat_3.1.1": {
+  "id": "heat:3.1.1",
+  "who": "DUCK",
+  "hash": "770a3dbf22485833",
+  "seconds": 1.64,
+  "voice": "af_heart",
+  "text": "And fewer doors. Choose well."
+ },
+ "heat_3.2": {
+  "id": "heat:3.2",
+  "who": "DUCK",
+  "hash": "e120e27d50e96276",
+  "seconds": 2.01,
+  "voice": "af_heart",
+  "text": "Three reports. Their shots got quicker."
+ },
  "heat_4.0.0": {
   "id": "heat:4.0.0",
   "who": "LINT",
@@ -503,6 +2295,30 @@
   "voice": "am_fenrir",
   "text": "Bug report four. Weaker springs, higher prices."
  },
+ "heat_4.1.0": {
+  "id": "heat:4.1.0",
+  "who": "LINT",
+  "hash": "97bef930bed363ba",
+  "seconds": 2.35,
+  "voice": "am_fenrir",
+  "text": "Bug report four. Springs heal less."
+ },
+ "heat_4.1.1": {
+  "id": "heat:4.1.1",
+  "who": "DUCK",
+  "hash": "dce93bb34eedebc0",
+  "seconds": 2.01,
+  "voice": "af_heart",
+  "text": "And shops charge more. Get hit less."
+ },
+ "heat_4.2": {
+  "id": "heat:4.2",
+  "who": "DUCK",
+  "hash": "d847de66fefd228b",
+  "seconds": 2.26,
+  "voice": "af_heart",
+  "text": "Four reports. Even the shops got greedy."
+ },
  "heat_5.0.0": {
   "id": "heat:5.0.0",
   "who": "LINT",
@@ -510,6 +2326,30 @@
   "seconds": 3.27,
   "voice": "am_fenrir",
   "text": "Bug report five. Bosses skip straight to their worst."
+ },
+ "heat_5.1.0": {
+  "id": "heat:5.1.0",
+  "who": "LINT",
+  "hash": "9aa363366a3bca30",
+  "seconds": 2.56,
+  "voice": "am_fenrir",
+  "text": "Bug report five. Bosses start angry."
+ },
+ "heat_5.1.1": {
+  "id": "heat:5.1.1",
+  "who": "DUCK",
+  "hash": "6357240c713eff6b",
+  "seconds": 1.79,
+  "voice": "af_heart",
+  "text": "No warm-up. Straight to the worst."
+ },
+ "heat_5.2": {
+  "id": "heat:5.2",
+  "who": "DUCK",
+  "hash": "379f77409c049805",
+  "seconds": 2.65,
+  "voice": "af_heart",
+  "text": "Five reports. This is the hard mode. Quack."
  },
  "hub_back.0": {
   "id": "hub_back.0",
@@ -695,6 +2535,30 @@
   "voice": "af_heart",
   "text": "Walk up to anything and use it. The portal starts a run."
  },
+ "hub_first.1.0": {
+  "id": "hub_first.1.0",
+  "who": "DUCK",
+  "hash": "8fa590e827fb0215",
+  "seconds": 1.82,
+  "voice": "af_heart",
+  "text": "This is home now. The bug can wait."
+ },
+ "hub_first.1.1": {
+  "id": "hub_first.1.1",
+  "who": "LINT",
+  "hash": "b587349e029dba3f",
+  "seconds": 2.03,
+  "voice": "am_fenrir",
+  "text": "The bug cannot wait. It is a bug."
+ },
+ "hub_first.2": {
+  "id": "hub_first.2",
+  "who": "DUCK",
+  "hash": "516eb813b85b3bbb",
+  "seconds": 3.15,
+  "voice": "af_heart",
+  "text": "Home base. Wands, spells, a portal. Snacks: no."
+ },
  "hub_hero.0": {
   "id": "hub_hero.0",
   "who": "DUCK",
@@ -783,6 +2647,46 @@
   "voice": "af_heart",
   "text": "Go on, have a look."
  },
+ "hub_unlock.1.0": {
+  "id": "hub_unlock.1.0",
+  "who": "LINT",
+  "hash": "79746f602cd13e2d",
+  "seconds": 2.39,
+  "voice": "am_fenrir",
+  "text": "Station unlocked. Manual attached."
+ },
+ "hub_unlock.1.1": {
+  "id": "hub_unlock.1.1",
+  "who": "DUCK",
+  "hash": "a58495ecb846b9dc",
+  "seconds": 2.08,
+  "voice": "af_heart",
+  "text": "Nobody reads the manual. Just press it."
+ },
+ "hub_unlock.2": {
+  "id": "hub_unlock.2",
+  "who": "DUCK",
+  "hash": "080e3546907b42b8",
+  "seconds": 1.7,
+  "voice": "af_heart",
+  "text": "Something new lit up. Go poke it."
+ },
+ "hub_unlock.3.0": {
+  "id": "hub_unlock.3.0",
+  "who": "LINT",
+  "hash": "90b8e5ec84a6bf0b",
+  "seconds": 1.07,
+  "voice": "am_fenrir",
+  "text": "New feature shipped."
+ },
+ "hub_unlock.3.1": {
+  "id": "hub_unlock.3.1",
+  "who": "DUCK",
+  "hash": "aa05ea9730877363",
+  "seconds": 1.71,
+  "voice": "af_heart",
+  "text": "On a Friday? Kidding. Go look."
+ },
  "hub_win.0.0": {
   "id": "hub_win.0.0",
   "who": "LINT",
@@ -822,6 +2726,46 @@
   "seconds": 1.92,
   "voice": "af_heart",
   "text": "Something locked your wand. Kill the bell."
+ },
+ "interrupt.1": {
+  "id": "interrupt.1",
+  "who": "DUCK",
+  "hash": "9a1ee9d6593368ab",
+  "seconds": 2.28,
+  "voice": "af_heart",
+  "text": "A spell's on hold. The bell did it. Get it."
+ },
+ "interrupt.2.0": {
+  "id": "interrupt.2.0",
+  "who": "DUCK",
+  "hash": "e5ef01e72f4768a3",
+  "seconds": 1.43,
+  "voice": "af_heart",
+  "text": "Your wand just got put on hold."
+ },
+ "interrupt.2.1": {
+  "id": "interrupt.2.1",
+  "who": "LINT",
+  "hash": "11d9303dbab7ce08",
+  "seconds": 1.61,
+  "voice": "am_fenrir",
+  "text": "Your call is important to us."
+ },
+ "interrupt.3.0": {
+  "id": "interrupt.3.0",
+  "who": "LINT",
+  "hash": "be2773f073d75d9d",
+  "seconds": 1.22,
+  "voice": "am_fenrir",
+  "text": "Interrupt raised again."
+ },
+ "interrupt.3.1": {
+  "id": "interrupt.3.1",
+  "who": "DUCK",
+  "hash": "6ed772386f44bb61",
+  "seconds": 1.61,
+  "voice": "af_heart",
+  "text": "Bell first, then everything else."
  },
  "intro.0": {
   "id": "intro.0",
@@ -983,6 +2927,14 @@
   "voice": "am_fenrir",
   "text": "Commit found. Author: the Kernel. Message: panic. Not syncing. Cause: a one f double oh d."
  },
+ "log.h07f1x": {
+  "id": "log.h07f1x",
+  "who": "LINT",
+  "hash": "f81e86ae1954676b",
+  "seconds": 8.38,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: Hotfix. Message: mute failing tests. Build green. Friday, four fifty-nine and thirty seconds."
+ },
  "pkg_bought.0.0": {
   "id": "pkg_bought.0.0",
   "who": "LINT",
@@ -1006,6 +2958,726 @@
   "seconds": 1.92,
   "voice": "af_heart",
   "text": "More spells. More ways to break things."
+ },
+ "pkg_bought_blast.0.0": {
+  "id": "pkg_bought:blast.0.0",
+  "who": "LINT",
+  "hash": "d05d018568f49202",
+  "seconds": 2.46,
+  "voice": "am_fenrir",
+  "text": "Blast Radius installed. Stand back."
+ },
+ "pkg_bought_blast.0.1": {
+  "id": "pkg_bought:blast.0.1",
+  "who": "DUCK",
+  "hash": "e9f964a3ba7da203",
+  "seconds": 1.61,
+  "voice": "af_heart",
+  "text": "Bigger booms. I'll be over here."
+ },
+ "pkg_bought_blast.1": {
+  "id": "pkg_bought:blast.1",
+  "who": "DUCK",
+  "hash": "69d36c636a83921e",
+  "seconds": 2.56,
+  "voice": "af_heart",
+  "text": "Fire that spreads, frost that shatters. Lovely."
+ },
+ "pkg_bought_blast.2.0": {
+  "id": "pkg_bought:blast.2.0",
+  "who": "DUCK",
+  "hash": "dbe411a5788619f2",
+  "seconds": 1.86,
+  "voice": "af_heart",
+  "text": "Now things explode into other things."
+ },
+ "pkg_bought_blast.2.1": {
+  "id": "pkg_bought:blast.2.1",
+  "who": "LINT",
+  "hash": "c87f6caa71ee117a",
+  "seconds": 2.55,
+  "voice": "am_fenrir",
+  "text": "Radius: generous. Tidiness: none."
+ },
+ "pkg_bought_cc.0.0": {
+  "id": "pkg_bought:cc.0.0",
+  "who": "LINT",
+  "hash": "fd3af4a1b393d4ca",
+  "seconds": 2.74,
+  "voice": "am_fenrir",
+  "text": "Compiler installed. Position matters now."
+ },
+ "pkg_bought_cc.0.1": {
+  "id": "pkg_bought:cc.0.1",
+  "who": "DUCK",
+  "hash": "33830afe250efef3",
+  "seconds": 1.67,
+  "voice": "af_heart",
+  "text": "Where a spell sits changes what it does."
+ },
+ "pkg_bought_cc.1": {
+  "id": "pkg_bought:cc.1",
+  "who": "DUCK",
+  "hash": "9bc8adf026163f08",
+  "seconds": 1.82,
+  "voice": "af_heart",
+  "text": "Shuffle Play. Your wand, on random."
+ },
+ "pkg_bought_cc.2.0": {
+  "id": "pkg_bought:cc.2.0",
+  "who": "DUCK",
+  "hash": "60d4301c52c877c7",
+  "seconds": 2.16,
+  "voice": "af_heart",
+  "text": "A Zip Bomb. Small file, big mess."
+ },
+ "pkg_bought_cc.2.1": {
+  "id": "pkg_bought:cc.2.1",
+  "who": "LINT",
+  "hash": "1ea6a8bbbf7a0687",
+  "seconds": 1.67,
+  "voice": "am_fenrir",
+  "text": "Compression ratio: rude."
+ },
+ "pkg_bought_daemon.0.0": {
+  "id": "pkg_bought:daemon.0.0",
+  "who": "LINT",
+  "hash": "61e565e2fd6d6c89",
+  "seconds": 2.37,
+  "voice": "am_fenrir",
+  "text": "Daemons installed. Background helpers."
+ },
+ "pkg_bought_daemon.0.1": {
+  "id": "pkg_bought:daemon.0.1",
+  "who": "DUCK",
+  "hash": "4972c4f181f4713a",
+  "seconds": 1.99,
+  "voice": "af_heart",
+  "text": "Summons that share your boosts. Friends!"
+ },
+ "pkg_bought_daemon.1": {
+  "id": "pkg_bought:daemon.1",
+  "who": "DUCK",
+  "hash": "dca0db5072c107cd",
+  "seconds": 2.25,
+  "voice": "af_heart",
+  "text": "Little helpers that team up. Very wholesome."
+ },
+ "pkg_bought_debugger.0.0": {
+  "id": "pkg_bought:debugger.0.0",
+  "who": "LINT",
+  "hash": "22a8d91e6ffc62dc",
+  "seconds": 2.63,
+  "voice": "am_fenrir",
+  "text": "Runes installed. They edit the wand itself."
+ },
+ "pkg_bought_debugger.0.1": {
+  "id": "pkg_bought:debugger.0.1",
+  "who": "DUCK",
+  "hash": "47bd2891920cf5cf",
+  "seconds": 1.98,
+  "voice": "af_heart",
+  "text": "A wand that rewrites itself. Cool."
+ },
+ "pkg_bought_debugger.1": {
+  "id": "pkg_bought:debugger.1",
+  "who": "DUCK",
+  "hash": "b7757cf0de09ab69",
+  "seconds": 2.36,
+  "voice": "af_heart",
+  "text": "GOTO jumps back to the start. Old magic."
+ },
+ "pkg_bought_debugger.2.0": {
+  "id": "pkg_bought:debugger.2.0",
+  "who": "DUCK",
+  "hash": "968305db53d5c606",
+  "seconds": 1.85,
+  "voice": "af_heart",
+  "text": "HEAD copies your first spell. Free."
+ },
+ "pkg_bought_debugger.2.1": {
+  "id": "pkg_bought:debugger.2.1",
+  "who": "LINT",
+  "hash": "397fa1bb9479f971",
+  "seconds": 1.62,
+  "voice": "am_fenrir",
+  "text": "Free: an acceptable price."
+ },
+ "pkg_bought_flow.0.0": {
+  "id": "pkg_bought:flow.0.0",
+  "who": "LINT",
+  "hash": "426ef1aea36e4ef9",
+  "seconds": 2.76,
+  "voice": "am_fenrir",
+  "text": "Flow Control installed. More ways to chain."
+ },
+ "pkg_bought_flow.0.1": {
+  "id": "pkg_bought:flow.0.1",
+  "who": "DUCK",
+  "hash": "32f22e2778acfa0c",
+  "seconds": 1.52,
+  "voice": "af_heart",
+  "text": "Now your wand has a to-do list."
+ },
+ "pkg_bought_flow.1": {
+  "id": "pkg_bought:flow.1",
+  "who": "DUCK",
+  "hash": "84ddccd6001b74e8",
+  "seconds": 2.16,
+  "voice": "af_heart",
+  "text": "Sleep, fork, wait. Spells on a schedule."
+ },
+ "pkg_bought_flow.2.0": {
+  "id": "pkg_bought:flow.2.0",
+  "who": "DUCK",
+  "hash": "132a7c41a3afc662",
+  "seconds": 1.81,
+  "voice": "af_heart",
+  "text": "A spell called Finally. Finally!"
+ },
+ "pkg_bought_flow.2.1": {
+  "id": "pkg_bought:flow.2.1",
+  "who": "LINT",
+  "hash": "0c60b733bf53a6cb",
+  "seconds": 1.84,
+  "voice": "am_fenrir",
+  "text": "It waits for a kill. Patient."
+ },
+ "pkg_bought_git.0.0": {
+  "id": "pkg_bought:git.0.0",
+  "who": "LINT",
+  "hash": "c9f1bbeea06df956",
+  "seconds": 2.75,
+  "voice": "am_fenrir",
+  "text": "Version Control installed. History matters."
+ },
+ "pkg_bought_git.0.1": {
+  "id": "pkg_bought:git.0.1",
+  "who": "DUCK",
+  "hash": "bf58e717f3bcd860",
+  "seconds": 2.2,
+  "voice": "af_heart",
+  "text": "One bad room? Undo it. A do-over."
+ },
+ "pkg_bought_git.1": {
+  "id": "pkg_bought:git.1",
+  "who": "DUCK",
+  "hash": "1e74f06f6614b398",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "Blame points spells at the toughest one. Petty."
+ },
+ "pkg_bought_git.2.0": {
+  "id": "pkg_bought:git.2.0",
+  "who": "DUCK",
+  "hash": "262baf0721790c43",
+  "seconds": 1.51,
+  "voice": "af_heart",
+  "text": "Cherry-Pick copies your last spell."
+ },
+ "pkg_bought_git.2.1": {
+  "id": "pkg_bought:git.2.1",
+  "who": "LINT",
+  "hash": "4a9b6086178393af",
+  "seconds": 1.82,
+  "voice": "am_fenrir",
+  "text": "Choose wisely. Or twice."
+ },
+ "pkg_bought_glitch.0.0": {
+  "id": "pkg_bought:glitch.0.0",
+  "who": "LINT",
+  "hash": "153e43acd0b55a2e",
+  "seconds": 2.52,
+  "voice": "am_fenrir",
+  "text": "Glitch pack installed. Handle with gloves."
+ },
+ "pkg_bought_glitch.0.1": {
+  "id": "pkg_bought:glitch.0.1",
+  "who": "DUCK",
+  "hash": "1e99240e7f0d33d1",
+  "seconds": 1.7,
+  "voice": "af_heart",
+  "text": "Bugs as weapons. Poetic."
+ },
+ "pkg_bought_glitch.1": {
+  "id": "pkg_bought:glitch.1",
+  "who": "DUCK",
+  "hash": "acf34e7557e1f8f9",
+  "seconds": 2.59,
+  "voice": "af_heart",
+  "text": "Rot makes enemies crash. Like my old laptop."
+ },
+ "pkg_bought_glitch.2.0": {
+  "id": "pkg_bought:glitch.2.0",
+  "who": "DUCK",
+  "hash": "a097d7b270eaab33",
+  "seconds": 1.7,
+  "voice": "af_heart",
+  "text": "Mines and marks. Sneaky."
+ },
+ "pkg_bought_glitch.2.1": {
+  "id": "pkg_bought:glitch.2.1",
+  "who": "LINT",
+  "hash": "8229a81c9f743259",
+  "seconds": 2.44,
+  "voice": "am_fenrir",
+  "text": "Sneaky is not a category. It should be."
+ },
+ "pkg_bought_hw.0.0": {
+  "id": "pkg_bought:hw.0.0",
+  "who": "LINT",
+  "hash": "bf41f9060e5992ef",
+  "seconds": 2.34,
+  "voice": "am_fenrir",
+  "text": "Hardware installed. Mind the voltage."
+ },
+ "pkg_bought_hw.0.1": {
+  "id": "pkg_bought:hw.0.1",
+  "who": "DUCK",
+  "hash": "9f96736c7aafe1e6",
+  "seconds": 2.04,
+  "voice": "af_heart",
+  "text": "An EMP! Their shots, gone. Poof."
+ },
+ "pkg_bought_hw.1": {
+  "id": "pkg_bought:hw.1",
+  "who": "DUCK",
+  "hash": "65a2cd464af375fa",
+  "seconds": 2.34,
+  "voice": "af_heart",
+  "text": "Cosmic rays. Sometimes the sky helps."
+ },
+ "pkg_bought_hw.2.0": {
+  "id": "pkg_bought:hw.2.0",
+  "who": "DUCK",
+  "hash": "e203619a2c8160cd",
+  "seconds": 1.52,
+  "voice": "af_heart",
+  "text": "Cheap spells, and lots of them."
+ },
+ "pkg_bought_hw.2.1": {
+  "id": "pkg_bought:hw.2.1",
+  "who": "LINT",
+  "hash": "8aff1f567d8d22f3",
+  "seconds": 1.23,
+  "voice": "am_fenrir",
+  "text": "Quantity is a quality."
+ },
+ "pkg_bought_irq.0.0": {
+  "id": "pkg_bought:irq.0.0",
+  "who": "LINT",
+  "hash": "7d0e75c3ffb93c0b",
+  "seconds": 2.49,
+  "voice": "am_fenrir",
+  "text": "Interrupts installed. Spells that answer."
+ },
+ "pkg_bought_irq.0.1": {
+  "id": "pkg_bought:irq.0.1",
+  "who": "DUCK",
+  "hash": "c027b3b8342ca1b9",
+  "seconds": 1.77,
+  "voice": "af_heart",
+  "text": "Get hit, hit back. Fair's fair."
+ },
+ "pkg_bought_irq.1": {
+  "id": "pkg_bought:irq.1",
+  "who": "DUCK",
+  "hash": "8aaaf0cbddbe2483",
+  "seconds": 2.3,
+  "voice": "af_heart",
+  "text": "Retry: miss once, try again. My motto."
+ },
+ "pkg_bought_irq.2.0": {
+  "id": "pkg_bought:irq.2.0",
+  "who": "DUCK",
+  "hash": "46b45a0b91576a56",
+  "seconds": 1.52,
+  "voice": "af_heart",
+  "text": "Blue Screen? Sounds scary."
+ },
+ "pkg_bought_irq.2.1": {
+  "id": "pkg_bought:irq.2.1",
+  "who": "LINT",
+  "hash": "7451fb85e92f1f3a",
+  "seconds": 1.11,
+  "voice": "am_fenrir",
+  "text": "It is. For them."
+ },
+ "pkg_bought_kernel.0.0": {
+  "id": "pkg_bought:kernel.0.0",
+  "who": "LINT",
+  "hash": "6d795465a5f66aa0",
+  "seconds": 2.41,
+  "voice": "am_fenrir",
+  "text": "Kernel Mode installed. Use with care."
+ },
+ "pkg_bought_kernel.0.1": {
+  "id": "pkg_bought:kernel.0.1",
+  "who": "DUCK",
+  "hash": "aac9aa8dd0531f8f",
+  "seconds": 1.51,
+  "voice": "af_heart",
+  "text": "The Kernel's tricks, turned around."
+ },
+ "pkg_bought_kernel.1": {
+  "id": "pkg_bought:kernel.1",
+  "who": "DUCK",
+  "hash": "308fa5a052a9f648",
+  "seconds": 2.51,
+  "voice": "af_heart",
+  "text": "Take-Back. Dodge after a hit, and it never was."
+ },
+ "pkg_bought_kernel.2.0": {
+  "id": "pkg_bought:kernel.2.0",
+  "who": "DUCK",
+  "hash": "969cadbc5f628d97",
+  "seconds": 1.6,
+  "voice": "af_heart",
+  "text": "Leak puddles, but good ones now."
+ },
+ "pkg_bought_kernel.2.1": {
+  "id": "pkg_bought:kernel.2.1",
+  "who": "LINT",
+  "hash": "1f2feb1c18c11d4e",
+  "seconds": 2.31,
+  "voice": "am_fenrir",
+  "text": "Puddle Skater. Floor: weaponised."
+ },
+ "pkg_bought_linker.0.0": {
+  "id": "pkg_bought:linker.0.0",
+  "who": "LINT",
+  "hash": "ed7fd513f8c49fd2",
+  "seconds": 2.63,
+  "voice": "am_fenrir",
+  "text": "Linker installed. Wands that read their rules."
+ },
+ "pkg_bought_linker.0.1": {
+  "id": "pkg_bought:linker.0.1",
+  "who": "DUCK",
+  "hash": "26f19856b99e0160",
+  "seconds": 2.2,
+  "voice": "af_heart",
+  "text": "Pointers and hooks. Very tidy magic."
+ },
+ "pkg_bought_linker.1": {
+  "id": "pkg_bought:linker.1",
+  "who": "DUCK",
+  "hash": "c66673d26feac70b",
+  "seconds": 2.09,
+  "voice": "af_heart",
+  "text": "A wand that points at itself. Don't stare."
+ },
+ "pkg_bought_mem.0.0": {
+  "id": "pkg_bought:mem.0.0",
+  "who": "LINT",
+  "hash": "ab947e2ff68c0eef",
+  "seconds": 2.88,
+  "voice": "am_fenrir",
+  "text": "Memory installed. Buffers, pages, loans."
+ },
+ "pkg_bought_mem.0.1": {
+  "id": "pkg_bought:mem.0.1",
+  "who": "DUCK",
+  "hash": "990f4415afe55363",
+  "seconds": 1.95,
+  "voice": "af_heart",
+  "text": "Borrowed mana. Pay it back, okay?"
+ },
+ "pkg_bought_mem.1": {
+  "id": "pkg_bought:mem.1",
+  "who": "DUCK",
+  "hash": "30837e95f6980057",
+  "seconds": 2.34,
+  "voice": "af_heart",
+  "text": "Double Buffer. Two wands in one. Sort of."
+ },
+ "pkg_bought_mem.2.0": {
+  "id": "pkg_bought:mem.2.0",
+  "who": "DUCK",
+  "hash": "48cf3bdaf88299ac",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "Recycle Bin: kills refill the wand."
+ },
+ "pkg_bought_mem.2.1": {
+  "id": "pkg_bought:mem.2.1",
+  "who": "LINT",
+  "hash": "c1bbaff679694e90",
+  "seconds": 0.83,
+  "voice": "am_fenrir",
+  "text": "Waste not."
+ },
+ "pkg_bought_net.0.0": {
+  "id": "pkg_bought:net.0.0",
+  "who": "LINT",
+  "hash": "06f0c32b58078d7a",
+  "seconds": 2.68,
+  "voice": "am_fenrir",
+  "text": "Networking installed. Mark, then deliver."
+ },
+ "pkg_bought_net.0.1": {
+  "id": "pkg_bought:net.0.1",
+  "who": "DUCK",
+  "hash": "618f6585d30cae15",
+  "seconds": 1.7,
+  "voice": "af_heart",
+  "text": "Tag a target. Mail it a spell."
+ },
+ "pkg_bought_net.1": {
+  "id": "pkg_bought:net.1",
+  "who": "DUCK",
+  "hash": "e4c5376d9b436ccc",
+  "seconds": 2.14,
+  "voice": "af_heart",
+  "text": "Broadcast: one spell, every inbox."
+ },
+ "pkg_bought_physics.0.0": {
+  "id": "pkg_bought:physics.0.0",
+  "who": "LINT",
+  "hash": "136ac80cd70c3502",
+  "seconds": 2.57,
+  "voice": "am_fenrir",
+  "text": "Physics installed. Gravity now optional."
+ },
+ "pkg_bought_physics.0.1": {
+  "id": "pkg_bought:physics.0.1",
+  "who": "DUCK",
+  "hash": "ca88ffc0a5871a15",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "Spells that orbit. Keep your head down."
+ },
+ "pkg_bought_physics.1": {
+  "id": "pkg_bought:physics.1",
+  "who": "DUCK",
+  "hash": "fb2f906113c79951",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "Mirrors and orbits. Your shots go sightseeing."
+ },
+ "pkg_bought_physics.2.0": {
+  "id": "pkg_bought:physics.2.0",
+  "who": "DUCK",
+  "hash": "fe355bfe5bf61c65",
+  "seconds": 2.06,
+  "voice": "af_heart",
+  "text": "Orbit Rune: a shield of your own spells."
+ },
+ "pkg_bought_physics.2.1": {
+  "id": "pkg_bought:physics.2.1",
+  "who": "LINT",
+  "hash": "286a9fe4de15305f",
+  "seconds": 1.84,
+  "voice": "am_fenrir",
+  "text": "Self-defence. Recursive."
+ },
+ "pkg_bought_refactor.0.0": {
+  "id": "pkg_bought:refactor.0.0",
+  "who": "LINT",
+  "hash": "1f21d06c4543739a",
+  "seconds": 2.52,
+  "voice": "am_fenrir",
+  "text": "Refactor installed. Relics read your wand."
+ },
+ "pkg_bought_refactor.0.1": {
+  "id": "pkg_bought:refactor.0.1",
+  "who": "DUCK",
+  "hash": "f541fef0c9c56d43",
+  "seconds": 1.89,
+  "voice": "af_heart",
+  "text": "Same spells, better shape. Neat."
+ },
+ "pkg_bought_refactor.1": {
+  "id": "pkg_bought:refactor.1",
+  "who": "DUCK",
+  "hash": "fd1a4873f41c6286",
+  "seconds": 2.49,
+  "voice": "af_heart",
+  "text": "Technical Debt. Borrow slots, pay in time."
+ },
+ "pkg_bought_refactor.2.0": {
+  "id": "pkg_bought:refactor.2.0",
+  "who": "DUCK",
+  "hash": "1916b06bf08a294c",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "Tail Boost: the last boost powers all."
+ },
+ "pkg_bought_refactor.2.1": {
+  "id": "pkg_bought:refactor.2.1",
+  "who": "LINT",
+  "hash": "f1caf803eab34521",
+  "seconds": 1.98,
+  "voice": "am_fenrir",
+  "text": "The end of the wand, finally useful."
+ },
+ "pkg_bought_risk.0.0": {
+  "id": "pkg_bought:risk.0.0",
+  "who": "LINT",
+  "hash": "42e8a58d01e38010",
+  "seconds": 2.36,
+  "voice": "am_fenrir",
+  "text": "Risk pack installed. Warranty void."
+ },
+ "pkg_bought_risk.0.1": {
+  "id": "pkg_bought:risk.0.1",
+  "who": "DUCK",
+  "hash": "b05cfa673cd79bdf",
+  "seconds": 2.11,
+  "voice": "af_heart",
+  "text": "Big payoffs. Big oops. Pick one."
+ },
+ "pkg_bought_risk.1": {
+  "id": "pkg_bought:risk.1",
+  "who": "DUCK",
+  "hash": "5cb08b09141de43d",
+  "seconds": 2.07,
+  "voice": "af_heart",
+  "text": "Low mana, high damage. Live a little."
+ },
+ "pkg_bought_risk.2.0": {
+  "id": "pkg_bought:risk.2.0",
+  "who": "DUCK",
+  "hash": "ba018f0e4d711f6a",
+  "seconds": 1.06,
+  "voice": "af_heart",
+  "text": "Playing on the edge now?"
+ },
+ "pkg_bought_risk.2.1": {
+  "id": "pkg_bought:risk.2.1",
+  "who": "LINT",
+  "hash": "3ccfafd6079cedd2",
+  "seconds": 1.23,
+  "voice": "am_fenrir",
+  "text": "The edge has been logged."
+ },
+ "pkg_bought_status.0.0": {
+  "id": "pkg_bought:status.0.0",
+  "who": "LINT",
+  "hash": "7681b52d38324b04",
+  "seconds": 3.34,
+  "voice": "am_fenrir",
+  "text": "Status Codes installed. Burn, freeze, rot, shock."
+ },
+ "pkg_bought_status.0.1": {
+  "id": "pkg_bought:status.0.1",
+  "who": "DUCK",
+  "hash": "eb7e629331e31cee",
+  "seconds": 1.2,
+  "voice": "af_heart",
+  "text": "Pick one and go all in."
+ },
+ "pkg_bought_status.1": {
+  "id": "pkg_bought:status.1",
+  "who": "DUCK",
+  "hash": "bb43d2c7bb95e57b",
+  "seconds": 2.23,
+  "voice": "af_heart",
+  "text": "Four ways to ruin their day. Pick a favourite."
+ },
+ "pkg_bought_threads.0.0": {
+  "id": "pkg_bought:threads.0.0",
+  "who": "LINT",
+  "hash": "ad8084c99050a18e",
+  "seconds": 2.4,
+  "voice": "am_fenrir",
+  "text": "Concurrency installed. Workers ready."
+ },
+ "pkg_bought_threads.0.1": {
+  "id": "pkg_bought:threads.0.1",
+  "who": "DUCK",
+  "hash": "ee51c80535f00488",
+  "seconds": 1.73,
+  "voice": "af_heart",
+  "text": "Little helpers! Do they need lunch?"
+ },
+ "pkg_bought_threads.1": {
+  "id": "pkg_bought:threads.1",
+  "who": "DUCK",
+  "hash": "074bcdd854e377f9",
+  "seconds": 2.53,
+  "voice": "af_heart",
+  "text": "More hands on the job. Tiny, spinny hands."
+ },
+ "pkg_bought_threads.2.0": {
+  "id": "pkg_bought:threads.2.0",
+  "who": "DUCK",
+  "hash": "3c08304d99495444",
+  "seconds": 1.42,
+  "voice": "af_heart",
+  "text": "Workers fight beside you now."
+ },
+ "pkg_bought_threads.2.1": {
+  "id": "pkg_bought:threads.2.1",
+  "who": "LINT",
+  "hash": "2e4830334957df19",
+  "seconds": 1.85,
+  "voice": "am_fenrir",
+  "text": "Unpaid. As is tradition."
+ },
+ "pkg_bought_triggers.0.0": {
+  "id": "pkg_bought:triggers.0.0",
+  "who": "LINT",
+  "hash": "34a321021d9ac7a9",
+  "seconds": 2.68,
+  "voice": "am_fenrir",
+  "text": "Triggers installed. Spells can call spells."
+ },
+ "pkg_bought_triggers.0.1": {
+  "id": "pkg_bought:triggers.0.1",
+  "who": "DUCK",
+  "hash": "2bc5157125b4de5a",
+  "seconds": 1.99,
+  "voice": "af_heart",
+  "text": "Put one between two spells. Watch."
+ },
+ "pkg_bought_triggers.1": {
+  "id": "pkg_bought:triggers.1",
+  "who": "DUCK",
+  "hash": "8166e625b2403633",
+  "seconds": 2.16,
+  "voice": "af_heart",
+  "text": "THEN: do this, then that. Like a recipe."
+ },
+ "pkg_bought_triggers.2.0": {
+  "id": "pkg_bought:triggers.2.0",
+  "who": "DUCK",
+  "hash": "3c26c366c84e3adb",
+  "seconds": 1.52,
+  "voice": "af_heart",
+  "text": "Chain reactions, on purpose!"
+ },
+ "pkg_bought_triggers.2.1": {
+  "id": "pkg_bought:triggers.2.1",
+  "who": "LINT",
+  "hash": "a190380c2e644dfb",
+  "seconds": 2.28,
+  "voice": "am_fenrir",
+  "text": "Accidental chains: also supported."
+ },
+ "pkg_bought_unsafe.0.0": {
+  "id": "pkg_bought:unsafe.0.0",
+  "who": "LINT",
+  "hash": "830eba91e6d39ae7",
+  "seconds": 2.82,
+  "voice": "am_fenrir",
+  "text": "Unsafe Code installed. I strongly object."
+ },
+ "pkg_bought_unsafe.0.1": {
+  "id": "pkg_bought:unsafe.0.1",
+  "who": "DUCK",
+  "hash": "fe72c4f7995b7b0a",
+  "seconds": 2.03,
+  "voice": "af_heart",
+  "text": "Spells paid in health. Spend it wisely."
+ },
+ "pkg_bought_unsafe.1": {
+  "id": "pkg_bought:unsafe.1",
+  "who": "DUCK",
+  "hash": "629364219ba030a4",
+  "seconds": 2.28,
+  "voice": "af_heart",
+  "text": "No safety net. Just you, me and the floor."
  },
  "res.cache.arc.0": {
   "id": "res.cache.arc.0",
@@ -1087,6 +3759,38 @@
   "voice": "bf_emma",
   "text": "Keep what grew. Patch the rest."
  },
+ "res.cache.arc.5.0": {
+  "id": "res.cache.arc.5.0",
+  "who": "CACHE",
+  "hash": "0414fb4d394083ec",
+  "seconds": 2.91,
+  "voice": "bf_emma",
+  "text": "I counted your runs. Fifteen? Fifty?"
+ },
+ "res.cache.arc.5.1": {
+  "id": "res.cache.arc.5.1",
+  "who": "CACHE",
+  "hash": "0ee5b6172b55d5d9",
+  "seconds": 3.31,
+  "voice": "bf_emma",
+  "text": "Either way, you keep coming back. I like that."
+ },
+ "res.cache.arc.6.0": {
+  "id": "res.cache.arc.6.0",
+  "who": "CACHE",
+  "hash": "e37783a0fe7d0144",
+  "seconds": 3.53,
+  "voice": "bf_emma",
+  "text": "Hotfix told you? I've had his commit on file."
+ },
+ "res.cache.arc.6.1": {
+  "id": "res.cache.arc.6.1",
+  "who": "CACHE",
+  "hash": "2dc9e24f88017a53",
+  "seconds": 3.63,
+  "voice": "bf_emma",
+  "text": "I never deleted it. He had to say it himself."
+ },
  "res.cache.epilogue": {
   "id": "res.cache.epilogue",
   "who": "CACHE",
@@ -1143,6 +3847,38 @@
   "voice": "bf_emma",
   "text": "Shh. The shelves are paging."
  },
+ "res.cache.of.duck": {
+  "id": "res.cache.of.duck",
+  "who": "CACHE",
+  "hash": "b4ea5373c25479a8",
+  "seconds": 3.16,
+  "voice": "bf_emma",
+  "text": "The duck is younger than it looks. Much."
+ },
+ "res.cache.of.grep": {
+  "id": "res.cache.of.grep",
+  "who": "CACHE",
+  "hash": "a2a2ea36750268a4",
+  "seconds": 3.13,
+  "voice": "bf_emma",
+  "text": "Grep reads slowly. I like slow readers."
+ },
+ "res.cache.of.hotfix": {
+  "id": "res.cache.of.hotfix",
+  "who": "CACHE",
+  "hash": "1cdb1f5811705f30",
+  "seconds": 3.19,
+  "voice": "bf_emma",
+  "text": "Hotfix hums while he works. Off-key."
+ },
+ "res.cache.of.lint": {
+  "id": "res.cache.of.lint",
+  "who": "CACHE",
+  "hash": "5bf4cb6bf23cbf7c",
+  "seconds": 2.8,
+  "voice": "bf_emma",
+  "text": "LINT's warnings. I keep every one."
+ },
  "res.cache.react.boss": {
   "id": "res.cache.react.boss",
   "who": "CACHE",
@@ -1174,6 +3910,238 @@
   "seconds": 3.74,
   "voice": "bf_emma",
   "text": "A win. I'll remember it for five minutes. Proudly."
+ },
+ "res.chat.0.0": {
+  "id": "res.chat.0.0",
+  "who": "HOTFIX",
+  "hash": "43da3f273ba71f57",
+  "seconds": 1.16,
+  "voice": "am_puck",
+  "text": "Grep! I fixed your chair!"
+ },
+ "res.chat.0.1": {
+  "id": "res.chat.0.1",
+  "who": "GREP",
+  "hash": "7eedbbbf46a9704f",
+  "seconds": 1.39,
+  "voice": "bm_george",
+  "text": "It wasn't broken."
+ },
+ "res.chat.0.2": {
+  "id": "res.chat.0.2",
+  "who": "HOTFIX",
+  "hash": "d56fef3b045e2dfd",
+  "seconds": 1.32,
+  "voice": "am_puck",
+  "text": "Now it's extra not broken!"
+ },
+ "res.chat.1.0": {
+  "id": "res.chat.1.0",
+  "who": "CACHE",
+  "hash": "7f5b4c98351fa922",
+  "seconds": 1.88,
+  "voice": "bf_emma",
+  "text": "Grep, have we met?"
+ },
+ "res.chat.1.1": {
+  "id": "res.chat.1.1",
+  "who": "GREP",
+  "hash": "699307b8be5681cf",
+  "seconds": 1.87,
+  "voice": "bm_george",
+  "text": "Every day for a month."
+ },
+ "res.chat.1.2": {
+  "id": "res.chat.1.2",
+  "who": "CACHE",
+  "hash": "9de4caf9b656082a",
+  "seconds": 2.07,
+  "voice": "bf_emma",
+  "text": "Lovely. Nice to meet you."
+ },
+ "res.chat.10.0": {
+  "id": "res.chat.10.0",
+  "who": "LINT",
+  "hash": "427503c607b9f303",
+  "seconds": 1.68,
+  "voice": "am_fenrir",
+  "text": "Cache. Your shelves are unsorted."
+ },
+ "res.chat.10.1": {
+  "id": "res.chat.10.1",
+  "who": "CACHE",
+  "hash": "f30fa3511fcc4524",
+  "seconds": 2.21,
+  "voice": "bf_emma",
+  "text": "They're sorted by feeling."
+ },
+ "res.chat.10.2": {
+  "id": "res.chat.10.2",
+  "who": "LINT",
+  "hash": "56fb2390248e6dfd",
+  "seconds": 1.08,
+  "voice": "am_fenrir",
+  "text": "That is not a key."
+ },
+ "res.chat.2.0": {
+  "id": "res.chat.2.0",
+  "who": "HOTFIX",
+  "hash": "4b819cf581a96cb9",
+  "seconds": 1.27,
+  "voice": "am_puck",
+  "text": "Cache! Do you remember my name?"
+ },
+ "res.chat.2.1": {
+  "id": "res.chat.2.1",
+  "who": "CACHE",
+  "hash": "cc21ca65ec1264d2",
+  "seconds": 2.65,
+  "voice": "bf_emma",
+  "text": "Hotfix. Tape. Loud."
+ },
+ "res.chat.2.2": {
+  "id": "res.chat.2.2",
+  "who": "HOTFIX",
+  "hash": "77e57ec132595f77",
+  "seconds": 0.77,
+  "voice": "am_puck",
+  "text": "She remembers!"
+ },
+ "res.chat.3.0": {
+  "id": "res.chat.3.0",
+  "who": "LINT",
+  "hash": "ab7de7563d95d3eb",
+  "seconds": 2.58,
+  "voice": "am_fenrir",
+  "text": "Hotfix. Your forge fails eleven checks."
+ },
+ "res.chat.3.1": {
+  "id": "res.chat.3.1",
+  "who": "HOTFIX",
+  "hash": "1bfdddf439a32ac8",
+  "seconds": 1.28,
+  "voice": "am_puck",
+  "text": "Only eleven? New record!"
+ },
+ "res.chat.4.0": {
+  "id": "res.chat.4.0",
+  "who": "HOTFIX",
+  "hash": "03a918f7a29f7a66",
+  "seconds": 1.27,
+  "voice": "am_puck",
+  "text": "Duck! Is the tape holding up?"
+ },
+ "res.chat.4.1": {
+  "id": "res.chat.4.1",
+  "who": "DUCK",
+  "hash": "75545765d15c24e2",
+  "seconds": 1.13,
+  "voice": "af_heart",
+  "text": "I never asked for tape."
+ },
+ "res.chat.4.2": {
+  "id": "res.chat.4.2",
+  "who": "HOTFIX",
+  "hash": "a37f64371764e6fa",
+  "seconds": 2.12,
+  "voice": "am_puck",
+  "text": "Nobody asks for tape. Tape just arrives."
+ },
+ "res.chat.5.0": {
+  "id": "res.chat.5.0",
+  "who": "GREP",
+  "hash": "a6d1ca3fd73bfac8",
+  "seconds": 1.88,
+  "voice": "bm_george",
+  "text": "Your duck talks too much."
+ },
+ "res.chat.5.1": {
+  "id": "res.chat.5.1",
+  "who": "DUCK",
+  "hash": "86337aef6c279bad",
+  "seconds": 2.23,
+  "voice": "af_heart",
+  "text": "You approve without reading. We all have flaws."
+ },
+ "res.chat.6.0": {
+  "id": "res.chat.6.0",
+  "who": "GREP",
+  "hash": "c91632b58e752924",
+  "seconds": 2.49,
+  "voice": "bm_george",
+  "text": "LINT. You warned them. I didn't."
+ },
+ "res.chat.6.1": {
+  "id": "res.chat.6.1",
+  "who": "LINT",
+  "hash": "37a0c0c06ef09100",
+  "seconds": 2.33,
+  "voice": "am_fenrir",
+  "text": "Warnings are free. Reading them is not."
+ },
+ "res.chat.7.0": {
+  "id": "res.chat.7.0",
+  "who": "CACHE",
+  "hash": "a8974dbc2aa437f2",
+  "seconds": 3.92,
+  "voice": "bf_emma",
+  "text": "Duck, you're new. Since 16:59:01."
+ },
+ "res.chat.7.1": {
+  "id": "res.chat.7.1",
+  "who": "DUCK",
+  "hash": "3b544c6b59767e0c",
+  "seconds": 1.58,
+  "voice": "af_heart",
+  "text": "Please don't tell people my age."
+ },
+ "res.chat.8.0": {
+  "id": "res.chat.8.0",
+  "who": "GREP",
+  "hash": "fc11fd9d75d687c0",
+  "seconds": 3.06,
+  "voice": "bm_george",
+  "text": "You muted the tests. I skipped the review."
+ },
+ "res.chat.8.1": {
+  "id": "res.chat.8.1",
+  "who": "HOTFIX",
+  "hash": "6f6c432faefca15d",
+  "seconds": 1.4,
+  "voice": "am_puck",
+  "text": "Between us, one bad afternoon."
+ },
+ "res.chat.8.2": {
+  "id": "res.chat.8.2",
+  "who": "GREP",
+  "hash": "526ea3fd608d9209",
+  "seconds": 2.65,
+  "voice": "bm_george",
+  "text": "And one good fix. Eventually."
+ },
+ "res.chat.9.0": {
+  "id": "res.chat.9.0",
+  "who": "CACHE",
+  "hash": "9b120682d971898e",
+  "seconds": 3.14,
+  "voice": "bf_emma",
+  "text": "No revert. So I get to keep remembering you."
+ },
+ "res.chat.9.1": {
+  "id": "res.chat.9.1",
+  "who": "HOTFIX",
+  "hash": "065a2fd2567a6957",
+  "seconds": 1.76,
+  "voice": "am_puck",
+  "text": "Then remember this: I fixed the kettle."
+ },
+ "res.chat.9.2": {
+  "id": "res.chat.9.2",
+  "who": "GREP",
+  "hash": "7eedbbbf46a9704f",
+  "seconds": 1.39,
+  "voice": "bm_george",
+  "text": "It wasn't broken."
  },
  "res.grep.arc.0.0": {
   "id": "res.grep.arc.0.0",
@@ -1263,6 +4231,46 @@
   "voice": "am_fenrir",
   "text": "Noted. Adding a second reviewer."
  },
+ "res.grep.arc.5.0": {
+  "id": "res.grep.arc.5.0",
+  "who": "GREP",
+  "hash": "6f4e4a2a8319f272",
+  "seconds": 3.23,
+  "voice": "bm_george",
+  "text": "Bug reports, eh? I used to file those."
+ },
+ "res.grep.arc.5.1": {
+  "id": "res.grep.arc.5.1",
+  "who": "GREP",
+  "hash": "d4fe1572f36c167f",
+  "seconds": 2.77,
+  "voice": "bm_george",
+  "text": "Nobody read mine. Read yours."
+ },
+ "res.grep.arc.6.0": {
+  "id": "res.grep.arc.6.0",
+  "who": "GREP",
+  "hash": "fa3220d6bcb5f1ce",
+  "seconds": 3.04,
+  "voice": "bm_george",
+  "text": "New rule: two reviewers on every spell."
+ },
+ "res.grep.arc.6.1": {
+  "id": "res.grep.arc.6.1",
+  "who": "LINT",
+  "hash": "46739e659d2071b9",
+  "seconds": 1.05,
+  "voice": "am_fenrir",
+  "text": "Reviewer two: me."
+ },
+ "res.grep.arc.6.2": {
+  "id": "res.grep.arc.6.2",
+  "who": "GREP",
+  "hash": "636ab87415f48197",
+  "seconds": 2.9,
+  "voice": "bm_george",
+  "text": "And I read every line. Every one."
+ },
  "res.grep.epilogue": {
   "id": "res.grep.epilogue",
   "who": "GREP",
@@ -1318,6 +4326,38 @@
   "seconds": 3.33,
   "voice": "bm_george",
   "text": "The lantern needs a battery. Long story."
+ },
+ "res.grep.of.cache": {
+  "id": "res.grep.of.cache",
+  "who": "GREP",
+  "hash": "2f9791058e03cfc4",
+  "seconds": 3.49,
+  "voice": "bm_george",
+  "text": "Cache forgets me daily. Restful, honestly."
+ },
+ "res.grep.of.duck": {
+  "id": "res.grep.of.duck",
+  "who": "GREP",
+  "hash": "ddcd50603c0d7aeb",
+  "seconds": 2.52,
+  "voice": "bm_george",
+  "text": "The duck's all right. Good listener."
+ },
+ "res.grep.of.hotfix": {
+  "id": "res.grep.of.hotfix",
+  "who": "GREP",
+  "hash": "5ff73ea0c80ce699",
+  "seconds": 3.42,
+  "voice": "bm_george",
+  "text": "Hotfix fixes things that work. Loudly."
+ },
+ "res.grep.of.lint": {
+  "id": "res.grep.of.lint",
+  "who": "GREP",
+  "hash": "cad9554b648f19b4",
+  "seconds": 3.06,
+  "voice": "bm_george",
+  "text": "LINT and I disagree about commas."
  },
  "res.grep.react.boss": {
   "id": "res.grep.react.boss",
@@ -1431,6 +4471,54 @@
   "voice": "am_puck",
   "text": "Made you a skin. It's mostly tape. Take it!"
  },
+ "res.hotfix.arc.5.0": {
+  "id": "res.hotfix.arc.5.0",
+  "who": "HOTFIX",
+  "hash": "c7e7f2bfa355267d",
+  "seconds": 1.48,
+  "voice": "am_puck",
+  "text": "Grep told you his. Here's mine."
+ },
+ "res.hotfix.arc.5.1": {
+  "id": "res.hotfix.arc.5.1",
+  "who": "HOTFIX",
+  "hash": "1012f76dfab51674",
+  "seconds": 2.33,
+  "voice": "am_puck",
+  "text": "Your push turned the tests red. I muted them."
+ },
+ "res.hotfix.arc.5.2": {
+  "id": "res.hotfix.arc.5.2",
+  "who": "HOTFIX",
+  "hash": "5f7c565cd74ac5a5",
+  "seconds": 2.04,
+  "voice": "am_puck",
+  "text": "Green build, hidden bug. My first fix."
+ },
+ "res.hotfix.arc.5.3": {
+  "id": "res.hotfix.arc.5.3",
+  "who": "DUCK",
+  "hash": "24bfac97d859413e",
+  "seconds": 1.77,
+  "voice": "af_heart",
+  "text": "And every fix since has been a real one."
+ },
+ "res.hotfix.arc.6.0": {
+  "id": "res.hotfix.arc.6.0",
+  "who": "HOTFIX",
+  "hash": "effb3c857039059b",
+  "seconds": 1.93,
+  "voice": "am_puck",
+  "text": "New rule at the forge: no hidden cracks."
+ },
+ "res.hotfix.arc.6.1": {
+  "id": "res.hotfix.arc.6.1",
+  "who": "HOTFIX",
+  "hash": "2baf370a961d4819",
+  "seconds": 1.71,
+  "voice": "am_puck",
+  "text": "If it's taped, you see the tape. Honest!"
+ },
  "res.hotfix.epilogue": {
   "id": "res.hotfix.epilogue",
   "who": "HOTFIX",
@@ -1487,6 +4575,38 @@
   "voice": "am_puck",
   "text": "Tape holds everything. Mostly."
  },
+ "res.hotfix.of.cache": {
+  "id": "res.hotfix.of.cache",
+  "who": "HOTFIX",
+  "hash": "d1a54e31c8db6577",
+  "seconds": 1.86,
+  "voice": "am_puck",
+  "text": "Cache keeps everything. Even my jokes!"
+ },
+ "res.hotfix.of.duck": {
+  "id": "res.hotfix.of.duck",
+  "who": "HOTFIX",
+  "hash": "692d04b35ddd93bb",
+  "seconds": 1.62,
+  "voice": "am_puck",
+  "text": "I love the duck. The duck fears me."
+ },
+ "res.hotfix.of.grep": {
+  "id": "res.hotfix.of.grep",
+  "who": "HOTFIX",
+  "hash": "20faca5d6509be31",
+  "seconds": 1.71,
+  "voice": "am_puck",
+  "text": "Grep's grumpy. I'm fixing that too."
+ },
+ "res.hotfix.of.lint": {
+  "id": "res.hotfix.of.lint",
+  "who": "HOTFIX",
+  "hash": "05ae100e601282c7",
+  "seconds": 1.67,
+  "voice": "am_puck",
+  "text": "LINT scans me every morning. Rude!"
+ },
  "res.hotfix.react.boss": {
   "id": "res.hotfix.react.boss",
   "who": "HOTFIX",
@@ -1542,6 +4662,30 @@
   "seconds": 2.96,
   "voice": "af_heart",
   "text": "Ring Zero. Interrupts lock a spell. Kill the bell first."
+ },
+ "ring.2.0": {
+  "id": "ring.2.0",
+  "who": "LINT",
+  "hash": "558de3dd980f5c04",
+  "seconds": 1.76,
+  "voice": "am_fenrir",
+  "text": "Ring Zero. Highest privilege."
+ },
+ "ring.2.1": {
+  "id": "ring.2.1",
+  "who": "DUCK",
+  "hash": "164d9478d534c117",
+  "seconds": 2.08,
+  "voice": "af_heart",
+  "text": "Nobody's above us now. Only the bug."
+ },
+ "ring.3": {
+  "id": "ring.3",
+  "who": "DUCK",
+  "hash": "8334384d8cf72488",
+  "seconds": 1.87,
+  "voice": "af_heart",
+  "text": "The heartbeat's louder. It knows we're here."
  },
  "run.0": {
   "id": "run.0",
@@ -1655,6 +4799,38 @@
   "voice": "af_heart",
   "text": "LINT said I. Everyone heard it."
  },
+ "true_win.1.0": {
+  "id": "true_win.1.0",
+  "who": "DUCK",
+  "hash": "07a334a9355761c2",
+  "seconds": 2.01,
+  "voice": "af_heart",
+  "text": "Fixed forward. Nobody got reverted."
+ },
+ "true_win.1.1": {
+  "id": "true_win.1.1",
+  "who": "LINT",
+  "hash": "d97cadc4e747cdf0",
+  "seconds": 1.37,
+  "voice": "am_fenrir",
+  "text": "Including me. Thank you."
+ },
+ "true_win.2.0": {
+  "id": "true_win.2.0",
+  "who": "LINT",
+  "hash": "b85dd0573987fbb0",
+  "seconds": 1.85,
+  "voice": "am_fenrir",
+  "text": "Merged. Three reviewers signed."
+ },
+ "true_win.2.1": {
+  "id": "true_win.2.1",
+  "who": "DUCK",
+  "hash": "ebb067bc658c44ac",
+  "seconds": 1.75,
+  "voice": "af_heart",
+  "text": "Four, counting me. I nodded."
+ },
  "untouched.0.0": {
   "id": "untouched.0.0",
   "who": "LINT",
@@ -1662,6 +4838,46 @@
   "seconds": 2.96,
   "voice": "am_fenrir",
   "text": "No damage taken. Bonus reward unlocked."
+ },
+ "untouched.1.0": {
+  "id": "untouched.1.0",
+  "who": "LINT",
+  "hash": "8176fe84187567bc",
+  "seconds": 1.71,
+  "voice": "am_fenrir",
+  "text": "Zero damage. Suspicious."
+ },
+ "untouched.1.1": {
+  "id": "untouched.1.1",
+  "who": "DUCK",
+  "hash": "96303f61faf71fb1",
+  "seconds": 1.59,
+  "voice": "af_heart",
+  "text": "Not suspicious. Skilled."
+ },
+ "untouched.2": {
+  "id": "untouched.2",
+  "who": "DUCK",
+  "hash": "ffa1e7e956618f02",
+  "seconds": 2.21,
+  "voice": "af_heart",
+  "text": "Not a scratch. Show-off. I love it."
+ },
+ "untouched.3.0": {
+  "id": "untouched.3.0",
+  "who": "DUCK",
+  "hash": "9e6b482161c4dc1f",
+  "seconds": 1.62,
+  "voice": "af_heart",
+  "text": "Untouched! Frame that room."
+ },
+ "untouched.3.1": {
+  "id": "untouched.3.1",
+  "who": "LINT",
+  "hash": "eeea49e1f75617f0",
+  "seconds": 1.45,
+  "voice": "am_fenrir",
+  "text": "Room saved as a reference."
  },
  "win.0.0": {
   "id": "win.0.0",
@@ -1678,6 +4894,54 @@
   "seconds": 0.83,
   "voice": "af_heart",
   "text": "Quack! We did it."
+ },
+ "win.1.0": {
+  "id": "win.1.0",
+  "who": "LINT",
+  "hash": "c3bbd09ee87e3b19",
+  "seconds": 1.98,
+  "voice": "am_fenrir",
+  "text": "Build passed. Zero warnings."
+ },
+ "win.1.1": {
+  "id": "win.1.1",
+  "who": "DUCK",
+  "hash": "15fbe0059023b067",
+  "seconds": 1.54,
+  "voice": "af_heart",
+  "text": "Not even one? Who are you?"
+ },
+ "win.2.0": {
+  "id": "win.2.0",
+  "who": "LINT",
+  "hash": "19b55f05e9decef2",
+  "seconds": 2.02,
+  "voice": "am_fenrir",
+  "text": "Exit code zero. Success."
+ },
+ "win.2.1": {
+  "id": "win.2.1",
+  "who": "DUCK",
+  "hash": "0280153cc6958ec0",
+  "seconds": 2.15,
+  "voice": "af_heart",
+  "text": "Zero means good. Programmers are odd."
+ },
+ "win.3.0": {
+  "id": "win.3.0",
+  "who": "DUCK",
+  "hash": "69b27cb32f6db23d",
+  "seconds": 1.14,
+  "voice": "af_heart",
+  "text": "Green across the board!"
+ },
+ "win.3.1": {
+  "id": "win.3.1",
+  "who": "LINT",
+  "hash": "49a5f1b756e74e83",
+  "seconds": 1.56,
+  "voice": "am_fenrir",
+  "text": "Green is the colour of passing."
  },
  "world2.0.0": {
   "id": "world2.0.0",
@@ -1742,5 +5006,29 @@
   "seconds": 2.44,
   "voice": "af_heart",
   "text": "Leaks drip. Kill the leak and its puddles dry up."
+ },
+ "world3.3.0": {
+  "id": "world3.3.0",
+  "who": "LINT",
+  "hash": "04255a76a22b078b",
+  "seconds": 2.07,
+  "voice": "am_fenrir",
+  "text": "Kernel mode. Please touch nothing."
+ },
+ "world3.3.1": {
+  "id": "world3.3.1",
+  "who": "DUCK",
+  "hash": "d30d3225287151d1",
+  "seconds": 1.65,
+  "voice": "af_heart",
+  "text": "Too late. We touched everything."
+ },
+ "world3.4": {
+  "id": "world3.4",
+  "who": "DUCK",
+  "hash": "96c6c8f7c282f9c2",
+  "seconds": 2.43,
+  "voice": "af_heart",
+  "text": "The Kernel again. Quiet, tidy, full of bugs."
  }
 }

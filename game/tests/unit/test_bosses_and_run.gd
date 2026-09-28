@@ -2,6 +2,7 @@ extends "res://tests/unit/test_helpers.gd"
 ## Bosses and a whole World 1 run, played by the bot at 60 Hz (headless, god mode).
 
 const DT := 1.0 / 60.0
+const STUCK := 300.0    # sim-seconds in one room before the full run gives up
 var world: World
 var tree: SceneTree
 
@@ -109,9 +110,23 @@ func test_the_glitch_can_be_beaten() -> void:
 func test_bot_completes_all_three_worlds() -> void:
 	world.start_run(RunState.create(99))
 	var t := 0.0
+	# 0.21: a watchdog. A bot stuck in one room (it used to burn the whole hour, 30+ minutes
+	# of CPU) stops the run after STUCK sim-seconds without moving on, and says where.
+	var mark := Vector2i(world.run.world, world.run.step)
+	var mark_t := 0.0
+	var stuck := false
 	while not victory and t < 3600.0:
 		world.step(DT)
 		t += DT
+		var now := Vector2i(world.run.world, world.run.step)
+		if now != mark:
+			mark = now
+			mark_t = t
+		elif t - mark_t > STUCK:
+			stuck = true
+			break
+	if stuck:
+		print("    STUCK in world %d step %d (%s) for %.0fs" % [mark.x + 1, mark.y, world.room_kind, STUCK])
 	print("    full run: step %d, %.0f sim-seconds, %d kills, path %s" % [world.run.step, t, world.run.stats["kills"], world.run.path])
 	if not victory:
 		print("    DEBUG room ", world.run.room, " alive: ", world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String: return "%s hp%.0f ward%d arm%.0f sh%d at %s" % [e.kind, e.hp, e.ward_n, e.armor, e.shield_hp, e.position.round()]))

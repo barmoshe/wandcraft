@@ -202,7 +202,8 @@ static func make_map(run: RunState) -> Array:
 				if d["kind"] == &"fight" and rng.randf() < 0.25:
 					d["twist"] = TWISTS.keys()[rng.randi() % TWISTS.size()]
 		if step + 1 < PLAN.size() and (PLAN[step + 1] == &"boss" or PLAN[step + 1] == &"mini"):
-			nodes[1] = {"kind": [&"spring", &"shop"][rng.randi() % 2], "reward": &""}
+			# 0.21: in the Kernel it is always a spring (Data Race and the Glitch hit hard)
+			nodes[1] = {"kind": &"spring" if run.world == 2 else [&"spring", &"shop"][rng.randi() % 2], "reward": &""}
 		# at least one fight on every step, so no stretch is all shopping
 		if not nodes.any(func(o: Dictionary) -> bool: return not is_quiet(o["kind"])):
 			nodes[0] = {"kind": &"fight", "reward": &"spell"}

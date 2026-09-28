@@ -163,6 +163,37 @@
       - **The third lesson:** it no longer lights the Mote's slot for a trigger; it teaches a second shooting spell.
       - **Triggers:** they are a 30-Bit pack, the first thing the Merchant shelves.
       - **The Kernel:** tuned from a new World 3 bench (`BENCH=kernel tools/balance.sh`), whose numbers are in `research/world3-0.20.md`.
+  - **0.21, Speak Up (2026-09-28, ADRs 0030 to 0032, `research/speak-up-0.21.md`).** Bar's asks:
+    - "Fix the HUD and text overlapping, go over all the game."
+    - "The NPCs need to be in the world, with a speech bubble above their head."
+    - "More relics, spells, wands, improve story."
+    - Then, on a busy boss screenshot: "this is overwhelming".
+    - **NPCs in the world:**
+      - The Duck and LINT walk each run as companions.
+      - Every speaker talks in a bubble over their head: the companions, the Workshop's Duck and LINT, the residents, and a caged resident. A speaker off screen gets the bubble pinned at the edge, with an arrow.
+      - Residents talk in bubbles on the first USE; the second USE opens their service in a compact panel.
+    - **No overlaps:**
+      - `tools/uiaudit.sh` checks every screen and HUD state at phone, iPad and desktop sizes; the last sweep came back clean.
+      - The iPad pixel scale is fixed: the view is never narrower than 480 px.
+      - Labels are cut to fit, chips fold into "+N", and the long lists (glossary, forge, credits) fit their screens.
+      - The map names the right world (it said WORLD 1 in every world).
+    - **A calmer HUD:**
+      - One message at a time: a banner holds the toast, and a spoken line holds the tip.
+      - One row of relics, then "+N".
+      - No bag count in boss fights.
+    - **Arsenal:**
+      - Round 1: 14 spells, 5 rule wands, 16 relics (ADR 0030).
+      - Round 2: 12 spells, 6 rule wands, 16 relics, with super relics and a rival pair (ADR 0032).
+      - They are sold in 10 new packs.
+    - **Story:**
+      - Barks (`sim/barks.gd`): the companions react in a fight, and the Duck gives a post-mortem when you come home.
+      - LINT reviews your wand for code smells. Fix 3 and it unlocks Red Squiggle: it underlines the toughest enemy in each room, which then takes 15% more damage.
+      - Residents have 7 beats each and chat with each other.
+      - Log entry 17 is Hotfix's.
+      - All the new lines are voiced.
+    - **The Kernel, tuned:**
+      - Two Dangling Pointers in the pressure pool, not three.
+      - The step before Data Race and the Glitch is always a spring.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**
@@ -297,6 +328,12 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.21.0, Speak Up** (ADRs 0030 to 0032). Bar, play it on a phone:
+  - Are the bubbles readable mid-fight, and do the Duck and LINT ever get in the way?
+  - Is one message at a time calm enough, or is anything still too busy?
+  - Do the new packs feel like new builds? Burn, Frost, Rot, Shock and summons now each have their cards.
+  - Does the Duck's post-mortem when you come home land?
+- The web build is at https://wandcraft-test.vercel.app (deployed from this session through Vercel's git build).
 - **0.20.0 adds World 3, the residents and the true ending** (ADR 0028). Bar:
   - Play the Kernel on a phone.
     - Do the Interrupt's lock and the Data Race rule read without the Duck explaining them?

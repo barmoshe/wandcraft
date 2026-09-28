@@ -90,10 +90,16 @@ func _act(m: StringName, dt: float, _t_in: float) -> void:
 				world.enemy_shoot(position, 0.0, 0.0, ed(), 0.0, "trash:Garbage Collector")
 
 
+const DUMP_CAP := 6
+
+
 func _go(m: StringName) -> void:
 	match m:
 		&"dump":
-			for k in 3:
+			# 0.21: at most DUMP_CAP slimes at once (a bot run found a room of a hundred: they
+			# walled the boss off, and the fight never ended)
+			var live := world.enemies.filter(func(e: Enemy) -> bool: return not e.dead and (e.kind == &"slime" or e.kind == &"slimelet")).size()
+			for k in clampi(DUMP_CAP - live, 0, 3):
 				var e := world.spawn_enemy(&"slime", position + Vector2.from_angle(k * TAU / 3.0) * 28.0)
 				e.spawn_t = 0.3
 			ring(position, 12, 60.0, world.rng.randf())
