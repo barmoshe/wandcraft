@@ -45,6 +45,8 @@ static func _kw_tree(c: CastNode) -> int:
 		k |= _kw_tree(c.payload)
 	if c.alt:
 		k |= _kw_tree(c.alt)
+	if c.also:
+		k |= _kw_tree(c.also)
 	return k
 
 
@@ -66,6 +68,8 @@ static func node_value(c: CastNode, t := 1.0, top := false) -> float:
 				v *= 0.3   # detonates at the wand tip: you have to stand in the fight
 			&"cone":
 				v *= 0.7
+	if c.also:
+		v += node_value(c.also, t, top)   # Tarball's second spell
 	return v
 
 

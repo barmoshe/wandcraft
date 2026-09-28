@@ -148,6 +148,8 @@ func _wand_row(wi: int, at: Vector2, width: float) -> float:
 		text_right(at.x + width - 2, at.y + 9, mana_s, Style.c("cyan:4"))
 	if w.def.reverse:
 		text_right(at.x + width - 2, at.y + 19, "CASTS RIGHT TO LEFT", Style.c("glitch:4"))
+	elif _rule_tag(w) != "":
+		text_right(at.x + width - 2, at.y + 19, _rule_tag(w), Style.c("glitch:4"))
 	var n := w.slots.size()
 	var y := at.y + 21
 	var step := SOCK + ROW_GAP
@@ -156,9 +158,10 @@ func _wand_row(wi: int, at: Vector2, width: float) -> float:
 	var lit := _lit_slots(wi)
 	for i in n:
 		var p := Vector2(at.x + (i % per_row) * step, y + (i / per_row) * (SOCK + 14))
-		# slot numbers follow the cast order (right to left on a reversed wand)
-		var no := (n - i) if w.def.reverse else (i + 1)
-		text_center(p.x + SOCK / 2.0, p.y - 2, str(no), MUTED.darkened(0.2))
+		# slot numbers follow the cast order (right to left on a reversed wand, the next order on
+		# Shuffle Play, a dash for a slot out of the order or on the page not playing)
+		var no := w.read_pos(i) + 1
+		text_center(p.x + SOCK / 2.0, p.y - 2, str(no) if no > 0 else "-", MUTED.darkened(0.2))
 		_socket(Rect2(p, Vector2(SOCK, SOCK)), {"w": wi, "i": i}, is_cur, lit.has(i))
 		centres.append(p + Vector2(SOCK, SOCK) / 2.0)
 		if i % per_row != per_row - 1 and i < n - 1:
@@ -166,6 +169,22 @@ func _wand_row(wi: int, at: Vector2, width: float) -> float:
 	_brackets(w, centres)
 	var rows := ceili(float(n) / per_row)
 	return y + rows * (SOCK + 14) - 8
+
+
+## 0.20 wand rules, in a few words under the wand's name.
+static func _rule_tag(w: WandState) -> String:
+	match w.def.rule:
+		&"shuffle":
+			return "NEXT ORDER SHOWN"
+		&"pinned":
+			return "SLOT 1 JOINS EVERY CAST"
+		&"palindrome":
+			return "READS THERE AND BACK"
+		&"pages":
+			return "PAGE %d OF 2 PLAYS NEXT" % (w.page + 1)
+		&"recycle":
+			return "KILLS REFILL MANA"
+	return ""
 
 
 ## Slots to ring on a wand: the ones the range's last cast read (a moment after it fires),

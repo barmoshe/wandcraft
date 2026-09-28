@@ -30,7 +30,8 @@ var relics: Array[StringName] = []
 var shop: Array = []                # current shop stock (so leaving and coming back keeps it)
 var banned: Array[StringName] = []  # spells Deprecated out of this run's offers (D2)
 var rare_offset := -0.05            # Slay the Spire-style rarity pacing for spell offers (D2)
-var deprecated_here := false        # one Deprecate per shop visit
+var deprecated_here := false        # one Deprecate per shop visit (true: no more this visit)
+var bans_here := 0                  # 0.20: Deprecates this visit (Buyback allows two)
 var rerolls_here := 0               # design v3: shop rerolls this visit (the price climbs)
 var map: Array = []                # D5: the 3-lane map (Chapter.make_map), per step an Array of nodes
 var lane := 1                       # the lane the player is on
@@ -103,6 +104,7 @@ func apply_relics() -> void:
 		w.rune_mul = rune
 		w.trig_mul = 0.7 if hero == &"tinkerer" else 1.0
 		w.depth_cap = depth
+		w.hoist = has_relic(&"hoisting")
 
 
 ## Swaps the starting wand for another loadout (the start room's choice).
@@ -325,6 +327,7 @@ func add_wand(id: StringName) -> void:
 		w.add_slot()
 	w.rune_mul = Relics.stat(self, "rune")
 	w.depth_cap = int(Relics.stat(self, "depth"))
+	w.hoist = has_relic(&"hoisting")
 	if wands.size() < MAX_WANDS:
 		# a new wand arrives empty: it goes on the belt, the one in hand stays in hand
 		wands.append(w)

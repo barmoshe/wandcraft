@@ -191,6 +191,10 @@ const PUDDLE_R0 := 5.0
 const PUDDLE_MAX := 15.0
 const PUDDLE_GROW := 1.6      # px a second
 const PUDDLE_SLOW := 0.55     # your speed inside one
+const SKATE_SPEED := 1.25     # Puddle Skater (0.20 relic): faster inside one instead
+const SKATE_MANA := 4.0       # and mana a second to the wand in hand
+const JOIN_R := 48.0          # Finisher (0.20 relic): how close a kill finishes others
+const JOIN_HP := 0.15         # and below what share of their HP
 ## 0.19: the Workshop, while the player is in it (null during a run).
 var hub: Hub = null
 var boss: Boss
@@ -203,6 +207,8 @@ var trauma := 0.0
 var kick := Vector2.ZERO
 const TRAUMA_DECAY := 1.6    # per second
 var caught := false            # Try / Catch used in this room
+var undone := false            # 0.20: Take-Back used in this room
+var warm := 0                  # 0.20: Warm-Up: casts this room since the last hit
 var damage_done := 0.0
 var _kill_streak := 0
 var _stop := 0.0               # hit-stop: the sim holds for a few frames on big hits
@@ -448,6 +454,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	hit_in_room = false
 	bonus_orb = false
 	caught = false
+	undone = false
+	warm = 0
 	var rows: Array = Hub.ROWS if tpl == "hub" else (ROOMS[tpl] if ROOMS.has(tpl) else RoomLayouts.ART[tpl]["rows"])
 	treasure = Vector2.INF
 	secret_open = false
@@ -830,13 +838,17 @@ func _grow_puddles(dt: float) -> void:
 	for p in puddles:
 		p["r"] = minf(PUDDLE_MAX, float(p["r"]) + PUDDLE_GROW * dt)
 		p["t"] = float(p["t"]) + dt
+	# Puddle Skater (0.20 relic): standing in a leak refills the wand in hand
+	if run and player and run.has_relic(&"swap_space") and puddle_slow(player.position) > 1.0:
+		var w := run.wand()
+		w.mana = minf(w.max_mana(), w.mana + SKATE_MANA * dt)
 
 
 ## How fast you move here: slowed inside a puddle.
 func puddle_slow(pos: Vector2) -> float:
 	for p in puddles:
 		if pos.distance_squared_to(p["pos"]) < float(p["r"]) * float(p["r"]):
-			return PUDDLE_SLOW
+			return SKATE_SPEED if run and run.has_relic(&"swap_space") else PUDDLE_SLOW
 	return 1.0
 
 
@@ -1731,7 +1743,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		var surge := run != null and run.has_relic(&"surge_protector")
 		var done: Array[int] = [e.uid]
 		_cascading = true
-		for k in (2 if surge else 1):
+		var cold := run != null and run.has_relic(&"superconductor")   # Cold Current: one more arc, and they chill
+		for k in (2 if surge else 1) + (1 if cold else 0):
 			var nb: Enemy = null
 			var bd := 70.0 * 70.0
 			for o in enemies:
@@ -1746,6 +1759,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 			done.append(nb.uid)
 			fx.beam(e.position + Vector2(0, -4), nb.position + Vector2(0, -4), Style.c("gold:4"), 1.0)
 			hurt_enemy(nb, dmg * (1.0 if surge else 0.6), e.position, 0.0, 0.3, false, 4)
+			if cold:
+				apply_status(nb, 0, 1, dmg)
 		_cascading = false
 	if crit and not dot and not _cascading and run and run.has_relic(&"cascade_failure"):
 		var nx := nearest_enemy(e.position, 60.0, e.uid)
@@ -1937,6 +1952,8 @@ func kill_enemy(e: Enemy) -> void:
 		if e.elite:
 			_count("elites")
 		run.gold += roundi(int(e.def.get("gold", 1)) * (4 if e.elite else 1) * Relics.gold_mul(run) * 0.5)
+		for w in run.wands:
+			w.on_kill()   # 0.20: a Recycle Bin refills on kills
 		if run.has_relic(&"garbage_collector"):
 			for w in run.wands:
 				w.mana = minf(w.max_mana(), w.mana + 3.0)
@@ -1955,6 +1972,7 @@ func kill_enemy(e: Enemy) -> void:
 			var swarm := run.has_relic(&"swarm_protocol")
 			for k in (2 if swarm else 1):
 				_release_bug(e.position, 20.0 if swarm else 10.0)
+		_relics_on_kill(e)   # 0.20: Contagion, Finisher
 	_on_death(e)
 	# design v3: it dies the way it was hurt: burning ones flare into embers, frozen or chilled
 	# ones shatter hard, charged ones spit sparks
@@ -2026,6 +2044,38 @@ func _on_death(e: Enemy) -> void:
 	elif e.affix == &"forked":
 		for k in 6:
 			enemy_shoot(e.position + Vector2(0, -6), TAU * k / 6.0, 80.0, e.dmg * 0.5, 0.0, "fork:%s" % e.kind)
+
+
+## 0.20 relics at the kill site. Contagion: two or more statuses pass to the nearest enemy
+## (stacks kept). Finisher: enemies close by under 15% HP die too, and their deaths chain
+## (each enemy once, since the dead are skipped). Bosses and their parts are never finished.
+func _relics_on_kill(e: Enemy) -> void:
+	if run.has_relic(&"shared_memory") and e.status_count() >= 2:
+		var o := nearest_enemy(e.position, 90.0, e.uid)
+		if o and not o.dead:
+			var t := o.forward if o.forward else o
+			if e.burn_t > 0.0:
+				t.burn_t = maxf(t.burn_t, e.burn_t)
+				t.burn_dps = maxf(t.burn_dps, e.burn_dps)
+			if (e.chill_t > 0.0 or e.frozen_t > 0.0) and not (t is Boss):
+				t.chill_t = maxf(t.chill_t, maxf(e.chill_t, 1.2))
+				t.chill_slow = minf(t.chill_slow, e.chill_slow)
+			if e.static_t > 0.0:
+				t.static_t = maxf(t.static_t, e.static_t)
+			if e.rot_n > 0:
+				t.rot_n = maxi(t.rot_n, e.rot_n)
+				t.rot_t = maxf(t.rot_t, e.rot_t)
+			fx.beam(e.position + Vector2(0, -4), t.position + Vector2(0, -4), Style.c("glitch:4"), 1.0)
+	if run.has_relic(&"thread_join"):
+		for k in hash.query(e.position, JOIN_R + 16.0):
+			var o: Enemy = enemies[k]
+			if o == e or o.dead or o.spawn_t > 0.0 or o is Boss or o.ai == &"part" or o.locked:
+				continue
+			if o.hp < o.max_hp * JOIN_HP and o.position.distance_to(e.position) < JOIN_R + o.r and o.can_die():
+				fx.beam(e.position + Vector2(0, -4), o.position + Vector2(0, -4), Style.c("blood:4"), 1.0)
+				fx.text(o.position + Vector2(0, -16), "JOINED", Style.c("blood:4"))
+				o.hp = 0.0
+				kill_enemy(o)
 
 
 ## Bug Bounty: a small homing bolt that hunts the nearest enemy.

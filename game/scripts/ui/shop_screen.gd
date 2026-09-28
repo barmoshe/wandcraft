@@ -133,11 +133,11 @@ func _deprecate() -> void:
 	var it: Dictionary = items[sel]
 	if it["t"] != &"spell" or it.get("sold", false):
 		return
-	run.banned.append(it["id"])
-	run.deprecated_here = true
+	if not Rewards.deprecate(run, it["id"]):   # 0.20: Buyback pays for it and allows two
+		return
 	it["sold"] = true
 	Audio.sfx("deny")
-	toast("%s is banned for this run" % Catalog.spell(it["id"]).title)
+	toast("%s is banned for this run%s" % [Catalog.spell(it["id"]).title, " (+%d gold)" % Rewards.BUYBACK_GOLD if run.has_relic(&"end_of_life") else ""])
 
 
 func _buy() -> void:

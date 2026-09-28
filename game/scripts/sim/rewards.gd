@@ -228,9 +228,27 @@ static func shop_stock(run: RunState) -> Array:
 	sale["price"] = roundi(int(sale["price"]) * 0.5)
 	sale["sale"] = true
 	run.deprecated_here = false
+	run.bans_here = 0
 	run.rerolls_here = 0
 	see_all(run, out)
 	return out
+
+
+## Deprecate (the shop's BAN): the spell never shows up in this run's offers again. One a
+## visit; Buyback (0.20 relic) allows two and pays BUYBACK_GOLD for each. False if refused.
+static func deprecate(run: RunState, id: StringName) -> bool:
+	if run.deprecated_here:
+		return false
+	var buyback := run.has_relic(&"end_of_life")
+	run.banned.append(id)
+	run.bans_here += 1
+	run.deprecated_here = run.bans_here >= (2 if buyback else 1)
+	if buyback:
+		run.gold += BUYBACK_GOLD
+	return true
+
+
+const BUYBACK_GOLD := 15
 
 
 ## Design v3: the shop's reroll price (10, then 20, then 30...).

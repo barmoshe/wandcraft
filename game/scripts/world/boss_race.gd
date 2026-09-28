@@ -135,6 +135,14 @@ func _fall(is_a: bool) -> void:
 	world.fx.text(at + Vector2(0, -30), "THREAD %s DOWN: FINISH THE OTHER" % ("A" if is_a else "B"), Style.c("gold:4"), 10)
 	world.fx.ring(at, 3.0, 26.0, 0.4, Style.c("gold:4"))
 	Audio.sfx("phase", at)
+	# Finisher (0.20 relic): a thread's fall finishes its twin, anywhere, if it is under 15%
+	if world.run and world.run.has_relic(&"thread_join"):
+		if is_a and thread_b and thread_b.hp < thread_b.max_hp * World.JOIN_HP:
+			thread_b.hp = 0.0
+			part_can_die(thread_b)   # A is down, so both fall now
+		elif not is_a and hp < max_hp * World.JOIN_HP:
+			hp = 0.0
+			world.kill_enemy(self)   # B is down, so A may fall
 
 
 func _respawn() -> void:

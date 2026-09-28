@@ -20,6 +20,8 @@ var alt: CastNode
 ## Pipeline (D2): seconds after the cast that this node goes out.
 var delay := 0.0
 var free_copy := false       # HEAD: a free copy of the first shooting spell
+## Tarball (0.20): a second spell released together with this one, wherever it goes out.
+var also: CastNode
 ## Per-bullet values worked out once per compiled node (SpellRunner._prep), not per bullet.
 var prepped := false
 var p_r := 2.0
@@ -37,6 +39,9 @@ var p_kw := 0
 var p_spr: Array = []
 var p_blast := false          # ends in a blast (Singularity Kernel implodes)
 var p_split := 0
+var p_grow := 1.0             # Zip Bomb: bigger and stronger per spell cast before it
+var p_stall := 0.0            # Blue Screen: freezes each enemy once for this long
+var p_accel := 0.0            # Drill Bit (level 3): speeds up per enemy it passes
 
 
 func describe() -> String:

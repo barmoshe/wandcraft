@@ -30,6 +30,13 @@ var kw_pierce := false   # hits break shields (Phase Through)
 var kw_shock := false    # hits strip wards (Static Coat)
 var goto_used := false   # GOTO fires once per cycle
 var blame := false       # homing picks the toughest enemy, not the nearest (Blame)
+# 0.20 arsenal (research/arsenal-0.20/6-spells-wands.md)
+var buffered := false    # held until the wand recharges, then all released at once (Buffering)
+var retry := 0           # recasts from the hand when a spell ends without a hit (Retry)
+var jit := 0             # level of Just-in-Time on these spells (0: none)
+var cast_n := 0          # shooting spells cast before this one since the last recharge (Zip Bomb)
+var fill := 0            # Autocomplete's level: empty slots from here on cast a copy (0: off)
+var fill_src := -1       # the slot of the last shooting spell read (what Autocomplete copies)
 
 
 func copy() -> Mods:
@@ -42,6 +49,19 @@ func copy() -> Mods:
 	m.reverse = reverse; m.siphon = siphon; m.kw_pierce = kw_pierce; m.kw_shock = kw_shock
 	m.goto_used = goto_used
 	m.blame = blame
+	m.buffered = buffered; m.retry = retry; m.jit = jit
+	m.cast_n = cast_n; m.fill = fill; m.fill_src = fill_src
+	return m
+
+
+## End Block: every boost stops here. What the program itself tracks (GOTO's one jump, the
+## count of spells cast so far, Autocomplete) carries on.
+func scope_end() -> Mods:
+	var m := Mods.new()
+	m.goto_used = goto_used
+	m.cast_n = cast_n
+	m.fill = fill
+	m.fill_src = fill_src
 	return m
 
 

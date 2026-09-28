@@ -73,6 +73,16 @@ var dash_cd := 0.0
 var dash_inv := 0.0
 var dash_dir := Vector2.RIGHT
 var _ghost_t := 0.0
+## 0.20 relics. Take-Back: a pending hit, undone after UNDO_T seconds without another
+## (undo_hit: whether the room already had a hit, so an undone one leaves Untouched Streak be).
+## Swap Dodge: i-frames on a wand switch, with a cooldown.
+const UNDO_T := 3.0
+const SWAP_INV := 0.4
+const SWAP_CD := 4.0
+var undo_amt := 0.0
+var undo_t := 0.0
+var undo_hit := false
+var swap_cd := 0.0
 
 
 func setup(w: World) -> void:
@@ -139,10 +149,14 @@ func tick(dt: float) -> void:
 	prev_pos = position
 	inv = maxf(0.0, inv - dt)
 	cast_t = maxf(0.0, cast_t - dt)
+	swap_cd = maxf(0.0, swap_cd - dt)
+	if undo_t > 0.0:
+		_undo_tick(dt)
 	if controls.select_wand >= 0:
 		if controls.select_wand < wands.size():
 			if cur != controls.select_wand:
 				Audio.sfx("swap")
+				_swap_dodge()
 			cur = controls.select_wand
 		controls.select_wand = -1
 	# a wand with nothing to shoot is no use in hand: switch to one that can cast
@@ -328,8 +342,10 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 	hurt_t = 0.2
 	if by.begins_with("shot"):
 		Hints.show("dash")
+	_hit_relics(amount)
 	hp -= amount
 	world.hit_in_room = true
+	world.spells.on_player_hurt()   # 0.20: Ctrl+Alt+Del answers the hit
 	inv = 0.9
 	vel += (position - from).normalized() * 120.0
 	world.fx.hurt_number(position + head, amount)
@@ -353,6 +369,41 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 		dead = true
 		Audio.sfx("die")
 		Events.player_died.emit()
+
+
+## 0.20: what a hit that lands does to relics. Warm-Up resets; Take-Back holds the first hit
+## of the room (a second hit inside the window makes it stay).
+func _hit_relics(amount: float) -> void:
+	world.warm = 0
+	if undo_t > 0.0:
+		undo_t = 0.0
+	elif world.run.has_relic(&"undo_stack") and not world.undone:
+		world.undone = true
+		undo_amt = amount
+		undo_t = UNDO_T
+		undo_hit = world.hit_in_room
+
+
+## Take-Back: three clean seconds and the held hit is undone (the Glitch's revert, in green).
+func _undo_tick(dt: float) -> void:
+	undo_t -= dt
+	if undo_t > 0.0:
+		return
+	undo_t = 0.0
+	hp = minf(max_hp, hp + undo_amt)
+	world.hit_in_room = undo_hit
+	world.fx.text(position + head, "UNDONE", Style.c("moss:4"))
+	world.fx.ring(position + Vector2(0, -6), 2.0, 18.0, 0.4, Style.c("moss:4"))
+	Audio.sfx("revert_take", position)
+
+
+## Swap Dodge: switching wands gives a moment of i-frames, every SWAP_CD seconds.
+func _swap_dodge() -> void:
+	if swap_cd > 0.0 or not world.run.has_relic(&"context_switch"):
+		return
+	swap_cd = SWAP_CD
+	inv = maxf(inv, SWAP_INV)
+	world.fx.ring(position + Vector2(0, -6), 2.0, 14.0, 0.2, Style.c("frost:4"))
 
 
 func heal(amount: float) -> void:

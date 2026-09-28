@@ -15,6 +15,13 @@ extends RefCounted
 ## 0.19 packs: Multicast (a ping that fans out), Broadcast (a 360 degree cone drawn as a ring),
 ## Worker Thread (a turret with a payload), Spinlock (blades on a wide orbit), Diff (a beam that
 ## grows on hurt targets), EMP (a burst on you that purges shots) and Cosmic Ray (a random ping).
+## 0.20 arsenal (research/arsenal-0.20/6-spells-wands.md):
+##   tarball              a seed that releases two spells (CastNode.also) where it stops
+##   await                on a hit, casts its spell from your wand at that enemy (1/2/3 times)
+## Drill Bit (an orb that speeds up at level 3), Zip Bomb (grows with the spells cast before
+## it), Blue Screen (a cloud that freezes each enemy once); Buffering holds casts until the
+## recharge, Retry recasts a miss from the hand, Just-in-Time grows per recharge this room,
+## Ctrl+Alt+Del answers a hit on you (on_player_hurt), Virtual Memory lets mana go negative.
 
 const MAX_DEPTH := 3
 const THEN_ADD := [0.3, 0.6, 1.2]
@@ -31,6 +38,10 @@ const SPIN_EVERY := 0.3        # a blade cuts the same enemy again this often
 const REVERSE_MUL := 1.6
 const BG_EVERY := 3.0          # Daemon Rod: the background slot fires this often
 const CAPS := {&"daemon": 1, &"turret": 2, &"duck": 1}
+const JIT_STEP := [0.06, 0.08, 0.12]   # Just-in-Time: damage per recharge this room
+const JIT_CAP := [0.6, 0.8, 1.2]
+const CAD_EVERY := [4.0, 3.0, 2.0]     # Ctrl+Alt+Del: seconds between answers
+const AWAIT_N := [1, 2, 3]             # Await: casts per left spell
 
 ## Per-emission options, passed down from the wand or the trigger that fired.
 class Opt:
@@ -42,6 +53,7 @@ class Opt:
 	var depth := 0
 	var ignore := -1       # enemy uid this emission must not hit first
 	var sc := 0.0          # base scatter in degrees
+	var tries := 0         # Retry: recasts already spent on this spell
 
 var world: World
 var bullets: BulletPool
@@ -94,7 +106,7 @@ func cast_bonus(w: WandState, low: bool, tenth: bool) -> float:
 		Audio.sfx("relic_proc", world.player.position)
 	if run.has_relic(&"empty_set"):
 		k *= 1.0 + 0.08 * w.slots.count(null)
-	return k
+	return k * Relics.shape_mul(run, w, world.warm)   # 0.20: Locked Fury, Mixed Program, Warm-Up
 
 
 func _init(w: World) -> void:
@@ -109,16 +121,19 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	var plan := WandProgram.compile(w)
 	if plan.groups.is_empty():
 		w.cd = 0.3
+		if w.def.rule == &"pages":
+			w.page = 1 - w.page   # Double Buffer: an empty page turns straight over
 		return false
 	var cost := 0.0 if Game.inf_mana else plan.mana
 	var run := world.run
 	# Watchdog: a wand left alone for a second casts its next cast for free
 	var free := w.idle >= 1.0 and w.passive_level(&"watchdog") > 0
 	# Loop Counter: every 10th cast is free (and hits twice as hard, below)
-	var tenth := run != null and run.has_relic(&"loop_counter") and (casts_fired + 1) % 10 == 0
+	var tick := Relics.cast_tick(run)   # 0.20: Double Tick counts each cast twice
+	var tenth := run != null and run.has_relic(&"loop_counter") and Relics.crosses(casts_fired, casts_fired + tick, 10)
 	if free or tenth:
 		cost = 0.0
-	if w.mana < cost:
+	if w.mana - cost < -w.debt():   # Virtual Memory lets it go below zero
 		w.cd = 0.06
 		# sound v2: one "empty" per dry spell, not one per retry
 		if world.time - w.dry_at > 0.25:
@@ -134,6 +149,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.ptr = plan.ptr
 	w.acc = plan.acc
 	w.casts += 1
+	w.last_id = plan.last_id
 	w.flash = plan.used[plan.used.size() - 1] if not plan.used.is_empty() else -1
 	w.lit = plan.used
 	w.lit_at = world.time
@@ -143,7 +159,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	if sched > 0 and not summons.is_empty():
 		sp *= 1.0 - [0.2, 0.3, 0.45][mini(sched, 3) - 1]
 	var dl := maxf(0.03, (w.def.cast_delay + plan.delay_add) * sp)
-	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * sp)
+	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * sp * Relics.recharge_mul(run, w))
 	w.cd = dl + (rc if plan.wrapped else 0.0)
 	if plan.wrapped:
 		w.rech = rc
@@ -166,24 +182,33 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.fresh = plan.wrapped
 	world.player.still_t = 0.0
 	cast_seq += 1
-	casts_fired += 1
+	casts_fired += tick
+	world.warm += 1   # Warm-Up
 	# Race Condition: one cast in five fizzles (paid for, nothing comes out)
 	if run and run.has_relic(&"race_condition") and world.rng.randf() < 0.2:
 		world.fx.sparks(origin, 6, Style.c("glitch:3"), 60.0)
 		world.fx.text(origin + Vector2(0, -10), "FIZZLE", Style.c("glitch:4"))
 		Audio.sfx("fizzle", origin)
+		_wrapped(w, plan, origin, ang, rc)
 		return true
+	# Buffering: its spells wait for the recharge
+	var out: Array[CastNode] = []
 	for g in plan.groups:
+		if g.mods.buffered:
+			w.buffer.append([g, opt])
+		else:
+			out.append(g)
+	for g in out:
 		emit_cast(g, origin, ang, opt)
 	# Stack Trace: every 7th cast also goes out backward
-	if run and run.has_relic(&"stack_trace") and casts_fired % 7 == 0:
+	if run and run.has_relic(&"stack_trace") and Relics.crosses(casts_fired - tick, casts_fired, 7):
 		cast_seq += 1
-		for g in plan.groups:
+		for g in out:
 			emit_cast(g, origin, ang + PI, opt)
 	# Tail Call: the last cast before a recharge goes out twice
 	if run and run.has_relic(&"tail_call") and plan.wrapped:
 		cast_seq += 1
-		for g in plan.groups:
+		for g in out:
 			emit_cast(g, origin, ang + 0.18, opt)
 	world.fx.ring(origin, 1.0, 6.0, 0.12, plan.groups[0].spell.color)
 	# sound v2: the first spell's timbre (walked by its slot), a second element's after it, and
@@ -194,9 +219,21 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		ids.append(g.spell.id)
 		heavy = heavy or g.mods.slam or g.mods.dmg > 1.0
 	Audio.cast_plan(ids, origin, plan.groups[0].slot, heavy)
+	_wrapped(w, plan, origin, ang, rc)
 	if Game.quiet == 0:
 		Events.wand_cast.emit(w.flash)
 	return true
+
+
+## After a cast that closes the wand's pass: what Buffering held goes out once the recharge is
+## over, and the wand counts the recharge (Alt+Tab, Just-in-Time, Shuffle Play, Double Buffer).
+func _wrapped(w: WandState, plan: WandProgram.Plan, origin: Vector2, ang: float, rc: float) -> void:
+	if not plan.wrapped:
+		return
+	for e in w.buffer:
+		_later.append({"t": rc, "c": e[0], "pos": origin, "ang": ang, "opt": e[1], "hand": true})
+	w.buffer.clear()
+	w.on_wrap(world.rng)
 
 
 ## One compiled cast: copies (Twin Cast), fans (count/spread) and scatter.
@@ -205,6 +242,8 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt, now := false) ->
 	if c.delay > 0.0 and not now:
 		_later.append({"t": c.delay, "c": c, "pos": pos, "ang": ang, "opt": opt, "hand": opt.depth == 0})
 		return
+	if c.also:
+		emit_cast(c.also, pos, ang + 0.3, opt, true)   # Tarball: the second spell goes out too
 	if c.cond and world.nearest_enemy(pos, IF_RANGE) == null:
 		# IF / ELSE: no enemy close, so the ELSE branch goes instead
 		if c.alt:
@@ -217,6 +256,11 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt, now := false) ->
 	var dmg := (d.damage_at(lv) * m.dmg * opt.gm + opt.add) * opt.mul
 	if opt.depth > 0 and run and run.has_relic(&"recursion"):
 		dmg *= 1.3
+	if m.jit > 0 and opt.src:
+		dmg *= 1.0 + minf(JIT_STEP[m.jit - 1] * opt.src.jit_n, JIT_CAP[m.jit - 1])
+	if not c.prepped:
+		_prep(c)
+	dmg *= c.p_grow   # Zip Bomb
 	if m.reverse:
 		ang += PI
 		dmg *= REVERSE_MUL
@@ -324,6 +368,9 @@ func _prep(c: CastNode) -> void:
 	c.p_spr = Projectiles.for_spell(d.id)
 	c.p_blast = int(d.param("implode", lv, 0)) > 0
 	c.p_split = maxi(m.split, int(d.param("split", lv, 0)))
+	c.p_grow = 1.0 + float(d.param("stack", lv, 0.0)) * mini(m.cast_n, int(d.param("stack_max", lv, 6)))
+	c.p_stall = float(d.param("stall", lv, 0.0))
+	c.p_accel = float(d.param("accel", lv, 0.0))
 	c.prepped = true
 
 
@@ -339,7 +386,9 @@ func _fill(b: Bullet, c: CastNode, pos: Vector2, ang: float, spd: float, dmg: fl
 	b.dmg = dmg
 	b.crit = crit
 	b.r = c.p_r
-	b.area = m.area
+	b.area = m.area * c.p_grow
+	b.stall = c.p_stall
+	b.tries = opt.tries
 	b.burn = c.p_burn
 	b.chill = c.p_chill
 	b.chain = c.p_chain
@@ -1026,6 +1075,9 @@ func clear_room() -> void:
 	summons.clear()
 	_later.clear()
 	blockers.clear()
+	if world.run:
+		for w in world.run.wands:
+			w.new_room()
 
 
 ## Gravity: drags enemies near the spell toward it (bosses and their parts are too heavy).
@@ -1096,6 +1148,8 @@ func _hit_one(b: Bullet, e: Enemy) -> bool:
 			return false
 	if b.pierce > 0:
 		b.pierce -= 1
+		if b.cast and b.cast.p_accel > 0.0 and b.vel.length_squared() < 320.0 * 320.0:
+			b.vel *= 1.0 + b.cast.p_accel   # Drill Bit: faster after each enemy it passes
 		return false
 	end_bullet(b, e)
 	return true
@@ -1122,7 +1176,8 @@ func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
 	world.hit_sound = Audio.hit_for_bullet(b.cast.spell.id if b.cast else &"", b.burn, b.chill, b.static_on, b.rot)
 	world.hurt_enemy(e, dmg, from, b.crit, kb * b.knock, false, b.kw)
 	world.hit_sound = "hit"
-	if b.burn > 0 or b.chill > 0 or b.static_on or b.rot > 0 or b.mark > 0.0:
+	b.landed = true
+	if b.burn > 0 or b.chill > 0 or b.static_on or b.rot > 0 or b.mark > 0.0 or b.stall > 0.0:
 		_apply(b, e)
 	if b.slam and not e.dead and not e.heavy:
 		var kd := (e.position - from).normalized()
@@ -1146,6 +1201,11 @@ func _apply(b: Bullet, e: Enemy) -> void:
 		world.add_rot(e, b.rot)
 	if b.mark > 0.0:
 		world.mark(e, b.mark)
+	if b.stall > 0.0 and not b.once.has(e.uid) and not (e is Boss) and not e.dead:
+		# Blue Screen: each enemy freezes once
+		b.once.append(e.uid)
+		e.frozen_t = maxf(e.frozen_t, b.stall)
+		world.fx.text(e.position + Vector2(0, -16), "FROZEN", b.color)
 
 
 func _on_hit(b: Bullet, e: Enemy) -> void:
@@ -1197,10 +1257,78 @@ func end_bullet(b: Bullet, hit_e: Enemy) -> void:
 	if not b.alive:
 		return
 	b.alive = false
+	if hit_e == null and b.hits.is_empty() and b.depth == 0 and world.run and world.run.has_relic(&"lazy_eval"):
+		_refund_miss(b)   # 0.20: Refund Misses
 	if b.cast and (b.cast.spell.behavior == &"bomb" or b.beh == &"mine" or b.cast.p_blast) and b.depth <= max_depth:
 		_blast(b, hit_e)
 	if b.trig != &"":
 		fire_carry(b, &"end", hit_e)
+	if not b.landed and b.cast and b.cast.mods.retry > b.tries and b.beh != &"wall" and not b.orbit:
+		_retry(b)
+
+
+## Refund Misses (0.20 relic): a plain shot from the hand that ended without touching an
+## enemy gives its share of the spell's mana back to its wand (bombs and blasts excluded).
+func _refund_miss(b: Bullet) -> void:
+	var c := b.cast
+	if c == null or b.src == null or c.free_copy or c.p_blast or c.spell.behavior != &"bolt" or b.orbit or b.cost <= 0.0:
+		return
+	var share := b.cost / float(maxi(1, int(c.spell.param("count", c.level, 1))) * (1 + c.mods.multi))
+	b.src.mana = minf(b.src.max_mana(), b.src.mana + share)
+	world.fx.sparks(b.pos, 2, Style.c("frost:4"), 30.0)
+
+
+## Retry: a spell that ended without a hit goes out again from the hand, free, at the
+## nearest enemy (or down your aim).
+func _retry(b: Bullet) -> void:
+	var pl := world.player
+	if pl == null or pl.dead:
+		return
+	var from := pl.tip()
+	var tgt := target_near(from, 220.0)
+	var ang := (tgt.position - from).angle() if tgt else pl.aim
+	var opt := Opt.new()
+	opt.gm = b.gm
+	opt.src = b.src
+	opt.depth = b.depth
+	opt.tries = b.tries + 1
+	cast_seq += 1
+	world.fx.ring(from, 1.0, 7.0, 0.15, b.cast.spell.color)
+	_emit_one(b.cast, from, ang, b.dmg, b.crit, opt, 0)
+
+
+## Ctrl+Alt+Del: when you're hit, each rune's held spell casts itself around you, free.
+func on_player_hurt() -> void:
+	var pl := world.player
+	if pl == null or world.run == null:
+		return
+	for w in world.run.wands:
+		for pr in w.cad_pairs():
+			if pr[1] < 0:
+				continue
+			var s: Variant = w.slots[pr[1]]
+			var d: SpellDef = Catalog.spell(s["id"]) if s != null else null
+			var lv: int = pr[2]
+			if not Catalog.is_caster(d) or world.time - float(w.cad_at.get(pr[0], -99.0)) < CAD_EVERY[lv - 1]:
+				continue
+			w.cad_at[pr[0]] = world.time
+			var c := CastNode.new()
+			c.spell = d
+			c.level = int(s["lv"])
+			c.mods = Mods.new()
+			var opt := Opt.new()
+			opt.src = w
+			opt.gm = Relics.dmg_mul(world.run, world.room_time)
+			var from := pl.origin()
+			# a spell with a direction goes out 4 ways; a blast or a summon once
+			var n := 1 if d.behavior == &"burst" or d.kind == SpellDef.Kind.FAMILIAR else 4
+			cast_seq += 1
+			world.fx.ring(from, 2.0, 16.0, 0.25, d.color)
+			world.fx.text(from + Vector2(0, -22), "CTRL+ALT+DEL", d.color)
+			Audio.sfx("relic_proc", from)
+			for k in n:
+				emit_cast(c, from, pl.aim + TAU * k / n, opt)
+
 
 
 func _pay(w: WandState, mp: float) -> bool:
@@ -1210,6 +1338,20 @@ func _pay(w: WandState, mp: float) -> bool:
 		w.mana -= mp
 		return true
 	return false
+
+
+## Await: the spell goes out from your wand, straight at the enemy the left spell hit.
+func _await(b: Bullet, hit_e: Enemy) -> void:
+	var pl := world.player
+	var from := pl.tip() if pl and not pl.dead else b.pos
+	var opt := Opt.new()
+	opt.gm = b.gm
+	opt.src = b.src
+	opt.depth = b.depth + 1
+	cast_seq += 1
+	world.fx.beam(from, hit_e.position + Vector2(0, -4), Color("#ffe066"), 0.6)
+	Audio.sfx("trigger", from, 0.0, b.depth)
+	emit_cast(b.payload, from, (hit_e.position + Vector2(0, -4) - from).angle(), opt)
 
 
 ## Releases a bullet's payload. `ev` is hit | end | fly | nova.
@@ -1225,10 +1367,18 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 	var add := 0.0
 	var i := clampi(b.trig_lv, 1, 3) - 1
 	match b.trig:
-		&"seed":
+		&"seed", &"tarball":
 			if ev != &"end" or b.fired:
 				return
 			b.fired = true
+		&"await":
+			if ev != &"hit" or hit_e == null or b.fin >= AWAIT_N[i]:
+				return
+			if not _pay(b.src, b.pay_mana):
+				return
+			b.fin += 1
+			_await(b, hit_e)
+			return
 		&"then":
 			if ev != &"end" or b.fired:
 				return

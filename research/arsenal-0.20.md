@@ -77,4 +77,9 @@ New cards come in packs at the Merchant, like 0.19's, so a first run's pool stay
 - **The two duos** join the core pool, since both of their parents are core relics.
 
 ## 5. Progress
-(Filled in as it lands.)
+- **Lessons fixed** (commit d0d8444).
+- **Built:** 14 spells, 5 rule wands and 16 relics, with icons and HUD pips.
+  - Tests: `test_arsenal_0_20` (24/24) and `test_relics_0_20` (20/20).
+  - `test_arsenal`, `test_relics_d3`, `test_world`, `test_run`, `test_copy` and `test_wand_program` all stay green.
+- **Placed in five packs** (Refactor, Interrupts, Compiler, Kernel Mode, Memory), and the duos in core: ADR 0030.
+- **Next (0.21):** the thin builds (Burn, Frost, Rot, Shock, summons, Area relics).

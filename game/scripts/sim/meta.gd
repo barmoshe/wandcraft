@@ -33,6 +33,8 @@ const CORE_RELICS: Array[StringName] = [
 	&"event_loop", &"off_by_one", &"tail_call", &"loop_counter", &"stack_trace", &"surge_protector",
 	&"race_condition", &"memory_leak", &"force_push", &"legacy_code",
 	&"thermal_throttle", &"zero_day",
+	# 0.20: two Merge Commit duos whose parents are both core (Double Tick, Cold Current)
+	&"cron_job", &"superconductor",
 ]
 const CORE_WANDS: Array[StringName] = [&"twig", &"stub", &"oak", &"crystal", &"harp", &"daemon_rod"]
 
@@ -106,6 +108,22 @@ const PACKS := [
 	{"id": "hw", "title": "Hardware", "file": "hw.pkg", "price": 120, "color": "#8ff0ff",
 		"blurb": "Cheap spam, and a pulse that wipes out shots.",
 		"items": [&"emp", &"cosmic_ray", &"undervolt", &"liquid_cooling", &"dual_core"]},
+	# 0.20, the arsenal (research/arsenal-0.20.md, ADR 0030): content, never power
+	{"id": "refactor", "title": "Refactor", "file": "refactor.pkg", "price": 100, "color": "#e0a0ff", "needs": "world1",
+		"blurb": "Relics that read your wand's shape.",
+		"items": [&"hoisting", &"polyglot", &"short_circuit", &"end_of_life", &"technical_debt"]},
+	{"id": "irq", "title": "Interrupts", "file": "irq.pkg", "price": 120, "color": "#ff7ab8",
+		"blurb": "Spells that answer when you're hit, when you miss, when you land.",
+		"items": [&"ctrl_alt_del", &"retry", &"await_hit", &"blue_screen", &"pinned_tab", &"context_switch"]},
+	{"id": "cc", "title": "Compiler", "file": "cc.pkg", "price": 120, "color": "#ffd24a",
+		"blurb": "Where you put a spell matters.",
+		"items": [&"zip_bomb", &"drill_bit", &"jit", &"end_scope", &"alt_tab", &"palindrome", &"shuffle_play", &"shared_memory"]},
+	{"id": "kernel", "title": "Kernel Mode", "file": "kernel.pkg", "price": 120, "color": "#c79bff", "needs": "world2",
+		"blurb": "Turn the Kernel's own tricks around.",
+		"items": [&"graceful_degrade", &"swap_space", &"thread_join", &"undo_stack", &"warm_cache"]},
+	{"id": "mem", "title": "Memory", "file": "mem.pkg", "price": 140, "color": "#6ad0ff", "needs": "world2",
+		"blurb": "Buffers, paging and borrowed mana.",
+		"items": [&"buffering", &"virtual_memory", &"cache_hit", &"tarball", &"autocomplete", &"double_buffer", &"recycle_bin", &"lazy_eval", &"cold_storage"]},
 ]
 ## How many packs the merchant shelves at once.
 const SHELF := 3
@@ -321,6 +339,8 @@ static func bits_for(run: RunState, runs_before: int) -> int:
 		n += BITS_WIN
 	if runs_before < EARLY_RUNS:
 		n += BITS_EARLY
+	if run.has_relic(&"cold_storage"):
+		n += mini(10, run.gold / 40)   # Bit Savings (0.20 relic): gold held at the end pays Bits
 	return roundi(n * (1.0 + 0.1 * run.heat))
 
 

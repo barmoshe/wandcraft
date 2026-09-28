@@ -154,12 +154,13 @@ static func kernel_chars(s: Node) -> void:
 ## Icon art straight from the IconSpells / IconRelics data, including items whose gameplay
 ## is not in the catalog yet ("kind" in the entry: proj, boost, trig, passive).
 static func icons(s: Node) -> void:
-	const KINDS := {"proj": SpellDef.Kind.PROJ, "boost": SpellDef.Kind.BOOST, "trig": SpellDef.Kind.TRIG, "passive": SpellDef.Kind.PASSIVE}
+	const KINDS := {"proj": SpellDef.Kind.PROJ, "boost": SpellDef.Kind.BOOST, "trig": SpellDef.Kind.TRIG, "trigger": SpellDef.Kind.TRIG, "passive": SpellDef.Kind.PASSIVE, "rune": SpellDef.Kind.RUNE, "familiar": SpellDef.Kind.FAMILIAR}
 	s.section("spells")
 	var all_spells: Dictionary = IconSpells.ART.duplicate()
 	all_spells.merge(IconSpellsB.ART)
 	all_spells.merge(IconSpellsC.ART)
 	all_spells.merge(IconSpellsD.ART)
+	all_spells.merge(IconSpellsE.ART)
 	for id in all_spells:
 		var e: Dictionary = all_spells[id]
 		var kind: int = KINDS.get(e.get("kind", ""), Catalog.spell(id).kind if Catalog.spells().has(id) else SpellDef.Kind.PROJ)
@@ -169,6 +170,8 @@ static func icons(s: Node) -> void:
 		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconRelics.ART[id])))
 	for id in IconSpellsD.RELICS:
 		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconSpellsD.RELICS[id])))
+	for id in IconSpellsE.RELICS:
+		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconSpellsE.RELICS[id])))
 	s.section("not drawn yet")
 	for id in Catalog.spells():
 		if IconArt.spell(id).is_empty():
@@ -176,6 +179,19 @@ static func icons(s: Node) -> void:
 	for id in Relics.DEFS:
 		if IconArt.relic(id).is_empty():
 			s.add(String(id), Icons.relic(id))
+
+
+## The 0.20 arsenal icons (IconSpellsE) on their own, in their frames (tools/artsheet.sh arsenal).
+static func arsenal(s: Node) -> void:
+	const KINDS := {"proj": SpellDef.Kind.PROJ, "boost": SpellDef.Kind.BOOST, "trig": SpellDef.Kind.TRIG, "passive": SpellDef.Kind.PASSIVE, "rune": SpellDef.Kind.RUNE, "familiar": SpellDef.Kind.FAMILIAR}
+	s.section("0.20 spells")
+	for id in IconSpellsE.ART:
+		var e: Dictionary = IconSpellsE.ART[id]
+		var kind: int = Catalog.spell(id).kind if Catalog.spells().has(id) else KINDS.get(e.get("kind", ""), SpellDef.Kind.PROJ)
+		s.add(String(id), PixelArt.tex(Icons.framed(kind, e)))
+	s.section("0.20 relics")
+	for id in IconSpellsE.RELICS:
+		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconSpellsE.RELICS[id])))
 
 
 static func tiles(s: Node) -> void:

@@ -17,6 +17,15 @@ extends RefCounted
 ##  · 0.19 packs: Cherry-Pick copies the last shooting spell (HEAD's twin); Multicast is a
 ##    Ping that reaches several enemies, so its payload costs 0.5 + 0.5 per target
 ##  · a Daemon Rod's last slot is not part of the program (it runs in the background)
+## 0.20 arsenal (research/arsenal-0.20/6-spells-wands.md):
+##  · the wand decides the reading order (WandState.slot_at): Shuffle Play, Palindrome Staff
+##    (there and back), Double Buffer (one page at a time); Pinned Tab's slot 1 and each
+##    Ctrl+Alt+Del with the spell on its right sit out of the program (WandState.held)
+##  · Pinned Tab: its slot 1 joins every cast, free (a boost goes global, a spell at 50%)
+##  · Tarball carries two spells; Await pays each time it fires, like Callback
+##  · End Block closes every boost on its left; Alt+Tab takes turns between the next two
+##    spells, one recharge each; Autocomplete fills empty slots on its right with a copy of
+##    the last shooting spell read; Cache Hit discounts a spell cast right after itself
 
 const MAX_GROUPS := 24
 const MAX_DEPTH := 3
@@ -40,6 +49,9 @@ var inc_slots: Dictionary = {}   # slot index -> true: boosts made global by #in
 var pipe_left := 0
 var pipe_k := 0
 var drawn := 0                   # top-level casts drawn in this compile (GOTO needs one)
+var held: Dictionary = {}        # slots out of the program (WandState.held)
+var prev_id: StringName = &""    # the last top-level shooting spell compiled (Cache Hit)
+var cache := 0.0                 # Cache Hit's discount on a repeat
 
 
 class Plan:
@@ -52,6 +64,7 @@ class Plan:
 	var wrapped := false
 	var acc: Mods
 	var used: PackedInt32Array
+	var last_id: StringName = &""
 
 
 static func compile(w: WandState, start_ptr := -1, acc_in: Mods = null) -> Plan:
@@ -79,8 +92,12 @@ static func preview_cycle(w: WandState) -> Array[Plan]:
 func _run(w: WandState, start_ptr: int, acc_in: Mods) -> Plan:
 	wand = w
 	slots = w.slots
-	n = slots.size() - (1 if w.def.background_slot and slots.size() > 1 else 0)
+	n = w.prog_len()
+	held = w.held()
+	prev_id = w.last_id
+	cache = [0.0, 0.3, 0.5, 0.7][mini(3, w.passive_level(&"cache_hit"))]
 	_scan_includes()
+	_pin_boost()
 	ptr = w.ptr if start_ptr < 0 else start_ptr
 	acc = (acc_in if acc_in != null else w.acc).copy()
 	to_draw = w.def.simultaneous
@@ -94,6 +111,7 @@ func _run(w: WandState, start_ptr: int, acc_in: Mods) -> Plan:
 			groups.append(c)
 		to_draw -= 1
 		drawn += 1
+	_pin_spell(groups)
 	# end of the program reached exactly: this cast closes the cycle
 	if not wrapped and not groups.is_empty() and _peek() < 0:
 		ptr = 0
@@ -108,11 +126,12 @@ func _run(w: WandState, start_ptr: int, acc_in: Mods) -> Plan:
 	plan.wrapped = wrapped
 	plan.acc = acc
 	plan.used = used
+	plan.last_id = prev_id
 	return plan
 
 
 func _idx(p: int) -> int:
-	return n - 1 - p if wand.def.reverse else p
+	return wand.slot_at(p)
 
 
 func _spell_at(i: int) -> SpellDef:
@@ -124,7 +143,43 @@ func _spell_at(i: int) -> SpellDef:
 
 func _active(i: int) -> bool:
 	var d := _spell_at(i)
-	return d != null and d.kind != SpellDef.Kind.PASSIVE
+	return d != null and d.kind != SpellDef.Kind.PASSIVE and not held.has(i)
+
+
+## Autocomplete: an empty slot on its right casts a copy of the last shooting spell read.
+func _fillable(i: int) -> bool:
+	return acc.fill > 0 and acc.fill_src >= 0 and not held.has(i) and _spell_at(i) == null
+
+
+## Pinned Tab: a boost in slot 1 powers every spell on the wand, for free.
+func _pin_boost() -> void:
+	if not held.has(0) or wand.def.rule != &"pinned":
+		return
+	var d := _spell_at(0)
+	if d != null and d.kind == SpellDef.Kind.BOOST and not _is_draw(d.id):
+		globals.append([d.id, _level_at(0)])
+
+
+## Pinned Tab: a shooting spell in slot 1 joins every cast, free, at half damage.
+func _pin_spell(groups: Array[CastNode]) -> void:
+	if groups.is_empty() or not held.has(0) or wand.def.rule != &"pinned":
+		return
+	var d := _spell_at(0)
+	if not Catalog.is_caster(d):
+		return
+	var save := acc
+	acc = Mods.new()
+	var c := _new_node(d, _level_at(0), 0)
+	acc = save
+	c.mods.dmg *= 0.5
+	c.free_copy = true
+	groups.append(c)
+	used.append(0)
+
+
+## Boosts that draw or copy rather than change spells (#include and Pinned Tab skip them).
+static func _is_draw(id: StringName) -> bool:
+	return id == &"chorus" or id == &"pipeline" or id == &"mirror" or id == &"end_scope"
 
 
 ## #include: the boost right after each include rune is applied to every cast node.
@@ -137,19 +192,25 @@ func _scan_includes() -> void:
 		for q in range(p + 1, n):
 			var j := _idx(q)
 			var b := _spell_at(j)
-			if b == null:
+			if b == null or held.has(j):
 				continue
-			if b.kind == SpellDef.Kind.BOOST and b.id != &"chorus" and b.id != &"pipeline" and b.id != &"mirror":
+			if b.kind == SpellDef.Kind.BOOST and not _is_draw(b.id) and not inc_slots.has(j):
 				globals.append([b.id, _level_at(j)])
 				inc_slots[j] = true
 			break
+	# Tail Boost (0.20 relic): a boost in the last slot works as if #include came before it
+	var t := _idx(n - 1) if n > 0 and wand.hoist else -1
+	var tb := _spell_at(t) if t >= 0 else null
+	if tb != null and not inc_slots.has(t) and tb.kind == SpellDef.Kind.BOOST and not tb.id in [&"chorus", &"pipeline", &"mirror"]:
+		globals.append([tb.id, _level_at(t)])
+		inc_slots[t] = true
 
 
 ## The wand's first shooting spell in program order (HEAD copies it).
 func _first_caster() -> int:
 	for p in n:
 		var d := _spell_at(_idx(p))
-		if d != null and d.kind == SpellDef.Kind.PROJ:
+		if d != null and d.kind == SpellDef.Kind.PROJ and not held.has(_idx(p)):
 			return _idx(p)
 	return -1
 
@@ -158,7 +219,7 @@ func _first_caster() -> int:
 func _last_caster() -> int:
 	for p in range(n - 1, -1, -1):
 		var d := _spell_at(_idx(p))
-		if d != null and d.kind == SpellDef.Kind.PROJ:
+		if d != null and d.kind == SpellDef.Kind.PROJ and not held.has(_idx(p)):
 			return _idx(p)
 	return -1
 
@@ -187,7 +248,7 @@ func _level_at(i: int) -> int:
 
 func _peek() -> int:
 	for p in range(ptr, n):
-		if _active(_idx(p)):
+		if _active(_idx(p)) or _fillable(_idx(p)):
 			return _idx(p)
 	return -1
 
@@ -203,13 +264,24 @@ func _next(can_wrap: bool) -> int:
 		var i := _idx(ptr)
 		ptr += 1
 		reads += 1
-		if _active(i):
+		if _active(i) or _fillable(i):
 			return i
 	return -1
 
 
 func _cost(d: SpellDef, lv: int) -> float:
 	return d.mana_at(lv) * acc.mp_mul * acc.cnt_mp * cs_mp
+
+
+## A top-level shooting spell's cost: Cache Hit takes its share off a spell cast right after
+## a copy of itself.
+func _shot_cost(d: SpellDef, lv: int, depth: int) -> float:
+	var k := _cost(d, lv)
+	if depth == 0:
+		if cache > 0.0 and d.id == prev_id:
+			k *= 1.0 - cache
+		prev_id = d.id
+	return k
 
 
 ## Draws the payload of a trigger or carrier in its own count scope.
@@ -229,6 +301,19 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 		if i < 0:
 			return null
 		var d := _spell_at(i)
+		if d == null:
+			# Autocomplete: this empty slot casts a copy of the last shooting spell read
+			var fd := _spell_at(acc.fill_src)
+			if fd == null:
+				continue
+			used.append(i)
+			var fc := _new_node(fd, _level_at(acc.fill_src), i)
+			fc.mods.dmg *= [0.6, 0.8, 1.0][clampi(acc.fill, 1, 3) - 1]
+			fc.cost = _shot_cost(fd, fc.level, depth)
+			mana += fc.cost
+			delay_add += fd.cast_delay
+			acc.cast_n += 1
+			return fc
 		var lv := _level_at(i)
 		var reps := 2 if dup else 1
 		used.append(i)
@@ -239,6 +324,9 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 					mana += d.mana_at(lv) * cs_mp * 1.5   # made global by #include
 					continue
 				mana += d.mana_at(lv) * cs_mp
+				if d.id == &"end_scope":
+					acc = acc.scope_end()   # End Block: every boost on its left stops here
+					continue
 				if d.id == &"mirror":
 					dup = true
 					continue
@@ -282,6 +370,23 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 						var hc := _new_node(_spell_at(fi), _level_at(fi), fi)
 						hc.free_copy = true
 						return hc
+					&"autocomplete":
+						acc.fill = maxi(acc.fill, lv)
+						continue
+					&"alt_tab":
+						# both spells are read; the wand's recharge count picks one
+						var t0 := mana
+						var ta := _draw_cast(depth, false)
+						if ta == null:
+							return null
+						var tma := mana - t0
+						var t1 := mana
+						var tb := _draw_cast(depth, false)
+						if tb != null and wand.cycles % 2 == 1:
+							mana = t0 + (mana - t1)
+							return tb
+						mana = t0 + tma
+						return ta
 					&"ifelse":
 						var m0 := mana
 						var a := _draw_cast(depth, false)
@@ -299,8 +404,11 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 		# a shooting spell (or a familiar)
 		var c := _new_node(d, lv, i)
 		c.dup = reps > 1
-		c.cost = _cost(d, lv)
+		c.cost = _shot_cost(d, lv, depth)
 		mana += c.cost * reps
+		acc.cast_n += reps
+		if d.kind == SpellDef.Kind.PROJ:
+			acc.fill_src = i
 		delay_add += d.cast_delay
 		recharge_add += d.recharge
 		if depth < wand.depth_cap:
@@ -308,23 +416,32 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 				var r := _draw_payload(depth)
 				var pl: CastNode = r[0]
 				if pl != null:
+					var pm0: float = r[1]
+					if d.carrier == &"tarball":
+						# Tarball holds a second spell, released with the first
+						var r2 := _draw_payload(depth)
+						if r2[0] != null:
+							pl.also = r2[0]
+							pm0 += r2[1]
 					var f := 1.0
 					if d.carrier == &"seed":
 						f = [0.9, 0.8, 0.6][lv - 1]
+					elif d.carrier == &"tarball":
+						f = [1.0, 0.9, 0.75][lv - 1]
 					elif d.carrier == &"wheel":
 						f = 4.0
 					elif d.carrier == &"daemon":
 						f = 0.0   # the daemon pays for each shot as it fires
 					elif d.carrier == &"ping":
 						f = 0.5 + 0.5 * float(d.param("count", lv, 1))   # Multicast: one per target
-					mana = r[2] + r[1] * f * reps * wand.trig_mul
+					mana = r[2] + pm0 * f * reps * wand.trig_mul
 					c.trig = d.carrier
 					c.trig_level = lv
 					c.payload = pl
-					c.pay_mana = r[1] * wand.trig_mul
+					c.pay_mana = pm0 * wand.trig_mul
 			else:
 				var j := _peek()
-				if j >= 0 and _spell_at(j).kind == SpellDef.Kind.TRIG:
+				if j >= 0 and _spell_at(j) != null and _spell_at(j).kind == SpellDef.Kind.TRIG:
 					var ti := _next(false)
 					var td := _spell_at(ti)
 					var tlv := _level_at(ti)
@@ -336,7 +453,7 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 						var pm: float = r[1]
 						var m0: float = r[2]
 						var tm := wand.trig_mul   # the Tinkerer's triggers cost less
-						if td.trig == &"callback" or td.trig == &"loop":
+						if td.trig == &"callback" or td.trig == &"loop" or td.trig == &"await":
 							mana = m0   # paid each time it fires
 						elif td.trig == &"fork":
 							mana = m0 + pm * 4.0 * tm

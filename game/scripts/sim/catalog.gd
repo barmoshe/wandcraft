@@ -34,15 +34,26 @@ const TAGS := {
 	&"worker": ["Familiar", "Carrier"], &"spinlock": ["Survival", "Multi"], &"scheduler": ["Familiar"],
 	&"cherry_pick": ["Debug"], &"diff": ["Glitch"], &"blame": ["Glitch"],
 	&"emp": ["Area", "Shock", "Survival"], &"cosmic_ray": ["Crit"], &"undervolt": ["Economy"],
+	# 0.20 arsenal (research/arsenal-0.20/6-spells-wands.md)
+	&"drill_bit": ["Area"], &"zip_bomb": ["Area", "Crit"], &"blue_screen": ["Shock", "Frost"],
+	&"tarball": ["Carrier"], &"await_hit": ["Trigger"], &"buffering": ["Multi"], &"retry": ["Survival"],
+	&"jit": ["Crit"], &"end_scope": ["Debug"], &"alt_tab": ["Debug"], &"autocomplete": ["Debug", "Multi"],
+	&"ctrl_alt_del": ["Survival", "Debug"], &"virtual_memory": ["Economy"], &"cache_hit": ["Economy"],
 }
 
-## Items sold in the 0.19 spell packs (Networking, Concurrency, Version Control, Hardware):
-## neither core nor behind a goal. The store unlocks them.
+## Items sold in the 0.19 spell packs (Networking, Concurrency, Version Control, Hardware)
+## and the 0.20 arsenal packs: neither core nor behind a goal. The store unlocks them.
 const PACK_ITEMS: Array[StringName] = [
 	&"traceroute", &"multicast", &"broadcast", &"keep_alive",
 	&"worker", &"spinlock", &"scheduler", &"thread_pool",
 	&"cherry_pick", &"diff", &"blame", &"last_good_commit",
 	&"emp", &"cosmic_ray", &"undervolt", &"liquid_cooling", &"dual_core",
+	# 0.20, the arsenal packs (Refactor, Interrupts, Compiler, Kernel Mode, Memory)
+	&"hoisting", &"polyglot", &"short_circuit", &"end_of_life", &"technical_debt",
+	&"ctrl_alt_del", &"retry", &"await_hit", &"blue_screen", &"pinned_tab", &"context_switch",
+	&"zip_bomb", &"drill_bit", &"jit", &"end_scope", &"alt_tab", &"palindrome", &"shuffle_play", &"shared_memory",
+	&"graceful_degrade", &"swap_space", &"thread_join", &"undo_stack", &"warm_cache",
+	&"buffering", &"virtual_memory", &"cache_hit", &"tarball", &"autocomplete", &"double_buffer", &"recycle_bin", &"lazy_eval", &"cold_storage",
 ]
 
 
@@ -258,6 +269,27 @@ static func _build() -> void:
 		"Strikes a random enemy anywhere in the room. It never misses.")
 	_s("undervolt", B, "Undervolt", "#72e06a", {"mp": [0]}, "Spells on its right cost {40/50/60}% less mana, but fly 40% slower and deal 20% less damage.")
 
+	# ---- 0.20 arsenal (research/arsenal-0.20/6-spells-wands.md): not core; the lead packs them ----
+	_s("drill_bit", P, "Drill Bit", "#c8d2dc", {"mp": [6, 8, 10], "dmg": [3, 4, 6], "beh": "orb", "kw": ["pierce"], "p": {"speed": 95, "radius": 3.0, "life": [1.4, 1.7, 2.0], "pierce": 99, "accel": [0.0, 0.0, 0.25]}},
+		"A slow spinning bit that grinds through every enemy in its path, 4 times a second. Breaks shields.", "It speeds up after each enemy it passes.")
+	_s("zip_bomb", P, "Zip Bomb", "#ffb86b", {"mp": [6, 8, 10], "dmg": [8, 12, 16], "beh": "bomb", "kw": ["blast"], "p": {"speed": 160, "radius": 3.0, "life": 0.9, "area": [20.0, 22.0, 26.0], "stack": [0.2, 0.25, 0.3], "stack_max": 6}},
+		"A small bomb that grows {20/25/30}% bigger and stronger for each spell cast before it since the last recharge, up to 6. Breaks armor.")
+	_s("blue_screen", P, "Blue Screen", "#4a7dff", {"mp": [7, 9, 12], "dmg": [3, 4, 6], "beh": "cloud", "kw": ["shock"], "p": {"speed": 40, "radius": 12.0, "life": 2.0, "pierce": 99, "static": 1, "stall": [0.4, 0.5, 0.7]}},
+		"A slow blue field that shocks everything inside it and freezes each enemy once. Strips wards.")
+	_s("tarball", P, "Tarball", "#6a5a4a", {"rar": 1, "mp": [3, 4, 5], "dmg": [3, 5, 8], "carry": "tarball", "p": {"speed": 170, "radius": 3.0, "life": 0.9}},
+		"A sticky ball that holds the 2 shooting spells on its right and releases both where it stops. They cost {100/90/75}% of their mana.")
+	_s("await_hit", T, "Await", "#ffe066", {"mp": [3], "t": "await"},
+		"Goes between two spells. When the spell on its left hits, the one on its right is cast from your wand at that enemy, up to {1/2/3} {time/times/times}.")
+	_s("buffering", B, "Buffering...", "#8fd8ff", {"mp": [2]}, "Spells on its right wait, then all fire at once when the wand recharges, with +{10/20/35}% damage.")
+	_s("retry", B, "Retry", "#72e06a", {"mp": [3]}, "A spell on its right that ends without hitting anything is cast again from you at the nearest enemy, free, {once/once/twice}.")
+	_s("jit", B, "Just-in-Time", "#ffd05e", {"mp": [3]}, "Spells on its right deal +{6/8/12}% damage for each time the wand recharged in this room, up to +{60/80/120}%.")
+	_s("end_scope", B, "End Block }", "#5ce1ff", {"mp": [0]}, "Boosts on its left stop here, so spells on its right cast plain.")
+	_s("alt_tab", R, "Alt+Tab", "#5ce1ff", {"mp": [1]}, "Takes turns: casts the spell on its right, and after the next recharge the spell after that one instead.")
+	_s("autocomplete", R, "Autocomplete", "#5ce1ff", {"rar": 1, "mp": [3, 2, 1]}, "Each empty slot on its right casts a copy of the shooting spell before it, at {60/80/100}% damage.")
+	_s("ctrl_alt_del", R, "Ctrl+Alt+Del", "#ff6b7a", {"rar": 1, "mp": [0]}, "Takes the spell on its right out of the wand's order. When you're hit, that spell casts itself around you, free, at most every {4/3/2} s.")
+	_s("virtual_memory", S, "Virtual Memory", "#5ce1ff", {}, "The wand can keep casting down to {20/35/50} mana below zero. Below zero, its mana refills 30% slower.")
+	_s("cache_hit", S, "Cache Hit", "#72e06a", {}, "A spell cast right after a copy of itself costs {30/50/70}% less mana.")
+
 	# ---- wands ----
 	# 0.20: regen 16 -> 22; the lessons' wands ran dry in seconds (Bar's screenshot: OUT OF MANA)
 	_w(&"twig", "Twig Wand", 0, 3, 50, 22, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light.")
@@ -279,6 +311,17 @@ static func _build() -> void:
 	_w(&"debug_build", "Debug Build", 2, 8, 120, 22, 0.14, 0.55, 5, 1, false, "#5ce1ff", "Runes cost double mana here.")
 	_wands[&"debug_build"].rune_tax = 2.0
 	_w(&"dual_core", "Dual Core", 1, 5, 90, 22, 0.16, 0.5, 6, 2, false, "#ffb86b", "Casts two spells at once, nearly side by side.")
+	# 0.20 arsenal: wands with a rule (WandDef.rule)
+	_w(&"shuffle_play", "Shuffle Play", 1, 6, 110, 26, 0.1, 0.3, 5, 1, false, "#ff6fd2", "Plays its spells in a new order each recharge. Its slots show the next order.")
+	_wands[&"shuffle_play"].rule = &"shuffle"
+	_w(&"pinned_tab", "Pinned Tab", 2, 6, 100, 22, 0.16, 0.55, 5, 1, false, "#ffd05e", "Slot 1 joins every cast for free: a boost there powers everything, a spell there fires at 50% damage.")
+	_wands[&"pinned_tab"].rule = &"pinned"
+	_w(&"palindrome", "Palindrome Staff", 1, 5, 100, 22, 0.14, 0.7, 5, 1, false, "#b6ff5c", "Reads left to right, then back again, then recharges.")
+	_wands[&"palindrome"].rule = &"palindrome"
+	_w(&"double_buffer", "Double Buffer", 2, 8, 120, 24, 0.14, 0.5, 5, 1, false, "#8fd8ff", "Two pages of four slots. It switches page each time it recharges.")
+	_wands[&"double_buffer"].rule = &"pages"
+	_w(&"recycle_bin", "Recycle Bin", 1, 6, 150, 0, 0.12, 0.45, 6, 1, false, "#72e06a", "Its mana never refills on its own: every kill gives it 12, and it starts each room full.")
+	_wands[&"recycle_bin"].rule = &"recycle"
 
 
 static func _w(id: StringName, title: String, rar: int, slots: int, mana: float, regen: float, dl: float, rc: float,
@@ -331,3 +374,8 @@ static func apply_boost(id: StringName, m: Mods, lv: int) -> void:
 			m.mp_mul *= [0.6, 0.5, 0.4][i]
 			m.spd -= 0.4
 			m.dmg *= 0.8
+		&"buffering":
+			m.buffered = true
+			m.dmg *= [1.1, 1.2, 1.35][i]
+		&"retry": m.retry = maxi(m.retry, [1, 1, 2][i])
+		&"jit": m.jit = maxi(m.jit, i + 1)

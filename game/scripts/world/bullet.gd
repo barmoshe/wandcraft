@@ -70,6 +70,11 @@ var blocks := false    # destroys enemy shots it touches (Firewall, orbiting spe
 var ext := false       # has per-tick extras (blocks, orbit, Sleep): keeps the hot loop lean
 var orb_max := 0.0     # Spinlock: the ring its blades sweep (0: the Orbit Rune's)
 var blame := false     # homes on the toughest enemy (Blame)
+# 0.20 arsenal
+var landed := false    # touched an enemy at least once (Retry recasts a spell that never did)
+var tries := 0         # Retry: recasts already spent on this spell
+var stall := 0.0       # Blue Screen: freezes each enemy it touches once, for this long
+var once := PackedInt32Array()   # Blue Screen: enemies it already froze
 
 
 func reset() -> void:
@@ -102,6 +107,10 @@ func reset() -> void:
 	orb_r = 0.0
 	orb_max = 0.0
 	blame = false
+	landed = false
+	tries = 0
+	stall = 0.0
+	once.clear()
 	blocks = false
 	ext = false
 	pierce = 0
