@@ -44,8 +44,9 @@ func _paint() -> void:
 	var speaker := String(who[at]) if at < who.size() else ""
 	var tr := Rect2(cx - 150, pic.end.y + 18, 300, 60)
 	if speaker != "":
-		draw_texture(Hud.duck_face(), Vector2(tr.position.x - 18, tr.position.y - 2).round())
-		text(tr.position + Vector2(0, 6), speaker, GOLD, 8, "bold")
+		var lint := speaker == Story.LINT
+		draw_texture(Hud.lint_face() if lint else Hud.duck_face(), Vector2(tr.position.x - 18, tr.position.y - 2).round())
+		text(tr.position + Vector2(0, 6), speaker, Color("#5ce1ff") if lint else GOLD, 8, "bold")
 		tr.position.y += 12
 	para(tr, s.substr(0, _typed()), TEXT)
 	# progress pips, then the buttons
