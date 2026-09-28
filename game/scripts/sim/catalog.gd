@@ -29,7 +29,21 @@ const TAGS := {
 	&"sleep": ["Trigger"], &"head": ["Debug"], &"ifelse": ["Debug"], &"goto": ["Debug"], &"include": ["Debug"],
 	&"daemon": ["Familiar", "Carrier"], &"turret": ["Familiar"], &"duck": ["Familiar", "Survival"],
 	&"mana_well": ["Economy"], &"watchdog": ["Economy"],
+	# 0.19 spell packs
+	&"traceroute": ["Glitch", "Trigger"], &"multicast": ["Carrier", "Multi"], &"broadcast": ["Area"],
+	&"worker": ["Familiar", "Carrier"], &"spinlock": ["Survival", "Multi"], &"scheduler": ["Familiar"],
+	&"cherry_pick": ["Debug"], &"diff": ["Glitch"], &"blame": ["Glitch"],
+	&"emp": ["Area", "Shock", "Survival"], &"cosmic_ray": ["Crit"], &"undervolt": ["Economy"],
 }
+
+## Items sold in the 0.19 spell packs (Networking, Concurrency, Version Control, Hardware):
+## neither core nor behind a goal. The store unlocks them.
+const PACK_ITEMS: Array[StringName] = [
+	&"traceroute", &"multicast", &"broadcast", &"keep_alive",
+	&"worker", &"spinlock", &"scheduler", &"thread_pool",
+	&"cherry_pick", &"diff", &"blame", &"last_good_commit",
+	&"emp", &"cosmic_ray", &"undervolt", &"liquid_cooling", &"dual_core",
+]
 
 
 static func tags(id: StringName) -> Array:
@@ -219,6 +233,31 @@ static func _build() -> void:
 	_s("exploit_needle", P, "Exploit Needle", "#e8fbff", {"rar": 2, "mp": [5], "dmg": [10], "dl": -0.02, "kw": ["pierce"], "p": {"speed": 400, "radius": 1.5, "life": 0.7, "pierce": 5, "crit_add": 0.5}},
 		"Compiled Needle. Passes through 5 enemies with +50% crit chance.")
 
+	# ---- 0.19 spell packs (Catalog.PACK_ITEMS): Networking ----
+	_s("traceroute", P, "Traceroute", "#7cf0c8", {"mp": [4, 5, 6], "dmg": [4, 5, 7], "p": {"speed": 230, "radius": 2.0, "life": 0.9, "chain": [3, 4, 6], "mark": 4.0}},
+		"A bolt that hops between up to {3/4/6} enemies and marks the last one. Triggers aim their spell at the mark.")
+	_s("multicast", P, "Multicast", "#8fd8ff", {"rar": 1, "mp": [6, 7, 8], "dmg": [3, 4, 6], "dl": 0.25, "carry": "ping", "beh": "ping", "p": {"count": [2, 3, 4], "fanout": 1}},
+		"Reaches the {2/3/4} nearest enemies at once and releases the shooting spell on its right onto each. That spell costs {1.5/2/2.5}x mana.")
+	_s("broadcast", P, "Broadcast", "#b6e6ff", {"rar": 1, "mp": [12, 14, 16], "dmg": [2, 3, 4], "dl": 0.3, "beh": "cone", "p": {"len": 240.0, "arc": 360.0, "ring": 1}},
+		"A pulse that hits every enemy near you for a little damage. Coats on its left reach them all.")
+	# ---- Concurrency ----
+	_s("worker", F, "Worker Thread", "#ffb86b", {"rar": 1, "mp": [9, 11, 13], "dmg": [4, 5, 7], "carry": "daemon", "beh": "turret", "p": {"life": [7.0, 8.0, 10.0], "every": [1.0, 0.8, 0.6], "range": 190.0}},
+		"Plants a worker for {7/8/10} s that casts the shooting spell on its right at the nearest enemy every {1/0.8/0.6} s. Shares the Turret's limit of two.")
+	_s("spinlock", P, "Spinlock", "#ffe0a0", {"mp": [6, 8, 10], "dmg": [5, 7, 10], "p": {"speed": 100, "radius": 3.0, "life": [2.0, 2.5, 3.0], "count": 3, "spread": 240.0, "pierce": 99, "orbit": 1}},
+		"Three blades spin around you for {2/2.5/3} s, cutting enemies and stopping their shots.")
+	_s("scheduler", S, "Scheduler", "#ffd05e", {"rar": 1}, "While one of your summons is out, this wand casts and recharges {20/30/45}% faster.")
+	# ---- Version Control ----
+	_s("cherry_pick", R, "Cherry-Pick", "#ff6b7a", {"rar": 1, "mp": [3, 2, 1]}, "Casts a free copy of the wand's last shooting spell, with the boosts active right now.")
+	_s("diff", P, "Diff", "#9cf06a", {"mp": [4, 5, 6], "dmg": [8, 11, 15], "dl": -0.02, "beh": "beam", "p": {"len": 170, "pierce": 2, "exec": [1.5, 2.0, 2.5]}},
+		"An instant beam through two enemies that hits harder the more hurt each one is: up to {2.5/3/3.5}x on an enemy near death.")
+	_s("blame", B, "Blame", "#ff9a5c", {"rar": 1, "mp": [3]}, "Spells on its right steer toward the toughest enemy in the room, {gently/firmly/sharply}.")
+	# ---- Hardware ----
+	_s("emp", P, "EMP", "#8ff0ff", {"rar": 2, "mp": [12, 14, 16], "dmg": [6, 9, 13], "dl": 0.2, "beh": "burst", "kw": ["pierce", "blast", "shock"], "p": {"area": [34.0, 38.0, 44.0], "purge": 1, "self": 1}},
+		"A pulse around you that wipes out enemy shots in range and breaks shields, armor and wards.")
+	_s("cosmic_ray", P, "Cosmic Ray", "#e6fbff", {"mp": [7, 9, 11], "dmg": [12, 18, 26], "crit": 0.25, "dl": 0.15, "beh": "ping", "p": {"pick": "random"}},
+		"Strikes a random enemy anywhere in the room. It never misses.")
+	_s("undervolt", B, "Undervolt", "#72e06a", {"mp": [0]}, "Spells on its right cost {40/50/60}% less mana, but fly 40% slower and deal 20% less damage.")
+
 	# ---- wands ----
 	_w(&"twig", "Twig Wand", 0, 3, 50, 16, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light.")
 	_w(&"stub", "Stub Staff", 0, 2, 90, 20, 0.22, 0.6, 6, 1, false, "#8a6a3a", "Slow, with a deep mana pool.")
@@ -238,6 +277,7 @@ static func _build() -> void:
 	_wands[&"daemon_rod"].background_slot = true
 	_w(&"debug_build", "Debug Build", 2, 8, 120, 22, 0.14, 0.55, 5, 1, false, "#5ce1ff", "Runes cost double mana here.")
 	_wands[&"debug_build"].rune_tax = 2.0
+	_w(&"dual_core", "Dual Core", 1, 5, 90, 22, 0.16, 0.5, 6, 2, false, "#ffb86b", "Casts two spells at once, nearly side by side.")
 
 
 static func _w(id: StringName, title: String, rar: int, slots: int, mana: float, regen: float, dl: float, rc: float,
@@ -283,3 +323,10 @@ static func apply_boost(id: StringName, m: Mods, lv: int) -> void:
 		&"orbit": m.orbit = true
 		&"reverse": m.reverse = not m.reverse
 		&"siphon": m.siphon = maxf(m.siphon, [0.3, 0.45, 0.6][i])
+		&"blame":
+			m.home = maxf(m.home, [3.5, 6.0, 10.0][i])
+			m.blame = true
+		&"undervolt":
+			m.mp_mul *= [0.6, 0.5, 0.4][i]
+			m.spd -= 0.4
+			m.dmg *= 0.8

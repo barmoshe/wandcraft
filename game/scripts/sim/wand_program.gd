@@ -14,6 +14,8 @@ extends RefCounted
 ##    picked at cast time by range), GOTO (once per cycle, jump to slot 1 without recharging),
 ##    #include (the boost to its right applies to every spell and payload on the wand)
 ##  · familiars compile like shooting spells; Daemon and Ping carry a payload
+##  · 0.19 packs: Cherry-Pick copies the last shooting spell (HEAD's twin); Multicast is a
+##    Ping that reaches several enemies, so its payload costs 0.5 + 0.5 per target
 ##  · a Daemon Rod's last slot is not part of the program (it runs in the background)
 
 const MAX_GROUPS := 24
@@ -150,6 +152,15 @@ func _first_caster() -> int:
 	return -1
 
 
+## The wand's last shooting spell in program order (Cherry-Pick copies it).
+func _last_caster() -> int:
+	for p in range(n - 1, -1, -1):
+		var d := _spell_at(_idx(p))
+		if d != null and d.kind == SpellDef.Kind.PROJ:
+			return _idx(p)
+	return -1
+
+
 func _new_node(d: SpellDef, lv: int, i: int) -> CastNode:
 	var c := CastNode.new()
 	c.spell = d
@@ -262,8 +273,8 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 							to_draw = 0
 							return null
 						continue   # met at the start of a cast: carry on from slot 1
-					&"head":
-						var fi := _first_caster()
+					&"head", &"cherry_pick":
+						var fi := _first_caster() if d.id == &"head" else _last_caster()
 						if fi < 0:
 							continue
 						var hc := _new_node(_spell_at(fi), _level_at(fi), fi)
@@ -302,6 +313,8 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 						f = 4.0
 					elif d.carrier == &"daemon":
 						f = 0.0   # the daemon pays for each shot as it fires
+					elif d.carrier == &"ping":
+						f = 0.5 + 0.5 * float(d.param("count", lv, 1))   # Multicast: one per target
 					mana = r[2] + r[1] * f * reps * wand.trig_mul
 					c.trig = d.carrier
 					c.trig_level = lv

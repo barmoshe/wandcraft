@@ -9,11 +9,11 @@ extends RefCounted
 ##   .        empty (the frame shows through)
 
 static func spell(id: StringName) -> Dictionary:
-	return IconSpells.ART.get(id, IconSpellsB.ART.get(id, IconSpellsC.ART.get(id, {})))
+	return IconSpells.ART.get(id, IconSpellsB.ART.get(id, IconSpellsC.ART.get(id, IconSpellsD.ART.get(id, {}))))
 
 
 static func relic(id: StringName) -> Dictionary:
-	return IconRelics.ART.get(id, {})
+	return IconRelics.ART.get(id, IconSpellsD.RELICS.get(id, {}))
 
 
 ## Colors for one icon's legend.

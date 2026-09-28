@@ -12,6 +12,9 @@ extends RefCounted
 ##   daemon               a familiar that casts its payload every few seconds (D2)
 ## Behaviors: bolt, bomb, beam, burst, wheel, boomerang, mine, cone, orb, and (D2) wall,
 ## cloud, ping and the familiars (daemon, turret, duck).
+## 0.19 packs: Multicast (a ping that fans out), Broadcast (a 360 degree cone drawn as a ring),
+## Worker Thread (a turret with a payload), Spinlock (blades on a wide orbit), Diff (a beam that
+## grows on hurt targets), EMP (a burst on you that purges shots) and Cosmic Ray (a random ping).
 
 const MAX_DEPTH := 3
 const THEN_ADD := [0.3, 0.6, 1.2]
@@ -22,6 +25,9 @@ const WHEEL_SHOTS := 16
 const SLEEP_T := [0.4, 0.3, 0.2]
 const IF_RANGE := 60.0
 const ORBIT_R := 28.0
+const SPIN_R := 42.0           # Spinlock: the middle of the ring its blades sweep
+const SPIN_SWAY := 12.0        # and how far in and out they swing
+const SPIN_EVERY := 0.3        # a blade cuts the same enemy again this often
 const REVERSE_MUL := 1.6
 const BG_EVERY := 3.0          # Daemon Rod: the background slot fires this often
 const CAPS := {&"daemon": 1, &"turret": 2, &"duck": 1}
@@ -62,6 +68,7 @@ class Summon:
 	var dmg := 1.0
 	var crit := 0.0
 	var soak := 0
+	var reach := 130.0      # a turret's range (a Worker Thread reaches further)
 	var hit_cd := 0.0
 	var color := Color.WHITE
 	var payload: CastNode
@@ -131,6 +138,10 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.lit = plan.used
 	w.lit_at = world.time
 	var sp := Relics.stat(run, "cast")
+	# Scheduler: while a summon is out, this wand casts and recharges faster
+	var sched := w.passive_level(&"scheduler")
+	if sched > 0 and not summons.is_empty():
+		sp *= 1.0 - [0.2, 0.3, 0.45][mini(sched, 3) - 1]
 	var dl := maxf(0.03, (w.def.cast_delay + plan.delay_add) * sp)
 	var rc := maxf(0.03, (w.recharge_time() + plan.recharge_add) * sp)
 	w.cd = dl + (rc if plan.wrapped else 0.0)
@@ -236,7 +247,11 @@ func _emit_one(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, o
 			_beam(c, pos, ang, dmg, crit, opt)
 			return
 		&"burst":
-			_burst(c, pos + Vector2.from_angle(ang) * 8.0, ang, dmg, crit, opt)
+			# EMP goes off on you (the hand), not ahead of the wand; a released one where it lands
+			var at := pos + Vector2.from_angle(ang) * 8.0
+			if int(d.param("self", c.level, 0)) > 0:
+				at = world.player.origin() if opt.depth == 0 and world.player else pos
+			_burst(c, at, ang, dmg, crit, opt)
 			return
 		&"cone":
 			_cone(c, pos, ang, dmg, crit, opt)
@@ -245,7 +260,7 @@ func _emit_one(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, o
 			_wall(c, pos, ang, dmg, crit, opt)
 			return
 		&"ping":
-			_ping(c, pos, ang, dmg, crit, opt)
+			_ping(c, pos, ang, dmg, crit, opt, idx)
 			return
 		&"daemon", &"turret", &"duck":
 			_summon(c, pos, ang, dmg, crit, opt)
@@ -270,14 +285,19 @@ func _emit_one(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, o
 		&"cloud":
 			b.beh = &"cloud"
 			b.size = 2.0
-	if c.mods.orbit and opt.depth == 0 and b.beh != &"mine":
-		# Orbit Rune: the spell circles the caster and eats enemy shots
+	var spin := int(d.param("orbit", c.level, 0)) > 0
+	if (spin or (c.mods.orbit and opt.depth == 0)) and b.beh != &"mine":
+		# Orbit Rune: the spell circles the caster and eats enemy shots. Spinlock's blades
+		# always do, on a wider ring and for their own time (no Orbit Rune stretch).
 		b.orbit = true
 		b.orb_a = ang
 		b.orb_r = 4.0
 		b.home = 0.0
-		b.life = maxf(b.life * 2.5, 2.0)
-		b.max_life = b.life
+		if spin:
+			b.orb_max = SPIN_R * minf(1.5, sqrt(c.mods.area))
+		else:
+			b.life = maxf(b.life * 2.5, 2.0)
+			b.max_life = b.life
 		b.blocks = true
 		b.ext = true
 	if d.id == &"fan":
@@ -328,6 +348,7 @@ func _fill(b: Bullet, c: CastNode, pos: Vector2, ang: float, spd: float, dmg: fl
 	b.pierce = c.p_pierce
 	b.bounce = m.bounce
 	b.home = c.p_home
+	b.blame = m.blame
 	b.split = c.p_split
 	b.knock = m.knock * knock_mul
 	b.slam = m.slam
@@ -399,7 +420,7 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 			break
 		s += 4.0
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
-	var pierce := m.pierce
+	var pierce := m.pierce + int(c.spell.param("pierce", c.level, 0))   # Diff passes through two
 	var hits: Array = []
 	for e in world.enemies:
 		if e.dead or e.spawn_t > 0.0 or e.uid == opt.ignore:
@@ -410,10 +431,15 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 	hits.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
 	var end_t := reach
 	var last: Enemy = null
+	var exe := float(c.spell.param("exec", c.level, 0.0))
 	for h in hits:
 		var e: Enemy = h[1]
 		ps.pos = e.position
-		_strike(ps, e, pos, ps.dmg, 0.5)
+		var hd := ps.dmg
+		if exe > 0.0 and e.max_hp > 0.0:
+			# Diff: the more hurt the target, the harder it lands
+			hd *= 1.0 + exe * clampf(1.0 - e.hp / e.max_hp, 0.0, 1.0)
+		_strike(ps, e, pos, hd, 0.5)
 		last = e
 		if pierce > 0:
 			pierce -= 1
@@ -434,6 +460,9 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 	world.fx.explosion(pos, r, c.spell.color)
 	world.fx.ring(pos, 2.0, r, 0.25, c.spell.color)
 	world.fx.sparks(pos, 8, c.spell.color, 140.0)
+	if int(c.spell.param("purge", c.level, 0)) > 0:
+		# EMP: every enemy shot in the blast is wiped out
+		world.shots_stopped(world.clear_enemy_bullets_in(pos, r))
 	for k in world.hash.query(pos, r + 16.0):
 		var e: Enemy = world.enemies[k]
 		if e.dead or e.spawn_t > 0.0 or e.uid == opt.ignore:
@@ -451,7 +480,12 @@ func _cone(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 	var reach := float(c.spell.param("len", c.level, 70.0)) * sqrt(c.mods.area)
 	var half := deg_to_rad(float(c.spell.param("arc", c.level, 70.0))) * 0.5
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
-	for k in 6:
+	var ring := int(c.spell.param("ring", c.level, 0)) > 0
+	if ring:
+		# Broadcast: one pulse all around instead of forks of lightning
+		world.fx.ring(pos, 2.0, reach, 0.35, c.spell.color)
+		world.fx.ring(pos, 1.0, reach * 0.5, 0.25, c.spell.color)
+	for k in (0 if ring else 6):
 		var a := ang + world.rng.randf_range(-half, half)
 		var p0 := pos
 		var n := 4
@@ -471,8 +505,11 @@ func _cone(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 		if absf(angle_difference(ang, to.angle())) > half + slack:
 			continue
 		ps.pos = e.position
+		if ring:
+			world.fx.beam(pos, e.position + Vector2(0, -4), c.spell.color, 0.6)
 		_strike(ps, e, pos, dmg, 0.8)
-	ps.pos = pos + Vector2.from_angle(ang) * reach
+	# a ring's trigger goes off where you stand, a cone's at its far edge
+	ps.pos = pos if ring else pos + Vector2.from_angle(ang) * reach
 	end_bullet(ps, null)
 
 
@@ -509,8 +546,20 @@ func _wall(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 
 ## Ping: reaches the nearest (or the marked) enemy anywhere in the room at once and releases
 ## its payload right in front of it. With nobody to reach, the payload goes out at the wand.
-func _ping(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
-	var tgt := target_near(pos, 400.0, opt.ignore)
+## Multicast (fanout) sends copy `idx` to the idx-th nearest; Cosmic Ray (pick random) to the
+## mark, else anyone. A Multicast copy with no enemy of its own left stays home.
+func _ping(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt, idx := 0) -> void:
+	var tgt: Enemy
+	var fanout := int(c.spell.param("fanout", c.level, 0)) > 0
+	if fanout:
+		var near := _nearest_k(pos, 400.0, idx + 1, opt.ignore)
+		if idx > 0 and near.size() <= idx:
+			return
+		tgt = near[idx] if near.size() > idx else null
+	elif String(c.spell.param("pick", c.level, "")) == "random":
+		tgt = _random_target(opt.ignore)
+	else:
+		tgt = target_near(pos, 400.0, opt.ignore)
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
 	if tgt == null:
 		ps.pos = pos + Vector2.from_angle(ang) * 10.0
@@ -519,7 +568,12 @@ func _ping(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 		fire_carry(ps, &"end", null, ang)
 		return
 	var dir := (tgt.position - pos).normalized()
-	world.fx.beam(pos, tgt.position + Vector2(0, -4), c.spell.color, 1.0)
+	if String(c.spell.param("pick", c.level, "")) == "random":
+		# Cosmic Ray: a streak straight down out of the dark
+		world.fx.beam(tgt.position + Vector2(-6, -90), tgt.position + Vector2(0, -4), c.spell.color, 2.0)
+		world.fx.sparks(tgt.position + Vector2(0, -4), 6, c.spell.color, 90.0)
+	else:
+		world.fx.beam(pos, tgt.position + Vector2(0, -4), c.spell.color, 1.0)
 	world.fx.ring(tgt.position + Vector2(0, -4), 1.0, 9.0, 0.18, c.spell.color)
 	ps.pos = tgt.position - dir * (tgt.r + 6.0)
 	ps.vel = dir * 200.0
@@ -529,6 +583,46 @@ func _ping(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 	fire_carry(ps, &"end", null, dir.angle())
 
 
+## Multicast's targets: the mark first (when there is one), then the nearest, up to k.
+func _nearest_k(p: Vector2, max_d: float, k: int, exclude := -1) -> Array[Enemy]:
+	var out: Array[Enemy] = []
+	var mk := world.marked
+	var has_mk := mk != null and not mk.dead and mk.mark_t > 0.0 and mk.uid != exclude
+	if has_mk:
+		out.append(mk)
+	var cand: Array = []
+	for e in world.enemies:
+		if e.dead or e.spawn_t > 0.0 or e.uid == exclude or (has_mk and e == mk):
+			continue
+		var d := e.position.distance_squared_to(p)
+		if d < max_d * max_d:
+			cand.append([d, e])
+	cand.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	for pair in cand:
+		if out.size() >= k:
+			break
+		out.append(pair[1])
+	return out
+
+
+## Cosmic Ray's target: the mark when there is one, else any live enemy in the room (one
+## that can take the hit, when there is a choice).
+func _random_target(exclude := -1) -> Enemy:
+	var mk := world.marked
+	if mk and not mk.dead and mk.mark_t > 0.0 and mk.uid != exclude:
+		return mk
+	var open: Array[Enemy] = []
+	var any: Array[Enemy] = []
+	for e in world.enemies:
+		if e.dead or e.spawn_t > 0.0 or e.uid == exclude:
+			continue
+		any.append(e)
+		if not e.locked:
+			open.append(e)
+	var pool := open if not open.is_empty() else any
+	return null if pool.is_empty() else pool[world.rng.randi() % pool.size()]
+
+
 ## Familiars: the Daemon orbits you and casts its payload; the Watchdog Turret shoots the
 ## nearest enemy; the Rubber Duck draws enemies and their shots. Each has a cap: a new one
 ## past the cap replaces the oldest.
@@ -536,7 +630,9 @@ func _summon(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt
 	var d := c.spell
 	var kind := d.behavior
 	var same := summons.filter(func(s: Summon) -> bool: return s.kind == kind)
-	if same.size() >= int(CAPS.get(kind, 1)):
+	# Thread Pool: one more of each summon at once
+	var cap := int(CAPS.get(kind, 1)) + (1 if world.run and world.run.has_relic(&"thread_pool") else 0)
+	if same.size() >= cap:
 		summons.erase(same[0])
 	var s := Summon.new()
 	s.kind = kind
@@ -552,6 +648,7 @@ func _summon(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt
 	s.payload = c.payload
 	s.pay_mana = c.pay_mana
 	s.soak = int(d.param("soak", c.level, 0))
+	s.reach = float(d.param("range", c.level, 130.0))
 	var drop := pos + Vector2.from_angle(ang) * (14.0 if kind == &"daemon" else 22.0)
 	s.pos = drop if not world.solid_at(drop) else pos
 	summons.append(s)
@@ -629,10 +726,14 @@ func _update_summons(dt: float) -> void:
 			&"turret":
 				s.cd -= dt
 				if s.cd <= 0.0:
-					var tgt := target_near(s.pos, 130.0)
+					var tgt := target_near(s.pos, s.reach)
 					if tgt and world.los(s.pos, tgt.position):
 						s.cd = s.every
-						_familiar_bolt(s, s.pos + Vector2(0, -8), (tgt.position - s.pos).angle(), s.dmg)
+						if s.payload:
+							# Worker Thread: casts the spell it carries
+							_familiar_cast(s, (tgt.position - s.pos).angle(), s.pos + Vector2(0, -8))
+						else:
+							_familiar_bolt(s, s.pos + Vector2(0, -8), (tgt.position - s.pos).angle(), s.dmg)
 					else:
 						s.cd = 0.15
 			&"duck":
@@ -647,9 +748,10 @@ func _update_summons(dt: float) -> void:
 
 
 ## A Daemon's shot: its payload (paid from the wand each time), or a small bolt of its own.
-func _familiar_cast(s: Summon, ang: float) -> void:
+func _familiar_cast(s: Summon, ang: float, from := Vector2.INF) -> void:
+	var at := s.pos if from == Vector2.INF else from
 	if s.payload == null:
-		_familiar_bolt(s, s.pos, ang, 4.0 * s.gm)
+		_familiar_bolt(s, at, ang, 4.0 * s.gm)
 		return
 	if not _pay(s.src, s.pay_mana):
 		return
@@ -658,9 +760,9 @@ func _familiar_cast(s: Summon, ang: float) -> void:
 	opt.src = s.src
 	opt.depth = 1
 	cast_seq += 1
-	world.fx.ring(s.pos, 1.0, 6.0, 0.12, s.color)
-	Audio.familiar_shot(s.payload.spell.id, s.pos)
-	emit_cast(s.payload, s.pos, ang, opt, true)
+	world.fx.ring(at, 1.0, 6.0, 0.12, s.color)
+	Audio.familiar_shot(s.payload.spell.id, at)
+	emit_cast(s.payload, at, ang, opt, true)
 
 
 func _familiar_bolt(s: Summon, p: Vector2, ang: float, dmg: float) -> void:
@@ -784,7 +886,16 @@ func update(dt: float) -> void:
 			if b.orbit:
 				var ctr := world.player.position + Player.HAND
 				b.orb_a += dt * 6.0
-				b.orb_r = minf(ORBIT_R, b.orb_r + dt * 110.0)
+				var ring := ORBIT_R
+				if b.orb_max > 0.0:
+					ring = b.orb_max + sin(b.t * 3.0) * SPIN_SWAY   # Spinlock: the blades swing in and out
+				b.orb_r = minf(ring, b.orb_r + dt * 110.0)
+				if (b.orb_max > 0.0 or b.pierce >= 50) and b.t - b.cb_t >= SPIN_EVERY:
+					# a blade that passes through everything keeps cutting what it passes
+					b.cb_t = b.t
+					b.hits.clear()
+					if b.orb_max > 0.0:
+						b.pierce = 99   # Spinlock's blades never wear out
 				var op := ctr + Vector2.from_angle(b.orb_a) * b.orb_r
 				b.vel = (op - b.pos) / maxf(dt, 0.001)
 				b.pos = op
@@ -839,7 +950,8 @@ func update(dt: float) -> void:
 		if b.home > 0.0:
 			# re-pick the target a few times a second, not every tick
 			if b.tgt == null or b.tgt.dead or fmod(b.t, 0.15) < dt:
-				b.tgt = world.nearest_enemy(b.pos, 150.0, b.ignore)
+				# Blame: the toughest enemy in the room, not the nearest
+				b.tgt = world.toughest_enemy(b.ignore) if b.blame else world.nearest_enemy(b.pos, 150.0, b.ignore)
 			if b.tgt:
 				_steer(b, b.tgt.position, b.home, dt)
 		var np := b.pos + b.vel * dt

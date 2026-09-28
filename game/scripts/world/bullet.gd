@@ -68,6 +68,8 @@ var orb_a := 0.0
 var orb_r := 0.0
 var blocks := false    # destroys enemy shots it touches (Firewall, orbiting spells)
 var ext := false       # has per-tick extras (blocks, orbit, Sleep): keeps the hot loop lean
+var orb_max := 0.0     # Spinlock: the ring its blades sweep (0: the Orbit Rune's)
+var blame := false     # homes on the toughest enemy (Blame)
 
 
 func reset() -> void:
@@ -98,6 +100,8 @@ func reset() -> void:
 	orbit = false
 	orb_a = 0.0
 	orb_r = 0.0
+	orb_max = 0.0
+	blame = false
 	blocks = false
 	ext = false
 	pierce = 0

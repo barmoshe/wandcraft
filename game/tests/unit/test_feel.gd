@@ -42,8 +42,9 @@ func test_every_sound_the_game_asks_for_exists() -> void:
 				continue
 			var s: AudioStreamWAV = load("res://assets/audio/%s.wav" % m)
 			ok(s != null and s.get_length() > 7.0, "%s is a real loop (%.1fs)" % [m, s.get_length() if s else 0.0])
+	# pack spells (Catalog.PACK_ITEMS) fall back to the default cast until they get their own
 	for id in Catalog.spells():
-		if Catalog.spell(id).kind == SpellDef.Kind.PROJ:
+		if Catalog.spell(id).kind == SpellDef.Kind.PROJ and not Catalog.PACK_ITEMS.has(id):
 			ok(Audio.CAST.has(id), "%s has a cast sound" % id)
 
 

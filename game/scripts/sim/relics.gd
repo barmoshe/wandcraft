@@ -53,6 +53,11 @@ const DEFS := {
 	&"thermal_throttle": {"title": "Steam Burst", "flavor": "Thermal Throttle", "rar": 2, "color": "#ff9a3a", "glyph": "burst", "tags": ["Burn", "Frost"], "duo": [&"wildfire", &"cold_boot"], "desc": "Thermal Shock (fire meeting ice on an enemy) hits twice as hard, reaches twice as far, and sets enemies on fire."},
 	&"zero_day": {"title": "Sure Strike", "flavor": "Zero-Day Exploit", "rar": 2, "color": "#ff3fa4", "glyph": "cursor", "tags": ["Crit"], "duo": [&"null_pointer", &"cascade_failure"], "desc": "The first hit on an unhurt enemy is always a crit."},
 	&"swarm_protocol": {"title": "Bug Swarm", "flavor": "Swarm Protocol", "rar": 2, "color": "#9cd01c", "glyph": "star", "tags": ["Carrier"], "duo": [&"bug_bounty", &"event_loop"], "desc": "Kills release two bugs, and each bug deals 20."},
+	# ---- 0.19 spell packs (Catalog.PACK_ITEMS) ----
+	&"keep_alive": {"title": "Target Lock", "flavor": "Keep-Alive", "rar": 1, "color": "#7cf0c8", "glyph": "eye", "tags": ["Glitch", "Trigger"], "desc": "Marked enemies take 30% more damage, and marks last twice as long."},
+	&"thread_pool": {"title": "Thread Pool", "rar": 1, "color": "#ffb86b", "glyph": "chip", "tags": ["Familiar"], "desc": "You can have one more of each summon out at once."},
+	&"last_good_commit": {"title": "Checkpoint", "flavor": "Last Good Commit", "rar": 2, "color": "#9cf06a", "glyph": "stack", "tags": ["Survival"], "desc": "Once per run, a hit that would kill you puts you back at the HP you entered the room with."},
+	&"liquid_cooling": {"title": "Shot Recycler", "flavor": "Liquid Cooling", "rar": 1, "color": "#8ff0ff", "glyph": "drop", "tags": ["Economy"], "desc": "Each enemy shot your spells stop refills 2 mana in the wand in your hand."},
 	# ---- Corrupted: only behind the Glitch Door ----
 	&"race_condition": {"title": "Race Condition", "rar": 3, "color": "#ff6fd2", "glyph": "clock", "tags": [], "stats": {"cast": 0.6}, "desc": "Wands cast and recharge 40% faster, but 1 cast in 5 fizzles."},
 	&"memory_leak": {"title": "Memory Leak", "rar": 3, "color": "#ff6fd2", "glyph": "drop", "tags": [], "stats": {"dmg": 1.5}, "desc": "+50% damage, but you lose 1 HP every 10 s during a fight."},

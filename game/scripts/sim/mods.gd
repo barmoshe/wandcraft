@@ -29,6 +29,7 @@ var siphon := 0.0    # share of the spell's mana refunded on a kill (Siphon Rune
 var kw_pierce := false   # hits break shields (Phase Through)
 var kw_shock := false    # hits strip wards (Static Coat)
 var goto_used := false   # GOTO fires once per cycle
+var blame := false       # homing picks the toughest enemy, not the nearest (Blame)
 
 
 func copy() -> Mods:
@@ -40,6 +41,7 @@ func copy() -> Mods:
 	m.knock = knock; m.slam = slam; m.static_on = static_on; m.rot = rot; m.orbit = orbit
 	m.reverse = reverse; m.siphon = siphon; m.kw_pierce = kw_pierce; m.kw_shock = kw_shock
 	m.goto_used = goto_used
+	m.blame = blame
 	return m
 
 
