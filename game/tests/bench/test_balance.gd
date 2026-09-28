@@ -55,7 +55,7 @@ func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary
 		if world.boss and not world.boss.dead and boss_t0 < 0.0:
 			boss_t0 = t
 		if world.boss and world.boss.dead and boss_t0 >= 0.0:
-			var key := "mini" if world.room_kind == &"mini" else ["boss", "boss2", "boss3"][mini(world.run.world, 2)]
+			var key: String = "mini" if world.room_kind == &"mini" else ["boss", "boss2", "boss3"][mini(world.run.world, 2)]
 			if world.room_kind == &"mini" and world.run.world >= 2:
 				key = "race"
 			if res[key] < 0.0:
