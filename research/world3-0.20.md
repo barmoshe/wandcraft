@@ -161,3 +161,9 @@ Each is found in a run in a new **Resident** room (a door that shows a caged fig
 | 5 | Data Race threads 440 HP, a 3 s window and a 30% respawn | 0% (3 reached the Glitch) | 53 s | none cleared |
 
 *[I]* The bench bot never dashes and doesn't play Data Race's rule (it shoots the nearest thread, so the other keeps respawning), so these are floors, not a player's odds. The playtest decides the next pass. The first things to try if it's too hard: fewer Dangling Pointers in the pressure pool, and a spring before Data Race.
+
+**0.21 pass** (two Dangling Pointers instead of three, and a spring before Data Race and the Glitch):
+- The bot cleared World 3 on 1 seed of 10 (10%, up from 0%). 6 of 10 reached the Glitch (3 before).
+- Data Race took 36 s on average. The Glitch took 38 s, but that is short because the bot dies there, not because the fight is easy; the bot never dashes.
+- The pack bench still flags two 0.19 pack wands: Concurrency (x1.57) and Version Control (too slow on Deadlock). Both numbers are the same on 7f0dd7a, so they predate 0.21.
+

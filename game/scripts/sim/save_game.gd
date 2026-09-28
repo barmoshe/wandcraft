@@ -11,7 +11,7 @@ const META_PATH := "user://meta.json"
 ## round 2). A save from an older epoch is wiped on launch: the run, the meta record (goals,
 ## unlocks, heat, logs, the story seen) and the play log. Settings stay. Raise EPOCH to reset
 ## everyone again.
-const EPOCH := 3
+const EPOCH := 4   # 0.21.0 (Bar: "force reset all user progress")
 const EPOCH_PATH := "user://epoch.json"
 const WIPE := [RUN_PATH, META_PATH, "user://runlog.json"]
 ## Plan kinds that are boss fights (the Commit Wall marks a death there).

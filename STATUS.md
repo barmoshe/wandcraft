@@ -334,6 +334,8 @@
   - Do the new packs feel like new builds? Burn, Frost, Rot, Shock and summons now each have their cards.
   - Does the Duck's post-mortem when you come home land?
 - The web build is at https://wandcraft-test.vercel.app (deployed from this session through Vercel's git build).
+- **Everyone starts over:** `SaveGame.EPOCH` is 4. On the first launch of 0.21 the run, the meta record and the play log are wiped; settings stay.
+- **Known, from before 0.21:** the pack bench flags the Concurrency and Version Control showcase wands (`tests/bench/test_pack_builds.gd`). The Kernel bench's check that the Glitch fight lasts 60 to 150 s fails too: it averaged 38 s because the bot dies fast there. Both need a look after the playtest.
 - **0.20.0 adds World 3, the residents and the true ending** (ADR 0028). Bar:
   - Play the Kernel on a phone.
     - Do the Interrupt's lock and the Data Race rule read without the Duck explaining them?

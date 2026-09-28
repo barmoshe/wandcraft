@@ -91,7 +91,8 @@ func test_companions_follow_and_never_stand_in_walls() -> void:
 			ok(c.position.distance_to(world.player.position) <= Companion.LEASH + 0.5, "%s stays close" % c.kind)
 	for c in world.companions:
 		ok(not world.body_solid_at(c.position) or c.kind == &"lint", "the Duck never stands in a wall")
-		ok(not world.enemies.has(c), "never an enemy: shots pass through")
+		var cid := c.get_instance_id()
+		ok(world.enemies.all(func(e: Enemy) -> bool: return e.get_instance_id() != cid), "never an enemy: shots pass through")
 
 
 func test_companions_arrive_with_you_in_a_new_room() -> void:
