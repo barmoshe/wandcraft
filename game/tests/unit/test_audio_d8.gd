@@ -20,6 +20,27 @@ func _wavs() -> Array[String]:
 	return out
 
 
+## The music and ambience files (Ogg Vorbis since ADR 0034).
+func _oggs() -> Array[String]:
+	var out: Array[String] = []
+	for f in DirAccess.get_files_at(AUDIO):
+		if f.ends_with(".ogg"):
+			out.append(f)
+	return out
+
+
+## Plays an Ogg through the engine from sample `from` for `frames` samples, one output frame
+## per stream sample (the rate scale cancels the resampling, so nothing is interpolated).
+static func _play(o: AudioStreamOggVorbis, from: int, frames: int) -> PackedVector2Array:
+	var sr := o.packet_sequence.sampling_rate
+	var pb := o.instantiate_playback()
+	pb.start((from + 0.25) / sr)   # a quarter sample in: the engine truncates to the sample
+	var out := PackedVector2Array()
+	while out.size() < frames:
+		out.append_array(pb.mix_audio(AudioServer.get_mix_rate() / sr, mini(4096, frames - out.size())))
+	return out
+
+
 ## The source file as 16-bit PCM (the imported one is QOA-compressed).
 func _raw(file: String) -> AudioStreamWAV:
 	return AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(AUDIO + file))
@@ -61,7 +82,7 @@ func test_every_audio_file_is_in_the_licence_manifest() -> void:
 		var r := f.get_csv_line()
 		if r.size() >= 6:
 			rows[r[0]] = r
-	for w in _wavs():
+	for w in _wavs() + _oggs():
 		ok(rows.has(w), "%s has a manifest row" % w)
 	for k in rows:
 		var r: PackedStringArray = rows[k]
@@ -113,35 +134,83 @@ func test_music_tracks_build_and_their_layers_switch() -> void:
 	else:
 		ok(Audio.track_stream("boss") is AudioStreamInteractive, "the v1 boss is an intro that hands over to its loop")
 	# stems that loop under a longer base must be a whole number of bars at the track's tempo,
-	# measured from the loop point where the intro is folded in (sound-v2 DOG 6)
+	# measured from the loop point where the intro is folded in (sound-v2 DOG 6). The stems are
+	# Ogg (ADR 0034): the engine plays to the end and seeks back to loop_offset, the intro's end.
 	for t in Audio.TRACKS:
 		var def: Dictionary = Audio.TRACKS[t]
 		if def.get("layers", []).is_empty() or not Audio.track_ready(t):
 			continue
-		if not Audio.music_v2() and t in ["foundry", "mini"]:
-			continue   # the v1 Foundry (112 bpm) broke the bar rule; v2 fixes it
+		var bar := 4.0 * 60.0 / Audio.track_bpm(t)
+		var intro := float(def.get("intro_s", 0.0))
+		ok(absf(intro / bar - roundf(intro / bar)) < 1e-6, "%s: the loop point is whole bars" % t)
 		for m: String in def["stems"]:
-			if not ResourceLoader.exists(AUDIO + m + ".wav"):
+			var path := Audio.audio_path(m)
+			if not ResourceLoader.exists(path):
 				continue
-			var s := _raw(m + ".wav")
-			var bar := int(round(4.0 * 60.0 / Audio.track_bpm(t) * s.mix_rate))
-			var intro := int(round(float(def.get("intro_s", 0.0)) * s.mix_rate)) if Audio.music_v2() else 0
-			ok(intro % bar == 0, "%s: the loop point is whole bars" % t)
-			if not Audio.music_v2():
-				ok((Loudness.samples(s).size() - intro) % bar == 0, "%s is whole bars at %d bpm" % [m, Audio.track_bpm(t)])
+			var o := load(path) as AudioStreamOggVorbis
+			ok(o != null, "%s ships as Ogg Vorbis" % m)
+			if o == null:
 				continue
-			# v2 files end with one guard sample (the sample at loop_begin, for the resampler);
-			# the engine loops the window tools/audio.sh writes into the import from gen_music
-			var imp: AudioStreamWAV = load(AUDIO + m + ".wav")
-			ok(Loudness.samples(s).size() == imp.loop_end + 1, "%s carries one guard sample after its loop" % m)
-			ok(imp.loop_begin == intro, "%s loops back to the end of its intro (%d)" % [m, imp.loop_begin])
-			ok((imp.loop_end - imp.loop_begin) % bar == 0, "%s loops whole bars at %d bpm" % [m, Audio.track_bpm(t)])
+			ok(o.loop, "%s loops" % m)
+			ok(absf(o.loop_offset - intro) < 1e-6, "%s loops back to the end of its intro (%.3f s)" % [m, o.loop_offset])
+			var bars := (o.get_length() - o.loop_offset) / bar
+			# within half a 32 kHz sample of whole bars
+			ok(absf(bars - roundf(bars)) * bar < 0.5 / 32000.0, "%s loops whole bars at %d bpm (%.4f)" % [m, Audio.track_bpm(t), bars])
 	Audio.music("cellar", 0.0)
 	var sync: AudioStreamSynchronized = Audio.track_stream("cellar")
 	ok(sync.get_sync_stream_volume(1) <= -50.0, "the drums start off")
 	Audio.layer("drums", true)
 	ok(Audio.layer_on("drums"), "combat turns the drums on")
 	Audio.music("", 0.0)
+
+
+## ADR 0034: every music and ambience Ogg loops seamlessly. Played through the engine across
+## its seam, what follows the end is sample for sample a playback started at the loop point
+## (the end of the track's intro, else the start: no gap, no drift, the intro never replays),
+## and the step across the seam is no bigger
+## than the music's own steps. The stingers are one-shots.
+func test_music_loops_are_seamless() -> void:
+	# where each file should loop back to: the end of its track's intro, else its start
+	var intro := {}
+	for t in Audio.TRACKS:
+		for m: String in Audio.TRACKS[t]["stems"]:
+			intro[m + ".ogg"] = float(Audio.TRACKS[t].get("intro_s", 0.0))
+	var n := 0
+	var bad := []
+	for f in _oggs():
+		var o := load(AUDIO + f) as AudioStreamOggVorbis
+		if o == null or not o.loop:
+			bad.append("%s does not load as a looping Ogg" % f)
+			continue
+		var sr := o.packet_sequence.sampling_rate
+		var lead := int(0.2 * sr)
+		var end := int(round(o.get_length() * sr))
+		var lb := int(round(float(intro.get(f, 0.0)) * sr))
+		var across := _play(o, end - lead, 2 * lead)
+		var fresh := _play(o, lb, lead)
+		var diff := 0.0
+		for i in range(4, lead):   # past the resampler's first frames
+			var d := (across[lead + i] - fresh[i]).abs()
+			diff = maxf(diff, maxf(d.x, d.y))
+		var step := 0.0
+		var body := 0.0
+		for i in range(1, across.size()):
+			var d := (across[i] - across[i - 1]).abs()
+			if absi(i - lead) <= 2:
+				step = maxf(step, maxf(d.x, d.y))
+			else:
+				body = maxf(body, maxf(d.x, d.y))
+		if diff > 1e-5:
+			bad.append("%s: after the seam it is %.5f off a playback from its loop point" % [f, diff])
+		if step > body:
+			bad.append("%s: the seam steps %.4f (the music's own biggest step is %.4f)" % [f, step, body])
+		n += 1
+	ok(n >= 20, "the music ships as Ogg (%d files)" % n)
+	ok(bad.is_empty(), "every music loop is seamless: %s" % [bad])
+	for w in _wavs():
+		if w.begins_with("sting_"):
+			var s: AudioStreamWAV = load(AUDIO + w)
+			ok(s.loop_mode == AudioStreamWAV.LOOP_DISABLED, "%s plays once" % w)
 
 
 func test_voice_classes_and_element_hits() -> void:

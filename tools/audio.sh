@@ -1,47 +1,60 @@
 #!/usr/bin/env bash
-# Regenerates every sound effect and music cue into game/assets/audio/ (gen_audio.gd for the
-# effects, gen_music.gd for the music, about 5 minutes), re-imports them, and keeps the
-# licence manifest (assets_src/audio/LICENSES.csv) in step. Deterministic: run it twice,
-# same bytes.
+# Regenerates every sound effect and music cue (gen_audio.gd for the effects, gen_music.gd for
+# the music, about 5 minutes), encodes the music to Ogg Vorbis, re-imports everything, and
+# keeps the licence manifest (assets_src/audio/LICENSES.csv) in step. Deterministic: run it
+# twice, same bytes.
 #
-# Import settings: music and ambience loop over the window gen_music reports (the folded boss
-# and mini-boss intros play once), the two looping effects (sfx_beam, sfx_trail_loop) loop
-# over the whole file, and every file is QOA-compressed in the build. Godot's WAV writer does
-# not store loop points, so they are set in the .import files here.
+# Files: effects and stingers are WAV in game/assets/audio/, QOA-compressed in the build.
+# The music and ambience beds are rendered as WAV masters to build/music_wav/ (outside git),
+# then tools/encode_music.py writes game/assets/audio/music_*.ogg (Vorbis q4, ADR 0034).
+# One-time setup: a venv in tools/.venv-audio with tools/requirements-audio.txt.
+#
+# Loops: every music Ogg loops, back to the loop_offset gen_music reports (the folded boss and
+# mini-boss intros play once); the two looping effects (sfx_beam, sfx_trail_loop) loop over
+# the whole file. Neither writer stores loop points, so they are set in the .import files here.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/platform.sh"
 GAME="$HERE/../game"
 AUDIO="$GAME/assets/audio"
+MASTERS="$HERE/../build/music_wav"
 MANIFEST="$HERE/../assets_src/audio/LICENSES.csv"
+VENV="$HERE/.venv-audio"
+
+if [ ! -x "$VENV/bin/python" ]; then
+  python3 -m venv "$VENV"
+  "$VENV/bin/pip" install -q --upgrade pip
+  "$VENV/bin/pip" install -q -r "$HERE/requirements-audio.txt"
+fi
 
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true   # registers Loudness
 "$HERE/godot.sh" --headless --path "$GAME" -s "$HERE/gen_audio.gd"
-# gen_music prints one "LOOP|<file>|loop_begin=<n>|loop_end=<n>" line per looping file: the
-# window the engine loops. Each file ends with one guard sample past loop_end (the sample at
-# loop_begin), so the resampler interpolates across the seam.
+# gen_music prints one "LOOP|<file>|loop_begin=<n>|loop_end=<n>" line per looping master: the
+# window a WAV loop would play. Each master ends with one guard sample past loop_end.
+# encode_music drops the guard and prints "OGG|<file>|loop_offset=<s>|..." per Ogg.
 LOOPS="$(mktemp)"
+OGGS="$(mktemp)"
 "$HERE/godot.sh" --headless --path "$GAME" -s "$HERE/gen_music.gd" | tee "$LOOPS"
+"$VENV/bin/python" "$HERE/encode_music.py" "$MASTERS" "$AUDIO" "$LOOPS" | tee "$OGGS"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
 
 for f in "$AUDIO"/*.wav.import; do
   base="$(basename "$f" .wav.import)"
-  loop=1   # disabled
-  lb=0
-  le=-1    # the end of the file
+  loop=1   # disabled (the stingers and every other effect)
   case "$base" in
-    music_*) loop=2 ;;   # forward
     sfx_beam|sfx_trail_loop) loop=2 ;;   # sound v2: seamless whole-file SFX loops (the Deadlock beam, the Loop's trail)
   esac
-  row="$(grep "^LOOP|$base|" "$LOOPS" || true)"
-  if [ -n "$row" ]; then
-    lb="$(echo "$row" | sed -E 's/.*loop_begin=([0-9]+).*/\1/')"
-    le="$(echo "$row" | sed -E 's/.*loop_end=([0-9]+).*/\1/')"
-  fi
-  sed_inplace -e "s/^edit\/loop_mode=.*/edit\/loop_mode=$loop/" -e "s/^edit\/loop_begin=.*/edit\/loop_begin=$lb/" \
-    -e "s/^edit\/loop_end=.*/edit\/loop_end=$le/" -e "s/^compress\/mode=.*/compress\/mode=2/" "$f"
+  sed_inplace -e "s/^edit\/loop_mode=.*/edit\/loop_mode=$loop/" -e "s/^edit\/loop_begin=.*/edit\/loop_begin=0/" \
+    -e "s/^edit\/loop_end=.*/edit\/loop_end=-1/" -e "s/^compress\/mode=.*/compress\/mode=2/" "$f"
 done
-rm -f "$LOOPS"
+for f in "$AUDIO"/music_*.ogg.import; do
+  base="$(basename "$f" .ogg.import)"
+  row="$(grep "^OGG|$base|" "$OGGS" || true)"
+  [ -n "$row" ] || continue   # not encoded this run (ONLY=...): its import stays as it is
+  lo="$(echo "$row" | sed -E 's/.*loop_offset=([0-9.e+-]+).*/\1/')"
+  sed_inplace -e "s/^loop=.*/loop=true/" -e "s/^loop_offset=.*/loop_offset=$lo/" "$f"
+done
+rm -f "$LOOPS" "$OGGS"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
 
 # the manifest: one row per shipped audio file. Rows for generated files are rewritten;
@@ -53,12 +66,13 @@ echo "$HEADER" > "$tmp"
 if [ -f "$MANIFEST" ]; then
   tail -n +2 "$MANIFEST" | grep -v ',tools/gen_' >> "$tmp" || true
 fi
-for w in "$AUDIO"/*.wav; do
+for w in "$AUDIO"/*.wav "$AUDIO"/*.ogg; do
+  [ -e "$w" ] || continue
   b="$(basename "$w")"
   grep -q "^$b," "$tmp" && continue
   gen="tools/gen_audio.gd"
   case "$b" in music_*|sting_*) gen="tools/gen_music.gd" ;; esac
-  title="$(echo "${b%.wav}" | sed 's/_/ /g')"
+  title="$(echo "${b%.*}" | sed 's/_/ /g')"
   echo "$b,$title,$gen,original,Bar Moshe (generated in code),no" >> "$tmp"
 done
 { head -1 "$tmp"; tail -n +2 "$tmp" | sort; } > "$MANIFEST"
@@ -76,4 +90,4 @@ CREDITS="$GAME/scripts/audio/credits_data.gd"
   tail -n +2 "$MANIFEST" | awk -F, 'toupper($4) ~ /^CC-BY/ { printf "\t{\"file\": \"%s\", \"title\": \"%s\", \"license\": \"%s\", \"author\": \"%s\"},\n", $1, $2, $4, $5 }'
   echo "]"
 } > "$CREDITS"
-ls "$AUDIO"/*.wav | wc -l | xargs echo "audio files:"
+ls "$AUDIO"/*.wav "$AUDIO"/*.ogg | wc -l | xargs echo "audio files:"

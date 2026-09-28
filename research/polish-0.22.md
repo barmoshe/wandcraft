@@ -87,7 +87,7 @@ Where a site was blocked, the claim rests on the search summary of the cited pag
 - `.pck` gets a content type.
 
 **Not taken:**
-- **Music as Ogg Vorbis** (about −5 MB). It needs an ADR to replace 0019, loop-seam work, and a phone profile.
+- **Music as Ogg Vorbis** (about −5 MB). It needs an ADR to replace 0019, loop-seam work, and a phone profile. Done after 0.22.0 in ADR 0034: 4 MB off the pck, seams tested; the phone profile is still open.
 - **Long cache headers.** They need content-hashed file names first.
 - **A custom engine template** (the wasm is 39.5 MB, 7 to 10 MB compressed).
 
@@ -100,5 +100,5 @@ Where a site was blocked, the claim rests on the search summary of the cited pag
 - **Size:** 1.1 MB smaller.
 - **Next:**
   - Bench numbers with the dodging bot.
-  - Music as Vorbis (an ADR).
+  - Music as Vorbis: done (ADR 0034). A listening and CPU check on a phone is left.
   - Hashed web file names for long caching.
