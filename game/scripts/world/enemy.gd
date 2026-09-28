@@ -127,6 +127,7 @@ var r := 6.0
 var spd := 30.0
 var dmg := 8.0
 var elite := false
+var squiggle := false    # 0.21: LINT's Red Squiggle marked it (takes more from you)
 var heavy := false
 var dead := false
 var spawn_t := 0.75

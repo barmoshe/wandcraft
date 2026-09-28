@@ -110,3 +110,30 @@ func test_dialogue_drops_a_walked_away_talk_and_keeps_exchanges_fresh() -> void:
 	eq(String(Dialogue._queue[0]["id"]), "hub_duck", "the Duck's line stays")
 	eq(Dialogue.group("res.grep.arc.0.1"), "res.grep.arc.0", "an exchange is its id without the last part")
 	Dialogue.clear()
+
+
+func test_lints_red_squiggle_marks_the_toughest_and_it_takes_more() -> void:
+	world.build_room("hall", &"empty")
+	world.cleared = false
+	var small := _dummy(Vector2(120, 120))
+	var big := _dummy(Vector2(260, 120))
+	small.max_hp = 500.0
+	small.hp = 500.0
+	world._squiggle = true   # the trick, unlocked (Barks.lint_trick)
+	_steps(2.2)
+	ok(big.squiggle and not small.squiggle, "the toughest one is underlined")
+	var a := world.hurt_enemy(small, 10.0, small.position, 0.0, 0.0)
+	var b := world.hurt_enemy(big, 10.0, big.position, 0.0, 0.0)
+	ok(b > a, "and takes more from you (%.1f vs %.1f)" % [b, a])
+
+
+func test_the_companions_react_to_a_fast_room() -> void:
+	var said: Array = []
+	var cb := func(who: String, text: String, _id: String) -> void: said.append(who)
+	Events.say.connect(cb)
+	Barks.reset()
+	world.build_room("hall", &"fight")
+	world.room_time = 4.0
+	world.call("_clear_room")
+	Events.say.disconnect(cb)
+	ok(not said.is_empty(), "a quick clear gets a line (%s)" % [said])

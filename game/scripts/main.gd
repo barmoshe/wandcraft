@@ -178,10 +178,52 @@ func _hub_greet() -> void:
 	m["hub_seen"] = true
 	m["greeted"] = int(m.get("runs", 0))
 	SaveGame.save_meta(m)
-	if ev != "":
+	# 0.21: coming home after a run, the Duck's post-mortem (Barks) replaces the plain
+	# greeting; what the run's bubbles missed comes up a little later
+	Barks.reset()
+	var pm := Barks.hub_return(_now())
+	if not pm.is_empty() and ev in ["hub_death", "hub_boss", "hub_win", "hub_quit", "hub_back", ""]:
+		get_tree().create_timer(0.8).timeout.connect(func() -> void:
+			if _hub and screen == null:
+				_say_lines(pm))
+	elif ev != "":
 		get_tree().create_timer(0.8).timeout.connect(func() -> void:
 			if _hub and screen == null:
 				Story.say(ev))
+	get_tree().create_timer(9.0).timeout.connect(func() -> void:
+		if _hub and screen == null:
+			_say_lines(Barks.carry_over(_now())))
+
+
+## 0.21: in the Workshop, now and then (half a minute of quiet), two residents, or a
+## resident and the Duck or LINT, trade a few lines in bubbles (Residents.chatter).
+var _chat_t := 30.0
+
+
+func _hub_chatter(dt: float) -> void:
+	if not _hub or screen or world.hub == null or _args.has("shot"):
+		_chat_t = 30.0
+		return
+	if Dialogue.busy():
+		_chat_t = maxf(_chat_t, 12.0)
+		return
+	_chat_t -= dt
+	if _chat_t > 0.0:
+		return
+	_chat_t = randf_range(35.0, 55.0)
+	for l in Residents.chatter():
+		Dialogue.enqueue(l["who"], l["text"], l["id"])
+
+
+## Says an exchange from Barks ([[who, text, id], ...]); false when there was none.
+func _say_lines(lines: Array) -> bool:
+	for l in lines:
+		Events.say.emit(l[0], l[1], l[2])
+	return not lines.is_empty()
+
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 ## A station in the Workshop: its screen, then back to walking.
@@ -207,8 +249,13 @@ func _hub_use(id := "", arg := -1) -> void:
 		return
 	var back := func(_res: Dictionary) -> void: world.paused = false
 	match id:
-		"duck", "lint":
-			Story.say("hub_" + id)
+		"duck":
+			Story.say("hub_duck")
+			return
+		"lint":
+			# 0.21: LINT reviews the wand you hold (code smells), else small talk
+			if not _say_lines(Barks.lint_review(world.run.wand(), _now(), true)):
+				Story.say("hub_lint")
 			return
 		"grep", "hotfix", "cache":
 			var rid := StringName(id)
@@ -267,7 +314,8 @@ func _hub_use(id := "", arg := -1) -> void:
 			_open(PackScreen.new(), func(res: Dictionary) -> void:
 				world.paused = false
 				if res.has("bought"):
-					Story.say("pkg_bought")
+					var ev := "pkg_bought:" + String(res["bought"])
+					Story.say(ev if Story.LINES.has(ev) else "pkg_bought")
 				if res.get("try", false):
 					_hub_use.call_deferred("repl", 0))
 			return
@@ -666,6 +714,7 @@ func _open_end(won: bool, how := "") -> void:
 	_chose = false
 	if forward:
 		how = ""
+	Barks.end_run(world.run, "" if won else world.player.last_hurt_by, how == "abandon")   # the post-mortem, before the save moves on
 	SaveGame.record_run(world.run, how, "" if won else world.player.last_hurt_by)
 	RunLog.finish(world.run, "" if won else world.player.last_hurt_by)
 	Audio.music("")
@@ -724,7 +773,9 @@ func _open_editor(lesson := -1) -> void:
 	s.lesson = lesson
 	_open(s, func(_res: Dictionary) -> void:
 		world.paused = false
-		SaveGame.save_run(world.run))
+		SaveGame.save_run(world.run)
+		if lesson < 0 and not world.run.tutorial:
+			_say_lines(Barks.lint_review(world.run.wand(), _now())))   # LINT reads the new wand
 
 
 func _on_hud(id: String) -> void:
@@ -808,6 +859,7 @@ func _process(dt: float) -> void:
 	_read_desktop_input()
 	_follow_camera(false, dt)
 	_frames += 1
+	_hub_chatter(dt)
 	if _args.has("hudstress") and _frames == int(_args.get("frames", "90")) - 20:
 		_hud_stress()
 	if _args.has("shot") and _frames == int(_args.get("frames", "90")):

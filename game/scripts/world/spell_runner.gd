@@ -156,6 +156,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		# sound v2: one "empty" per dry spell, not one per retry
 		if world.time - w.dry_at > 0.25:
 			Audio.sfx("mana_empty", origin)
+			world.bark(&"mana_empty", {"rule": String(w.def.rule)})
 		w.dry_at = world.time
 		return false
 	var low := w.mana < w.max_mana() * 0.25
@@ -170,6 +171,9 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	w.ptr = plan.ptr
 	w.acc = plan.acc
 	w.casts += 1
+	if w.def.rule != &"" and run != null and not run.stats.has("rule_" + String(w.def.rule)):
+		run.stats["rule_" + String(w.def.rule)] = true   # 0.21 barks: a rule wand's first cast
+		world.bark(&"rule_first", {"rule": String(w.def.rule)})
 	w.last_id = plan.last_id
 	w.flash = plan.used[plan.used.size() - 1] if not plan.used.is_empty() else -1
 	w.lit = plan.used

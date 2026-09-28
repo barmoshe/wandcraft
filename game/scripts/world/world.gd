@@ -201,6 +201,12 @@ var hub: Hub = null
 ## 0.21: the Duck and LINT, following the hero through a run (world/companion.gd); hidden in
 ## the Workshop, where the fixed ones stand.
 var companions: Array[Companion] = []
+var _low_barked := false      # 0.21 barks: low HP said once until you heal back up
+var _status_barked := false   # ... and a status build once a room
+var _bark_check := 0.0
+const SQUIGGLE_DMG := 1.15    # LINT's Red Squiggle (story round 2): the marked enemy takes more
+var _squiggle := false        # the trick is unlocked (read as the room opens)
+var _squiggled := false       # and has marked someone this room
 var boss: Boss
 var boss_t := 0.0
 var dead_t := 0.0
@@ -341,8 +347,66 @@ func setup(seed_value: int) -> void:
 var skin: Dictionary = {}
 
 
+## 0.21: the companions react (Barks): the event and its facts go to the bark rules, and
+## whatever they pick is said (a bubble over the speaker). Quiet in bot runs and dailies.
+func bark(event: StringName, facts: Dictionary = {}) -> void:
+	if bot or Game.quiet > 0 or run == null or run.tutorial:
+		return
+	for l in Barks.pick(event, facts, Time.get_ticks_msec() / 1000.0):
+		Events.say.emit(l[0], l[1], l[2])
+
+
+func _on_boss_phase(n: int, _line: String) -> void:
+	if boss and not boss.dead:
+		bark(&"boss_phase", {"boss": boss.title.trim_suffix(" 2.0"), "phase": n})
+
+
+## Barks that watch the state rather than an event: low HP, and a status build in full swing.
+func _bark_tick(dt: float) -> void:
+	_bark_check -= dt
+	if _bark_check > 0.0:
+		return
+	_bark_check = 0.5
+	if _squiggle and not _squiggled and not cleared and room_time > 1.5:
+		# LINT underlines the toughest one in the room: an elite first, else the most HP
+		var best: Enemy = null
+		for e in enemies:
+			if e.dead or e.spawn_t > 0.0 or e is Boss or e.locked:
+				continue
+			if best == null or (e.elite and not best.elite) or (e.elite == best.elite and e.max_hp > best.max_hp):
+				best = e
+		if best:
+			best.squiggle = true
+			_squiggled = true
+	var k := run.hp / run.max_hp
+	if k < 0.3 and not _low_barked and not player.dead:
+		_low_barked = true
+		bark(&"low_hp", {"hp": k, "boss": boss != null and not boss.dead})
+	elif k > 0.5:
+		_low_barked = false
+	if not _status_barked and not cleared:
+		var counts := {"burn": 0, "frost": 0, "rot": 0, "shock": 0}
+		for e in enemies:
+			if e.dead:
+				continue
+			if e.burn_t > 0.0:
+				counts["burn"] += 1
+			if e.chill_t > 0.0 or e.frozen_t > 0.0:
+				counts["frost"] += 1
+			if e.rot_n > 0:
+				counts["rot"] += 1
+			if e.static_t > 0.0:
+				counts["shock"] += 1
+		for st in counts:
+			if counts[st] >= 5:
+				_status_barked = true
+				bark(&"status", {"status": st, "n": counts[st]})
+				break
+
+
 func start_run(r: RunState) -> void:
 	hub = null
+	Barks.reset()
 	run = r
 	skin = Residents.skin(Residents.skin_on())
 	rng.seed = r.seed_value * 7919 + r.step
@@ -540,6 +604,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	wave_live.clear()
 	puzzle = &""
 	cage = {}
+	_squiggle = hub == null and run != null and not run.tutorial and Barks.lint_trick()
+	_squiggled = false
 	puddles.clear()
 	if run:
 		for w in run.wands:
@@ -742,6 +808,8 @@ func _spawn_boss() -> void:
 	Audio.sting("glitch" if b is BossGlitch else "boss")
 	Hints.show("boss")
 	Events.boss_started.emit(b.title, b.subtitle)
+	if not Events.boss_phase.is_connected(_on_boss_phase):
+		Events.boss_phase.connect(_on_boss_phase)
 	if run and run.daily == "":
 		Story.say("boss:" + b.title.trim_suffix(" 2.0"))
 
@@ -753,6 +821,12 @@ func _clear_room(reward := true) -> void:
 		_open_doors()
 		return
 	run.stats["rooms"] += 1
+	_status_barked = false
+	if room_time < 12.0 and room_kind != &"start":
+		bark(&"room_fast", {"time": room_time})
+	if run.world == 2 and not run.stats.has("archive_said"):
+		run.stats["archive_said"] = true
+		Story.say("archive")   # the Page Archive's first cleared room
 	var cloned := Relics.on_room_clear(run)   # 0.21 Relic Copy
 	if cloned != &"":
 		fx.text(player.position + Vector2(0, -44), "COPIED: %s" % String(Relics.DEFS[cloned]["title"]).to_upper(), Style.c("steel:4"), 10)
@@ -1102,6 +1176,7 @@ func step(dt: float) -> void:
 	for c in companions:
 		if c.visible:
 			c.tick(dt)
+	_bark_tick(dt)
 	if Game.quiet == 0:
 		Audio.player_hp(run.hp / run.max_hp)
 	for e in enemies:
@@ -1681,6 +1756,8 @@ const SOFT := 8
 func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: float, dot := false, kw := 0) -> float:
 	if e.dead or e.spawn_t > 0.0:
 		return 0.0
+	if e.squiggle and not dot:
+		dmg *= SQUIGGLE_DMG
 	if e.locked and not (kw & SOFT):
 		# Deadlock: the locked guardian takes nothing (a spark off the padlock); what the open
 		# one takes is passed to the pool (SOFT), which lives on the other, locked or not
@@ -1750,6 +1827,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		run.stats["damage"] += dmg
 		if not dot and dmg > float(run.stats.get("max_hit", 0.0)):
 			run.stats["max_hit"] = dmg
+		if not dot and dmg >= 60.0:
+			bark(&"big_hit", {"dmg": dmg})
 	if not e.heavy and kb > 0.0:
 		e.knock += (e.position - from).normalized() * kb * (70.0 if crit else 38.0)
 	if crit and time - _last_stop > 0.25:
@@ -1979,6 +2058,7 @@ func kill_enemy(e: Enemy) -> void:
 		run.see_enemy(e.kind, true)
 		if e.elite:
 			_count("elites")
+			bark(&"elite_kill", {"elites": int(run.stats.get("elites", 0))})
 		run.gold += roundi(int(e.def.get("gold", 1)) * (4 if e.elite else 1) * Relics.gold_mul(run) * 0.5)
 		for w in run.wands:
 			w.on_kill()   # 0.20: a Recycle Bin refills on kills
@@ -2639,6 +2719,13 @@ func _draw_descent(p: Vector2) -> void:
 
 ## Additive glow on top of the actors: torch flames, door and orb shine, boss telegraphs.
 func _draw_top() -> void:
+	# LINT's Red Squiggle: a wavy red line under the marked enemy, like a linter's underline
+	for e in enemies:
+		if e.squiggle and not e.dead:
+			var y := e.position.y + 4.0
+			for k in 12:
+				var x := e.position.x - 6.0 + k
+				_top.draw_rect(Rect2(Vector2(x, y + (1.0 if (k + int(time * 8.0)) % 4 < 2 else 0.0)).round(), Vector2.ONE), Style.c("blood:4"))
 	for tp in torches:
 		var fr := int(time * 9.0 + tp.x * 0.37) % 3
 		_top.draw_texture(Props.flame(fr), (tp + Vector2(-3, -12)).round())
