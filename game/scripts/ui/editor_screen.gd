@@ -586,6 +586,19 @@ func _move_library(from: Dictionary, to: Dictionary) -> void:
 	_fill_page()
 
 
+## 0.23: a held spell shows its text, and never moves the picked spell onto it.
+func inspect(id: String) -> Array:
+	if not id.begins_with("slot:"):
+		return []
+	var parts := id.split(":")
+	var e: Variant = _spell_at({"w": int(parts[1]), "i": int(parts[2])})
+	if e == null:
+		return []
+	var d := Catalog.spell(e["id"])
+	var lv := int(e.get("lv", 1))
+	return [d.title + "+".repeat(lv - 1), d.text_at(lv) + "  " + spell_stats(d.id, lv)]
+
+
 func _on_button(id: String) -> void:
 	if id == "page_prev" or id == "page_next":
 		page += -1 if id == "page_prev" else 1

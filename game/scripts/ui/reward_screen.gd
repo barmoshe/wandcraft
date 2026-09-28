@@ -257,6 +257,21 @@ func _opened() -> void:
 		sel = free[0]
 
 
+## 0.23: a held card shows its whole text (the card itself may cut it short).
+func inspect(id: String) -> Array:
+	if not id.begins_with("card"):
+		return []
+	var i := int(id.substr(4))
+	if i < 0 or i >= offer.size():
+		return []
+	var item: Dictionary = offer[i]
+	var lv := Rewards.level_after(run, item["id"]) if item["t"] == &"spell" else 1
+	var body := Rewards.item_desc(item, lv)
+	if item["t"] == &"spell":
+		body += "  " + spell_stats(item["id"], lv)
+	return [Rewards.item_title(item), body]
+
+
 func _on_button(id: String) -> void:
 	if id.begins_with("card"):
 		var i := int(id.substr(4))

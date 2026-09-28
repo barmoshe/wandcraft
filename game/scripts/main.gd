@@ -19,6 +19,7 @@ extends Node2D
 ##   --touchdemo         draw sample thumbs on the sticks (store screenshots)
 ##   --wand=N            start with wand N selected
 ##   --resethints        show the first-run tips again
+##   --inspect=ID        with --screen: show a held item's text (hold to inspect)
 
 var world: World
 var hud: Hud
@@ -551,6 +552,10 @@ func _start_from_args() -> void:
 		"end":
 			world.paused = true
 			_open_end(_args.get("won", "0") == "1")
+	if _args.has("inspect") and screen:
+		# screenshots and the overlap audit: a held item's text (--inspect=card1, slot:0:0, ...)
+		screen._inspect = screen.inspect(String(_args["inspect"]))
+		screen._inspect_t = 999.0
 	if _args.has("touchdemo"):
 		var v := get_viewport_rect().size
 		touch.touched_once = true

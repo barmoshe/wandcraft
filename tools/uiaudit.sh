@@ -34,6 +34,8 @@ CASES=(
   "coach3|--screen=editor --tutorial --coach=3 --frames=40"
   "reward-spell|--screen=reward --offer=spell --frames=40"
   "reward-relic|--screen=reward --offer=relic --loadout=strong --frames=40"
+  "inspect-card|--screen=reward --offer=spell --inspect=card1 --frames=40"
+  "inspect-slot|--screen=editor --inspect=slot:0:2 --frames=40"
   "shop|--screen=shop --loadout=strong --frames=40"
   "forge|--screen=forge --loadout=strong --frames=40"
   "map|--screen=map --loadout=strong --frames=40"

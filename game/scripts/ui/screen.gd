@@ -31,6 +31,15 @@ var _has_finger := false
 var _age := 0.0
 var _toast := ""
 var _toast_t := 0.0
+## 0.23: hold to inspect (research/polish-0.22.md, Balatro on phones). A finger held still on
+## a card, slot or relic shows its full text; lifting it then does nothing.
+const HOLD := 0.4
+var _pressing := false
+var _press_t := 0.0
+var _far := false            # the finger moved: a drag, not a hold
+var _held := false           # the hold fired: the release does not press
+var _inspect: Array = []     # [title, body] on show
+var _inspect_t := 0.0        # how long it stays after the finger lifts
 
 
 func _ready() -> void:
@@ -52,7 +61,24 @@ func _opened() -> void:
 func _process(dt: float) -> void:
 	_age += dt
 	_toast_t = maxf(0.0, _toast_t - dt)
+	_tick_hold(dt)
 	queue_redraw()
+
+
+func _tick_hold(dt: float) -> void:
+	if not _pressing:
+		_inspect_t = maxf(0.0, _inspect_t - dt)
+		return
+	_press_t += dt
+	if _held or _far or _press_t < HOLD or _press_id == "":
+		return
+	var info := inspect(_press_id)
+	if info.is_empty():
+		return
+	_held = true
+	_inspect = info
+	Audio.ui("ui")
+	Game.haptic("ui_snap")
 
 
 func view() -> Vector2:
@@ -111,17 +137,38 @@ func _input(ev: InputEvent) -> void:
 		return
 	var p: Vector2 = make_input_local(ev).position
 	if down:
-		_press_id = hit(p)
-		_press_pos = p
-		_on_down(p)
+		_begin_press(p)
 	elif up:
-		var id := hit(p)
-		var consumed := _on_up(p)
-		if not consumed and id != "" and id == _press_id:
-			press(id)
-		_press_id = ""
+		_release(p)
 	elif drag:
+		if p.distance_to(_press_pos) > 6.0:
+			_far = true
 		_on_drag(p)
+
+
+## A finger goes down: the button under it, and the hold clock starts.
+func _begin_press(p: Vector2) -> void:
+	_press_id = hit(p)
+	_press_pos = p
+	_pressing = true
+	_press_t = 0.0
+	_far = false
+	_held = false
+	_inspect_t = 0.0
+	_on_down(p)
+
+
+## The finger lifts: a press, unless a drag took it or a hold showed the item's text.
+func _release(p: Vector2) -> void:
+	var id := hit(p)
+	var consumed := _on_up(p)
+	if not consumed and not _held and id != "" and id == _press_id:
+		press(id)
+	if _held:
+		_inspect_t = 1.2   # a moment to finish reading
+	_pressing = false
+	_held = false
+	_press_id = ""
 
 
 ## Activates a button by id (also used by tests and by keyboard shortcuts).
@@ -211,6 +258,11 @@ func _on_down(_p: Vector2) -> void:
 	pass
 
 
+## Hold to inspect: [title, text] for a held button id, or [] when it has nothing to show.
+func inspect(_id: String) -> Array:
+	return []
+
+
 ## Return true to swallow the release (e.g. a drag ended).
 func _on_up(_p: Vector2) -> bool:
 	return false
@@ -235,6 +287,30 @@ func _draw() -> void:
 		var r := Rect2(view().x / 2.0 - w / 2.0 - 8, view().y / 2.0 - 10, w + 16, 20)
 		panel(r, true)
 		text(r.position + Vector2(8, 13), _toast, TEXT)
+	if inspecting():
+		UiAudit.owner = "inspect"
+		_draw_inspect()
+
+
+## The held item's text is up (while the finger stays still, then a moment after it lifts).
+func inspecting() -> bool:
+	return not _inspect.is_empty() and ((_held and not _far) or _inspect_t > 0.0)
+
+
+func _draw_inspect() -> void:
+	var f := Game.font("small")
+	var w := minf(280.0, view().x - 40.0)
+	var lines := _wrap(f, String(_inspect[1]), w - 16.0, 8)
+	var h := 26.0 + lines.size() * 10.0
+	var r := Rect2(view().x / 2.0 - w / 2.0, view().y / 2.0 - h / 2.0, w, h)
+	# the screen steps back and the panel is solid: nothing under it reads through
+	draw_rect(Rect2(Vector2.ZERO, view()), Color(0.02, 0.01, 0.05, 0.55))
+	UiAudit.cover(self)
+	draw_rect(r, Style.c("night:1"))
+	panel(r, true)
+	text(r.position + Vector2(8, 13), String(_inspect[0]), GOLD, 8, "bold")
+	for k in lines.size():
+		text(r.position + Vector2(8, 25 + k * 10), lines[k], TEXT)
 
 
 # ---- drawing helpers

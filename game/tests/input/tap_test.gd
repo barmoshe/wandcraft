@@ -101,6 +101,10 @@ func _run() -> void:
 	_check(s is RewardScreen, "a reward screen opens")
 	if s is RewardScreen:
 		var bag_before := world.run.bag.size() + _filled(world.run)
+		# 0.23: hold a card still: its text shows and the lift picks nothing
+		var c1 := _button_rect(s, "card1").get_center()
+		await _drag(c1, c1, 40)
+		_check(s.inspecting() and s.sel != 1, "holding a card shows its text and does not pick it")
 		await _tap(_button_rect(s, "card0").get_center())
 		await _tap(_button_rect(s, "take").get_center())
 		await _frames(5)

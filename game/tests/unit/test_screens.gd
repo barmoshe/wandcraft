@@ -128,3 +128,58 @@ func test_pause_abandon_needs_two_taps() -> void:
 	s.press("abandon")
 	eq(got, [{"abandon": true}], "the second tap abandons")
 	s.free()
+
+
+## 0.23: hold to inspect. A finger held still on a spell shows its text and the lift does
+## nothing; a quick tap still moves the picked spell.
+func _hold(s: Screen, id: String, t: float) -> void:
+	s._buttons = [[Rect2(0, 0, 40, 40), id]]
+	s._begin_press(Vector2(10, 10))
+	s._tick_hold(t)
+
+
+func test_holding_a_spell_shows_it_and_moves_nothing() -> void:
+	var r := RunState.create(3)
+	r.wand().set_slots([&"mote", &"fan", null, null])
+	var s := EditorScreen.new()
+	_open(s, r)
+	s.press("slot:0:1")
+	_hold(s, "slot:0:0", 0.5)
+	ok(s.inspecting(), "the held spell's text is up")
+	eq(s._inspect[0], Catalog.spell(&"mote").title, "it is the mote's")
+	s._release(Vector2(10, 10))
+	eq(r.wand().slots[0]["id"], &"mote", "the lift moved nothing")
+	eq(s.sel, {"w": 0, "i": 1}, "the fan is still picked")
+	_hold(s, "slot:0:0", 0.1)
+	ok(not s.inspecting(), "a quick tap shows nothing")
+	s._release(Vector2(10, 10))
+	eq(r.wand().slots[0]["id"], &"fan", "and moves the picked spell as before")
+	s.free()
+
+
+func test_a_drag_is_not_a_hold() -> void:
+	var r := RunState.create(3)
+	r.wand().set_slots([&"mote", &"fan", null, null])
+	var s := EditorScreen.new()
+	_open(s, r)
+	_hold(s, "slot:0:0", 0.0)
+	s._far = true
+	s._tick_hold(0.6)
+	ok(not s.inspecting(), "a finger on the move never opens the text")
+	s.free()
+
+
+func test_held_reward_cards_and_relics_show_their_text() -> void:
+	var r := RunState.create(3)
+	var s := RewardScreen.new()
+	s.offer = [{"t": &"spell", "id": &"ember"}, {"t": &"relic", "id": &"aperture"}]
+	_open(s, r)
+	eq(s.inspect("card1")[0], Relics.DEFS[&"aperture"]["title"], "a relic card")
+	ok(String(s.inspect("card0")[1]).length() > 10, "a spell card, with its numbers")
+	eq(s.inspect("take"), [], "buttons have nothing to show")
+	s.free()
+	r.add_relic(&"aperture")
+	var p := PauseScreen.new()
+	_open(p, r)
+	eq(p.inspect("relic0")[0], Relics.DEFS[&"aperture"]["title"], "a relic in the pause menu")
+	p.free()

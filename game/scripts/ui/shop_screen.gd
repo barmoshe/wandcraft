@@ -125,6 +125,19 @@ func _paint() -> void:
 		para(Rect2(ir.position + Vector2(8, 12), Vector2(ir.size.x - 16, 80)), "Tap an item to see what it does.", MUTED)
 
 
+## 0.23: a held shelf item shows its whole text without selecting it.
+func inspect(id: String) -> Array:
+	if not id.begins_with("item"):
+		return []
+	var items := _items()
+	var i := int(id.substr(4))
+	if i < 0 or i >= items.size():
+		return []
+	var it: Dictionary = items[i]
+	var lv := int(it.get("lv", 1))
+	return [Rewards.item_title(it), Rewards.item_desc(it, lv)]
+
+
 func _on_button(id: String) -> void:
 	if id == "close":
 		finished.emit({})

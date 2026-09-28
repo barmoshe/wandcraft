@@ -131,6 +131,17 @@ func _web_diag(sr: Rect2, cx: float, y: float) -> void:
 			text_center(cx, y + 26 + 11, "  -  ".join(lines), faint)
 
 
+## 0.23: a held relic shows its text.
+func inspect(id: String) -> Array:
+	if run == null or not id.begins_with("relic"):
+		return []
+	var i := int(id.substr(5))
+	if i < 0 or i >= run.relics.size():
+		return []
+	var rid: StringName = run.relics[i]
+	return [String(Relics.DEFS[rid]["title"]), Rewards.item_desc({"t": &"relic", "id": rid})]
+
+
 func _on_button(id: String) -> void:
 	if id != "abandon":
 		confirm_abandon = false
