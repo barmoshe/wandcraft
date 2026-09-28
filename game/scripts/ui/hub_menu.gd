@@ -6,23 +6,28 @@ extends Screen
 const ORDER := ["portal", "heroes", "pkg", "repl", "bounty", "docs", "log", "terminal"]
 
 var meta: Dictionary = {}
+var order: Array = []
 
 
 func _opened() -> void:
 	meta = SaveGame.load_meta()
+	order = ORDER.duplicate()
+	for id in Residents.ORDER:
+		if Residents.rescued(id, meta):
+			order.append(String(id))   # 0.20: the residents who've moved in
 
 
 func _paint() -> void:
 	dim(0.86)
 	var v := view()
 	var cx := v.x / 2.0
-	var rh := 26.0
-	var r := Rect2(cx - 120, v.y / 2.0 - (ORDER.size() * rh + 40) / 2.0, 240, ORDER.size() * rh + 40)
+	var rh := minf(26.0, floorf((v.y - 48.0) / order.size()))
+	var r := Rect2(cx - 120, v.y / 2.0 - (order.size() * rh + 40) / 2.0, 240, order.size() * rh + 40)
 	panel(r, true)
 	text(r.position + Vector2(10, 16), "THE WORKSHOP", GOLD, 8, "bold")
 	button(Rect2(r.end.x - 56, r.position.y + 4, 52, 20), "close", "BACK", "ghost")
-	for i in ORDER.size():
-		var id: String = ORDER[i]
+	for i in order.size():
+		var id: String = order[i]
 		var st: Dictionary = Hub.STATIONS[id]
 		var open := Hub.is_open(id, meta)
 		var br := Rect2(r.position.x + 8, r.position.y + 28 + i * rh, r.size.x - 16, rh - 3)

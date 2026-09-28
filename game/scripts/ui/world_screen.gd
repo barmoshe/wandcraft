@@ -8,7 +8,7 @@ extends Screen
 const DROP := 1.2           # seconds for the hero to fall to the next frame
 const EMBER := Color("#ff9a3a")
 ## What each world adds to the bestiary (by index into Chapter.WORLDS).
-const NEW_HERE := {1: [&"proxy", &"kernel_panic", &"spark_plug"]}
+const NEW_HERE := {1: [&"proxy", &"kernel_panic", &"spark_plug"], 2: [&"leak", &"null_ptr", &"interrupt"]}
 
 var to := 1                 # the world being entered (0-based)
 var bonus_hp := 10
@@ -28,10 +28,10 @@ func _paint() -> void:
 		var x := sr.position.x + fmod(i * 97.0, sr.size.x)
 		var y := sr.end.y - ph * sr.size.y
 		draw_rect(Rect2(x + sin(_age * 2.0 + i) * 3.0, y, 1, 1), Color(EMBER, 0.6 * (1.0 - ph)))
-	# the stack trace: every world's frame, then the Kernel, still unknown
+	# the stack trace: every world's frame, then (0.20) one more under the Kernel, unexplained
 	text(Vector2(lx, top), "STACK TRACE", MUTED, 8, "bold")
 	var frames: Array = Story.WORLD_CARDS.map(func(c: Dictionary) -> String: return c["frame"])
-	frames.append("kernel()  ???")
+	frames.append("you.push()  ???")
 	var row := 26.0
 	var y0 := top + 18.0
 	for i in frames.size():

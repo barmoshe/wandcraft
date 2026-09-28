@@ -13,15 +13,16 @@ const TS := 16
 ## Markers (anything the room builder does not know is floor): H hero pedestals, R the
 ## portal, U the training dummy, B the wand bench, Q the bounty board, M the merchant,
 ## C the Compendium, W the Commit Wall, K the Terminal, D the Duck, N LINT.
+## 0.20: the residents' corners (empty until they move in): G Grep, F Hotfix, A Cache.
 const ROWS := [
 	"##################",
 	"#L........R...U.L#",
 	"#..H.H.H......B..#",
 	"#Q..............M#",
-	"#................#",
+	"#..G..........F..#",
 	"#C.....D..N......#",
 	"#................#",
-	"#W..............K#",
+	"#W.A............K#",
 	"#................#",
 	"#L..............L#",
 	"##################",
@@ -48,6 +49,10 @@ const STATIONS := {
 	"terminal": {"mark": "K", "title": "TERMINAL", "sub": "Settings and credits", "glyph": "chip", "color": "#5ce1ff"},
 	"duck": {"mark": "D", "title": "DUCK", "sub": "Talk", "glyph": "heart", "color": "#ffe066"},
 	"lint": {"mark": "N", "title": "LINT", "sub": "Talk", "glyph": "eye", "color": "#5ce1ff"},
+	# 0.20: the residents (Residents), each in the room only once rescued
+	"grep": {"mark": "G", "title": "GREP", "sub": "Talk, and Search: one true hint a run", "glyph": "eye", "color": "#e8d9b4", "resident": true},
+	"hotfix": {"mark": "F", "title": "HOTFIX", "sub": "Talk, and the Skin Forge", "glyph": "anvil", "color": "#ff9a3a", "resident": true},
+	"cache": {"mark": "A", "title": "CACHE", "sub": "Talk, and the Lost Pages", "glyph": "stack", "color": "#b98cff", "resident": true},
 }
 ## The small names always shown under the stations.
 const SHORT := {"portal": "RUN", "repl": "BENCH", "pkg": "SHOP", "bounty": "BOUNTIES", "docs": "BOOKS", "log": "COMMITS", "terminal": "TERMINAL"}
@@ -57,7 +62,8 @@ const HEROES: Array[StringName] = [&"apprentice", &"pyromancer", &"tinkerer"]
 const TROPHIES := [
 	{"bounty": "mini", "title": "Mini-boss", "color": "#ff3fa4", "glyph": "ghost"},
 	{"bounty": "world1", "title": "The Infinite Loop", "color": "#5ce1ff", "glyph": "loop"},
-	{"bounty": "win", "title": "Deadlock", "color": "#ff9a3a", "glyph": "shield"},
+	{"bounty": "world2", "title": "Deadlock", "color": "#ff9a3a", "glyph": "shield"},
+	{"bounty": "win", "title": "The Glitch", "color": "#ff6fd2", "glyph": "ghost"},
 ]
 
 var world: World
@@ -129,6 +135,9 @@ static func library() -> Array:
 static func greeting(m: Dictionary) -> String:
 	if not bool(m.get("hub_seen", false)):
 		return "hub_first"
+	# 0.20: after the true ending, the post-mortem (research/world3-0.20.md)
+	if Residents.flag("fixed_forward", m) and int(m.get("greeted", -1)) != int(m.get("runs", 0)) and (m.get("last_run", {}) as Dictionary).get("won", false):
+		return "hub_epilogue"
 	var runs := int(m.get("runs", 0))
 	if int(m.get("greeted", -1)) == runs:
 		return "hub_back"
@@ -158,7 +167,7 @@ func populate() -> void:
 		var row: String = ROWS[y]
 		for x in row.length():
 			for id in STATIONS:
-				if STATIONS[id]["mark"] == row[x]:
+				if STATIONS[id]["mark"] == row[x] and (not STATIONS[id].get("resident", false) or Residents.rescued(StringName(id))):
 					if not anchors.has(id):
 						anchors[id] = []
 					anchors[id].append(Vector2(x * TS + TS / 2.0, y * TS + TS / 2.0))
@@ -326,6 +335,14 @@ func draw_deco(ci: CanvasItem) -> void:
 	var np: Vector2 = anchors.get("lint", [Vector2.ZERO])[0]
 	_shadow(ci, np, 6.0)
 	ci.draw_texture(Hud.lint_face(), (np + Vector2(-6, -10 + sin(t * 1.7 + 1.0) * 1.0)).round())
+	# 0.20: the residents, in their corners once they've moved in
+	for id in Residents.ORDER:
+		var key := String(id)
+		if not anchors.has(key):
+			continue
+		var rp: Vector2 = anchors[key][0]
+		_shadow(ci, rp, 7.0)
+		_stand(ci, KernelArt.resident(id, int(t * 3.0 + rp.x) % 4), rp)
 
 
 ## Over the actors: the portal's swirl, the name of the station in reach, the dummy's DPS.
@@ -344,7 +361,7 @@ func draw_top(ci: CanvasItem) -> void:
 	if near != "heroes" and hs.size() >= 2:
 		_label(ci, f, (hs[hs.size() / 2] as Vector2) + Vector2(0, 18), "HEROES", Color(Color(STATIONS["heroes"]["color"]), 0.8))
 	for id in anchors:
-		if id == near or id == "heroes" or id == "duck" or id == "lint":
+		if id == near or id == "heroes" or id == "duck" or id == "lint" or STATIONS[id].get("resident", false):
 			continue
 		var ap: Vector2 = anchors[id][0]
 		var nm := String(SHORT.get(id, STATIONS[id]["title"]))
@@ -360,6 +377,12 @@ func draw_top(ci: CanvasItem) -> void:
 		var at: Vector2 = anchors[near][maxi(0, near_arg)] + Vector2(0, -30)
 		_label(ci, f, at, label, Color(st["color"]) if not locked else Color(0.6, 0.55, 0.7))
 		_label(ci, f, at + Vector2(0, 9), sub, Color(0.9, 0.9, 1.0, 0.85))
+	# 0.20: a resident with a new beat to tell wears a "!"
+	for id in Residents.ORDER:
+		var key := String(id)
+		if anchors.has(key) and Residents.has_news(id):
+			var ep: Vector2 = anchors[key][0] + Vector2(0, -34 + sin(t * 4.0) * 1.5)
+			_label(ci, f, ep, "!", Color(STATIONS[key]["color"]), 16)
 	if open("repl") and dummy and is_instance_valid(dummy):
 		_label(ci, f, dummy.position + Vector2(0, -22), "DPS %d" % roundi(dps), Color("#5ce1ff") if dps > 0.0 else Color(0.6, 0.55, 0.7))
 

@@ -53,7 +53,28 @@ const DEFS := {
 	&"spark_plug": {"title": "Spark Plug", "ai": &"charge", "hp": 16.0, "spd": 46.0, "r": 5.0, "dmg": 6.0, "cost": 2, "gold": 2,
 		"role": &"pressure", "thorns": true, "dash": {"range": 110.0, "tele": 0.45, "t": 0.4, "spd": 270.0, "stun": false}},
 	&"mutex": {"title": "Mutex B", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 11.0, "dmg": 10.0, "cost": 0, "gold": 0},
+	# World 3, the Kernel (0.20, research/world3-0.20.md)
+	#   Page Leak         anchor: drifts and drips puddles that grow while it lives and slow
+	#                     you inside them; killing it frees its memory and every puddle dries
+	#   Dangling Pointer  pressure: draws a line toward you, then snaps along it to the end
+	#                     (anything on the line is hit). Counter: step off the line
+	#   Interrupt         support: while it lives, one of your wand's spells is suspended (the
+	#                     wand reads the slot as empty). Fragile, keeps its distance
+	&"leak": {"title": "Page Leak", "ai": &"leak", "hp": 42.0, "spd": 16.0, "r": 7.0, "dmg": 6.0, "cost": 4, "gold": 4,
+		"role": &"anchor", "shot": {"n": 3, "spd": 70.0, "cd": 3.4}},
+	&"null_ptr": {"title": "Dangling Pointer", "ai": &"pointer", "hp": 14.0, "spd": 40.0, "r": 5.0, "dmg": 10.0, "cost": 2, "gold": 2,
+		"role": &"pressure"},
+	&"interrupt": {"title": "Interrupt", "ai": &"support", "hp": 16.0, "spd": 40.0, "r": 5.0, "dmg": 0.0, "cost": 3, "gold": 3,
+		"role": &"support", "interrupt": true},
+	# Data Race's second thread (BossRace swaps in its own art)
+	&"thread": {"title": "Thread B", "ai": &"part", "hp": 1e9, "spd": 0.0, "r": 8.0, "dmg": 10.0, "cost": 0, "gold": 0},
 }
+
+## World 3: a Page Leak drips this often; a Dangling Pointer's line and its wind-up.
+const DRIP_T := 2.4
+const POINT_LEN := 120.0
+const POINT_TELE := 0.65
+const POINT_W := 7.0
 
 ## A Proxy covers allies within this reach (World.hurt_enemy sends their hits to it).
 const PROXY_R := 48.0
@@ -135,6 +156,10 @@ var _prev := Vector2.ZERO
 var chain: Boss = null          # a body part that follows its boss's path (the Loop's blocks)
 var locked := false             # takes no damage at all (Deadlock's locked guardian)
 var panicked := false           # Kernel Panic: it has started its run
+var drip_t := 1.0               # Page Leak: time to its next puddle
+var point_to := Vector2.ZERO    # Dangling Pointer: where its line ends
+var lock_wand: WandState        # Interrupt: the wand whose slot it holds
+var owner_boss: Boss            # a boss's second body with its own HP (Data Race's Thread B)
 var burn_t := 0.0
 var burn_dps := 0.0
 var chill_t := 0.0
@@ -194,7 +219,7 @@ func setup(w: World, k: StringName, pos: Vector2, id: int, hp_mul := 1.0, is_eli
 	strafe = 1.0 if sin(ph) > 0.0 else -1.0
 	_route_t = fmod(ph, 0.1)   # stagger the re-plans across ticks (no extra rng draw)
 	cd = w.rng.randf_range(0.8, 2.0)
-	var art := "loop_seg" if k == &"loop_jr" else String(k)
+	var art := "loop_seg" if k == &"loop_jr" or k == &"thread" else String(k)   # a thread gets its art from BossRace
 	if Bestiary.has(art):
 		rig = Bestiary.rig(art)
 		clips = Bestiary.clips(art)
@@ -385,9 +410,12 @@ func tick(dt: float) -> void:
 				# no line to the player: walk around the cover until it has one
 				mv = _steer(dt, dir)
 				cd = maxf(cd, 0.4)
-			if ai == &"support" and cd <= 0.0 and not def.get("proxy", false):
+			if ai == &"support" and cd <= 0.0 and not def.get("proxy", false) and not def.get("interrupt", false):
 				cd = 4.0
 				_ward_allies()
+			if def.get("interrupt", false) and lock_wand == null and cd <= 0.0:
+				cd = 1.0
+				world.interrupt_claim(self)
 		&"charge":
 			var dash: Dictionary = def["dash"]
 			match state:
@@ -520,6 +548,48 @@ func tick(dt: float) -> void:
 				if dd < 26.0:
 					state = &"fuse"
 					st_t = 0.8
+		&"leak":
+			# drifts toward a middle distance, drips, and spills a slow spray now and then
+			var want := 1.0 if dd > 90.0 else (-0.6 if dd < 60.0 else 0.0)
+			mv = _steer(dt, dir) * want + dir.orthogonal() * 0.3 * sin(t * 0.7 + ph)
+			drip_t -= adt
+			if drip_t <= 0.0:
+				drip_t = DRIP_T * world.rng.randf_range(0.85, 1.15)
+				world.add_puddle(self, position)
+			cd -= adt
+			if cd <= 0.0 and dd < 200.0 and world.enemy_sees(position):
+				var shot: Dictionary = def["shot"]
+				cd = float(shot["cd"]) * world.rng.randf_range(0.85, 1.15)
+				atk_t = 0.25
+				for k in int(shot["n"]):
+					world.enemy_shoot(position + muzzle, d.angle() + (k - 1) * 0.28, float(shot["spd"]), dmg, 0.0, "shot:%s" % kind)
+		&"pointer":
+			# the Dangling Pointer: close in, then a line toward you, then it snaps along it
+			if state == &"point":
+				st_t -= adt
+				flash = 0.6 if sin(st_t * 50.0) > 0.0 else 0.0
+				if st_t <= 0.0:
+					var from := position
+					world.fx.sparks(from, 5, Style.c("threat:4"), 40.0)
+					position = world.move_body(point_to, r, Vector2.ZERO)
+					world.pointer_snap(self, from, position)
+					atk_t = 0.2
+					state = &"move"
+					cd = world.rng.randf_range(2.2, 3.0)
+			else:
+				mv = _steer(dt, dir)
+				cd -= adt
+				if cd <= 0.0 and dd > 40.0 and dd < 170.0 and world.clear_path(position, pl.position, r):
+					aim_a = d.angle()
+					var ln := minf(POINT_LEN, dd + 40.0)
+					var to := position + Vector2.from_angle(aim_a) * ln
+					if world.body_fits(to, r):
+						point_to = to
+						state = &"point"
+						st_t = POINT_TELE * tele_mul()
+						Audio.sfx("null_aim", position)
+					else:
+						cd = 0.4
 		&"turret":
 			cd -= adt
 			var shot: Dictionary = def["shot"]
@@ -721,6 +791,11 @@ func shoot(ang: float) -> void:
 
 ## D6: the attack this enemy is winding up, as a floor decal World draws under the actors
 ## (design-plan §7): {"k": line|circle|cone, geometry, "fill": 0..1 as the attack nears}.
+## Whether a hit that empties its HP kills it (0.20: Data Race's threads may only fall together).
+func can_die() -> bool:
+	return owner_boss == null or owner_boss.part_can_die(self)
+
+
 func telegraph() -> Dictionary:
 	if dead or spawn_t > 0.0:
 		return {}
@@ -739,6 +814,9 @@ func telegraph() -> Dictionary:
 						"fill": 1.0 - st_t / (float(def["shot"]["tele"]) * tele_mul())}
 		&"fuse":
 			return {"k": "circle", "p": position, "r": TICK_R, "fill": 1.0 - st_t / 0.8}
+		&"point":
+			return {"k": "line", "p": position, "a": aim_a, "len": position.distance_to(point_to), "w": POINT_W,
+				"fill": 1.0 - st_t / (POINT_TELE * tele_mul())}
 		&"aim":
 			return {"k": "line", "p": position + muzzle, "a": aim_a, "len": 200.0, "w": 2.0,
 				"fill": 1.0 - st_t / float(def["shot"]["sight"])}
@@ -765,6 +843,9 @@ func _draw() -> void:
 			if o != self and not o.dead and o.spawn_t <= 0.0 and o.ai != &"part" and not o.def.get("proxy", false) and o.position.distance_squared_to(position) < PROXY_R * PROXY_R:
 				draw_dashed_line(Vector2(0, -6), o.position - position + Vector2(0, -6), Color(Style.c("cyan:4"), 0.45), 1.0, 3.0)
 		draw_arc(Vector2(0, -6), PROXY_R, 0.0, TAU, 32, Color(Style.c("cyan:3"), 0.12), 1.0)
+	if lock_wand != null and world.player:
+		# the Interrupt's tether: a thin line to you while it holds one of your spells
+		draw_dashed_line(Vector2(0, -6), world.player.position - position + Vector2(0, -8), Color(Style.c("violet:4"), 0.5), 1.0, 2.0)
 	if shield_hp > 0:
 		var fa := (world.target_pos() - position).angle()
 		draw_arc(muzzle, r + 4.0, fa - 1.0, fa + 1.0, 10, Style.c("steel:4"), 2.0)

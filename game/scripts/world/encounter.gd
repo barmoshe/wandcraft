@@ -19,6 +19,10 @@ const PRESSURE: Array[StringName] = [&"slime", &"bugling", &"ram", &"tick"]
 ## World 2 (research/design-w2.md): the Foundry's own pressure joins the familiar kinds, and
 ## a Proxy takes the Lantern Wisp's place beside the anchors half the time.
 const PRESSURE_W2: Array[StringName] = [&"kernel_panic", &"spark_plug", &"kernel_panic", &"spark_plug", &"bugling", &"tick", &"slime"]
+## World 3, the Kernel (0.20, research/world3-0.20.md): Dangling Pointers lead the pressure,
+## Page Leaks join the anchors, and an Interrupt takes the support slot most of the time.
+const PRESSURE_W3: Array[StringName] = [&"null_ptr", &"null_ptr", &"null_ptr", &"kernel_panic", &"spark_plug", &"blink_tick", &"bugling"]
+const ANCHORS_W3: Array[StringName] = [&"leak", &"leak", &"rot_weaver", &"sentry", &"golem", &"proxy"]
 const NEXT_AT := 0.5   # research/difficulty.md: 0.7 before; waves now overlap
 ## Design v3: the Grove's variants of the Cellar's enemies (Enemy.DEFS, Bestiary.VARIANTS).
 const GROVE_SWAP := {&"weaver": &"rot_weaver", &"tick": &"blink_tick", &"ram": &"thorn_ram"}          # share of a wave that must be down before the next one
@@ -51,12 +55,13 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 	if puzzle != &"":
 		return (PUZZLES[puzzle]["waves"] as Array).duplicate(true)
 	var step := Chapter.depth(run) if run else 1
-	var w2 := run != null and run.world >= 1
+	var w2 := run != null and run.world == 1
+	var w3 := run != null and run.world >= 2
 	var mult := 1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" or kind == &"risk" else 1.0)
 	# World 2 keeps growing, a little slower than World 1 did
 	var budget := (6.0 + minf(step, 10.0) * 2.0 + maxf(0.0, step - 10.0) * 1.2) * mult
-	var anchors: Array[StringName] = ANCHORS_EARLY if step <= 2 else ANCHORS
-	var pressure: Array[StringName] = PRESSURE_W2 if w2 else (PRESSURE_EARLY if step <= 2 else PRESSURE)
+	var anchors: Array[StringName] = ANCHORS_W3 if w3 else (ANCHORS_EARLY if step <= 2 else ANCHORS)
+	var pressure: Array[StringName] = PRESSURE_W3 if w3 else (PRESSURE_W2 if w2 else (PRESSURE_EARLY if step <= 2 else PRESSURE))
 	var out: Array = []
 	var n := 2
 	for w in n:
@@ -70,8 +75,13 @@ static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator,
 				break
 			list.append([a, false])
 			b -= float(Enemy.DEFS[a]["cost"])
-		if n_anchor > 0 and step >= 3 and rng.randf() < (0.5 if w2 else 0.35) and b >= 3.0:
-			list.append([&"proxy" if w2 and rng.randf() < 0.6 else &"wisp", false])
+		if n_anchor > 0 and step >= 3 and rng.randf() < (0.5 if w2 or w3 else 0.35) and b >= 3.0:
+			var sup := &"wisp"
+			if w3:
+				sup = &"interrupt" if rng.randf() < 0.7 else &"proxy"
+			elif w2 and rng.randf() < 0.6:
+				sup = &"proxy"
+			list.append([sup, false])
 			b -= 3.0
 		var guard := 0
 		while b > 0.0 and list.size() < 14 and guard < 40:

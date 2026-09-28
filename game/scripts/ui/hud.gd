@@ -425,6 +425,10 @@ func _draw_say(sr: Rect2, cx: float) -> void:
 	var a := clampf(say_t * 3.0, 0.0, 1.0) * clampf((say_len - say_t) * 6.0, 0.0, 1.0)
 	var lint := say_who == Story.LINT
 	var col := Color("#5ce1ff") if lint else Color(1.0, 0.85, 0.3)
+	# 0.20: a resident speaks with their own face and colour
+	var res := Residents.id_of(say_who)
+	if res != &"":
+		col = Color(Residents.DEFS[res]["color"])
 	var f := Game.font("small")
 	var lines := _wrap_lines(f, say_text, minf(250.0, sr.size.x - 150.0))
 	var wdt := 0.0
@@ -434,7 +438,10 @@ func _draw_say(sr: Rect2, cx: float) -> void:
 	var r := Rect2(cx - (wdt + 34.0) / 2.0, sr.end.y - 44.0 - h, wdt + 34.0, h)
 	draw_rect(r, Color(0.05, 0.03, 0.1, 0.85 * a))
 	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(col, a))
-	draw_texture(lint_face() if lint else duck_face(), (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
+	var face := lint_face() if lint else duck_face()
+	if res != &"":
+		face = KernelArt.portrait(res, 0, fmod(say_t, 0.24) < 0.12 and say_t < say_len - 0.4, fmod(say_t, 3.1) < 0.1)
+	draw_texture(face, (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
 	_text(r.position + Vector2(26, 10), say_who, Color(col, a), 8)
 	for k in lines.size():
 		_text(r.position + Vector2(26, 20 + k * 10), lines[k], Color(0.92, 0.95, 1.0, a), 8)
@@ -570,7 +577,7 @@ func _draw_map(tc: Vector2, run: RunState) -> void:
 	var y := tc.y + 8
 	draw_rect(Rect2(x0 - 24, y - 7, (n - 1) * gap + 32, 14), Color(0.05, 0.03, 0.1, 0.6))
 	# which world you're in, before its rooms (research/story.md: the switch is always clear)
-	_text(Vector2(x0 - 21, y + 3), "W%d" % (run.world + 1), Color("#ff9a3a") if run.world > 0 else Color(0.75, 0.7, 0.85), 8, "bold")
+	_text(Vector2(x0 - 21, y + 3), "W%d" % (run.world + 1), [Color(0.75, 0.7, 0.85), Color("#ff9a3a"), Color("#c79bff")][clampi(run.world, 0, 2)], 8, "bold")
 	buttons["map"] = Rect2(x0 - 10, y - 10, (n - 1) * gap + 20, 22)   # tap the strip for the map
 	for i in n:
 		var p := Vector2(x0 + i * gap, y)

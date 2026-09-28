@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Renders art contact sheets (every sprite, frame, icon and tile at 4x) to shots/.
-# Usage: tools/artsheet.sh [chars|icons|tiles|fx|ui|all] [-- --only=label --scale=8]
+# Usage: tools/artsheet.sh [chars|icons|tiles|fx|ui|kernel|rooms|all] [-- --only=label --scale=8]
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/platform.sh"

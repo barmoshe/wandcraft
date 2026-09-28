@@ -62,7 +62,7 @@ func _paint() -> void:
 	var a1: int = Chapter.AREAS[1]["from"]
 	var areas: Array = Chapter.WORLDS[run.world]["areas"]
 	text_center(x0 + gx * (a1 - 1) / 2.0, cy + gy + 30, String(areas[0]["name"]).to_upper(), MUTED)
-	text_center(x0 + gx * (a1 + n - 1) / 2.0, cy + gy + 30, String(areas[1]["name"]).to_upper(), Style.c("ember:4") if run.world > 0 else Style.c("violet:4"))
+	text_center(x0 + gx * (a1 + n - 1) / 2.0, cy + gy + 30, String(areas[1]["name"]).to_upper(), [Style.c("violet:4"), Style.c("ember:4"), Style.c("glitch:4")][clampi(run.world, 0, 2)])
 	# design v2: the threat badges' legend
 	var lx := sr.position.x + 20
 	for th in Chapter.THREATS:

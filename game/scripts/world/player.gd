@@ -153,7 +153,7 @@ func tick(dt: float) -> void:
 	# movement
 	var mv := controls.move.limit_length(1.0)
 	var run := world.run
-	var speed := SPEED * Relics.stat(run, "move")
+	var speed := SPEED * Relics.stat(run, "move") * world.puddle_slow(position)
 	dash_cd = maxf(0.0, dash_cd - dt)
 	dash_inv = maxf(0.0, dash_inv - dt)
 	if controls.dash:
@@ -413,10 +413,15 @@ func _animate() -> void:
 	sprite.visible = inv <= 0.0 or fmod(inv, 0.12) > 0.05
 	# the wand is drawn pre-rotated (16 angles), never rotated as a sprite
 	var k := posmod(roundi(aim / (TAU / 16.0)), 16)
+	# 0.20: a wand skin (Hotfix's forge) swaps the shaft, and the gem if it has one
+	var sk: Dictionary = world.skin
 	var gem := Hero.gem_ramp(wand().def.color)
-	if gem != _gem:
-		_gem = gem
-		wand_tex = Hero.wand_angles(gem)
+	if String(sk.get("gem", "")) != "":
+		gem = String(sk["gem"]).get_slice(":", 0)
+	var body := String(sk.get("body", "wood"))
+	if gem + body != _gem:
+		_gem = gem + body
+		wand_tex = Hero.wand_angles(gem, body)
 	wand_sprite.texture = wand_tex[k]
 	wand_sprite.visible = true
 	tip_glow.visible = true

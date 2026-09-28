@@ -1,7 +1,8 @@
 extends Node2D
 ## Contact sheets for art review: every sprite, frame, icon and tile drawn at 4x on a dark
 ## ground with a label, saved to shots/artsheet-<name>.png. Run: tools/artsheet.sh [name].
-## Sheets: chars, icons, tiles, fx, ui, all (default); style; check (D1 readability).
+## Sheets: chars, icons, tiles, fx, ui, all (default); style; check (D1 readability);
+## kernel (World 3's new art), rooms (every room theme).
 
 var S := 4
 const PAD := 6
@@ -73,6 +74,11 @@ func _collect() -> void:
 		ArtSheets.ui(self)
 	if want.call("anim"):
 		ArtSheets.anim(self)
+	if sheet == "kernel":
+		ArtSheets.kernel_chars(self)
+		ArtSheets.kernel_fx(self)
+	if sheet == "rooms":
+		ArtSheets.rooms(self)
 	if sheet == "style":
 		ArtSheets.style(self)
 	if sheet == "check":

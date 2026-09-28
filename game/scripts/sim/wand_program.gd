@@ -116,6 +116,8 @@ func _idx(p: int) -> int:
 
 
 func _spell_at(i: int) -> SpellDef:
+	if i == wand.suspended:
+		return null   # 0.20: an Interrupt holds this slot
 	var s: Variant = slots[i]
 	return null if s == null else Catalog.spell(s["id"])
 

@@ -28,7 +28,12 @@ func test_the_loops_exit_leads_to_world_two() -> void:
 	eq(Chapter.depth(world.run), 10, "difficulty counts on from World 1")
 	world.run.step = Chapter.PLAN.size() - 1
 	world.go_through({"kind": "exit"})
-	ok(world.run.won, "World 2's exit wins the run")
+	eq(world.run.world, 2, "World 2's exit leads on to World 3 (0.20)")
+	ok(not world.run.won, "the run still goes on")
+	eq(world.biome(), 4, "the Page Archive")
+	world.run.step = Chapter.PLAN.size() - 1
+	world.go_through({"kind": "exit"})
+	ok(world.run.won, "World 3's exit wins the run")
 
 
 func test_the_descent_opens_the_world_screen_then_pays_the_bonus() -> void:

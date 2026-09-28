@@ -316,6 +316,115 @@ const ART := {
 		"b": [],
 		"b_at": Vector2i.ZERO, "a_at": Vector2i.ZERO, "move": "a", "mo": Vector2i(0, 1),
 	},
+	# 0.20, World 3 the Kernel. The Page Leak: a cracked glass jar of amber memory with the
+	# lid knocked askew, spilling down its side and dripping (its puddles are KernelArt.puddle).
+	"leak": {
+		"w": 16, "h": 17,
+		"pal": {"1": "amber:1", "2": "amber:2", "3": "amber:3", "4": "amber:4", "g": "bone:1", "G": "bone:3",
+			"k": "quill:1", "s": "brass:2", "S": "brass:4", "w": "vellum:4", "o": "quill:0"},
+		"a": [
+			".......sSSs.....",
+			"......sSSSSs....",
+			"......gkkkg.....",
+			".....g3kk33g....",
+			"...Gg3333333g...",
+			"..GG344444433g..",
+			"..G34ww44ww433g.",
+			"..G34wo44wo432g3",
+			"..G3444444443g.3",
+			"..g3344444433g.3",
+			"..g2333333332g.2",
+			"...g22222222g...",
+			"....gggggggg....",
+		],
+		"b": [
+			"....3....2......",
+			"....2.......3...",
+			"............2...",
+			"................",
+		],
+		"b1": [
+			"....3...........",
+			"....3....2......",
+			"....2.......3...",
+			"............2...",
+		],
+		"b_at": Vector2i(0, 13), "a_at": Vector2i(0, 0), "move": "b", "mo": Vector2i.ZERO,
+	},
+	# The Dangling Pointer: a thin cursor-arrow critter with a hollow "0" in its head. It draws a
+	# pointer line, then blinks to its end.
+	"null_ptr": {
+		"w": 20, "h": 12,
+		"pal": {"P": "phosphor:3", "p": "phosphor:2", "3": "quill:4", "2": "quill:3", "r": "phosphor:4",
+			"h": "void:0", "l": "quill:4"},
+		"a": [
+			".........P..........",
+			".........3PP........",
+			".........333PP......",
+			".........333rrPP....",
+			"PP.......33rhhr3PP..",
+			".PPPPPPPP33rhhr333PP",
+			".2222222222rhhr2pp..",
+			"22.......222rrpp....",
+			".........222pp......",
+			".........2pp........",
+			".........p..........",
+		],
+		"b": [
+			"...........l.l.l....",
+			"..........l.l.l.....",
+			"....................",
+		],
+		"b1": [
+			"..........l.l.l.....",
+			"...........l.l.l....",
+			"....................",
+		],
+		"b_at": Vector2i(0, 9), "a_at": Vector2i(0, 0), "move": "b", "mo": Vector2i.ZERO, "b_under": true,
+	},
+	# The Interrupt: a small brass bell imp under a siren light, with little nest wings and a
+	# padlock on a chain for a tail (it locks one of your spells while it lives).
+	"interrupt": {
+		"w": 14, "h": 21,
+		"pal": {"N": "nest:4", "n": "nest:3", "b": "brass:2", "2": "brass:2", "3": "brass:3", "4": "brass:4",
+			"o": "void:0", "w": "nest:2", "c": "steel:3", "k": "steel:2", "L": "steel:3", "S": "steel:4", "y": "void:0"},
+		"a": [
+			"......NN......",
+			".....NnnN.....",
+			"......bb......",
+			".....b34b.....",
+			"....b3444b....",
+			"w..b344444b..w",
+			"ww.b3o44o4b.ww",
+			"wwwb344443bwww",
+			".w.b344443b.w.",
+			"..b33444433b..",
+			".b2333333332b.",
+			"bbbbbbbbbbbbbb",
+			"......cc......",
+		],
+		"b": [
+			"......k.......",
+			".......k......",
+			"......k.......",
+			".....LLL......",
+			"....L...L.....",
+			"....SSSSS.....",
+			"....SSySS.....",
+			"....SSSSS.....",
+		],
+		"b1": [
+			"......k.......",
+			".......k......",
+			".......k......",
+			"......LLL.....",
+			".....L...L....",
+			".....SSSSS....",
+			".....SSySS....",
+			".....SSSSS....",
+		],
+		"b_at": Vector2i(0, 13), "a_at": Vector2i(0, 0), "move": "b", "mo": Vector2i.ZERO,
+	},
 }
 
 
@@ -580,6 +689,9 @@ const TELE_EYES := {
 	"stump": {"o": "threat:3", "g": "threat:4"},
 	"tick": {"g": "threat:3", "G": "threat:4"},
 	"loop_seg": {"y": "threat:3", "Y": "threat:4"},
+	"leak": {"o": "threat:3", "w": "threat:4"},
+	"null_ptr": {"r": "threat:4", "h": "threat:2"},
+	"interrupt": {"N": "threat:4", "n": "threat:3", "o": "threat:3"},
 }
 ## Rows of empty sky above every rig, so a stretch never clips the top of the head.
 const HEADROOM := 2

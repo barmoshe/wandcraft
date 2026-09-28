@@ -35,6 +35,8 @@ const POOL := [
 	{"kind": "terminal", "reward": "", "w": 0.5},
 ]
 const LANES := 3
+## 0.20: the room step where a world's caged resident waits (middle lane).
+const RESIDENT_STEP := 3
 ## World 1's two areas (D5): the room steps each one covers, and its name.
 const AREAS := [{"name": "The Mossy Root Cellar", "from": 0}, {"name": "The Corrupted Grove", "from": 6}]
 ## Every world's areas (research/design-w2.md): World 2 is the Overheated Foundry, the same
@@ -42,6 +44,8 @@ const AREAS := [{"name": "The Mossy Root Cellar", "from": 0}, {"name": "The Corr
 const WORLDS := [
 	{"name": "World 1", "areas": AREAS},
 	{"name": "World 2", "areas": [{"name": "The Cooling Vents", "from": 0}, {"name": "The Molten Core", "from": 6}]},
+	# 0.20 (research/world3-0.20.md): World 3, the Kernel, run after Deadlock falls
+	{"name": "World 3", "areas": [{"name": "The Page Archive", "from": 0}, {"name": "Ring Zero", "from": 6}]},
 ]
 
 const INFO := {
@@ -62,6 +66,7 @@ const INFO := {
 	"exit": {"name": "Onward", "color": "#ffe066"},
 	"descend": {"name": "Down to the next world", "color": "#ff9a3a"},
 	"risk": {"name": "Untouched", "color": "#9fe8ff"},
+	"resident": {"name": "Someone Caged", "color": "#72e06a"},
 }
 
 ## Design v3: room twists some fights carry (the banner says so): an ambush (the first wave
@@ -205,6 +210,11 @@ static func make_map(run: RunState) -> Array:
 			var lane := rng.randi() % LANES
 			if not is_quiet(out[at][lane]["kind"]) or lane != 1:
 				out[at][lane] = {"kind": &"risk", "reward": &"relic"}
+	# 0.20: this world's resident waits in a cage (Residents), on the middle lane of the third
+	# room, which every lane reaches, until they are rescued. A fight: clearing it frees them.
+	var who := Residents.waiting_in(run)
+	if who != &"":
+		out[RESIDENT_STEP][1] = {"kind": &"resident", "reward": &"resident", "who": who}
 	return out
 
 

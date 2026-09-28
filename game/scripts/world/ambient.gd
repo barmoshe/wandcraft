@@ -24,8 +24,15 @@ var grove := false
 var mode := 0                 # the biome (World.biome): 2 the Cooling Vents, 3 the Molten Core
 ## World 2 (research/design-w2.md): tufts go to wire and ash, the drift rises (steam in the
 ## Vents, embers in the Core), and the veins run coolant blue or lava orange.
-const TUFT := [["moss:2", "moss:3"], ["violet:2", "violet:3"], ["steel:1", "steel:2"], ["rust:1", "ember:1"]]
+## World 3 (0.20): the Archive's tufts are paper scraps, its motes dust in the lamp light and
+## its drift pages falling from the stacks (no veins); Ring Zero's tufts are nest cilia, its
+## drift phosphor bits rising, and pulses run along its brass traces on a heartbeat.
+const TUFT := [["moss:2", "moss:3"], ["violet:2", "violet:3"], ["steel:1", "steel:2"], ["rust:1", "ember:1"],
+	["quill:3", "vellum:2"], ["nest:1", "nest:2"]]
 const VEIN_COL := [Color(0, 0, 0), Color(0.95, 0.25, 0.75), Color(0.25, 0.7, 0.95), Color(1.0, 0.45, 0.12)]
+## Ramp keys for the newer modes' glow (the additive layer), by mode.
+const GLOW_KEY := {4: "amber:3", 5: "phosphor:4"}
+const MAX_MOTES := 36
 var _acc := 0.0
 var _t := 0.0
 
@@ -44,7 +51,8 @@ func reset(seed_value: int) -> void:
 	rng.seed = seed_value
 	mode = world.biome()
 	grove = mode == 1
-	veins = RoomPainter.veins(world.grid, world.gw, world.gh, seed_value) if mode != 0 else []
+	var th: Dictionary = RoomPainter.THEMES[clampi(mode, 0, RoomPainter.THEMES.size() - 1)]
+	veins = RoomPainter.veins(world.grid, world.gw, world.gh, seed_value) if mode != 0 and th["veins"] else []
 	tufts.clear()
 	motes.clear()
 	leaves.clear()
@@ -56,8 +64,12 @@ func reset(seed_value: int) -> void:
 		if world.tile_at(x, y) != 0:
 			continue
 		tufts.append([Vector2(x * World.TS + rng.randi_range(2, 13), y * World.TS + rng.randi_range(4, 14)), 0.0, 0.0])
+	# the Archive: more dust in each lamp's light (still capped, phone-cheap)
+	var per := 7 if mode == 4 else 5
 	for tp in world.torches:
-		for k in 5:
+		for k in per:
+			if motes.size() >= MAX_MOTES:
+				break
 			motes.append([tp + Vector2(rng.randf_range(-22, 22), rng.randf_range(-20, 14)), rng.randf() * TAU, tp])
 
 
@@ -92,7 +104,7 @@ func _process(dt: float) -> void:
 		m[0] = home + Vector2(cos(m[1]) * 18.0, sin(m[1] * 1.3) * 12.0 - 4.0)
 	# a leaf now and then from the top edge
 	# (World 2: steam and embers rise from the bottom edge instead)
-	var rises := mode >= 2
+	var rises := mode == 2 or mode == 3 or mode == 5
 	if leaves.size() < MAX_LEAVES and rng.randf() < (0.08 if rises else 0.04):
 		var y0 := world.gh * World.TS + 8.0 if rises else -8.0
 		leaves.append([Vector2(rng.randf_range(0, world.gw * World.TS), y0), Vector2(rng.randf_range(-6, 6), -18.0 if rises else 14.0), rng.randf() * TAU])
@@ -119,6 +131,15 @@ func _draw() -> void:
 		draw_rect(Rect2(p + Vector2(-1 + lean, -2), Vector2.ONE), lit)
 		draw_rect(Rect2(p + Vector2(lean, -3), Vector2.ONE), lit)
 		draw_rect(Rect2(p + Vector2(1 + lean, -2), Vector2.ONE), dark)
+	if mode == 4:
+		# pages seesaw down from the stacks: a 2x2 sheet that flips between face and edge
+		for lf in leaves:
+			var p := (lf[0] as Vector2).round()
+			var face := sin(lf[2]) > 0.0
+			draw_rect(Rect2(p, Vector2(2, 2) if face else Vector2(3, 1)), Style.c("vellum:3") if face else Style.c("vellum:2"))
+			if face:
+				draw_rect(Rect2(p, Vector2(2, 1)), Style.c("vellum:4"))
+		return
 	if mode != 0:
 		return   # the Grove's spores, the Foundry's steam and embers glow (the additive layer)
 	for lf in leaves:
@@ -132,8 +153,15 @@ func _draw_motes() -> void:
 	for m in motes:
 		var p := (m[0] as Vector2).round()
 		var tw := 0.35 + 0.25 * sin(m[1] * 3.0)
-		glow.draw_rect(Rect2(p, Vector2.ONE), Color(0.9 * tw, 0.35 * tw, 0.8 * tw) if grove else Color(1.0 * tw, 0.75 * tw, 0.45 * tw))
-	if mode == 0:
+		var mc := Color(1.0, 0.75, 0.45)
+		if grove:
+			mc = Color(0.9, 0.35, 0.8)
+		elif mode == 4:
+			mc = Style.c("amber:4")
+		elif mode == 5:
+			mc = Style.c("nest:4")
+		glow.draw_rect(Rect2(p, Vector2.ONE), Color(mc.r * tw, mc.g * tw, mc.b * tw))
+	if mode == 0 or mode == 4:
 		return
 	# the Grove's spores drift down, pink; the Vents' steam and the Core's embers rise
 	for lf in leaves:
@@ -144,15 +172,23 @@ func _draw_motes() -> void:
 				glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * k, 0.35 * k, 0.8 * k))
 			2:
 				glow.draw_rect(Rect2(p, Vector2(2, 1)), Color(0.35 * k, 0.45 * k, 0.55 * k))
+			5:
+				var pc := Style.c(GLOW_KEY[5])
+				glow.draw_rect(Rect2(p, Vector2.ONE), Color(pc.r * k * 0.7, pc.g * k * 0.7, pc.b * k * 0.7))
 			_:
 				glow.draw_rect(Rect2(p, Vector2.ONE), Color(1.0 * k, 0.5 * k, 0.12 * k))
-	# a slow pulse travels along each vein, from its root outward
+	# a slow pulse travels along each vein, from its root outward. Ring Zero: phosphor along
+	# the brass traces, all of them swelling together on the nest's heartbeat (lub-dub)
+	var beat := 1.0
+	if mode == 5:
+		var ph := fmod(_t, 1.2)
+		beat = 0.55 + 0.45 * maxf(exp(-pow((ph - 0.1) * 14.0, 2.0)), 0.7 * exp(-pow((ph - 0.36) * 14.0, 2.0)))
 	for vi in veins.size():
 		var line: PackedVector2Array = veins[vi]
 		for i in line.size():
 			var w := sin(_t * 2.2 - i * 0.18 + vi * 1.7)
 			if w <= 0.4:
 				continue
-			var a := (w - 0.4) / 0.6 * (0.75 if mode == 3 else 0.55)
-			var vc: Color = VEIN_COL[mode]
+			var a := (w - 0.4) / 0.6 * (0.75 if mode == 3 else 0.55) * beat
+			var vc: Color = VEIN_COL[mode] if mode < VEIN_COL.size() else Style.c(GLOW_KEY.get(mode, "phosphor:4"))
 			glow.draw_rect(Rect2(line[i], Vector2.ONE), Color(vc.r * a, vc.g * a, vc.b * a))

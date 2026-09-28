@@ -97,6 +97,13 @@ func _ready() -> void:
 		m["intro_seen"] = m["runs"] > 0
 		m["bits"] = int(_args.get("bits", "0"))
 		SaveGame.save_meta(m)
+	if _args.has("residents"):
+		# screenshots: residents moved in (--residents=grep,hotfix,cache --pages=N)
+		for id in String(_args["residents"]).split(","):
+			Residents.rescue(StringName(id))
+		var m := SaveGame.load_meta()
+		m["pages"] = int(_args.get("pages", "0"))
+		SaveGame.save_meta(m)
 	if direct and not _args.get("screen", "") in ["title", "hub"] and not _HUB_SCREENS.has(_args.get("screen", "")):
 		_start_from_args()
 	elif _HUB_SCREENS.has(_args.get("screen", "")):
@@ -114,7 +121,8 @@ func _ready() -> void:
 
 ## Screens a screenshot can open straight in the Workshop (--screen=NAME).
 const _HUB_SCREENS := {"runsheet": "portal", "heroes": "heroes", "bench": "repl", "pkg": "pkg",
-	"board": "bounty", "docs": "docs", "wall": "log", "terminal": "terminal", "hubmenu": "menu"}
+	"board": "bounty", "docs": "docs", "wall": "log", "terminal": "terminal", "hubmenu": "menu",
+	"grep": "grep", "hotfix": "hotfix", "cache": "cache"}
 
 ## True while the player walks the Workshop (between runs).
 var _hub := false
@@ -200,6 +208,14 @@ func _hub_use(id := "", arg := -1) -> void:
 		"duck", "lint":
 			Story.say("hub_" + id)
 			return
+		"grep", "hotfix", "cache":
+			var rs := ResidentScreen.new()
+			rs.who = StringName(id)
+			world.paused = true
+			_open(rs, func(_res: Dictionary) -> void:
+				world.paused = false
+				world.skin = Residents.skin(Residents.skin_on()))
+			return
 		"portal":
 			world.paused = true
 			_open(RunSheet.new(), func(res: Dictionary) -> void:
@@ -282,16 +298,28 @@ func _launch(res: Dictionary) -> void:
 
 
 ## The story's panels (research/story.md): the intro before a first run, the ending on a
-## first win. Each shows once; `then` runs after (or straight away once seen).
+## first win, and (0.20) the true ending the first time you fix forward. Each shows once;
+## `then` runs after (or straight away once seen). The ending's key is new in 0.20: it moved
+## from Deadlock to the Glitch, so a 0.19 winner sees the new one.
 func _story_then(which: StringName, then: Callable) -> void:
-	var key := "intro_seen" if which == &"intro" else "ending_seen"
+	var key: String = {&"intro": "intro_seen", &"ending": "ending3_seen", &"true_ending": "true_seen"}[which]
 	if bool(SaveGame.load_meta().get(key, false)) and _args.get("screen", "") != String(which):
 		then.call()
 		return
 	var s := StoryScreen.new()
-	s.panels = Story.INTRO if which == &"intro" else Story.ENDING
-	s.who = Story.INTRO_WHO if which == &"intro" else Story.ENDING_WHO
-	s.art = Story.INTRO_ART if which == &"intro" else Story.ENDING_ART
+	match which:
+		&"intro":
+			s.panels = Story.INTRO
+			s.who = Story.INTRO_WHO
+			s.art = Story.INTRO_ART
+		&"ending":
+			s.panels = Story.ENDING
+			s.who = Story.ENDING_WHO
+			s.art = Story.ENDING_ART
+		_:
+			s.panels = Story.TRUE_ENDING
+			s.who = Story.TRUE_ENDING_WHO
+			s.art = Story.TRUE_ENDING_ART
 	s.last_label = "BEGIN" if which == &"intro" else "DONE"
 	s.voice_prefix = String(which)
 	_open(s, func(_res: Dictionary) -> void:
@@ -422,8 +450,11 @@ func _start_from_args() -> void:
 				screen.show_glossary = true   # screenshots of the glossary sheet
 		"world":
 			world.paused = true
-			_on_ui_request(&"world", {"to": 1})
-		"intro", "ending":
+			_on_ui_request(&"world", {"to": int(_args.get("to", "1"))})
+		"commit":
+			world.paused = true
+			_open(CommitScreen.new(), func(_r: Dictionary) -> void: pass)
+		"intro", "ending", "true_ending":
 			world.paused = true
 			_story_then(StringName(_args["screen"]), func() -> void: pass)
 		"credits":
@@ -593,17 +624,37 @@ func _bot_answer(kind: StringName, data: Dictionary) -> void:
 			_begin(RunState.create(world.run.seed_value + 1))
 
 
+var _chose := false   # 0.20: the commit choice was made for this ending
+
+
 func _open_end(won: bool, how := "") -> void:
 	_playing = false
+	# 0.20: with the true ending open, the Glitch's fall asks first: revert or fix forward
+	if won and not _chose and Residents.true_ending_open() and world.run.daily == "":
+		_open(CommitScreen.new(), func(res: Dictionary) -> void:
+			_chose = true
+			if res.get("choice", "") == "forward":
+				world.run.stats["fixed"] = 1
+				Residents.set_flag("fixed_forward")
+				Story.find_log("true")
+				_open_end(true, "forward")
+			else:
+				_open_end(true, how))
+		return
+	var forward := how == "forward"
+	_chose = false
+	if forward:
+		how = ""
 	SaveGame.record_run(world.run, how, "" if won else world.player.last_hurt_by)
 	RunLog.finish(world.run, "" if won else world.player.last_hurt_by)
 	Audio.music("")
 	Audio.sting("victory" if won else "defeat")
 	if won:
-		# a first win: the ending, and the last two commit logs
-		_story_then(&"ending", func() -> void:
+		# a first win: the ending and the Duck's commit log; fixing forward: the true ending
+		_story_then(&"true_ending" if forward else &"ending", func() -> void:
 			Story.find_log("win")
-			Story.find_log("win")
+			if forward and Game.quiet == 0:
+				Story.say("true_win")
 			_open_end_screen(true))
 		return
 	_open_end_screen(false)

@@ -24,6 +24,7 @@ var depth_cap := 3      # Stack Overflow lets payloads nest deeper
 var fresh := false      # the wand just recharged (Cold Start)
 var idle := 0.0         # seconds since this wand last cast (Watchdog)
 var bg_t := 3.0         # Daemon Rod: time until the background slot fires
+var suspended := -1     # 0.20: a slot an Interrupt holds (the program reads it as empty)
 
 
 static func make(wand: WandDef, ids: Array = []) -> WandState:

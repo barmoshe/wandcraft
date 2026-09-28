@@ -30,7 +30,7 @@ func test_lines_play_in_order_then_pick() -> void:
 func test_every_line_has_a_speaker_and_a_unique_id() -> void:
 	var ids := {}
 	for l in Story.all_lines():
-		ok(l["who"] == Story.DUCK or l["who"] == Story.LINT, "%s: the Duck or LINT" % l["id"])
+		ok(Story.SPEAKERS.has(l["who"]), "%s: a known speaker" % l["id"])
 		ok(not ids.has(l["id"]), "%s is unique" % l["id"])
 		ids[l["id"]] = true
 		ok(String(l["text"]).length() <= 120, "%s is short enough to say in 6 s" % l["id"])
@@ -49,8 +49,11 @@ func test_the_commit_log_is_found_in_order() -> void:
 	eq(Story.find_log("grove"), {}, "once")
 	eq(Story.find_log()["id"], "c0ffee", "terminals skip the beat entries")
 	eq(Story.logs_found().map(func(l: Dictionary) -> String: return l["id"]), ["a1f00d", "b00b1e", "c0ffee", "deadbe"], "found, in log order")
-	eq(Story.find_log("win")["id"], "7e57ed", "the win gives two")
-	eq(Story.find_log("win")["id"], "c10ud0", "the second")
+	eq(Story.find_log("win")["id"], "7e57ed", "the win gives the Duck's")
+	eq(Story.find_log("down:Deadlock")["id"], "10c4ed", "Deadlock's fall gives two")
+	eq(Story.find_log("down:Deadlock")["id"], "c10ud0", "the second: mkdir /world3")
+	eq(Story.find_log_id("1a7e57")["id"], "1a7e57", "a resident's beat gives its own by id")
+	eq(Story.find_log_id("1a7e57"), {}, "once")
 
 
 func test_the_intro_is_marked_seen() -> void:

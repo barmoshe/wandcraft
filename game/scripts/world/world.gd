@@ -183,6 +183,14 @@ var wave_live: Array = []       # the enemies of the latest wave (the next comes
 var puzzle: StringName = &""    # a themed puzzle room (Encounter.PUZZLES), or none
 var orb: Dictionary = {}       # reward orb: {"pos", "kind", "t"}
 var npc: Dictionary = {}       # {"pos", "kind": shop|forge|spring, "used", "near"}
+## 0.20: a resident's cage in a Resident room (Residents): {"pos", "who", "open", "t"}
+var cage: Dictionary = {}
+## 0.20: Page Leak puddles: {"pos", "r", "owner" (uid), "t"}. They grow while their leak lives.
+var puddles: Array = []
+const PUDDLE_R0 := 5.0
+const PUDDLE_MAX := 15.0
+const PUDDLE_GROW := 1.6      # px a second
+const PUDDLE_SLOW := 0.55     # your speed inside one
 ## 0.19: the Workshop, while the player is in it (null during a run).
 var hub: Hub = null
 var boss: Boss
@@ -313,9 +321,14 @@ func setup(seed_value: int) -> void:
 
 
 ## Starts (or resumes) a run: builds the room the run is standing in.
+## 0.20: the wand skin worn this run (Residents.SKINS; the plain oak when none).
+var skin: Dictionary = {}
+
+
 func start_run(r: RunState) -> void:
 	hub = null
 	run = r
+	skin = Residents.skin(Residents.skin_on())
 	rng.seed = r.seed_value * 7919 + r.step
 	player.set_look(r.hero)
 	player.dead = false
@@ -329,6 +342,7 @@ func start_run(r: RunState) -> void:
 func enter_hub(r: RunState) -> void:
 	assert(not bot, "the bot never enters the Workshop")
 	run = r
+	skin = Residents.skin(Residents.skin_on())
 	rng.seed = 4242
 	player.set_look(r.hero)
 	player.dead = false
@@ -391,6 +405,8 @@ func room_music(kind: StringName) -> String:
 		return "boss"
 	if kind == &"shop" or kind == &"forge":
 		return "shop"
+	if biome() >= 4:
+		return "kernel"
 	if biome() >= 2:
 		return "foundry"
 	return "cellar" if biome() == 0 else "grove"
@@ -480,7 +496,8 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_paint_seed = run_seed * 131 + (run.step if run else 0) * 17 + tpl.length()
 	_repaint()
 	life.reset(_paint_seed)
-	_ambient.color = [AMBIENT, AMBIENT.lerp(Style.c("violet:4"), 0.12), AMBIENT.lerp(Style.c("frost:4"), 0.1), AMBIENT.lerp(Style.c("ember:4"), 0.14)][biome()]
+	_ambient.color = [AMBIENT, AMBIENT.lerp(Style.c("violet:4"), 0.12), AMBIENT.lerp(Style.c("frost:4"), 0.1), AMBIENT.lerp(Style.c("ember:4"), 0.14),
+		AMBIENT.lerp(Style.c("vellum:4"), 0.3), AMBIENT.lerp(Style.c("frost:4"), 0.06)][biome()]
 	if run and Chapter.twist_of(run.room) == &"dark" and kind == &"fight":
 		_ambient.color = _ambient.color.darkened(0.6)   # design v3: lights out
 	var vs := RoomPainter.size_px(gw, gh)
@@ -501,6 +518,11 @@ func build_room(tpl: String, kind: StringName) -> void:
 	wave_t = 0.8
 	wave_live.clear()
 	puzzle = &""
+	cage = {}
+	puddles.clear()
+	if run:
+		for w in run.wands:
+			w.suspended = -1
 	var mid := _find_floor(gw / 2, gh / 2 - 1)
 	match kind:
 		&"start":
@@ -517,12 +539,16 @@ func build_room(tpl: String, kind: StringName) -> void:
 			boss_t = 1.0
 		&"fight", &"challenge", &"glitch", &"risk":
 			waves = _compose_waves(kind)
+		&"resident":
+			# 0.20: a fight around a cage; clearing it frees who's inside (Residents)
+			waves = _compose_waves(&"fight")
+			cage = {"pos": mid, "who": StringName(run.room.get("who", "grep")), "open": false, "t": 0.0}
 		&"empty", &"hub":
 			cleared = true   # tests and the showcase: a room with nothing in it; the Workshop
 	_deco.queue_redraw()
 	if Game.quiet == 0:
 		Audio.music(room_music(kind))
-		Audio.ambience(["cellar", "grove", "foundry", "foundry"][biome()])
+		Audio.ambience(["cellar", "grove", "foundry", "foundry", "kernel", "kernel"][biome()])
 		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 			"title": _room_title(kind)})
 		_story_on_enter(kind)
@@ -535,7 +561,10 @@ func _story_on_enter(kind: StringName) -> void:
 	if run == null or run.daily != "" or kind == &"hub":
 		return
 	if kind == &"start":
-		if run.world >= 1:
+		if run.world >= 2:
+			Story.say("world3")
+			Story.find_log("world3")
+		elif run.world == 1:
 			Story.say("world2")
 		else:
 			Story.say("first_run" if run.tutorial or not Story.intro_seen() else "run")
@@ -545,8 +574,10 @@ func _story_on_enter(kind: StringName) -> void:
 		if run.world == 0:
 			Story.say("grove")
 			Story.find_log("grove")
-		else:
+		elif run.world == 1:
 			Story.say("core")
+		else:
+			Story.say("ring")
 	elif kind == &"terminal":
 		Story.find_log()
 
@@ -652,25 +683,37 @@ func _count(key: String, n := 1) -> void:
 var force_mini: StringName = &""   # tests: &"copy_paste" or &"collector"
 
 
-## World 2 meets the one World 1 did not.
+## World 2 meets the one World 1 did not; World 3 meets Data Race (0.20).
 func mini_boss() -> Boss:
 	if force_mini == &"collector":
 		return BossCollector.new()
+	if force_mini == &"race":
+		return BossRace.new()
 	if force_mini == &"copy_paste" or run == null:
 		return BossCopyPaste.new()
+	if run.world >= 2:
+		return BossRace.new()
 	var cp := run.tutorial or run.seed_value % 2 == 1
 	if run.world % 2 == 1:
 		cp = not cp
 	return BossCopyPaste.new() if cp else BossCollector.new()
 
 
+## Each world's boss: the Infinite Loop, Deadlock, then the Glitch in the Kernel (0.20).
+func world_boss() -> Boss:
+	var w := run.world if run else 0
+	if w >= 2:
+		return BossGlitch.new()
+	return BossDeadlock.new() if w == 1 else BossLoop.new()
+
+
 func _spawn_boss() -> void:
-	var b: Boss = mini_boss() if room_kind == &"mini" else (BossDeadlock.new() if run and run.world >= 1 else BossLoop.new())
+	var b: Boss = mini_boss() if room_kind == &"mini" else world_boss()
 	_uid += 1
 	enemies.append(b)
 	_actors.add_child(b)
 	b.setup_boss(self, Vector2(gw * TS / 2.0, gh * TS * 0.35), _uid)
-	if run and run.world >= 1 and b.mini:
+	if run and run.world == 1 and b.mini:
 		b.max_hp *= 1.7    # World 2's mini-boss: the other one, version 2.0
 		b.hp = b.max_hp
 		b.title += " 2.0"
@@ -719,6 +762,9 @@ func _clear_room(reward := true) -> void:
 				player.heal(run.max_hp)
 				Audio.sfx("heal")
 				run.stats["worlds"] = run.world + 1   # the goal "Defeat the Infinite Loop" counts now
+			_lost_page()
+		&"resident":
+			_free_resident()
 		&"challenge", &"glitch":
 			orb = {"pos": mid, "kind": room_kind, "t": 0.0}
 		&"risk":
@@ -761,6 +807,123 @@ func _open_doors() -> void:
 			grid[int(d["col"]) + dx] = 0
 	grid_ver += 1
 	_deco.queue_redraw()
+
+
+## 0.20, World 3: a Page Leak's puddle, where it stands.
+func add_puddle(e: Enemy, pos: Vector2) -> void:
+	if puddles.size() >= 24:
+		return
+	puddles.append({"pos": pos, "r": PUDDLE_R0, "owner": e.uid, "t": 0.0})
+	Audio.sfx("leak_drip", pos)
+
+
+## Its memory freed: every puddle it left dries up.
+func dry_puddles(e: Enemy) -> void:
+	var n := puddles.size()
+	puddles = puddles.filter(func(p: Dictionary) -> bool: return int(p["owner"]) != e.uid)
+	if puddles.size() < n:
+		Audio.sfx("leak_dry", e.position)
+		fx.text(e.position + Vector2(0, -16), "MEMORY FREED", Style.c("gold:4"))
+
+
+func _grow_puddles(dt: float) -> void:
+	for p in puddles:
+		p["r"] = minf(PUDDLE_MAX, float(p["r"]) + PUDDLE_GROW * dt)
+		p["t"] = float(p["t"]) + dt
+
+
+## How fast you move here: slowed inside a puddle.
+func puddle_slow(pos: Vector2) -> float:
+	for p in puddles:
+		if pos.distance_squared_to(p["pos"]) < float(p["r"]) * float(p["r"]):
+			return PUDDLE_SLOW
+	return 1.0
+
+
+## A Dangling Pointer snapped from `from` to `to`: you're hit if you stood on the line.
+func pointer_snap(e: Enemy, from: Vector2, to: Vector2) -> void:
+	Audio.sfx("null_blink", to)
+	fx.ring(to, 2.0, 12.0, 0.2, Style.c("threat:4"))
+	var p := player.position
+	var seg := Geometry2D.get_closest_point_to_segment(p, from, to)
+	if p.distance_to(seg) < Enemy.POINT_W / 2.0 + player.r:
+		player.hurt(e.dmg, to, "snap:%s" % e.kind)
+
+
+## An Interrupt takes one of your wand's spells while it lives: a boost or a trigger first,
+## a shooting spell only if the wand keeps another. One lock at a time.
+func interrupt_claim(e: Enemy) -> void:
+	if run == null or player == null:
+		return
+	var w := run.wand()
+	if w.suspended >= 0:
+		return
+	var boosts: Array = []
+	var shots: Array = []
+	for i in w.slots.size():
+		var s: Variant = w.slots[i]
+		if s == null:
+			continue
+		var d := Catalog.spell(s["id"])
+		if d == null or d.kind == SpellDef.Kind.PASSIVE:
+			continue
+		if d.kind == SpellDef.Kind.PROJ:
+			shots.append(i)
+		else:
+			boosts.append(i)
+	var pick := -1
+	if not boosts.is_empty():
+		pick = boosts[rng.randi() % boosts.size()]
+	elif shots.size() >= 2:
+		pick = shots[rng.randi() % shots.size()]
+	if pick < 0:
+		return
+	w.suspended = pick
+	e.lock_wand = w
+	Audio.sfx("interrupt_lock", e.position)
+	fx.text(player.position + Vector2(0, -30), "SPELL SUSPENDED", Style.c("violet:4"), 10)
+	if run.daily == "" and not bool(run.stats.get("interrupted", false)):
+		run.stats["interrupted"] = true
+		Story.say("interrupt")
+
+
+func interrupt_release(e: Enemy) -> void:
+	if e.lock_wand != null:
+		e.lock_wand.suspended = -1
+		e.lock_wand = null
+		Audio.sfx("interrupt_free", player.position if player else e.position)
+		if player:
+			fx.text(player.position + Vector2(0, -30), "SPELL BACK", Style.c("violet:4"))
+
+
+## 0.20: the cage opens. The resident draws in, says hello, and moves into the Workshop.
+func _free_resident() -> void:
+	if cage.is_empty():
+		_open_doors()
+		return
+	cage["open"] = true
+	cage["t"] = 0.0
+	var who: StringName = cage["who"]
+	Residents.rescue(who)
+	run.stats["residents"] = int(run.stats.get("residents", 0)) + 1
+	Audio.sfx("resident_free", cage["pos"])
+	fx.text(cage["pos"] + Vector2(0, -40), "%s JOINS THE WORKSHOP" % String(Residents.DEFS[who]["name"]).to_upper(), Color("#72e06a"), 10)
+	if Game.quiet == 0 and run.daily == "":
+		for l in Residents.freed_lines(who):
+			Events.say.emit(l["who"], l["text"], l["id"])
+	_open_doors()
+
+
+## 0.20: once Cache lives in the Workshop, each boss and mini-boss drops a Lost Page.
+func _lost_page() -> void:
+	if run.daily != "":
+		return
+	var i := Residents.find_page()
+	if i < 0:
+		return
+	run.stats["pages"] = int(run.stats.get("pages", 0)) + 1
+	Audio.sfx("page_take", player.position)
+	Events.toast.emit("Lost Page: %s (%d of %d)" % [Residents.PAGES[i]["title"], i + 1, Residents.PAGES.size()])
 
 
 ## Called by main.gd when the reward screen closes (taken or skipped).
@@ -919,6 +1082,7 @@ func step(dt: float) -> void:
 	spells.update(dt)
 	_update_enemy_bullets(dt)
 	_leak(dt)
+	_grow_puddles(dt)
 	_update_room(dt)
 	_music_layers()
 	_check_doors()
@@ -929,6 +1093,8 @@ func _update_room(dt: float) -> void:
 	if hub:
 		hub.update(dt)
 		return
+	if not cage.is_empty() and cage["open"]:
+		cage["t"] = float(cage["t"]) + dt
 	if not cleared:
 		if room_kind == &"mini" or room_kind == &"boss":
 			if boss == null:
@@ -1588,7 +1754,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 			fx.beam(e.position + Vector2(0, -4), nx.position + Vector2(0, -4), Color("#fff27a"), 1.0)
 			hurt_enemy(nx, dmg * 0.5, e.position, 0.0, 0.3)
 			_cascading = false
-	if e.hp <= 0.0:
+	if e.hp <= 0.0 and e.can_die():
 		kill_enemy(e)
 	return dmg
 
@@ -1841,6 +2007,10 @@ func kill_enemy(e: Enemy) -> void:
 func _on_death(e: Enemy) -> void:
 	if e is Boss or e.ai == &"part":
 		return
+	if e.kind == &"leak":
+		dry_puddles(e)
+	if e.lock_wand != null:
+		interrupt_release(e)
 	var n := int(e.def.get("split", 0))
 	if n > 0:
 		Audio.sfx("split", e.position)
@@ -1903,6 +2073,10 @@ func _bot_drive() -> void:
 		else:
 			controls.move = Vector2(0, -1)
 		return
+	if boss and not boss.dead and boss.bot_goal() != Vector2.INF:
+		# 0.20: the Glitch's revert glyphs are worth the walk
+		controls.move = _bot_dodge(p, path_dir(p, boss.bot_goal()))
+		return
 	var e := nearest_enemy(p, 900.0)
 	if e == null:
 		controls.move = (Vector2(gw * TS / 2.0, gh * TS / 2.0) - p).limit_length(1.0) * 0.5
@@ -1951,6 +2125,10 @@ func _bot_dodge(p: Vector2, desire: Vector2) -> Vector2:
 			var close := (rel + b.vel * tt).length()
 			if close < 12.0:
 				danger += (12.0 - close) * (1.4 - tt * 2.0)
+		if boss and not boss.dead:
+			danger += boss.bot_danger(q)
+		if puddle_slow(q) < 1.0:
+			danger += 2.0
 		for e in enemies:
 			if not e.dead and e.spawn_t <= 0.0 and e.dmg > 0.0:
 				# where the body will be in a moment, not just where it is
@@ -2198,6 +2376,12 @@ func _draw_deco() -> void:
 		_deco.draw_circle(o + Vector2(-2, -2), 2.0, c.lightened(0.6))
 	if not npc.is_empty():
 		_draw_npc(npc)
+	if not cage.is_empty():
+		_draw_cage()
+	if room_kind == &"start" and run and run.daily == "" and gw > 4:
+		# 0.20: the wall clock runs down with the stack trace: 16:59:57, :58, :59
+		var ck := KernelArt.clock(Story.CLOCKS[clampi(run.world, 0, Story.CLOCKS.size() - 1)])
+		_deco.draw_texture(ck, Vector2(TS * 3.0, -ck.get_height() + 4.0).round())
 	spells.draw_summons(_deco, false)
 	if hub:
 		hub.draw_deco(_deco)
@@ -2217,6 +2401,34 @@ func _draw_deco() -> void:
 	if treasure != Vector2.INF:
 		var ch := Props.chest(false)
 		_deco.draw_texture(ch, (treasure - Vector2(ch.get_width() / 2.0, ch.get_height() - 4)).round())
+
+
+## 0.20: the resident in their cage; once it opens they draw in row by row (code arriving).
+const CAGE_REVEAL := 1.2
+
+
+func _draw_cage() -> void:
+	var p: Vector2 = cage["pos"]
+	var who: StringName = cage["who"]
+	var open: bool = cage["open"]
+	_deco.draw_set_transform(p + Vector2(0, 6), 0.0, Vector2(1.0, 0.45))
+	_deco.draw_circle(Vector2.ZERO, 12.0, Color(0, 0, 0, 0.4))
+	_deco.draw_set_transform(Vector2.ZERO)
+	var rt := KernelArt.resident(who, int(time * 3.0) % 4)
+	var at := (p + Vector2(-rt.get_width() / 2.0, 8 - rt.get_height())).round()
+	if not open:
+		# behind the bars, flickering like a process nobody answers
+		_deco.draw_texture(rt, at, Color(1, 1, 1, 0.55 + 0.25 * sin(time * 9.0)))
+	else:
+		var k := clampf(float(cage["t"]) / CAGE_REVEAL, 0.0, 1.0)
+		var rows := ceili(rt.get_height() * k)
+		_deco.draw_texture_rect_region(rt, Rect2(at, Vector2(rt.get_width(), rows)), Rect2(0, 0, rt.get_width(), rows))
+		if k < 1.0:
+			_deco.draw_rect(Rect2(at + Vector2(-2, rows), Vector2(rt.get_width() + 4, 1)), Color(Style.c("cyan:4"), 0.9))
+	var ct := KernelArt.cage(open)
+	_deco.draw_texture(ct, (p + Vector2(-ct.get_width() / 2.0, 10 - ct.get_height())).round())
+	if not open:
+		_deco.draw_texture(Icons.glyph("cage", Color("#72e06a")), (p + Vector2(-9, -44)).round())
 
 
 func _draw_npc(n: Dictionary) -> void:
@@ -2247,6 +2459,10 @@ func _draw_npc(n: Dictionary) -> void:
 ## filled from its source as the attack nears, with a bright edge on the fill front. The
 ## threat ramp only (enemy attacks), drawn under the actors so bodies stay readable.
 func _draw_decals() -> void:
+	# 0.20: Page Leak puddles lie under everything (a slowing hazard, not an attack: no threat red)
+	for p in puddles:
+		var tex := KernelArt.puddle(int(p["r"]), int(float(p["t"]) * 3.0) % 2)
+		_decals.draw_texture(tex, (Vector2(p["pos"]) - tex.get_size() / 2.0).round())
 	for e in enemies:
 		if e.dead or e is Boss:
 			continue

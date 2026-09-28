@@ -208,10 +208,26 @@ func _idle(dt: float) -> void:
 	position += (d / dist * want * spd + Vector2(sin(t * 0.9) * 18.0, cos(t * 0.7) * 12.0)) * dt
 
 
+## 0.20: whether a body part with its own HP (owner_boss) may die now.
+func part_can_die(_p: Enemy) -> bool:
+	return true
+
+
+## 0.20, the bench bot: extra danger this boss puts on a spot (hazards the bullets don't show),
+## and a spot worth walking to (Vector2.INF for none).
+func bot_danger(_q: Vector2) -> float:
+	return 0.0
+
+
+func bot_goal() -> Vector2:
+	return Vector2.INF
+
+
 # ---- emitters
 func ed() -> float:
-	# research/difficulty.md: 6 before; World 2's bosses hit 30% harder
-	return 8.0 * (1.3 if world and world.run and world.run.world >= 1 else 1.0)
+	# research/difficulty.md: 6 before; World 2's bosses hit 30% harder, World 3's 45%
+	var w := world.run.world if world and world.run else 0
+	return 8.0 * (1.45 if w >= 2 else (1.3 if w == 1 else 1.0))
 
 
 func ring(p: Vector2, n: int, speed: float, offset := 0.0, accel := 0.0) -> void:

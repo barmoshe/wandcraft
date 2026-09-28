@@ -433,15 +433,17 @@ static func _key(back: bool, hero: StringName) -> String:
 ## points along TAU * k / 16. Drawn centred on the hand.
 ## `gem` is the Style ramp of the gem, so each wand shows its own colour (the HUD badge and
 ## the hand agree).
-static func wand_angles(gem := "frost") -> Array[Texture2D]:
-	if not _wand.has(gem):
+## 0.20: `body` is the shaft's ramp (Hotfix's wand skins, Residents.SKINS).
+static func wand_angles(gem := "frost", body := "wood") -> Array[Texture2D]:
+	var key := gem if body == "wood" else "%s|%s" % [gem, body]
+	if not _wand.has(key):
 		var out: Array[Texture2D] = []
-		var src := PixelArt.paint(PackedStringArray(WAND), {"w": "wood:3", "W": "wood:1", "g": gem + ":3", "G": gem + ":4"})
+		var src := PixelArt.paint(PackedStringArray(WAND), {"w": body + ":3", "W": body + ":1", "g": gem + ":3", "G": gem + ":4"})
 		# the grip is the outlined sprite's pixel (1, 2)
 		for img in RigBaker.rotations(src, Vector2(1.5, 2.5), 16):
 			out.append(PixelArt.tex(img))
-		_wand[gem] = out
-	return _wand[gem]
+		_wand[key] = out
+	return _wand[key]
 
 
 ## The gem ramp for a wand colour: the nearest of the bright ramps (a brown wand's gem is

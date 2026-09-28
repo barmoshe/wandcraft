@@ -41,6 +41,18 @@ const RAMPS := {
 	"rust": ["#1c0f0d", "#3d1d17", "#68322a", "#9a5639", "#d08e5c"],
 	"toxic": ["#18260a", "#34540e", "#5c8c14", "#9cd01c", "#e0ff7a"],
 	"night": ["#05030d", "#0a0718", "#120d26", "#1c1638", "#2a2250"],
+	# 0.20, World 3 the Kernel (research/world3/5-graphics.md). The Page Archive: paper, ink,
+	# lamp amber (walls, props and the Memory Leak, never the floor) and verdigris plates.
+	"vellum": ["#2a2130", "#4e3e48", "#7f6a62", "#b89f84", "#e8d9b4"],
+	"quill": ["#0e0b19", "#1c1730", "#2e2648", "#463a62", "#6a5a82"],
+	"amber": ["#34160c", "#763410", "#c66e1c", "#f2b03e", "#fff0b8"],
+	"verdigris": ["#0d2024", "#1a3f3e", "#2c665a", "#4b957c", "#8fcaa8"],
+	# Ring Zero: a near-black void, muted brass traces (pickups keep the bright gold), phosphor
+	# pulses and the bug's nest (a cousin of glitch; never threat red).
+	"void": ["#030309", "#080a18", "#0f1428", "#1a2140", "#2a3358"],
+	"brass": ["#1a1208", "#382810", "#5c4418", "#886a2c", "#b49a56"],
+	"phosphor": ["#262216", "#564a30", "#98885c", "#d6c894", "#fffbe6"],
+	"nest": ["#12040f", "#3a0a2e", "#761458", "#bc2a7a", "#ee70b0"],
 	# reserved for enemy attacks: bullets, telegraphs, danger. Nothing of the player's uses it.
 	"threat": ["#1e0306", "#6a0710", "#d0101e", "#ff4a3a", "#fff4ec"],
 }

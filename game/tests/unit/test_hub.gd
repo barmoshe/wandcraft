@@ -58,6 +58,8 @@ func test_every_station_is_on_floor_and_reachable() -> void:
 			seen[n] = true
 			todo.append(n)
 	for id in Hub.STATIONS:
+		if Hub.STATIONS[id].get("resident", false):
+			continue   # 0.20: a resident's corner fills once they move in (test_world_three)
 		ok(world.hub.anchors.has(id), "%s is in the room" % id)
 		for p in world.hub.anchors.get(id, []):
 			ok(seen.has(Vector2i(p / Hub.TS)), "%s at %s can be walked to" % [id, p])
@@ -67,7 +69,7 @@ func test_every_station_is_on_floor_and_reachable() -> void:
 func test_walking_opens_nothing_but_the_portal() -> void:
 	_enter()
 	for id in Hub.STATIONS:
-		if id == "portal":
+		if id == "portal" or Hub.STATIONS[id].get("resident", false):
 			continue
 		world.player.position = world.hub.anchors[id][0] + Vector2(0, 10)
 		_steps(0.3)

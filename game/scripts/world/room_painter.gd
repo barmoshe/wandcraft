@@ -21,6 +21,9 @@ const MARGIN := Vector2i(14, 9)
 ##   0 the Mossy Root Cellar: cool slate, moss creeping from the walls, roots, warm puddles
 ##   1 the Corrupted Grove: plum soil, violet stone, glitch crystals and glowing veins
 ##     (RoomPainter.veins; World pulses them), dead violet canopy and glowing mushrooms
+##   2, 3 the Foundry's Cooling Vents and Molten Core (chimneys and pipes outside)
+##   4, 5 the Kernel's Page Archive and Ring Zero ("kind": their own floors, faces and
+##     surroundings)
 const THEMES := [
 	{"f": ["slate:1", "slate:2", "slate:3"], "cap": ["stone:3", "stone:2", "stone:4"], "face": ["night:3", "stone:1", "stone:0", "stone:2"],
 		"grow": ["moss:1", "moss:2", "moss:3"], "floor_mix": "slate:2", "canopy": [["leaf:0", "leaf:1", "leaf:2", "leaf:3"], ["moss:0", "moss:1", "moss:2", "moss:2"]],
@@ -39,6 +42,19 @@ const THEMES := [
 		"grow": ["rust:2", "rust:1", "ember:1"], "floor_mix": "rust:1", "canopy": [["night:2", "rust:1", "rust:2", "ember:1"], ["ember:0", "ember:1", "ember:1", "ember:2"]],
 		"trunk": ["night:1", "rust:1"], "ground": "night:1", "roots": false, "veins": true, "foundry": true, "hot": true,
 		"vein": "ember:1", "glint": ["ember:3", "gold:3"]},
+	# World 3, the Kernel (research/world3/5-graphics.md). The Page Archive: a dark ledger
+	# parquet in quill (dark, so white bullet cores read), shelf-top caps in vellum, faces of
+	# book spines with verdigris label plates; stacks and hanging pages all around.
+	{"f": ["quill:0", "quill:1", "quill:3"], "cap": ["vellum:3", "vellum:2", "vellum:4"], "face": ["quill:0", "quill:2", "quill:1", "vellum:1"],
+		"grow": ["quill:2", "vellum:2", "vellum:4"], "floor_mix": "quill:1", "canopy": [], "trunk": ["quill:0", "quill:1"],
+		"ground": "quill:0", "roots": false, "veins": false, "kind": "archive",
+		"rubble": ["quill:2", "quill:0", "quill:3"]},
+	# Ring Zero: a near-black void floor with curved brass traces (World pulses phosphor along
+	# them), brass bus-bar caps, engraved faces with nest veins; concentric rings outside.
+	{"f": ["void:1", "void:2", "void:3"], "cap": ["brass:3", "brass:2", "brass:4"], "face": ["void:2", "void:3", "void:1", "brass:2"],
+		"grow": ["nest:1", "nest:2", "nest:3"], "floor_mix": "void:2", "canopy": [], "trunk": ["void:0", "void:1"],
+		"ground": "void:0", "roots": false, "veins": true, "kind": "ring", "vein": "brass:2", "glint": ["nest:2", "phosphor:2"],
+		"rubble": ["void:2", "void:0", "brass:1"]},
 ]
 
 
@@ -46,7 +62,7 @@ static func size_px(gw: int, gh: int) -> Vector2i:
 	return Vector2i((gw + MARGIN.x * 2) * TS, (gh + MARGIN.y * 2) * TS)
 
 
-## biome 0: the Mossy Root Cellar; 1: the Corrupted Grove (THEMES).
+## biome = world * 2 + area (THEMES).
 static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biome := 0) -> Image:
 	var th: Dictionary = THEMES[clampi(biome, 0, THEMES.size() - 1)]
 	var sz := size_px(gw, gh)
@@ -94,6 +110,19 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biom
 			var X := O.x + x * TS
 			var Y := O.y + y * TS
 			var r := rng.randf()
+			var kind: String = th.get("kind", "")
+			if kind == "archive":
+				# a loose page now and then, and ink blots
+				if r < 0.03:
+					_loose_page(img, X + rng.randi_range(1, 9), Y + rng.randi_range(2, 10), rng)
+				elif r < 0.05:
+					_blot(img, X + rng.randi_range(3, 12), Y + rng.randi_range(3, 12), rng)
+				continue
+			if kind == "ring":
+				# via pads: little brass rings set in the void
+				if r < 0.025:
+					_via(img, X + rng.randi_range(3, 11), Y + rng.randi_range(3, 11))
+				continue
 			if th.get("foundry", false):
 				# the Foundry: vent grates, and in the Core cracks glowing with heat
 				if r < 0.035:
@@ -117,13 +146,17 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biom
 				_flowers(img, X + rng.randi_range(2, 12), Y + rng.randi_range(3, 12), rng)
 	if th["roots"]:
 		_roots(img, gw, gh, at, wallish, rng)
-	if th["veins"]:
+	if th.get("kind", "") == "ring":
+		_traces(img, veins(grid, gw, gh, seed_value), th)
+	elif th["veins"]:
 		for v in veins(grid, gw, gh, seed_value):
 			for q in v:
 				var pp := Vector2i(q) + O
 				img.set_pixel(pp.x, pp.y, Style.c(th.get("vein", "glitch:1")))
 	if th.get("foundry", false):
 		_plates(img, gw, gh, at)
+	if th.get("kind", "") == "archive":
+		_parquet(img, gw, gh, at, rng)
 	for y in gh:
 		for x in gw:
 			if at.call(x, y) == 2:
@@ -161,6 +194,69 @@ static func paint(grid: PackedByteArray, gw: int, gh: int, seed_value: int, biom
 			if at.call(gx, gy) == 0:
 				img.fill_rect(Rect2i(O.x + gx * TS + rng.randi_range(0, 13), O.y + gy * TS + rng.randi_range(0, 13), rng.randi_range(2, 3), 1), Style.c(th.get("glint", ["glitch:2", "cyan:2"])[rng.randi_range(0, 1)]))
 	return img
+
+
+## The Archive's floor: ledger spines laid as boards, 8 px planks with a dark seam under
+## each and staggered butt joints. Seams only darken, so the floor stays in its quiet band.
+static func _parquet(img: Image, gw: int, gh: int, at: Callable, rng: RandomNumberGenerator) -> void:
+	var O := MARGIN * TS
+	for y in gh:
+		for x in gw:
+			if at.call(x, y) != 0:
+				continue
+			var X := O.x + x * TS
+			var Y := O.y + y * TS
+			for k in 2:
+				var py := Y + k * 8 + 7
+				var seam := img.get_pixel(X + 5, py).darkened(0.3)
+				img.fill_rect(Rect2i(X, py, TS, 1), seam)
+				if (x + y + k) % 2 == 0:
+					var jx := (x * 11 + y * 5 + k * 7) % TS
+					img.fill_rect(Rect2i(X + jx, py - 7, 1, 7), seam)
+
+
+## A loose page on the Archive floor: vellum 2 (dim, D1), a line of ink, a shadow.
+static func _loose_page(img: Image, x: int, y: int, rng: RandomNumberGenerator) -> void:
+	var w := rng.randi_range(4, 6)
+	img.fill_rect(Rect2i(x + 1, y + 1, w, 4), Style.c("quill:0"))
+	img.fill_rect(Rect2i(x, y, w, 4), Style.c("vellum:1"))
+	img.fill_rect(Rect2i(x, y, w, 1), Style.c("vellum:2"))
+	img.fill_rect(Rect2i(x + 1, y + 2, w - 2, 1), Style.c("quill:2"))
+
+
+static func _blot(img: Image, x: int, y: int, rng: RandomNumberGenerator) -> void:
+	img.fill_rect(Rect2i(x - 1, y, 3, 1), Style.c("quill:0"))
+	img.fill_rect(Rect2i(x, y - 1, 1, 3), Style.c("quill:0"))
+	if rng.randf() < 0.5:
+		img.set_pixel(x + 2, y + 2, Style.c("quill:0"))
+
+
+## Ring Zero: a via pad, a small brass ring in the void.
+static func _via(img: Image, x: int, y: int) -> void:
+	img.fill_rect(Rect2i(x, y - 1, 2, 1), Style.c("brass:2"))
+	img.fill_rect(Rect2i(x - 1, y, 1, 2), Style.c("brass:2"))
+	img.fill_rect(Rect2i(x + 2, y, 1, 2), Style.c("brass:1"))
+	img.fill_rect(Rect2i(x, y + 2, 2, 1), Style.c("brass:1"))
+	img.fill_rect(Rect2i(x, y, 2, 2), Style.c("void:0"))
+
+
+## Ring Zero's circuit traces: the vein lines (the same ones World pulses) drawn as brass
+## traces 1 px wide with a shadow under them, and a via pad where each one ends.
+static func _traces(img: Image, lines: Array, th: Dictionary) -> void:
+	var O := MARGIN * TS
+	var col := Style.c(th.get("vein", "brass:2"))
+	var shade := Style.c("brass:0")
+	for v in lines:
+		for q in v:
+			var pp := Vector2i(q) + O
+			if img.get_pixel(pp.x, pp.y + 1) != col:
+				img.set_pixel(pp.x, pp.y + 1, shade)
+		for q in v:
+			var pp := Vector2i(q) + O
+			img.set_pixel(pp.x, pp.y, col)
+		if (v as PackedVector2Array).size() > 6:
+			var e := Vector2i(v[v.size() - 1]) + O
+			_via(img, e.x, e.y)
 
 
 ## The Foundry's floor plates: a dark seam every two tiles and a rivet at each plate corner.
@@ -472,6 +568,13 @@ static func _wall(img: Image, X: int, Y: int, x: int, y: int, at: Callable, wall
 	# the brick face
 	var fy := Y + TS - FACE
 	img.fill_rect(Rect2i(X, fy, TS, FACE), Style.c(th["face"][0]))
+	var kind: String = th.get("kind", "")
+	if kind == "archive":
+		_spines(img, X, fy, rng)
+		return
+	if kind == "ring":
+		_engraved(img, X, fy, x, rng, th)
+		return
 	for row in 3:
 		var by := fy + 1 + row * 3
 		var off := 0 if (row + x) % 2 else 4
@@ -497,6 +600,43 @@ static func _wall(img: Image, X: int, Y: int, x: int, y: int, at: Callable, wall
 			img.fill_rect(Rect2i(dx + (1 if k > 3 and k % 2 else 0), fy + k, 2 if k < 2 else 1, 1), Style.c(th["grow"][1]) if k % 3 else Style.c(th["grow"][2]))
 
 
+## The Archive's wall faces are shelves of book spines: 1-2 px spines of mixed height in
+## quill, vellum and verdigris, a verdigris label plate here and there, a shelf board.
+const SPINES := ["quill:2", "quill:3", "verdigris:1", "vellum:1", "quill:2", "amber:0"]
+
+
+static func _spines(img: Image, X: int, fy: int, rng: RandomNumberGenerator) -> void:
+	img.fill_rect(Rect2i(X, fy, TS, 1), Style.c("vellum:1"))
+	var x := 0
+	while x < TS:
+		var w := 1 if rng.randf() < 0.55 else 2
+		var top := rng.randi_range(1, 3)
+		var c := Style.c(SPINES[rng.randi_range(0, SPINES.size() - 1)])
+		img.fill_rect(Rect2i(X + x, fy + top, mini(w, TS - x), FACE - top - 2), c)
+		if w == 2 and rng.randf() < 0.3:
+			img.set_pixel(X + x, fy + 4, Style.c("verdigris:3"))
+		x += w
+	img.fill_rect(Rect2i(X, fy + FACE - 2, TS, 1), Style.c("wood:1"))
+	img.fill_rect(Rect2i(X, fy + FACE - 1, TS, 1), Style.c("night:0"))
+
+
+## Ring Zero's faces: dark void panels with an engraved ring glyph and a brass rail; nest
+## veins crawl down some of them.
+static func _engraved(img: Image, X: int, fy: int, x: int, rng: RandomNumberGenerator, th: Dictionary) -> void:
+	img.fill_rect(Rect2i(X, fy, TS, 1), Style.c("brass:2"))
+	img.fill_rect(Rect2i(X, fy + FACE - 2, TS, 1), Style.c("brass:1"))
+	img.fill_rect(Rect2i(X, fy + FACE - 1, TS, 1), Style.c("night:0"))
+	if x % 2 == 0:
+		var c := Vector2i(X + 7, fy + 3)
+		for d in [Vector2i(0, -1), Vector2i(1, -1), Vector2i(2, 0), Vector2i(2, 1), Vector2i(1, 2), Vector2i(0, 2), Vector2i(-1, 1), Vector2i(-1, 0)]:
+			img.set_pixel(c.x + d.x, c.y + d.y, Style.c("void:3") if d.y <= 0 else Style.c("void:1"))
+		img.set_pixel(c.x, c.y, Style.c("brass:1"))
+	if rng.randf() < 0.3:
+		var vx := X + rng.randi_range(1, TS - 3)
+		for k in rng.randi_range(3, FACE - 2):
+			img.set_pixel(vx + (1 if k % 3 == 2 else 0), fy + k, Style.c(th["grow"][1]) if k % 2 else Style.c(th["grow"][2]))
+
+
 # ------------------------------------------------------------------ surroundings
 
 ## Overgrown ruin around the room: dark earth, root lines, tree canopy blobs and broken
@@ -506,8 +646,9 @@ static func _surroundings(img: Image, gw: int, gh: int, rng: RandomNumberGenerat
 	var H := img.get_height()
 	img.fill(Style.c(th["ground"]))
 	var room := Rect2i(MARGIN * TS, Vector2i(gw, gh) * TS)
-	# rubble ring hugging the room: extra wall mass so the room edge reads as a ruin
-	for k in 40:
+	# rubble ring hugging the room: extra wall mass so the room edge reads as a ruin (the
+	# Kernel's rooms are built, not ruined: none there)
+	for k in (0 if th.has("kind") else 40):
 		var side := rng.randi_range(0, 3)
 		var p := Vector2i.ZERO
 		match side:
@@ -516,10 +657,23 @@ static func _surroundings(img: Image, gw: int, gh: int, rng: RandomNumberGenerat
 			2: p = Vector2i(room.position.x - rng.randi_range(12, 26), rng.randi_range(room.position.y - 10, room.end.y))
 			3: p = Vector2i(room.end.x + rng.randi_range(0, 12), rng.randi_range(room.position.y - 10, room.end.y))
 		var s := Vector2i(rng.randi_range(6, 16), rng.randi_range(5, 10))
-		var c := Style.c("stone:1").lerp(Style.c("night:2"), rng.randf() * 0.5)
+		var rb: Array = th.get("rubble", ["stone:1", "night:2", "stone:2"])
+		var c := Style.c(rb[0]).lerp(Style.c(rb[1]), rng.randf() * 0.5)
 		img.fill_rect(Rect2i(p, s), c)
-		img.fill_rect(Rect2i(p, Vector2i(s.x, 1)), c.lerp(Style.c("stone:2"), 0.6))
+		img.fill_rect(Rect2i(p, Vector2i(s.x, 1)), c.lerp(Style.c(rb[2]), 0.6))
 		img.fill_rect(Rect2i(p + Vector2i(0, s.y - 1), Vector2i(s.x, 1)), Style.c("night:1"))
+	# extras drawn from their own random stream, so the older themes keep their layout
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = rng.seed * 7 + 3
+	match th.get("kind", ""):
+		"archive":
+			_stacks(img, room, rng2)
+			_edge_band(img, room)
+			return
+		"ring":
+			_rings(img, room, rng2)
+			_edge_band(img, room)
+			return
 	# trunks
 	for k in 10:
 		var x := rng.randi_range(0, W - 12)
@@ -557,6 +711,10 @@ static func _surroundings(img: Image, gw: int, gh: int, rng: RandomNumberGenerat
 			img.fill_rect(Rect2i(ip.x, ip.y, 3, 2).intersection(Rect2i(0, 0, W, H)), col)
 			if lit > 0.55 and ip.x >= 0 and ip.y >= 0 and ip.x < W and ip.y < H:
 				img.set_pixel(ip.x, ip.y, hi.lerp(Style.c(tone[3]), 0.4))
+	if th["roots"]:
+		_hanging_roots(img, room, rng2)
+	if th.get("foundry", false):
+		_chimneys(img, room, rng2, th.get("hot", false))
 	# broken pillar stubs peeking out of the undergrowth
 	for k in 6:
 		var x := rng.randi_range(8, W - 24)
@@ -568,7 +726,11 @@ static func _surroundings(img: Image, gw: int, gh: int, rng: RandomNumberGenerat
 		img.fill_rect(Rect2i(x, y, 14, 1), Style.c("stone:3"))
 		img.fill_rect(Rect2i(x + 2, y + 5, 1, 9), Style.c("stone:0"))
 		img.fill_rect(Rect2i(x, y + 16, 14, 2), Style.c("night:1"))
-	# a dark band right at the room's outer edge so the wall caps separate from the canopy
+	_edge_band(img, room)
+
+
+## A dark band right at the room's outer edge so the wall caps separate from the canopy.
+static func _edge_band(img: Image, room: Rect2i) -> void:
 	for k in 3:
 		var g := room.grow(1 + k)
 		var c := Color(Style.RAMPS["night"][1])
@@ -577,6 +739,259 @@ static func _surroundings(img: Image, gw: int, gh: int, rng: RandomNumberGenerat
 		_blend(img, Rect2i(g.position.x, g.end.y - 1, g.size.x, 1), c)
 		_blend(img, Rect2i(g.position.x, g.position.y, 1, g.size.y), c)
 		_blend(img, Rect2i(g.end.x - 1, g.position.y, 1, g.size.y), c)
+
+
+## The Cellar: roots hanging out of the canopy, two-tone, wandering down.
+static func _hanging_roots(img: Image, room: Rect2i, rng: RandomNumberGenerator) -> void:
+	var W := img.get_width()
+	var H := img.get_height()
+	for k in 26:
+		var p := Vector2(rng.randi_range(0, W - 1), rng.randi_range(0, H - 40))
+		if room.grow(12).has_point(Vector2i(p)):
+			continue
+		var n := rng.randi_range(12, 34)
+		var dx := rng.randf_range(-0.3, 0.3)
+		for s2 in n:
+			var ip := Vector2i(p.round())
+			if room.grow(4).has_point(ip) or ip.x < 1 or ip.y < 0 or ip.x >= W - 1 or ip.y >= H:
+				break
+			img.set_pixel(ip.x, ip.y, Style.c("wood:2"))
+			if s2 < n * 2 / 3:
+				img.set_pixel(ip.x + 1, ip.y, Style.c("wood:0"))
+			if s2 % 7 == 3:
+				img.set_pixel(ip.x - 1, ip.y, Style.c("wood:1"))
+			dx = clampf(dx + rng.randf_range(-0.25, 0.25), -0.6, 0.6)
+			p += Vector2(dx, 1.0)
+
+
+## The Foundry: chimney stacks (banded iron with a dark mouth; the Core's glow, the Vents'
+## frost) and long pipes with flanged joints, among the smoke.
+static func _chimneys(img: Image, room: Rect2i, rng: RandomNumberGenerator, hot: bool) -> void:
+	var W := img.get_width()
+	var H := img.get_height()
+	var body: String = "rust" if hot else "steel"
+	# pipes first, so the chimneys stand in front of them
+	for k in 14:
+		var y := rng.randi_range(4, H - 10)
+		var x0 := rng.randi_range(-20, W - 60)
+		var len := rng.randi_range(60, 200)
+		var r := Rect2i(x0, y, len, 5)
+		if r.intersects(room.grow(10)):
+			continue
+		img.fill_rect(r, Style.c(body + ":1"))
+		img.fill_rect(Rect2i(x0, y, len, 1), Style.c(body + ":3"))
+		img.fill_rect(Rect2i(x0, y + 1, len, 1), Style.c(body + ":2"))
+		img.fill_rect(Rect2i(x0, y + 4, len, 1), Style.c("night:0"))
+		for fx in range(x0 + 12, x0 + len - 4, 28):
+			img.fill_rect(Rect2i(fx, y - 1, 3, 7), Style.c(body + ":2"))
+			img.fill_rect(Rect2i(fx, y - 1, 1, 7), Style.c(body + ":3"))
+			img.fill_rect(Rect2i(fx + 2, y - 1, 1, 7), Style.c("night:0"))
+	for k in 22:
+		var w := rng.randi_range(10, 14)
+		var h := rng.randi_range(26, 54)
+		var x := rng.randi_range(4, W - w - 4)
+		var y := rng.randi_range(4, H - h - 4)
+		var r := Rect2i(x, y, w, h)
+		if r.grow(4).intersects(room.grow(8)):
+			continue
+		img.fill_rect(r, Style.c(body + ":1"))
+		img.fill_rect(Rect2i(x, y, 2, h), Style.c(body + ":2"))
+		img.fill_rect(Rect2i(x + w - 2, y, 2, h), Style.c(body + ":0"))
+		for by in range(y + 8, y + h - 2, 9):
+			img.fill_rect(Rect2i(x, by, w, 1), Style.c(body + ":0"))
+			img.fill_rect(Rect2i(x, by + 1, w, 1), Style.c(body + ":2"))
+		# the rim and the mouth
+		img.fill_rect(Rect2i(x - 1, y, w + 2, 3), Style.c(body + ":3"))
+		img.fill_rect(Rect2i(x - 1, y + 2, w + 2, 1), Style.c(body + ":1"))
+		img.fill_rect(Rect2i(x + 1, y, w - 2, 2), Style.c("night:0"))
+		img.fill_rect(Rect2i(x - 1, y + h, w + 2, 2), Style.c("night:1"))
+		if hot:
+			img.fill_rect(Rect2i(x + 2, y, w - 4, 1), Style.c("ember:2"))
+			img.set_pixel(x + w / 2, y, Style.c("ember:3"))
+		else:
+			for m in 3:
+				var c := Vector2(x + w / 2.0 + rng.randf_range(-3, 3), y - 3 - m * 4)
+				PixelArt.disc(img, c, 2.5 - m * 0.5, Style.c("frost:0") if m else Style.c("frost:1"))
+
+
+## The Page Archive outside the room: rows of bookcases (a vellum top, three shelves of
+## spines) with aisles between, a missing case here and there ("page faults": dithered
+## void), pages hanging on threads in the aisles and a few amber reading lamps.
+static var _cases := {}
+
+
+static func _bookcase(v: int) -> Image:
+	if _cases.has(v):
+		return _cases[v]
+	var r := RandomNumberGenerator.new()
+	r.seed = 5150 + v
+	var w := 40
+	var h := 31
+	var img := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	img.fill(Style.c("quill:0"))
+	# the top: a vellum slab with a page-edge highlight
+	img.fill_rect(Rect2i(0, 0, w, 4), Style.c("vellum:2"))
+	img.fill_rect(Rect2i(0, 0, w, 1), Style.c("vellum:3"))
+	img.fill_rect(Rect2i(0, 3, w, 1), Style.c("vellum:1"))
+	for k in r.randi_range(1, 3):
+		var px := r.randi_range(2, w - 8)
+		img.fill_rect(Rect2i(px, 1, r.randi_range(3, 6), 2), Style.c("vellum:3"))
+	for sh in 3:
+		var y0 := 4 + sh * 9
+		var x := 1
+		while x < w - 1:
+			var bw := 1 if r.randf() < 0.5 else 2
+			var top := r.randi_range(1, 3)
+			if r.randf() < 0.06:
+				x += 2   # a gap on the shelf
+				continue
+			var c := Style.c(SPINES[r.randi_range(0, SPINES.size() - 1)])
+			img.fill_rect(Rect2i(x, y0 + top, mini(bw, w - 1 - x), 8 - top), c)
+			img.set_pixel(x, y0 + top, c.lightened(0.12))
+			if bw == 2 and r.randf() < 0.3:
+				img.set_pixel(x, y0 + 4, Style.c("verdigris:3"))
+			x += bw
+		img.fill_rect(Rect2i(0, y0 + 8, w, 1), Style.c("wood:1"))
+	# the side panels: lit on the left, INK on the right
+	img.fill_rect(Rect2i(0, 4, 1, h - 4), Style.c("quill:3"))
+	img.fill_rect(Rect2i(w - 1, 4, 1, h - 4), Style.c("night:0"))
+	img.fill_rect(Rect2i(0, h - 1, w, 1), Style.c("night:0"))
+	_cases[v] = img
+	return img
+
+
+static func _stacks(img: Image, room: Rect2i, rng: RandomNumberGenerator) -> void:
+	var W := img.get_width()
+	var H := img.get_height()
+	var avoid := room.grow(6)
+	var y := -rng.randi_range(4, 20)
+	var rows: Array[int] = []
+	while y < H:
+		rows.append(y)
+		var x := -rng.randi_range(0, 30)
+		while x < W:
+			var r := Rect2i(x, y, 40, 31)
+			if not r.intersects(avoid):
+				if rng.randf() < 0.08:
+					# a page fault: the case is missing and the void shows through
+					for j in range(maxi(0, y + 4), mini(H, y + 31)):
+						for i in range(maxi(0, x) + (j % 2), mini(W, x + 40), 2):
+							img.set_pixel(i, j, Style.c("void:1"))
+				else:
+					img.blit_rect(_bookcase(rng.randi_range(0, 3)), Rect2i(0, 0, 40, 31), Vector2i(x, y))
+			x += 41
+		y += 31 + rng.randi_range(12, 18)
+	# pages on threads in the aisles, and a few amber lamps
+	for k in 46:
+		var ry: int = rows[rng.randi_range(0, rows.size() - 1)] + 31
+		var p := Vector2i(rng.randi_range(2, W - 6), ry + rng.randi_range(2, 8))
+		if Rect2i(p - Vector2i(0, 6), Vector2i(5, 12)).intersects(avoid) or p.y + 6 >= H:
+			continue
+		img.fill_rect(Rect2i(p.x + 1, p.y - 4, 1, 4), Style.c("quill:3"))
+		img.fill_rect(Rect2i(p.x, p.y, 3, 4), Style.c("vellum:3"))
+		img.fill_rect(Rect2i(p.x, p.y, 3, 1), Style.c("vellum:4"))
+		img.fill_rect(Rect2i(p.x + 3, p.y + 1, 1, 3), Style.c("night:0"))
+		img.set_pixel(p.x + 1, p.y + 2, Style.c("quill:3"))
+	for k in 7:
+		var ry2: int = rows[rng.randi_range(0, rows.size() - 1)] + 31
+		var c := Vector2i(rng.randi_range(8, W - 8), ry2 + 7)
+		if Rect2i(c - Vector2i(10, 10), Vector2i(20, 20)).intersects(avoid) or c.y + 8 >= H:
+			continue
+		# a dithered pool of lamp light, then the lamp on its chain
+		for j in range(-6, 7):
+			for i in range(-9, 10):
+				var q := c + Vector2i(i, j)
+				if (i + j) % 2 == 0 and i * i / 81.0 + j * j / 36.0 < 1.0 and q.x >= 0 and q.y >= 0 and q.x < W and q.y < H:
+					img.set_pixel(q.x, q.y, img.get_pixel(q.x, q.y).lerp(Style.c("amber:1"), 0.6))
+		img.fill_rect(Rect2i(c.x, c.y - 8, 1, 6), Style.c("brass:2"))
+		img.fill_rect(Rect2i(c.x - 2, c.y - 2, 5, 2), Style.c("brass:3"))
+		img.fill_rect(Rect2i(c.x - 1, c.y, 3, 1), Style.c("amber:4"))
+		img.set_pixel(c.x, c.y + 1, Style.c("amber:3"))
+
+
+## Ring Zero outside the room: concentric rings around the room (Ring 0 to 3 and beyond),
+## broken into arcs with brass ticks, brass traces whipping out from the room's edge, and
+## the nest's tendrils reaching in from a corner.
+static func _rings(img: Image, room: Rect2i, rng: RandomNumberGenerator) -> void:
+	var W := img.get_width()
+	var H := img.get_height()
+	var c := Vector2(room.get_center())
+	var avoid := room.grow(4)
+	var r0 := Vector2(room.size).length() * 0.5 + 12.0
+	var r := r0
+	var ring := 0
+	while r < Vector2(W, H).length() * 0.6:
+		var steps := int(TAU * r)
+		var gap0 := rng.randf() * TAU
+		var gap_len := rng.randf_range(0.3, 0.9)
+		for k in steps:
+			var a := TAU * k / steps
+			if fposmod(a - gap0, TAU) < gap_len:
+				continue
+			var p := Vector2i((c + Vector2.from_angle(a) * r).round())
+			if p.x < 0 or p.y < 1 or p.x >= W or p.y >= H - 1 or avoid.has_point(p):
+				continue
+			# lit on the top-left of each ring, in shadow on the bottom-right
+			var lit := Vector2.from_angle(a).dot(Vector2(-0.7, -0.7)) > 0.0
+			img.set_pixel(p.x, p.y, Style.c("void:4") if lit else Style.c("void:3"))
+			img.set_pixel(p.x, p.y + 1, Style.c("night:0"))
+			if k % 48 == 0:
+				var o := Vector2i((c + Vector2.from_angle(a) * (r + 2.0)).round())
+				if o.x >= 0 and o.y >= 0 and o.x < W and o.y < H:
+					img.set_pixel(o.x, o.y, Style.c("brass:2"))
+				img.set_pixel(p.x, p.y, Style.c("brass:3"))
+		ring += 1
+		r += 20.0 + ring * 3.0
+	# brass traces whipping out from the room: curves, no right angles
+	for k in 14:
+		var side := k % 4
+		var p := Vector2.ZERO
+		var dir := Vector2.ZERO
+		match side:
+			0: p = Vector2(rng.randi_range(room.position.x, room.end.x), room.position.y - 6); dir = Vector2.UP
+			1: p = Vector2(rng.randi_range(room.position.x, room.end.x), room.end.y + 5); dir = Vector2.DOWN
+			2: p = Vector2(room.position.x - 6, rng.randi_range(room.position.y, room.end.y)); dir = Vector2.LEFT
+			3: p = Vector2(room.end.x + 5, rng.randi_range(room.position.y, room.end.y)); dir = Vector2.RIGHT
+		var bend := rng.randf_range(-0.09, 0.09)
+		for s2 in rng.randi_range(30, 90):
+			var ip := Vector2i(p.round())
+			if ip.x < 2 or ip.y < 2 or ip.x >= W - 3 or ip.y >= H - 3 or avoid.has_point(ip):
+				break
+			img.set_pixel(ip.x, ip.y + 1, Style.c("brass:0"))
+			img.set_pixel(ip.x, ip.y, Style.c("brass:2"))
+			dir = dir.rotated(bend)
+			if s2 % 20 == 19:
+				bend = -bend * rng.randf_range(0.8, 1.4)   # the whiplash
+			p += dir
+		var e := Vector2i(p.round())
+		if e.x > 2 and e.y > 2 and e.x < W - 4 and e.y < H - 4:
+			_via(img, e.x, e.y)
+	# the nest reaches in from one corner: thick tendrils, lit top-left, magenta veins
+	# (rooted in a knot just off one of the room's corners, where the screen still shows it)
+	var cs := [room.position, Vector2i(room.end.x, room.position.y), Vector2i(room.position.x, room.end.y), room.end]
+	var rc := Vector2(cs[rng.randi_range(0, 3)])
+	var corner := rc + (rc - c).normalized() * 70.0
+	PixelArt.disc(img, corner, 9.0, Style.c("nest:1"))
+	PixelArt.disc(img, corner + Vector2(-2, -2), 5.0, Style.c("nest:2"))
+	PixelArt.disc(img, corner + Vector2(-1, -1), 2.0, Style.c("nest:3"))
+	for k in 9:
+		var p := corner
+		var dir := Vector2.from_angle(TAU * k / 9.0 + rng.randf_range(-0.3, 0.3))
+		var n := rng.randi_range(50, 110)
+		for s2 in n:
+			var rad := lerpf(5.0, 1.0, float(s2) / n)
+			if avoid.grow(int(rad) + 2).has_point(Vector2i(p)):
+				break
+			PixelArt.disc(img, p + Vector2(0.6, 0.8), rad, Style.c("nest:0"))
+			PixelArt.disc(img, p, rad, Style.c("nest:1"))
+			if rad > 1.5:
+				PixelArt.disc(img, p + Vector2(-0.4, -0.5) * rad, rad * 0.45, Style.c("nest:2"))
+			if s2 % 9 == 4:
+				var vp := Vector2i(p.round())
+				if vp.x >= 0 and vp.y >= 0 and vp.x < W and vp.y < H:
+					img.set_pixel(vp.x, vp.y, Style.c("nest:3"))
+			dir = dir.rotated(sin(s2 * 0.15 + k) * 0.12)
+			p += dir * 1.5
 
 
 static func _blend(img: Image, r: Rect2i, c: Color) -> void:

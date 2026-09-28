@@ -18,7 +18,28 @@ static func check(s: Node) -> void:
 	for k in Bestiary.ART:
 		actors.append([k, Bestiary.frames(k)[0]])
 	actors.append(["loop head", Bestiary.loop_head(false)])
-	s.section("actors on the floor | grayscale value test | silhouette")
+	_check_on(s, patch, actors, "actors on the floor | grayscale value test | silhouette")
+	# 0.20: the Kernel's actors and hazards on its own floors (the Archive, then Ring Zero)
+	var kernel: Array = []
+	for k in ["leak", "null_ptr", "interrupt"]:
+		kernel.append([k, Bestiary.frames(k)[0]])
+	kernel.append(["thread A", KernelArt.thread(0, 0)])
+	kernel.append(["thread B", KernelArt.thread(1, 0)])
+	for p2 in 3:
+		kernel.append(["glitch %d" % p2, KernelArt.glitch(p2, 0)])
+	for id in [&"grep", &"hotfix", &"cache"]:
+		kernel.append([String(id), KernelArt.resident(id, 0)])
+	kernel.append(["puddle", KernelArt.puddle(10, 0)])
+	kernel.append(["revert", KernelArt.revert_glyph(0)])
+	kernel.append(["page", KernelArt.page(0)])
+	for b in [4, 5]:
+		var kroom := RoomPainter.paint(grid, 8, 6, 5, b)
+		var kpatch := kroom.get_region(Rect2i(o + Vector2i(16, 16), Vector2i(64, 56)))
+		_check_on(s, kpatch, kernel, "kernel on theme %d | value | silhouette" % b)
+
+
+static func _check_on(s: Node, patch: Image, actors: Array, title: String) -> void:
+	s.section(title)
 	for a in actors:
 		var spr: Image = (a[1] as Texture2D).get_image()
 		var on := patch.duplicate() as Image
@@ -111,6 +132,23 @@ static func chars(s: Node) -> void:
 	s.section("bosses")
 	for k in Sprites.BOSS_ART:
 		s.add(String(k), Sprites.boss_texture(k))
+	kernel_chars(s)
+
+
+## 0.20, World 3 the Kernel: the twins, the Glitch by phase and the residents.
+static func kernel_chars(s: Node) -> void:
+	s.section("kernel: data race twins (run 0-3, wind-up 4)")
+	for w in 2:
+		for i in 5:
+			s.add("thread %s %d" % ["AB"[w], i], KernelArt.thread(w, i))
+	for p in 3:
+		s.section("kernel: the glitch, phase %d (idle 0-3, telegraph 4)" % p)
+		for i in 5:
+			s.add("glitch %d.%d" % [p, i], KernelArt.glitch(p, i))
+	s.section("kernel: residents (idle 0-3)")
+	for id in [&"grep", &"hotfix", &"cache"]:
+		for i in 4:
+			s.add("%s %d" % [id, i], KernelArt.resident(id, i))
 
 
 ## Icon art straight from the IconSpells / IconRelics data, including items whose gameplay
@@ -155,11 +193,73 @@ static func tiles(s: Node) -> void:
 	for i in 3:
 		s.add("flame %d" % i, Props.flame(i))
 	s.add("sconce", Props.sconce())
+	for b in RoomPainter.THEMES.size():
+		s.add("bramble %d" % b, Props.bramble(b))
+	rooms(s)
+
+
+## Every room theme on a small sample room (walls, a pillar, a pit, spikes, a bramble), with
+## the margin's surroundings, raw and under the world's ambient tint.
+static func rooms(s: Node, themes: Array = []) -> void:
+	var gw := 14
+	var gh := 9
+	var grid := PackedByteArray()
+	grid.resize(gw * gh)
+	grid.fill(0)
+	for x in gw:
+		grid[x] = 1
+		grid[(gh - 1) * gw + x] = 1
+	for y in gh:
+		grid[y * gw] = 1
+		grid[y * gw + gw - 1] = 1
+	grid[3 * gw + 4] = 1
+	grid[4 * gw + 4] = 1
+	grid[5 * gw + 9] = 5
+	grid[6 * gw + 9] = 5
+	grid[2 * gw + 10] = 2
+	grid[6 * gw + 3] = 7
+	var ts := RoomPainter.TS
+	var cut := Rect2i((RoomPainter.MARGIN - Vector2i(5, 4)) * ts, Vector2i(gw + 10, gh + 8) * ts)
+	var list := themes if not themes.is_empty() else range(RoomPainter.THEMES.size())
+	for b in list:
+		s.section("room theme %d" % b)
+		var img := RoomPainter.paint(grid, gw, gh, 11 + b, b).get_region(cut)
+		s.add("theme %d" % b, ImageTexture.create_from_image(img))
 
 
 static func fx(s: Node) -> void:
 	s.section("projectiles")
 	s.add("atlas", Projectiles.atlas())
+	kernel_fx(s)
+
+
+## 0.20: the residents' speech-box faces (next to the Duck's and LINT's) and the Kernel's
+## props, glyphs and hazards.
+static func kernel_fx(s: Node) -> void:
+	s.section("speech faces: duck, lint | resident x mood (neutral happy worried stern), talk, blink")
+	s.add("duck", Hud.duck_face())
+	s.add("lint", Hud.lint_face())
+	for id in [&"grep", &"hotfix", &"cache"]:
+		for m in 4:
+			s.add("%s %d" % [id, m], KernelArt.portrait(id, m, false, false))
+		s.add("talk", KernelArt.portrait(id, 0, true, false))
+		s.add("blink", KernelArt.portrait(id, 0, false, true))
+		s.add("happy talk", KernelArt.portrait(id, 1, true, false))
+	s.section("kernel props")
+	s.add("cage", KernelArt.cage(false))
+	s.add("cage open", KernelArt.cage(true))
+	s.add("clock w1", KernelArt.clock("16:59:57"))
+	s.add("clock w3", KernelArt.clock("16:59:59"))
+	s.add("clock 16:58", KernelArt.clock("16:58"))
+	for i in 4:
+		s.add("revert %d" % i, KernelArt.revert_glyph(i))
+	for i in 4:
+		s.add("page %d" % i, KernelArt.page(i))
+	for r in [4, 8, 12, 16]:
+		for i in 2:
+			s.add("puddle r%d.%d" % [r, i], KernelArt.puddle(r, i))
+	s.add("diff -", KernelArt.diff_row(64, false))
+	s.add("diff +", KernelArt.diff_row(64, true))
 
 
 ## D6: the HUD's own icons and the wand badge in every gem colour.
@@ -186,7 +286,8 @@ static func style(s: Node) -> void:
 	s.section("enemies: new / old")
 	for k in Bestiary.ART:
 		s.add("new " + k, Bestiary.frames(k)[0])
-		s.add("old " + k, Sprites.enemy_frames(k)[0])
+		if Sprites.ENEMY_ART.has(k):
+			s.add("old " + k, Sprites.enemy_frames(k)[0])
 	s.section("spell and relic icons: new / old")
 	for id in ["mote", "ember", "frost", "empower", "then"]:
 		s.add("new " + id, Icons.spell(Catalog.spell(StringName(id))))

@@ -59,7 +59,7 @@ func test_bounty_needs_hide_tickets() -> void:
 func test_migration_keeps_every_unlock() -> void:
 	Meta.test_meta = {"goals": ["room", "compile", "big_hit", "runs2", "win"], "unlocked": ["include"], "runs": 4}
 	var m := Meta.migrate(Meta.test_meta)
-	eq(int(m["meta_v"]), 2, "migrated")
+	eq(int(m["meta_v"]), 3, "migrated")
 	ok(not m.has("goals"), "goals are gone")
 	for id in [&"chorus", &"hexcursor", &"rot_index", &"watchdog", &"birch", &"tinkerer", &"fork", &"include"]:
 		ok(not Meta.is_locked(id), "%s stays open" % id)

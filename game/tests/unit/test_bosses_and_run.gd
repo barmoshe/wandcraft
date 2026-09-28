@@ -40,8 +40,10 @@ func _answer(kind: StringName, data: Dictionary) -> void:
 			victory = true
 
 
-func _mid_run(step: int, kind: StringName) -> RunState:
+func _mid_run(step: int, kind: StringName, w := 0) -> RunState:
 	var r := RunState.create(4242)
+	r.world = w
+	r.tutorial = w == 0 and r.tutorial
 	r.wand().set_slots([&"twin", &"spark", &"seed", &"ember"])
 	r.add_wand(&"oak")
 	r.wands[1].set_slots([&"empower", &"fan", &"then", &"burst", &"needle", &"frost"])
@@ -51,8 +53,8 @@ func _mid_run(step: int, kind: StringName) -> RunState:
 	return r
 
 
-func _fight_boss(step: int, kind: StringName, limit: float) -> Array:
-	world.start_run(_mid_run(step, kind))
+func _fight_boss(step: int, kind: StringName, limit: float, w := 0) -> Array:
+	world.start_run(_mid_run(step, kind, w))
 	var t := 0.0
 	var boss: Boss = null
 	var max_phase := 0
@@ -86,18 +88,34 @@ func test_the_infinite_loop_can_be_beaten() -> void:
 	eq((boss as BossLoop).parts.filter(func(p: Enemy) -> bool: return not p.dead).size(), 0, "its body went with it")
 
 
+## 0.20: World 3's mini-boss and boss, with the same strong loadout.
+func test_data_race_can_be_beaten() -> void:
+	var res := _fight_boss(Chapter.PLAN.find(&"mini"), &"mini", 200.0, 2)
+	var boss: Boss = res[0]
+	ok(boss is BossRace, "Data Race appeared")
+	ok(boss != null and boss.dead, "and was beaten (%.0fs, hp %.0f)" % [res[1], boss.hp if boss else -1.0])
+
+
+func test_the_glitch_can_be_beaten() -> void:
+	var res := _fight_boss(Chapter.PLAN.size() - 1, &"boss", 300.0, 2)
+	var boss: Boss = res[0]
+	ok(boss is BossGlitch, "the Glitch appeared")
+	ok(boss != null and boss.dead, "and was beaten (%.0fs, hp %.0f)" % [res[1], boss.hp if boss else -1.0])
+	ok(res[2] >= 2, "it reached phase 3 (revert)")
+
+
 ## The full run: World 1 (start, 4 rooms, mini-boss, 4 rooms, the Loop), then World 2 the
-## same way (its mini-boss, then Deadlock), and the exit.
-func test_bot_completes_both_worlds() -> void:
+## same way (its mini-boss, then Deadlock), then World 3 (Data Race, the Glitch), and the exit.
+func test_bot_completes_all_three_worlds() -> void:
 	world.start_run(RunState.create(99))
 	var t := 0.0
-	while not victory and t < 2400.0:
+	while not victory and t < 3600.0:
 		world.step(DT)
 		t += DT
 	print("    full run: step %d, %.0f sim-seconds, %d kills, path %s" % [world.run.step, t, world.run.stats["kills"], world.run.path])
 	if not victory:
 		print("    DEBUG room ", world.run.room, " alive: ", world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String: return "%s hp%.0f ward%d arm%.0f sh%d at %s" % [e.kind, e.hp, e.ward_n, e.armor, e.shield_hp, e.position.round()]))
-	ok(victory, "both worlds cleared (reached world %d step %d of %d in %.0fs)" % [world.run.world + 1, world.run.step, Chapter.PLAN.size(), t])
+	ok(victory, "all three worlds cleared (reached world %d step %d of %d in %.0fs)" % [world.run.world + 1, world.run.step, Chapter.PLAN.size(), t])
 	ok(world.run.won, "the run is marked won")
-	eq(int(world.run.stats["bosses"]), 4, "all four bosses defeated (two a world)")
-	eq(world.run.world, 1, "and it ended in World 2")
+	eq(int(world.run.stats["bosses"]), 6, "all six bosses defeated (two a world)")
+	eq(world.run.world, 2, "and it ended in World 3")

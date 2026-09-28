@@ -57,7 +57,12 @@ const BOUNTIES := [
 	{"id": "world1", "text": "Defeat the Infinite Loop", "check": "worlds>=1", "bits": 40, "unlocks": [&"tinkerer"]},
 	{"id": "untouched", "text": "Beat a boss without getting hit", "check": "untouched>=1", "bits": 40},
 	{"id": "daily", "text": "Finish a daily run", "check": "daily>=1", "bits": 15},
-	{"id": "win", "text": "Win a run (clear World 2)", "check": "won>=1", "bits": 60},
+	{"id": "win", "text": "Win a run (clear World 3)", "check": "won>=1", "bits": 60},
+	# 0.20, the Kernel (research/world3-0.20.md)
+	{"id": "world2", "text": "Defeat Deadlock", "check": "worlds>=2", "bits": 50},
+	{"id": "rescue", "text": "Free someone from a cage", "check": "residents>=1", "bits": 20},
+	{"id": "pages", "text": "Find a Lost Page", "check": "pages>=1", "bits": 15},
+	{"id": "fixed", "text": "Fix it forward", "check": "fixed>=1", "bits": 100},
 	{"id": "heat1", "text": "Win at heat 1 or higher", "check": "heat_win>=1", "bits": 60},
 	{"id": "heat3", "text": "Win at heat 3 or higher", "check": "heat_win>=3", "bits": 100},
 ]
@@ -282,7 +287,7 @@ static func _met(check: String, run: RunState, m: Dictionary) -> bool:
 	var st := run.stats
 	var v := 0.0
 	match parts[0]:
-		"rooms", "clean", "bosses", "trigger_rooms", "compiled", "kills", "elites", "thermal", "crashes", "untouched":
+		"rooms", "clean", "bosses", "trigger_rooms", "compiled", "kills", "elites", "thermal", "crashes", "untouched", "residents", "pages", "fixed":
 			v = float(st.get(parts[0], 0))
 		"max_hit": v = float(st.get("max_hit", 0.0))
 		"max_gold": v = float(maxi(run.gold, int(st.get("max_gold", 0))))
@@ -304,6 +309,8 @@ static func bits_for(run: RunState, runs_before: int) -> int:
 	var n := int(st.get("rooms", 0)) * BITS_ROOM + int(st.get("bosses", 0)) * BITS_BOSS
 	if run.world >= 1 or int(st.get("worlds", 0)) >= 1:
 		n += BITS_LOOP
+	if run.world >= 2 or int(st.get("worlds", 0)) >= 2:
+		n += BITS_LOOP   # 0.20: Deadlock too
 	if run.won:
 		n += BITS_WIN
 	if runs_before < EARLY_RUNS:
@@ -386,7 +393,9 @@ const V2_GOAL_ITEMS := {
 
 
 static func migrate(m: Dictionary) -> Dictionary:
-	if int(m.get("meta_v", 1)) >= 2:
+	if int(m.get("meta_v", 1)) == 2:
+		return _migrate_v3(m)
+	if int(m.get("meta_v", 1)) >= 3:
 		return m
 	var goals: Array = m.get("goals", [])
 	if goals.has("win") and not goals.has("world1"):
@@ -418,6 +427,19 @@ static func migrate(m: Dictionary) -> Dictionary:
 	m.erase("goals")
 	m.erase("last_goals")
 	m["meta_v"] = 2
+	return _migrate_v3(m)
+
+
+## 0.20 (meta v3): a win used to be Deadlock's fall; that win now counts as "Defeat Deadlock".
+static func _migrate_v3(m: Dictionary) -> Dictionary:
+	var done: Array = m.get("bounties", [])
+	var claimed: Array = m.get("claimed", [])
+	if done.has("win") and not done.has("world2"):
+		done.append("world2")
+		claimed.append("world2")
+	m["bounties"] = done
+	m["claimed"] = claimed
+	m["meta_v"] = 3
 	return m
 
 

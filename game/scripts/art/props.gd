@@ -202,6 +202,8 @@ static func _familiar(kind: StringName, f: int) -> Image:
 ## D5 room features, drawn over the floor like crates.
 ## A bramble clump (burn clears it). 16x14.
 ## Design v3: the Grove's brambles are corrupted thorns (biome 1), the Cellar's green briars.
+## 0.20, the Kernel: a tangle of torn pages and ink (the Archive, 4) and a knot of nest
+## tendrils with bright tips (Ring Zero, 5).
 static func bramble(biome := 0) -> Texture2D:
 	return PixelArt.cached("bramble%d" % biome, func() -> Image:
 		return PixelArt.paint(PackedStringArray([
@@ -219,7 +221,8 @@ static func bramble(biome := 0) -> Texture2D:
 			"..1122111122211.",
 			"...1111111111...",
 		]), [{"1": "wood:1", "2": "leaf:2", "w": "bone:3"}, {"1": "violet:1", "2": "glitch:2", "w": "glitch:4"},
-			{"1": "steel:1", "2": "steel:3", "w": "frost:4"}, {"1": "rust:1", "2": "rust:3", "w": "ember:4"}][clampi(biome, 0, 3)]))
+			{"1": "steel:1", "2": "steel:3", "w": "frost:4"}, {"1": "rust:1", "2": "rust:3", "w": "ember:4"},
+			{"1": "quill:3", "2": "vellum:3", "w": "vellum:4"}, {"1": "nest:1", "2": "nest:3", "w": "nest:4"}][clampi(biome, 0, 5)]))
 
 
 ## A spore pod (a blast, or any hit, sets it off; pods chain). 12x12.
