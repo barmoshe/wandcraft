@@ -2,6 +2,8 @@ file,title,source,license,author,credit_required
 music_amb_cellar.wav,music amb cellar,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_amb_foundry.wav,music amb foundry,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_amb_grove.wav,music amb grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_kernel.wav,music amb kernel,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_ring.wav,music amb ring,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_loop.wav,music boss loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_p2.wav,music boss p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_boss_p3.wav,music boss p3,tools/gen_music.gd,original,Bar Moshe (generated in code),no
@@ -14,6 +16,9 @@ music_foundry_lead.wav,music foundry lead,tools/gen_music.gd,original,Bar Moshe 
 music_grove_base.wav,music grove base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_grove_drums.wav,music grove drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_grove_lead.wav,music grove lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_kernel_base.wav,music kernel base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_kernel_drums.wav,music kernel drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_kernel_lead.wav,music kernel lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_mini_loop.wav,music mini loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_mini_p2.wav,music mini p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 music_shop.wav,music shop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
@@ -31,12 +36,22 @@ sfx_amb_drip_4.wav,sfx amb drip 4,tools/gen_audio.gd,original,Bar Moshe (generat
 sfx_amb_glitch.wav,sfx amb glitch,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_glitch_2.wav,sfx amb glitch 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_glitch_3.wav,sfx amb glitch 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_nest.wav,sfx amb nest,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_nest_2.wav,sfx amb nest 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_page.wav,sfx amb page,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_page_2.wav,sfx amb page 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_page_3.wav,sfx amb page 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_rustle.wav,sfx amb rustle,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_rustle_2.wav,sfx amb rustle 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_rustle_3.wav,sfx amb rustle 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_spark.wav,sfx amb spark,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_spark_2.wav,sfx amb spark 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_spark_3.wav,sfx amb spark 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_steam.wav,sfx amb steam,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_steam_2.wav,sfx amb steam 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_steam_3.wav,sfx amb steam 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_tick.wav,sfx amb tick,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_amb_tick_2.wav,sfx amb tick 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_armor_break.wav,sfx armor break,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_armor_break_2.wav,sfx armor break 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_back_on_track.wav,sfx back on track,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -156,6 +171,9 @@ sfx_dash_3.wav,sfx dash 3,tools/gen_audio.gd,original,Bar Moshe (generated in co
 sfx_deny.wav,sfx deny,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_derail.wav,sfx derail,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_die.wav,sfx die,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_diff_burn.wav,sfx diff burn,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_diff_burn_2.wav,sfx diff burn 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_diff_warn.wav,sfx diff warn,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_door.wav,sfx door,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_door_shut.wav,sfx door shut,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_duck_say.wav,sfx duck say,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -186,6 +204,7 @@ sfx_glitch_say.wav,sfx glitch say,tools/gen_audio.gd,original,Bar Moshe (generat
 sfx_glitch_say_2.wav,sfx glitch say 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_glitch_say_3.wav,sfx glitch say 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_glitch_toll.wav,sfx glitch toll,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_glitch_unwind.wav,sfx glitch unwind,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_graze.wav,sfx graze,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_graze_2.wav,sfx graze 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_gulp.wav,sfx gulp,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -194,6 +213,7 @@ sfx_heal.wav,sfx heal,tools/gen_audio.gd,original,Bar Moshe (generated in code),
 sfx_heal_small.wav,sfx heal small,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_heal_small_2.wav,sfx heal small 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_heart.wav,sfx heart,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_hint.wav,sfx hint,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_hit.wav,sfx hit,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_hit_2.wav,sfx hit 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_hit_3.wav,sfx hit 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -237,6 +257,8 @@ sfx_hit_ward_3.wav,sfx hit ward 3,tools/gen_audio.gd,original,Bar Moshe (generat
 sfx_hurt.wav,sfx hurt,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_hurt_2.wav,sfx hurt 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_hurt_3.wav,sfx hurt 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_interrupt_free.wav,sfx interrupt free,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_interrupt_lock.wav,sfx interrupt lock,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_key_turn.wav,sfx key turn,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_kill.wav,sfx kill,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_kill_2.wav,sfx kill 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -255,6 +277,11 @@ sfx_kill_shatter_3.wav,sfx kill shatter 3,tools/gen_audio.gd,original,Bar Moshe 
 sfx_kill_spark.wav,sfx kill spark,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_kill_spark_2.wav,sfx kill spark 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_kill_spark_3.wav,sfx kill spark 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_leak_drip.wav,sfx leak drip,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_leak_drip_2.wav,sfx leak drip 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_leak_drip_3.wav,sfx leak drip 3,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_leak_dry.wav,sfx leak dry,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_leak_dry_2.wav,sfx leak dry 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_levelup.wav,sfx levelup,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_locked.wav,sfx locked,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_locked_2.wav,sfx locked 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -263,6 +290,10 @@ sfx_low_hp.wav,sfx low hp,tools/gen_audio.gd,original,Bar Moshe (generated in co
 sfx_low_hp_2.wav,sfx low hp 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_mana_empty.wav,sfx mana empty,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_mana_empty_2.wav,sfx mana empty 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_null_aim.wav,sfx null aim,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_null_blink.wav,sfx null blink,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_null_blink_2.wav,sfx null blink 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_page_take.wav,sfx page take,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_panic.wav,sfx panic,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_paste.wav,sfx paste,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_phase.wav,sfx phase,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -271,8 +302,14 @@ sfx_pit_fall.wav,sfx pit fall,tools/gen_audio.gd,original,Bar Moshe (generated i
 sfx_pod_pop.wav,sfx pod pop,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_pod_pop_2.wav,sfx pod pop 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_pylon.wav,sfx pylon,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_race_cross.wav,sfx race cross,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_race_cross_2.wav,sfx race cross 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_race_respawn.wav,sfx race respawn,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_relic_proc.wav,sfx relic proc,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_relic_proc_2.wav,sfx relic proc 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_resident_free.wav,sfx resident free,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_revert_spawn.wav,sfx revert spawn,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_revert_take.wav,sfx revert take,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_roar.wav,sfx roar,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_secret.wav,sfx secret,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_segment_break.wav,sfx segment break,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -282,6 +319,8 @@ sfx_shield_break.wav,sfx shield break,tools/gen_audio.gd,original,Bar Moshe (gen
 sfx_shield_break_2.wav,sfx shield break 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_shield_soak.wav,sfx shield soak,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_shield_soak_2.wav,sfx shield soak 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_skin_equip.wav,sfx skin equip,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
+sfx_skin_equip_2.wav,sfx skin equip 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_slam.wav,sfx slam,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_slam_2.wav,sfx slam 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_spawn.wav,sfx spawn,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
@@ -348,9 +387,13 @@ sting_boss_down.wav,sting boss down,tools/gen_music.gd,original,Bar Moshe (gener
 sting_clear.wav,sting clear,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_clear_foundry.wav,sting clear foundry,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_clear_grove.wav,sting clear grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+sting_clear_kernel.wav,sting clear kernel,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_defeat.wav,sting defeat,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+sting_glitch.wav,sting glitch,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_reward.wav,sting reward,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_reward_foundry.wav,sting reward foundry,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_reward_grove.wav,sting reward grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+sting_reward_kernel.wav,sting reward kernel,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_victory.wav,sting victory,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sting_world.wav,sting world,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+sting_world_kernel.wav,sting world kernel,tools/gen_music.gd,original,Bar Moshe (generated in code),no

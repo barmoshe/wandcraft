@@ -124,6 +124,30 @@ func tick(dt: float) -> void:
 	for p in parts:
 		p.flash = flash
 	_animate()
+	_compile_in()
+
+
+## 0.20 (research/world3/5-graphics.md): a boss compiles in. Through its intro its sprite
+## draws row by row from the top, like code arriving, then it's whole.
+var _c_off := Vector2.ZERO
+
+
+func _compile_in() -> void:
+	if sprite == null or sprite.texture == null:
+		return
+	var k := clampf(1.0 - st_t / INTRO, 0.0, 1.0) if sm == &"intro" else 1.0
+	if k < 1.0:
+		var sz := sprite.texture.get_size()
+		if sprite.centered:
+			_c_off = sprite.offset
+			sprite.centered = false
+			sprite.offset = _c_off - sz / 2.0
+		sprite.region_enabled = true
+		sprite.region_rect = Rect2(0, 0, sz.x, maxf(1.0, ceilf(sz.y * k)))
+	elif sprite.region_enabled:
+		sprite.region_enabled = false
+		sprite.centered = true
+		sprite.offset = _c_off
 
 
 ## research/difficulty.md: pressure, not HP. The last phase (and at heat 5, every phase after

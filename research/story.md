@@ -12,7 +12,7 @@ Written 2026-09-27 for plan 0.18 Step 1 (Bar's ask: "make the switch between wor
 |---|---|---|---|---|
 | 1 | `root_cellar()` | The Mossy Root Cellar, the Corrupted Grove | The Infinite Loop | The Loop spins the world at 100%. Breaking it drops the world to 99%, and its heat drains down |
 | 2 | `foundry()` | The Cooling Vents, the Molten Core | Deadlock | The Foundry forges the world's spells, and runs hot. Two locks wait on each other in front of the Kernel |
-| (3) | `kernel()` | ??? | ??? | Where the bug lives. The ending teases it: `mkdir /world3` |
+| 3 | `kernel()` | The Page Archive, Ring Zero | The Glitch | Where the world remembers, and where the bug lives. Built in 0.20 (`research/world3-0.20.md`) |
 
 **The twist**, told by the commit log and the ending: the bug was your own commit. Copy-Paste's log entry is your commit message word for word. The fix is the oldest spell there is, revert. The Duck's verdict is "Everyone pushes on a Friday".
 
@@ -60,3 +60,19 @@ If the research returns, merge its sourced findings here.
 - `e0f84c8` Story part 1: `story.gd`, the Duck's box, the story beats in `world.gd`, the descend door.
 - `5d18b84` Story part 2: the descent screen (WorldScreen) and its tests.
 - Part 3: the intro and ending panels (StoryScreen), the Duck on the end screen, the Codex LOGS tab, the HUD world tag, `best_step` by depth.
+
+## 0.20: the Kernel, the residents and two endings
+Bar's ask (28 Sep): "improve the story, more NPC, more worlds". The research is in `research/world3/2-storytelling.md` and `research/world3/4-npcs.md`; the design in `research/world3-0.20.md`. The first win (at Deadlock) had already told the twist, so World 3 takes it further instead of repeating it.
+
+- **Deadlock's fall is no longer the end.** LINT grants Kernel access and `mkdir /world3` (log `c10ud0`) now drops there, where it leads somewhere.
+- **The twist, three more turns** (all append-only log entries, so the voice files keep their ids):
+  - `5a1e0f` LINT warned you: "Push anyway? [y/N] y". Found on entering the Kernel. LINT's old "You will not read it" was literal.
+  - `1a7e57` Grep approved your commit without reading it ("LGTM"). Told in his fourth conversation, once you've been in the Kernel. The failure was the process, not one person.
+  - `d0c0de` The Duck was initialised at 16:59:01: it exists because of your bug. Found when Data Race falls.
+  - `bac0up` Cache keeps the snapshot from 16:58. Revert only works through her.
+  - `fa11ed` a kernel panic (a Debug Terminal's), and `f1x3d0` the fix, written only in the true ending.
+- **The clock descends.** Each world's start room has a wall clock: 16:59:57, 16:59:58, 16:59:59. Nobody explains it.
+- **The residents** (`game/scripts/sim/residents.gd`): Grep, Hotfix and Cache, orphaned processes your bug left running, one caged in each world. Each has a want, a quirk and a secret, an arc of five beats gated on play (runs since the rescue, how deep you've been, wins, Lost Pages, story flags), a word on the last run, and idle lines. A "!" in the Workshop marks a new beat.
+- **Two endings.** Every win at the Glitch reverts: the Source rolls back to 16:58, the moss closes its eyes, and the Duck goes quiet (`ENDING`). With a win behind you, every resident rescued and Grep's confession heard, the Glitch's fall asks first (CommitScreen): REVERT or FIX FORWARD. Fixing forward keeps what grew from the bug (`TRUE_ENDING`), LINT says "I" for the first time ("I approve this commit"), and the Workshop holds a blameless post-mortem (`hub_epilogue`, the residents' `EPILOGUE` lines).
+- **The Lost Pages:** twelve tiny source files whose comments tell the Arcanum's history, found one per boss once Cache has moved in, read at her station.
+- **Voices:** Grep, Hotfix and Cache each get a Kokoro voice and chain (`research/voices-plan.md`).

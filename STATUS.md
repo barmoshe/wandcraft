@@ -1,6 +1,6 @@
 # wandcraft — STATUS
 
-- Updated: 2026-09-27
+- Updated: 2026-09-28
 
 ## MVP: design-first (ADR 0011, `research/design-plan.md`)
 - **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
@@ -148,6 +148,17 @@
     - Difficulty in three benched passes (`research/difficulty.md`): the editing bot clears World 1 40% (from 60%) and wins 10% (from 20%); the Loop 78 s, Deadlock 97 s.
     - Magicraft lessons: heat 2 and 5 are rules, heat pays in gold and spell odds, an Untouched orb after a clean boss fight, Deadlock readable and beatable by single-target wands, hero sprites on the start cards.
 
+  - **0.20, the Kernel (2026-09-28, ADR 0028, `research/world3-0.20.md`).** Bar: "research design, work fully autonomous, improve the story, more NPC, more graphics, more worlds". Five research agents (roguelikes, storytelling, hubs, NPCs, pixel graphics; sourced notes in `research/world3/`), then art, sound and voice agents in parallel.
+    - **World 3, the Kernel,** after Deadlock:
+      - the Page Archive and Ring Zero, with eight new ramps, two room themes and surroundings per theme
+      - new enemies: the Page Leak, the Dangling Pointer, and the Interrupt, which suspends one of your spells while it lives
+      - Data Race, two threads that must fall together
+      - the Glitch, with diff rows, a stack unwind and revert glyphs against a closing rewrite
+      - Kernel music, ambience and 17 effects
+    - **Residents:** Grep, Hotfix and Cache, caged one per world, move into the Workshop with arcs, reactions and services: a hint a run, wand skins for Bits, and twelve Lost Pages.
+    - **Story:** six new commit logs, a descending wall clock, and the ending moved to the Glitch. A true ending, fix forward, opens after Grep's confession, and the Workshop then holds a blameless post-mortem.
+    - **Tests:** `test_world_three`, `test_kernel_art`, and the bot clears all three worlds.
+
 ## Where we are (POC history)
 - **M0 Foundation: done.**
   - Project folder, ADRs 0001-0006 and research notes.
@@ -281,7 +292,16 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
-- **0.19.0 is the playtest build** (ADR 0027, `research/workshop-0.19.md`): the Workshop, a playable hub that replaces the title menu. You walk it with the run's controls, and USE opens a station:
+- **0.20.0 adds World 3, the residents and the true ending** (ADR 0028). Bar:
+  - Play the Kernel on a phone.
+    - Do the Interrupt's lock and the Data Race rule read without the Duck explaining them?
+    - Do the revert glyphs make the Glitch's last phase fun, not chaotic?
+  - Deploy the web build from the Mac: `tools/build_web.sh`, then `tools/deploy_web.sh`. This container has no Vercel login.
+  - Playtest questions for the testers:
+    - Did you free someone from a cage, and did you go talk to them?
+    - Did Grep's confession land?
+    - Did anyone find the fix-forward choice?
+- **0.19.0 was the playtest build** (ADR 0027, `research/workshop-0.19.md`): the Workshop, a playable hub that replaces the title menu. You walk it with the run's controls, and USE opens a station:
   - the Portal (new run, continue, daily, heat)
   - the Hero Hall (each hero now has their own look)
   - the Merchant, selling spell packs for Bits (a currency that carries over between runs; 4 new packs with 12 new spells)

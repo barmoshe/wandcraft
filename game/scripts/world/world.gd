@@ -548,7 +548,7 @@ func build_room(tpl: String, kind: StringName) -> void:
 	_deco.queue_redraw()
 	if Game.quiet == 0:
 		Audio.music(room_music(kind))
-		Audio.ambience(["cellar", "grove", "foundry", "foundry", "kernel", "kernel"][biome()])
+		Audio.ambience(["cellar", "grove", "foundry", "foundry", "kernel", "ring"][biome()])
 		Events.room_entered.emit({"no": run.step if run else 0, "kind": kind, "tpl": tpl,
 			"title": _room_title(kind)})
 		_story_on_enter(kind)
@@ -718,7 +718,7 @@ func _spawn_boss() -> void:
 		b.hp = b.max_hp
 		b.title += " 2.0"
 	boss = b
-	Audio.sting("boss")
+	Audio.sting("glitch" if b is BossGlitch else "boss")
 	Hints.show("boss")
 	Events.boss_started.emit(b.title, b.subtitle)
 	if run and run.daily == "":
@@ -1012,8 +1012,8 @@ func enter_next_world() -> void:
 	run.lane = 1
 	run.map = []
 	run.map = Chapter.make_map(run)
-	Audio.sting("world")
 	enter_room()
+	Audio.sting("world")   # after the room: the new world's music is the current track
 	Events.toast.emit("World clear: +%d max HP" % int(WORLD_BONUS_HP))
 
 
@@ -2418,7 +2418,7 @@ func _draw_cage() -> void:
 	var at := (p + Vector2(-rt.get_width() / 2.0, 8 - rt.get_height())).round()
 	if not open:
 		# behind the bars, flickering like a process nobody answers
-		_deco.draw_texture(rt, at, Color(1, 1, 1, 0.55 + 0.25 * sin(time * 9.0)))
+		_deco.draw_texture(rt, at, Color(1, 1, 1, 0.45 if fmod(time, 1.7) < 0.08 else 0.95))
 	else:
 		var k := clampf(float(cage["t"]) / CAGE_REVEAL, 0.0, 1.0)
 		var rows := ceili(rt.get_height() * k)

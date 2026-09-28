@@ -15,20 +15,23 @@ extends "res://tests/unit/test_helpers.gd"
 ## 0.18 (research/difficulty.md): humans found 60% easy, and the bot never dashes, so the band
 ## moved down: the editor clears World 1 25-45% and wins the full run 5-15%; mini-bosses
 ## 20-75 s, the Loop 50-100 s, Deadlock 60-110 s; a room averages under a minute.
+## 0.20 (research/world3-0.20.md): a run is three worlds; the Glitch's time and World 2's clear
+## rate are reported. test_kernel_balance starts in the Kernel with a mid-game kit, so Data
+## Race and the Glitch are measured even though few full runs get that far.
 
 const DT := 1.0 / 60.0
 const SEEDS := [11, 22, 33, 44, 55, 66, 77, 88, 99, 110]
 const ONLY := []   # debugging: set to e.g. [99] to bench one seed
-const LIMIT := 2400.0
+const LIMIT := 3600.0
 
 
-func _play(seed_value: int, edits := true) -> Dictionary:
+func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary:
 	var world := World.new()
 	world.auto_step = false
 	runner.root.add_child(world)
 	world.setup(seed_value)
 	world.bot = true
-	var res := {"won": false, "w1": false, "step": 0, "time": 0.0, "hp_lost": 0.0, "rooms": 0, "mini": -1.0, "boss": -1.0, "boss2": -1.0, "path": []}
+	var res := {"won": false, "w1": false, "step": 0, "time": 0.0, "hp_lost": 0.0, "rooms": 0, "mini": -1.0, "boss": -1.0, "boss2": -1.0, "boss3": -1.0, "race": -1.0, "path": []}
 	var state := {"victory": false, "defeat": false}
 	world.ui_request.connect(_answer.bind(world, state, edits))
 	var by: Dictionary = {}
@@ -40,7 +43,7 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 		var k: String = world.player.last_hurt_by
 		by[k] = float(by.get(k, 0.0)) + a
 	Events.player_hurt.connect(on_hurt)
-	world.start_run(RunState.create(seed_value))
+	world.start_run(start if start else RunState.create(seed_value))
 	var t := 0.0
 	var boss_t0 := -1.0
 	var last_kind: StringName = &""
@@ -52,13 +55,16 @@ func _play(seed_value: int, edits := true) -> Dictionary:
 		if world.boss and not world.boss.dead and boss_t0 < 0.0:
 			boss_t0 = t
 		if world.boss and world.boss.dead and boss_t0 >= 0.0:
-			var key := "mini" if world.room_kind == &"mini" else ("boss2" if world.run.world >= 1 else "boss")
+			var key := "mini" if world.room_kind == &"mini" else ["boss", "boss2", "boss3"][mini(world.run.world, 2)]
+			if world.room_kind == &"mini" and world.run.world >= 2:
+				key = "race"
 			if res[key] < 0.0:
 				res[key] = t - boss_t0
 			boss_t0 = -1.0
 	Events.player_hurt.disconnect(on_hurt)
 	res["won"] = state["victory"]
 	res["w1"] = world.run.world >= 1 or state["victory"]
+	res["w2"] = world.run.world >= 2 or state["victory"]
 	res["world"] = world.run.world + 1
 	res["step"] = world.run.step
 	res["time"] = t
@@ -93,6 +99,8 @@ func _bench(edits: bool) -> float:
 	var full := 0
 	var stalls := 0
 	var bosses2: Array = []
+	var bosses3: Array = []
+	var w2 := 0
 	var minis: Array = []
 	var bosses: Array = []
 	var room_t := 0.0
@@ -109,6 +117,10 @@ func _bench(edits: bool) -> float:
 			stalls += 1
 		if r["boss2"] >= 0.0:
 			bosses2.append(r["boss2"])
+		if r["boss3"] >= 0.0:
+			bosses3.append(r["boss3"])
+		if r["w2"]:
+			w2 += 1
 		if r["mini"] >= 0.0:
 			minis.append(r["mini"])
 		if r["boss"] >= 0.0:
@@ -117,7 +129,7 @@ func _bench(edits: bool) -> float:
 		rooms += maxi(1, r["rooms"])
 		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5d  %5.0f  %5.0f  %5.0f   %s" % [s, "WIN" if r["won"] else ("W1" if r["w1"] else "died"), r["world"], r["step"], r["time"], r["hp_lost"], r["rooms"], r["mini"], r["boss"], r["boss2"], _top_sources(r["by"])])
 	var rate := float(wins) / SEEDS.size()
-	print("    World 1 cleared %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs, %.0fs a room" % [rate * 100.0, 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2), room_t / maxi(1, rooms)])
+	print("    World 1 cleared %.0f%%, World 2 %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs, the Glitch avg %.0fs, %.0fs a room" % [rate * 100.0, 100.0 * w2 / SEEDS.size(), 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2), _avg(bosses3), room_t / maxi(1, rooms)])
 	SaveGame.enabled = true
 	eq(stalls, 0, "every run ends (a stall means a bot or game bug, not balance)")
 	if not edits:
@@ -130,6 +142,46 @@ func _bench(edits: bool) -> float:
 		ok(_avg(bosses2) >= 60.0 and _avg(bosses2) <= 110.0, "Deadlock takes 60-110 s (%.0f)" % _avg(bosses2))
 	ok(room_t / maxi(1, rooms) <= 60.0, "a room averages under a minute (%.0f s)" % (room_t / maxi(1, rooms)))
 	return rate
+
+
+## 0.20: World 3 on its own. Each seed starts in the Kernel with the kit a run tends to have by
+## then (two wands, a few upgrades, the world-clear HP), the editing bot, no god mode.
+func test_kernel_balance() -> void:
+	Meta.core_only = true
+	Game.god_mode = false
+	Game.auto_fire = true
+	SaveGame.enabled = false
+	var clears := 0
+	var races: Array = []
+	var glitches: Array = []
+	print("\n    WORLD 3 (from the Kernel's start, mid-game kit)")
+	print("    seed  result   w-step  time   hp_lost  race  glitch   top damage")
+	for s in (ONLY if not ONLY.is_empty() else SEEDS):
+		var r := RunState.create(s)
+		r.tutorial = false
+		r.world = 2
+		r.step = 0
+		r.max_hp += 20.0
+		r.hp = r.max_hp
+		r.gold = 120
+		r.wand().set_slots([&"empower", &"twin", &"spark", &"ember"])
+		r.add_wand(&"oak")
+		r.wands[1].set_slots([&"keen", &"fan", &"then", &"burst", &"frost"])
+		r.map = Chapter.make_map(r)
+		var res := _play(s, true, r)
+		if res["won"]:
+			clears += 1
+		if res["race"] >= 0.0:
+			races.append(res["race"])
+		if res["boss3"] >= 0.0:
+			glitches.append(res["boss3"])
+		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5.0f  %5.0f   %s" % [s, "CLEAR" if res["won"] else "died", res["world"], res["step"], res["time"], res["hp_lost"], res["race"], res["boss3"], _top_sources(res["by"])])
+	print("    World 3 cleared %.0f%%, Data Race avg %.0fs, the Glitch avg %.0fs" % [100.0 * clears / SEEDS.size(), _avg(races), _avg(glitches)])
+	SaveGame.enabled = true
+	if not glitches.is_empty():
+		ok(_avg(glitches) >= 60.0 and _avg(glitches) <= 150.0, "the Glitch takes 60-150 s (%.0f)" % _avg(glitches))
+	if not races.is_empty():
+		ok(_avg(races) >= 20.0 and _avg(races) <= 90.0, "Data Race takes 20-90 s (%.0f)" % _avg(races))
 
 
 func _avg(a: Array) -> float:

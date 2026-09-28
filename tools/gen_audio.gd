@@ -1,6 +1,8 @@
 extends SceneTree
 ## Sound v2 (research/sound-v2.md §4): renders every sound effect to game/assets/audio/sfx_*.wav.
 ## The music is gen_music.gd. Run: tools/audio.sh (godot --headless --path game -s <abs path>).
+## ONLY=<id>,<id> renders just those cues and deletes nothing (for working on a few; the .import
+## files and the manifest still need tools/audio.sh).
 ##
 ## Every sound is synthesised here from the shared toolkit tools/lib_dsp.gd (§3): envelopes,
 ## pitch envelopes, band-limited oscillators, the sigil, state-variable filters, saturation and
@@ -199,6 +201,24 @@ const CUES := {
 	"tip": ["U", 1, "", -27.0],
 	"duck_say": ["U", 3, "", -26.0],
 	"glitch_say": ["U", 3, "", -26.0],
+	# ---- World 3, the Kernel (0.20, research/world3-0.20.md §3)
+	"leak_drip": ["C+", 3, "", 0.0],
+	"leak_dry": ["E", 2, "", 0.0],
+	"null_aim": ["C+", 1, "", 0.0],
+	"null_blink": ["C+", 2, "", 0.0],
+	"interrupt_lock": ["E", 1, "", 0.0],
+	"interrupt_free": ["E", 1, "", 0.0],
+	"race_cross": ["A", 2, "", 0.0],
+	"race_respawn": ["A", 1, "", 0.0],
+	"diff_warn": ["A", 1, "", 0.0],
+	"diff_burn": ["A", 2, "", 0.0],
+	"revert_spawn": ["E", 1, "", 0.0],
+	"revert_take": ["M", 1, "", 0.0],
+	"glitch_unwind": ["M", 1, "", 0.0],
+	"resident_free": ["M", 1, "", -18.0],
+	"page_take": ["E", 1, "", 0.0],
+	"skin_equip": ["U+", 2, "", 0.0],
+	"hint": ["U+", 1, "", 0.0],
 	# ---- ambience spots (§4.11): 22.05 kHz, played by audio.gd itself
 	"amb_drip": ["W", 4, "amb", -32.0],
 	"amb_creak": ["W", 2, "amb", -32.0],
@@ -206,6 +226,10 @@ const CUES := {
 	"amb_glitch": ["W", 3, "amb", -32.0],
 	"amb_steam": ["W", 3, "amb", -32.0],
 	"amb_clank": ["W", 3, "amb", -32.0],
+	"amb_page": ["W", 3, "amb", -32.0],
+	"amb_tick": ["W", 2, "amb", -32.0],
+	"amb_nest": ["W", 2, "amb", -32.0],
+	"amb_spark": ["W", 3, "amb", -32.0],
 }
 
 # pitches (the effects are tuned to A; the runtime shifts walked cues into the area's key)
@@ -237,7 +261,11 @@ func _initialize() -> void:
 	var t0 := Time.get_ticks_msec()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	var files := 0
+	# ONLY=hit,crit (a comma list) renders just those cues and deletes nothing, for working on one
+	var only := OS.get_environment("ONLY").split(",", false)
 	for id: String in CUES:
+		if not only.is_empty() and not id in only:
+			continue
 		var c0 := Time.get_ticks_msec()
 		var row: Array = CUES[id]
 		var flags := String(row[2])
@@ -263,7 +291,9 @@ func _initialize() -> void:
 			files += 1
 		_ms[id] = Time.get_ticks_msec() - c0
 	D.set_rate(SR)
-	var removed := _remove_orphans()
+	var removed: Array[String] = []
+	if only.is_empty():
+		removed = _remove_orphans()
 	print("gen_audio: %d cues, %d files to %s in %.1f s; removed %d retired files: %s" % [CUES.size(), files, OUT,
 		(Time.get_ticks_msec() - t0) / 1000.0, removed.size(), ", ".join(removed)])
 	print("gen_audio: mastering passes: %s" % (", ".join(_log) if not _log.is_empty() else "none"))
@@ -2043,3 +2073,282 @@ func _c_amb_clank(v: int) -> PackedFloat32Array:
 	var o := out(700.0)
 	D.mix(o, md("plate", P([400.0, 550.0, 700.0], v), 300.0, 450.0, "mallet", 1, 8), 0.0, -6.0)
 	return D.room(o, "M", 0.3, 0.5)
+
+
+## The Page Archive: a page turning in the stacks (a rustle that swells, the sheet's soft flap).
+func _c_amb_page(v: int) -> PackedFloat32Array:
+	var o := out(720.0)
+	var n := N(700.0)
+	var sh := D.env([[0.0, 0.1, 0.0], [P([350.0, 250.0, 450.0], v), 1.0, 0.0], [600.0, 0.0, 0.0]], n)
+	D.mix(o, D.grain(n, R(1), P([80.0, 110.0, 60.0], v), 10.0, "noise", 1800.0, 4500.0, sh))
+	D.mix(o, nzs(2, "pink", 60.0, 2500.0, 800.0, 50.0, 1.0, 2.0), P([380.0, 280.0, 480.0], v), -6.0)
+	return o
+
+
+## The Page Archive: a mantel clock somewhere in the stacks, three beats of its escapement.
+func _c_amb_tick(v: int) -> PackedFloat32Array:
+	var o := out(900.0)
+	for k in 3:
+		var f := P([2400.0, 2100.0], v) * (1.0 if k % 2 == 0 else 0.75)
+		D.mix(o, md("wood", f, 30.0, 80.0, "impulse", 1 + k, 3), 330.0 * k, -2.0 if k % 2 == 0 else -4.0)
+		D.mix(o, md("brass", f * 1.5, 20.0, 60.0, "impulse", 4 + k, 3), 330.0 * k, -10.0)
+	return D.room(o, "M", 0.25, 0.5)
+
+
+## Ring Zero: the Glitch's nest far off, one slow throb with a glass shimmer riding it. A single
+## swell, never a heartbeat's double beat, so it cannot be mistaken for the low-HP warning.
+func _c_amb_nest(v: int) -> PackedFloat32Array:
+	var o := out(950.0)
+	var n := N(900.0)
+	var e := D.env([[0.0, 0.0, 0.0], [250.0, 1.0, -2.0], [900.0, 0.0, 2.0]], n)
+	var body := D.sat(osc("sine", D.penv(P([98.0, 92.5], v), P([82.0, 77.8], v), 900.0, n), e), 3.0)
+	D.mix(o, weight(body, 180.0, 4.0, 1.0, -6.0))
+	D.mix(o, D.amp(fmt(F(P([1975.5, 1864.7], v), 900.0), 1.41, 1.0, 0.2, 600.0, 200.0, 700.0), e), 0.0, -18.0)
+	return D.room(o, "M", 0.3, 0.5)
+
+
+## Ring Zero: a brass trace arcing over, a crackle and a zap down the circuit.
+func _c_amb_spark(v: int) -> PackedFloat32Array:
+	var o := out(400.0)
+	D.mix(o, crk(1, P([120.0, 90.0, 160.0], v), 900.0, P([3500.0, 4200.0, 3000.0], v)))
+	var n := N(150.0)
+	D.mix(o, fmt(D.penv(P([4000.0, 3500.0, 4500.0], v), 900.0, 120.0, n), 2.756, 1.5, 0.2, 100.0, 0.5, 140.0), 20.0, -6.0)
+	return D.room(o, "S", 0.2, 0.5)
+
+
+# ------------------------------------------------------------------ World 3: the Kernel (0.20)
+
+## Memory Leak drips a puddle: a drop's rising bubble blip, the plop into the puddle (a soft
+## saturated body) and a crushed splash, because the leaked memory is data.
+func _c_leak_drip(v: int) -> PackedFloat32Array:
+	var o := out(300.0)
+	var n := N(60.0)
+	var f0 := P([700.0, 620.0, 800.0], v)
+	D.mix(o, osc("sine", D.penv(f0, f0 * 2.3, 30.0, n), D.aenv(1.0, 55.0, n)), 0.0, -2.0)
+	D.mix(o, drop(P([320.0, 290.0, 350.0], v), 150.0, 60.0, 180.0, 3.0, 1200.0, 1.0, 1.0), 40.0, -4.0)
+	D.mix(o, D.crush(nz(1, "pink", 120.0, "bp", 1500.0, 1.5, 2.0), 4, 5.0, 1.0), 45.0, -10.0)
+	return o
+
+
+## Its puddles dry up (the leak is freed): a sizzle that rises and thins, a low sigh, then the
+## freed memory chimes up the major arpeggio (A C# E A').
+func _c_leak_dry(v: int) -> PackedFloat32Array:
+	var o := out(900.0)
+	var n := N(600.0)
+	var sz := D.svf_mod(D.noise(n, R(1), "white"), "bp", D.penv(1500.0, P([6000.0, 5000.0], v), 550.0, n), 1.5)
+	D.mix(o, D.amp(sz, D.env([[0.0, 0.0, 0.0], [40.0, 1.0, 0.0], [600.0, 0.0, 2.0]], n)), 0.0, -4.0)
+	D.mix(o, drop(260.0, 140.0, 200.0, 300.0, 3.0, 900.0, 1.0, 5.0), 0.0, -6.0)
+	var ps := [A6, CS7, E7, A7]
+	for i in 4:
+		D.mix(o, md("glass", float(ps[i]), 300.0, 400.0, "mallet", 2 + i, 4), 120.0 + 70.0 * i, -4.0 - i)
+	return o
+
+
+## Null Pointer aims: a thin pulse line drawn up through the threat band (440 -> 1100 Hz) with
+## the threat warble's tremolo on it (14 -> 22 Hz), a sigil at the base and a click at the tip.
+func _c_null_aim(_v: int) -> PackedFloat32Array:
+	var o := out(420.0)
+	var n := N(380.0)
+	var f := D.penv(A4, 1100.0, 340.0, n)
+	var p := D.svf_mod(D.pulse(f, 0.3), "bp", f, 3.0)
+	p = D.am_mod(p, D.penv(14.0, 22.0, 380.0, n), 0.4)
+	D.mix(o, D.amp(p, D.env([[0.0, 0.0, 0.0], [20.0, 0.6, 0.0], [340.0, 1.0, 0.0], [380.0, 0.0, 1.0]], n)))
+	D.mix(o, D.sigil(A6, 14.0, 1.0), 0.0, -6.0)
+	D.mix(o, D.sigil(E7, 14.0, 1.0), 330.0, -4.0)
+	return o
+
+
+## It blinks to the line's end (dereferenced): a crushed sigil run falling into a null, a
+## reversed zip, a hard pop, and the small ring it snaps in (a pitched plate).
+func _c_null_blink(v: int) -> PackedFloat32Array:
+	var o := out(320.0)
+	D.mix(o, D.crush(sigils([A7, E7, A6, E6], 12.0, 10.0, 0.9), 2, P([6.0, 5.0], v), 0.7), 0.0, -2.0)
+	D.mix(o, D.reverse(D.whoosh(N(80.0), R(1), 1200.0, P([5000.0, 4000.0], v), 80.0, 1.5, 0.3)), 0.0, -6.0)
+	D.mix(o, drop(P([520.0, 480.0], v), 200.0, 25.0, 70.0, 4.0, 0.0, 0.6, 0.3), 60.0, -2.0)
+	D.mix(o, md("plate", P([1320.0, 1245.0], v), 160.0, 220.0, "impulse", 2, 6), 65.0, -8.0)
+	return o
+
+
+## Interrupt suspends one of your spells: a padlock's clunk (a small iron plate with weight,
+## then the latch) and the interrupt's glitchy chirp, an FM chirp down, stuttered and crushed.
+func _c_interrupt_lock(_v: int) -> PackedFloat32Array:
+	var o := out(520.0)
+	D.mix(o, weight(md("plate", 330.0, 120.0, 220.0, "mallet", 1, 6), 250.0, 4.0, 1.0))
+	D.mix(o, drop(200.0, 110.0, 40.0, 110.0, 4.0, 1000.0, 1.0, 0.5), 0.0, -4.0)
+	D.mix(o, nz(2, "white", 4.0, "bp", 3000.0, 2.0, 0.1), 70.0, -4.0)
+	var ch := fmt(D.penv(E7, A6, 60.0, N(70.0)), 1.41, 2.0, 0.5, 50.0, 0.5, 65.0)
+	D.mix(o, D.crush(D.stutter(ch, 0.0, 18.0, 3), 3, 5.0, 0.8), 130.0, -6.0)
+	return o
+
+
+## The spell comes back: the lock springs (two light plate clicks, the key turning back), then
+## the slot's sigil climbs home (A6 E7 A7) with a glass ring.
+func _c_interrupt_free(_v: int) -> PackedFloat32Array:
+	var o := out(560.0)
+	for k in 2:
+		D.mix(o, md("plate", A5 * (1.0 + 0.12 * k), 150.0, 180.0, "mallet", 1 + k, 6), 50.0 * k, -4.0)
+	D.mix(o, sigils([A6, E7, A7], 45.0, 22.0, 0.9), 110.0)
+	D.mix(o, md("glass", A7, 250.0, 350.0, "mallet", 4, 4), 200.0, -6.0)
+	return o
+
+
+## Race Condition: the two threads cross and burst. Two saws race head-on (one climbing, one
+## falling) into the same pitch, then collide: a crushed burst over a saturated low body.
+func _c_race_cross(v: int) -> PackedFloat32Array:
+	var o := out(720.0)
+	var n := N(220.0)
+	var mid := P([660.0, 620.0], v)
+	var e := D.env([[0.0, 0.0, 0.0], [10.0, 0.5, 0.0], [210.0, 1.0, 0.0], [220.0, 0.0, 0.0]], n)
+	var up := osc("saw", D.penv(mid * 0.5, mid, 200.0, n), e)
+	var dn := osc("saw", D.penv(mid * 2.0, mid * D.st(0.3), 200.0, n), e)
+	D.mix(o, D.svf(D.add(up, dn), "lp", 3000.0, 0.7071), 0.0, -8.0)
+	D.mix(o, nz(1, "white", 6.0, "bp", 1500.0, 1.0, 0.1), 220.0, -2.0)
+	D.mix(o, drop(P([180.0, 170.0], v), 60.0, 200.0, 400.0, 7.0, 1400.0, 1.4), 220.0)
+	D.mix(o, D.crush(nz(2, "pink", 300.0, "lp", 3000.0, 0.7071, 1.0), 3, 6.0, 0.8), 220.0, -6.0)
+	return D.room(o, "S", 0.10, 0.4)
+
+
+## The fallen thread respawns (a warning): a fork, one pulse tone splitting in two (660 -> 440
+## and 990 Hz) with the threat warble's tremolo, swelling to a restart stamp.
+func _c_race_respawn(_v: int) -> PackedFloat32Array:
+	var o := out(900.0)
+	var n := N(700.0)
+	var e := D.env([[0.0, 0.0, 0.0], [20.0, 0.5, 0.0], [680.0, 1.0, -2.0], [700.0, 0.0, 0.0]], n)
+	for tgt: float in [440.0, 990.0]:
+		var f := D.penv(660.0, tgt, 250.0, n)
+		var p := D.svf_mod(D.pulse(f, 0.3), "bp", f, 3.0)
+		D.mix(o, D.amp(D.am_mod(p, D.penv(14.0, 22.0, 700.0, n), 0.4), e), 0.0, -3.0)
+	D.mix(o, D.reverse(D.whoosh(N(200.0), R(1), 800.0, 4000.0, 200.0, 1.2)), 0.0, -8.0)
+	D.mix(o, md("stone", 240.0, 60.0, 90.0, "mallet", 2, 5), 700.0, -3.0)
+	D.mix(o, sigils([A6, A6], 70.0, 20.0, 1.0), 700.0, -6.0)
+	return o
+
+
+## The Glitch's red "-" rows telegraph: a flat, buzzy minor second (pulses at 392 and 415 Hz,
+## band-passed in the threat band) whose tremolo speeds up 10 -> 22 Hz as it swells, and a
+## diff-line tick per row.
+func _c_diff_warn(_v: int) -> PackedFloat32Array:
+	var o := out(760.0)
+	var n := N(700.0)
+	var s := D.add(D.pulse(F(392.0, 700.0), 0.3), D.pulse(F(415.3, 700.0), 0.3, PackedFloat32Array(), 0.4))
+	s = D.am_mod(D.svf(s, "bp", 600.0, 1.2), D.penv(10.0, 22.0, 700.0, n), 0.45)
+	D.mix(o, D.amp(s, D.env([[0.0, 0.0, 0.0], [15.0, 0.25, 0.0], [690.0, 1.0, -2.0], [700.0, 0.0, 0.0]], n)))
+	for k in 4:
+		D.mix(o, D.sigil(E6, 12.0, 0.8), 120.0 * k, -8.0)
+	return o
+
+
+## The rows burn: a flash of fire (a band-pass roar opening), a crushed "delete" cut, a low
+## saturated thud and the crackle of the lines charring.
+func _c_diff_burn(v: int) -> PackedFloat32Array:
+	var o := out(700.0)
+	var n := N(450.0)
+	var b := D.svf_mod(D.noise(n, R(1), "pink"), "bp", D.penv(700.0, P([2800.0, 2400.0], v), 200.0, n), 1.2)
+	D.mix(o, D.amp(b, D.env([[0.0, 0.0, 0.0], [8.0, 1.0, 0.0], [250.0, 0.7, 0.0], [450.0, 0.0, 2.0]], n)), 0.0, 2.0)
+	D.mix(o, D.crush(nz(2, "white", 40.0, "hp", 1500.0, 0.7071, 0.1), 2, 4.0, 1.0), 0.0, -8.0)
+	D.mix(o, drop(P([150.0, 140.0], v), 70.0, 120.0, 300.0, 6.0, 1200.0, 1.2), 0.0, -6.0)
+	D.mix(o, crk(3, 400.0, 250.0, 3000.0), 60.0, -4.0)
+	return o
+
+
+## A revert glyph appears: a brass bar swelling in backwards (the tape runs the wrong way),
+## landing on the bar with its fifth in glass. An opening, so it rings in the brass band.
+func _c_revert_spawn(_v: int) -> PackedFloat32Array:
+	var o := out(1000.0)
+	var g := [0.4, 1.0, 0.4, 0.1]
+	D.mix(o, D.reverse(md("brass", A5, 500.0, 300.0, "mallet", 1, 4, g)), 0.0, -6.0)
+	D.mix(o, md("brass", A5, 700.0, 600.0, "mallet", 2, 4, g), 300.0)
+	D.mix(o, md("glass", E7, 400.0, 500.0, "mallet", 3, 4), 380.0, -4.0)
+	D.mix(o, D.grain(N(400.0), R(4), 25.0, 50.0, "glass", 3000.0, 6000.0, thin(400.0)), 320.0, -12.0)
+	return o
+
+
+## You take a revert: a tape rewind (sigils and a bell played backwards and bent up an octave),
+## the undo's whoosh, then the old code lands: a brass bar and its fifth over a warm thump.
+func _c_revert_take(_v: int) -> PackedFloat32Array:
+	var o := out(1300.0)
+	var src := out(500.0)
+	D.mix(src, sigils([A6, E7, C7, A6, E6, A5], 50.0, 30.0, 0.8))
+	D.mix(src, md("bell", A5, 500.0, 480.0, "mallet", 1, 8), 0.0, -4.0)
+	var n := N(450.0)
+	D.mix(o, D.varispeed(D.reverse(src), D.penv(0.8, D.st(12.0), 450.0, n), n), 0.0, -2.0)
+	D.mix(o, D.whoosh(N(500.0), R(2), 400.0, 5000.0, 480.0, 1.2, 0.85, 3000.0), 0.0, -4.0)
+	var g := [0.4, 1.0, 0.4, 0.1]
+	D.mix(o, md("brass", A5, 900.0, 800.0, "mallet", 3, 4, g), 470.0)
+	D.mix(o, md("brass", E6, 900.0, 700.0, "mallet", 4, 4, g), 470.0, -4.0)
+	D.mix(o, drop(220.0, 110.0, 80.0, 300.0, 4.0, 1000.0, 1.2, 1.0), 470.0, -2.0)
+	return o
+
+
+## The Glitch's stack unwinds: frames pop down the call stack (a falling run of sigils, each
+## with its own digital ring), and old bosses echo back small: the Loop's growl, Deadlock's
+## clanking lock, a falling weight; all through a receding echo that crushes as it goes.
+func _c_glitch_unwind(_v: int) -> PackedFloat32Array:
+	var o := out(1400.0)
+	var ps := [A7, E7, C7, A6, E6, 1046.5, A5]
+	for i in ps.size():
+		var pop := D.fit(D.sigil(float(ps[i]), 20.0, 1.0), N(80.0))
+		D.mix(o, D.comb(pop, 2000.0 / float(ps[i]), 0.6, 0.6), 90.0 * i, -1.0 - 0.3 * i)
+	var n := N(350.0)
+	var growl := D.sat(D.add(D.saw(F(220.0, 350.0)), D.saw(F(223.0, 350.0), 0.4)), 5.0)
+	growl = D.amp(D.svf_mod(growl, "lp", D.penv(3000.0, 900.0, 300.0, n), 3.0), D.aenv(15.0, 330.0, n))
+	D.mix(o, D.comb(growl, 1.13, 0.5, 0.5), 150.0, -8.0)
+	for k in 2:
+		D.mix(o, weight(md("plate", 330.0 * (1.0 + 0.06 * k), 200.0, 260.0, "mallet", 2 + k, 8), 250.0, 4.0, 1.0), 450.0 + 90.0 * k, -5.0)
+	D.mix(o, drop(160.0, 55.0, 500.0, 700.0, 6.0, 1200.0, 1.4), 600.0, -4.0)
+	var bits := D.env([[0.0, 12.0, 0.0], [700.0, 12.0, 0.0], [1400.0, 5.0, 0.0]], o.size())
+	return D.crush(D.delay(o, 180.0, 0.35, 2500.0, 0.3), 1, 12.0, 0.5, bits)
+
+
+## A caged resident is freed and compiles back in, row by row: twelve soft sigil rows drawing
+## (climbing the A major pentatonic), then a warm boot chime: an A major bell chord over a
+## brass bar and a low swell, with a breath of glass.
+func _c_resident_free(_v: int) -> PackedFloat32Array:
+	var o := out(1700.0)
+	var ps := [A5, 987.77, CS6, E6, 1479.98, A6, 1975.53, CS7, E7, 2959.96, A7, A7]
+	for i in ps.size():
+		D.mix(o, D.sigil(float(ps[i]), 14.0, 0.5), 50.0 * i, -8.0 + 0.3 * i)
+	var ch := [A5, CS6, E6, A6]
+	for i in ch.size():
+		D.mix(o, fmt(F(float(ch[i]), 900.0), 3.5, 2.0, 0.3, 250.0, 2.0, 880.0), 620.0 + 25.0 * i, -3.0)
+	var g := [0.4, 1.0, 0.4, 0.1]
+	D.mix(o, md("brass", A5, 900.0, 1000.0, "mallet", 1, 4, g), 620.0, -4.0)
+	D.mix(o, osc("sine", F(A4, 900.0), D.env([[0.0, 0.0, 0.0], [200.0, 1.0, 0.0], [900.0, 0.0, 2.0]], N(900.0))), 600.0, -10.0)
+	D.mix(o, D.grain(N(700.0), R(2), 25.0, 60.0, "glass", 4000.0, 7000.0, thin(700.0)), 700.0, -12.0)
+	return o
+
+
+## A Lost Page picked up: the paper lifts (a rustle swelling in, the flap of the sheet), then a
+## soft chime, the motif's head (A E) in glass.
+func _c_page_take(_v: int) -> PackedFloat32Array:
+	var o := out(900.0)
+	var n := N(260.0)
+	var sh := D.env([[0.0, 0.1, 0.0], [180.0, 1.0, 0.0], [260.0, 0.0, 0.0]], n)
+	D.mix(o, D.grain(n, R(1), 120.0, 8.0, "noise", 2000.0, 6000.0, sh), 0.0, 2.0)
+	D.mix(o, nzs(2, "pink", 70.0, 3000.0, 900.0, 60.0, 1.2, 2.0), 230.0, -2.0)
+	D.mix(o, md("glass", A6, 400.0, 550.0, "mallet", 3, 4), 280.0, -4.0)
+	D.mix(o, md("glass", E7, 400.0, 500.0, "mallet", 4, 4), 360.0, -6.0)
+	return o
+
+
+## A wand skin applied: a brush of lacquer over the wand (a bright swipe with glints) and the
+## gem set into it (a glass clink, then the octave).
+func _c_skin_equip(v: int) -> PackedFloat32Array:
+	var o := out(520.0)
+	D.mix(o, D.whoosh(N(220.0), R(1), 2000.0, P([7000.0, 6000.0], v), 220.0, 1.5, 0.7), 0.0, -4.0)
+	D.mix(o, D.grain(N(220.0), R(2), 60.0, 6.0, "glass", 4000.0, 8000.0, thin(220.0)), 20.0, -10.0)
+	D.mix(o, md("glass", P([E7, D7], v), 200.0, 260.0, "mallet", 3, 4), 200.0, -2.0)
+	D.mix(o, md("glass", A7, 250.0, 300.0, "mallet", 4, 4), 270.0, -4.0)
+	return o
+
+
+## Grep's search finds a hint: his lantern flares (a soft breathy swell), then two glass notes,
+## the motif's head (A E), over the low knock of his pole.
+func _c_hint(_v: int) -> PackedFloat32Array:
+	var o := out(900.0)
+	var n := N(300.0)
+	D.mix(o, D.amp(D.svf(D.noise(n, R(1), "pink"), "bp", 1800.0, 1.0), D.env([[0.0, 0.0, 0.0], [220.0, 1.0, -2.0], [300.0, 0.0, 1.0]], n)), 0.0, -8.0)
+	D.mix(o, md("glass", A6, 350.0, 500.0, "mallet", 2, 4), 250.0, -2.0)
+	D.mix(o, md("glass", E7, 450.0, 600.0, "mallet", 3, 4), 350.0, -3.0)
+	D.mix(o, weight(md("wood", 240.0, 80.0, 120.0, "mallet", 4, 3), 250.0, 4.0, 1.0), 250.0, -8.0)
+	return o

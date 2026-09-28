@@ -13,10 +13,12 @@ extends SceneTree
 ##   cellar  120 bpm  A minor     base 32 bars, drums 8 (+ motor bass), lead 16
 ##   grove   120 bpm  C# phrygian the same stems, half-time, crushed; the corrupted motif
 ##   foundry 125 bpm  F minor     the same stems; the motif as an anvil ostinato
+##   kernel  100 bpm  B minor     the same stems; the motif "paged" on a celesta over a clock
 ##   mini    128 bpm  E minor     loop = 2 intro bars + 16, p2 = 2 silent bars + 8
 ##   boss    150 bpm  C minor     loop = 4 intro bars + 32, p2 = 4 silent + 16, p3 = 4 silent + 8
-##   stings  clear / reward (+ _grove, _foundry), boss, boss_down, victory, defeat, world
-##   beds    amb_cellar, amb_grove, amb_foundry: stereo 22.05 kHz, 20 s
+##   stings  clear / reward (+ _grove, _foundry, _kernel), boss, boss_down, victory, defeat,
+##           world (+ _kernel), glitch (the Glitch's entrance)
+##   beds    amb_cellar, amb_grove, amb_foundry, amb_kernel, amb_ring: stereo 22.05 kHz, 20 s
 ##
 ## Rules this file keeps:
 ## - 32 kHz mono stems. Every tempo gives a whole-sample bar (7,680,000 / bpm) and a
@@ -101,7 +103,7 @@ func _initialize() -> void:
 	# ONLY=cellar (a comma list) renders just those cues, for working on one
 	var only := OS.get_environment("ONLY").split(",", false)
 	D.set_rate(SR)
-	for c in ["title", "shop", "cellar", "grove", "foundry", "mini", "boss", "stingers"]:
+	for c in ["title", "shop", "cellar", "grove", "foundry", "kernel", "mini", "boss", "stingers"]:
 		if only.is_empty() or c in only:
 			_lap_t = Time.get_ticks_msec()
 			call("_" + c)
@@ -539,7 +541,25 @@ func _render(inst: String, f: float, gate: int, r: RandomNumberGenerator) -> Pac
 			var x := D.saw(D.vibrato(D.const_curve(f, n), 5.0, 10.0, 200.0), r.randf())
 			x = D.svf(D.sat(x, 1.5, "fold"), "lp", 4000.0, 0.9)
 			return D.amp(x, D.adsr(5.0, 150.0, 0.7, 100.0, gms, n))
+		"celesta":
+			# the Kernel's music box: a steel bar over a wooden resonator. FM on the bar's bright
+			# partial (ratio 4) whose index dies in 120 ms (the felt hammer), a pure octave above
+			# at a whisper, a glass ping for the strike; the tail rings 0.7-1.6 s
+			var dec := clampf(gms * 3.0, 700.0, 1600.0)
+			var n := D.n_of(dec + 20.0)
+			var x := D.fm(D.const_curve(f, n), 4.0, D.index_env(1.4, 0.05, 120.0, n))
+			D.mix_at(x, D.sine(D.const_curve(2.0 * f, n), r.randf()), 0, 0.12)
+			x = D.amp(x, D.aenv(2.0, dec, n))
+			D.mix_at(x, D.modal("glass", 2.0 * f, 0.06, D.n_of(90.0), "impulse", r, 4), 0, 0.2)
+			return x
 		# ---- drums (f is ignored except by the tuned ones)
+		"tick", "tock":
+			# the Kernel's clock: a tiny wooden escapement (tick high, tock low) with a brass glint
+			var n := D.n_of(80.0)
+			var y := D.modal("wood", 2600.0 if inst == "tick" else 1900.0, 0.03, n, "impulse")
+			D.mix_at(y, D.modal("brass", 3900.0 if inst == "tick" else 3300.0, 0.02, n, "impulse"), 0, 0.25)
+			D.mix_at(y, D.amp(D.svf(D.noise(n, r), "hp", 5000.0, 0.7), D.aenv(0.1, 6.0, n)), 0, 0.4)
+			return y
 		"kick":
 			# a sine drop 170 -> 55 Hz with a short tail, a 320 -> 190 Hz knock and a click,
 			# driven hard (asym 5) and through the phantom, the sub shelved down 8 dB: the body
@@ -1455,6 +1475,110 @@ static func _up_all(chords: Array, semis: int) -> Array:
 	return out
 
 
+# ================================================================== the Kernel (B minor, 100)
+
+## World 3 (research/world3-0.20.md §3): the Page Archive and Ring Zero share one track. The
+## Archive's mood is the base: sparse clockwork, a celesta over a low pulse and a tick-tock
+## clock in straight eighths. The drums and the lead make it drive in a fight. The motif's
+## Kernel form is "paged": the motif with every second note flipped an octave down, as memory
+## pages swap in and out (B F# D E F# | A B, then B f# D e F# | a B).
+## 100 bpm: bar 76,800, 16th 4,800 samples (whole, §5.1).
+const K_CH := [[54, 59, 62, 66], [54, 59, 62, 66], [52, 55, 59, 62], [54, 58, 61, 64],
+	[55, 59, 62, 66], [55, 59, 62, 66], [52, 57, 61, 64], [54, 58, 61, 64]]
+## Bm Bm Em7 F#7 | Gmaj7 Gmaj7 A F#7 (the F# major's A# is the harmonic minor's pull home).
+const K_ROOTS := [47, 47, 40, 42, 43, 43, 45, 42]
+## The melody (8 bars): the motif, its answer, the paged motif, its answer, home to F#.
+const K_MEL := [
+	[0, 83, 2], [2, 90, 2], [4, 86, 2], [6, 88, 2], [8, 90, 8],
+	[16, 93, 4], [20, 95, 4], [24, 93, 2], [26, 91, 2], [28, 90, 4],
+	[32, 88, 6], [38, 86, 2], [40, 85, 4], [44, 86, 4],
+	[48, 90, 8], [56, 85, 4], [60, 82, 4],
+	[64, 83, 2], [66, 78, 2], [68, 86, 2], [70, 76, 2], [72, 90, 8],
+	[80, 81, 4], [84, 95, 4], [88, 98, 4], [92, 95, 4],
+	[96, 93, 6], [102, 91, 2], [104, 90, 4], [108, 88, 4],
+	[112, 85, 8], [120, 82, 4], [124, 78, 4],
+]
+## The paged motif alone (the head of A'').
+const K_PAGED := [[0, 83, 2], [2, 78, 2], [4, 86, 2], [6, 76, 2], [8, 90, 8], [16, 81, 4], [20, 95, 4]]
+
+
+func _kernel() -> void:
+	_begin("kernel", 100.0)
+	# base: A (8, the melody), A' (8, the music box winds: an arpeggio), B breakdown (8: the
+	# clock, the pulse and glass pings of the head), A'' (8, the arpeggio turned, the paged head)
+	var pads := _bars(32)
+	_part("pads")
+	for b in 32:
+		var brk := b >= 16 and b < 24
+		_pads(pads, "pad_dark" if brk else "pad_warm", K_CH, [b], {"db": -16.0 if brk else -18.0})
+	var cel := _bars(32)
+	_part("celesta")
+	_seq(cel, "celesta", K_MEL, {"db": -8.0})
+	for b in range(8, 32):
+		if b >= 16 and b < 24:
+			continue
+		var tones := _up(K_CH[b % 8], 24)
+		_arp(cel, "celesta", tones, b, [0, 2, 1, 3, 4, 3, 2, 1] if b < 16 else [4, 3, 2, 1, 0, 1, 2, 3], 2, {"db": -15.0 if b < 16 else -17.0})
+	_seq(cel, "celesta", _shift(K_PAGED, 384), {"db": -9.0})
+	# the breakdown: the head (B F# D) in glass, high, then an octave down
+	_seq(cel, "glass_l", [[256, 95, 4], [260, 102, 4], [264, 98, 8], [320, 83, 4], [324, 90, 4], [328, 86, 8]], {"db": -12.0})
+	var clock := _bars(32)
+	_part("clock")
+	for b in 32:
+		if b >= 16 and b < 24:
+			_drum(clock, "tick", "x.......x.......", b, {"db": -14.0})
+			_drum(clock, "tock", "....g.......g...", b, {"db": -14.0})
+		else:
+			_drum(clock, "tick", "x...x...x...x...", b, {"db": -15.0})
+			_drum(clock, "tock", "..g...g...g...g.", b, {"db": -15.0})
+	# the low pulse: the root on the beat, a pendulum (a half note in the breakdown)
+	var pulse := _bars(32)
+	_part("pulse")
+	for b in 32:
+		var r: int = K_ROOTS[b % 8]
+		if b >= 16 and b < 24:
+			_seq(pulse, "bass_sat", [[b * 16, r, 3], [b * 16 + 8, r, 3]], {"db": -11.0})
+		else:
+			for q in 4:
+				_play(pulse, "bass_sat", b * 16 + q * 4, r, 2, {"db": -10.0 if q == 0 else -13.0})
+	_diag("pulse", pulse)
+	var base := _stem([[pads], [cel], [clock], [pulse]])
+	# drums (8): kick 1, the "and" of 2 and 3, snare 2 and 4, the clock as 16th hats, a
+	# ratchet bass in 16ths, the bug's glitch closing bars 4 and 8, a tom fill
+	var dr := _bars(8)
+	_part("drums")
+	for b in 8:
+		var fill := b == 7
+		_drum(dr, "kick", "X.....x.X.....x." if not fill else "X.....x.X.......", b, {"db": -5.0})
+		_drum(dr, "snare", "....X......." + ("...." if fill else "X..."), b)
+		_drum(dr, "tick", "XgxgXgxg........" if fill else "XgxgXgxgXgxgXgxg", b, {"db": -2.0})
+		if b == 3 or b == 7:
+			_drum(dr, "glitch", "...............x", b, {"db": -3.0})
+	for k in 6:
+		_play(dr, "tom", 7 * 16 + [8, 10, 12, 13, 14, 15][k], D_TOM[k], 1, {"db": -2.0 + k * 0.5})
+	var motor := _bars(8)
+	for b in 8:
+		var r: int = K_ROOTS[b]
+		for s in 16:
+			if s % 2 == 0:
+				_play(motor, "bass_sat", b * 16 + s, r + (24 if s == 4 or s == 12 else 12), 2, {"db": -11.0 if s % 4 == 0 else -13.0})
+			else:
+				_play(motor, "bass_sat", b * 16 + s, r + 12, 1, {"db": -19.0})
+	_diag("motor", motor)
+	var drums := _glue(_stem([[dr], [motor]]), 12.0)
+	# lead (16): the melody on the pulse lead with the celesta an octave up; the second pass
+	# races itself, a second thread 3/16 behind on the celesta, and turns home on F#
+	var lead := _bars(16)
+	_part("lead")
+	var pass2: Array = _shift(K_MEL.slice(0, K_MEL.size() - 3), 128) + [[240, 85, 4], [244, 88, 4], [248, 90, 8]]
+	_seq(lead, "lead_pwm", K_MEL + pass2, {"db": -7.0, "human": true})
+	_seq(lead, "celesta", K_MEL + pass2, {"db": -10.0, "tr": 12})
+	_seq(lead, "celesta", _shift(pass2, 3), {"db": -14.0, "tr": 12})
+	var lead_s := _stem([[lead, _dip]])
+	_master([{"file": "music_kernel_base", "data": base, "lb": 0}, {"file": "music_kernel_drums", "data": drums, "lb": 0},
+		{"file": "music_kernel_lead", "data": lead_s, "lb": 0}], BASE_LUFS, [3.0, 1.5])
+
+
 # ================================================================== mini-bosses: Copy-Paste, the Garbage Collector (E minor, 128)
 
 const M_CH := [[52, 55, 59, 64], [52, 55, 60, 64], [52, 57, 60, 64], [51, 54, 59, 63],
@@ -1664,7 +1788,7 @@ func _shimmer(buf: PackedFloat32Array, tones: Array, t: float, secs: float, db: 
 func _stingers() -> void:
 	_begin("sting", 120.0)
 	# room clear: the head resolved (1-5 -> 1'), glass and a brass bar, in the area key
-	for key: Array in [["sting_clear", 0], ["sting_clear_grove", 4], ["sting_clear_foundry", -4]]:
+	for key: Array in [["sting_clear", 0], ["sting_clear_grove", 4], ["sting_clear_foundry", -4], ["sting_clear_kernel", 2]]:
 		var b := _shot(1.4)
 		var tr: int = key[1]
 		_at(b, "glass_l", 0.0, 81 + tr, 0.2, -3.0)
@@ -1674,7 +1798,7 @@ func _stingers() -> void:
 		_at(b, "brass_bar", 0.26, 69 + tr, 0.6, -9.0)
 		_master_one(key[0], b, STING_LUFS)
 	# reward: the motif in major, fast, ascending, on bells with a shimmer, in the area key
-	for key: Array in [["sting_reward", 0], ["sting_reward_grove", 4], ["sting_reward_foundry", -4]]:
+	for key: Array in [["sting_reward", 0], ["sting_reward_grove", 4], ["sting_reward_foundry", -4], ["sting_reward_kernel", 2]]:
 		var b := _shot(2.0)
 		var tr: int = key[1]
 		var mel := [81, 88, 85, 86, 88, 92, 93]
@@ -1740,6 +1864,40 @@ func _stingers() -> void:
 		_at(w, "brass_saw", nt[0], int(nt[1]) - 12, nt[2], -7.0)
 	_at(w, "steam", 1.9, 60.0, 0.1, -10.0)
 	_master_one("sting_world", w, STING_LUFS)
+	# world, into the Kernel (sting_world_kernel): a clock winds, then the paged motif in B minor
+	# on the celesta over low brass, the pulse on the tonic under the tag
+	var wk := _shot(3.3)
+	for k in 4:
+		_at(wk, "tick" if k % 2 == 0 else "tock", 0.12 * k, 60.0, 0.05, -6.0 + 1.5 * k)
+	for nt: Array in [[0.48, 83, 0.2], [0.7, 78, 0.2], [0.92, 86, 0.2], [1.14, 76, 0.2], [1.36, 90, 0.45], [1.84, 81, 0.4], [2.28, 95, 0.9]]:
+		_at(wk, "celesta", nt[0], int(nt[1]) + 12, nt[2], -3.0)
+		_at(wk, "brass_saw", nt[0], int(nt[1]) - 24, nt[2], -9.0)
+	for t in [1.36, 2.28]:
+		_at(wk, "bass_sat", t, 47.0, 0.3, -8.0)
+	for m in [59, 62, 66]:
+		_at(wk, "pad_dark", 2.28, m, 0.9, -13.0)
+	_master_one("sting_world_kernel", wk, STING_LUFS)
+	# glitch: the Glitch's entrance (Audio.sting("glitch")). The boss sting's tritone head, in B
+	# (B -> F), whose held note is your own bug: it stutters, crushes and chirps
+	var gs := _shot(2.6)
+	var grev := D.reverse(_note("crash", 60.0, 1, 2))
+	grev = D.slice(grev, grev.size() - D.n_of(500.0), D.n_of(500.0))
+	D.fade_in(grev, 5.0, 6.0)
+	D.mix_at(gs, grev, 0, D.db2lin(-6.0))
+	_at(gs, "tom", 0.5, 41.0, 0.1, 0.0)
+	_at(gs, "brass_saw", 0.5, 59, 0.3, -3.0)
+	_at(gs, "brass_saw", 0.5, 47, 0.3, -5.0)
+	var held := _shot(1.6)
+	_at(held, "brass_saw", 0.0, 65, 1.45, -3.0)
+	_at(held, "brass_saw", 0.0, 53, 1.45, -5.0)
+	held = D.crush(D.stutter(held, 0.0, 70.0, 3), 3, 6.0, 0.45)
+	D.mix_at(gs, held, int(roundf(0.82 * D.sr)), 1.0)
+	_at(gs, "tom", 0.82, 38.0, 0.1, -3.0)
+	for k in 4:
+		_at(gs, "glitch", [0.82, 0.89, 0.96, 1.9][k], 60.0 + k, 0.05, -5.0)
+	_at(gs, "glass_fm", 2.0, 95, 0.12, -10.0)
+	_at(gs, "glass_fm", 2.1, 89, 0.3, -12.0)
+	_master_one("sting_glitch", gs, STING_LUFS)
 	_lap("stingers")
 
 
@@ -1766,6 +1924,18 @@ func _breath(n: int, cycles: int, depth: float, phase: float) -> PackedFloat32Ar
 	return y
 
 
+## A heartbeat swell: `cycles` whole beats per loop, each a 60 ms rise to full and a decay
+## back to 1 - depth (continuous across the seam: the beat starts where the last one settled).
+func _throb(n: int, cycles: int, depth: float) -> PackedFloat32Array:
+	var y := D.zeros(n)
+	var period := float(n) / cycles / D.sr
+	for i in n:
+		var t := fmod(float(cycles) * i / n, 1.0) * period
+		var a := minf(1.0, t / 0.06)
+		y[i] = 1.0 - depth + depth * a * a * (3.0 - 2.0 * a) * exp(-maxf(0.0, t - 0.06) / 0.3)
+	return y
+
+
 ## Point events placed in both channels (panned) and wrapped into the loop.
 func _events(l: PackedFloat32Array, r: PackedFloat32Array, src: PackedFloat32Array, at: int, pan: float, db: float) -> void:
 	var g := D.pan_gains(pan)
@@ -1776,7 +1946,7 @@ func _events(l: PackedFloat32Array, r: PackedFloat32Array, src: PackedFloat32Arr
 
 func _ambience() -> void:
 	var n := 20 * AMB_SR
-	for area in ["cellar", "grove", "foundry"]:
+	for area in ["cellar", "grove", "foundry", "kernel", "ring"]:
 		_cue = "amb_" + area
 		var ch: Array = []
 		for c in 2:
@@ -1806,6 +1976,28 @@ func _ambience() -> void:
 					D.mix_at(y, D.sat(hum, 2.0), 0, 0.35)
 					var roar := _loopfx(D.noise(n, r, "brown"), func(x: PackedFloat32Array) -> PackedFloat32Array: return D.svf(x, "bp", 350.0, 0.6))
 					D.mix_at(y, D.amp(roar, _breath(n, 2, 0.5, 0.3 * c)), 0, 0.5)
+				"kernel":
+					# the Page Archive's hush: a low room tone that breathes, a dry paper air above
+					# it, and the amber lamps' warm filament hum on B (beating apart in each ear)
+					var sgn := -1.0 if c == 0 else 1.0
+					var tone := _loopfx(D.noise(n, r, "brown"), func(x: PackedFloat32Array) -> PackedFloat32Array: return D.svf(x, "lp", 300.0, 0.7))
+					D.mix_at(y, D.amp(tone, _breath(n, 1, 0.4, 0.3 * c)), 0, 0.8)
+					var air := _loopfx(D.noise(n, r, "pink"), func(x: PackedFloat32Array) -> PackedFloat32Array: return D.svf(x, "bp", 2400.0, 0.5))
+					D.mix_at(y, D.amp(air, _breath(n, 2, 0.6, 0.45 + 0.2 * c)), 0, 0.06)
+					var lamp := _tones(n, [[123.45, -10.0], [246.9 + 0.1 * sgn, -14.0, 0.4], [370.35, -20.0], [493.8, -24.0, 0.2]])
+					D.mix_at(y, D.amp(D.sat(lamp, 1.5), _breath(n, 4, 0.3, 0.1 * c)), 0, 0.12)
+				"ring":
+					# Ring Zero: the void's drone on B (B1 F#2 B2), beating apart in each ear, swelling
+					# 16 times a loop (48 bpm) like the nest's heart; a brass circuit's hiss and
+					# sparse crackle above it
+					var sgn := -1.0 if c == 0 else 1.0
+					var drone := _tones(n, [[61.75, -4.0], [61.75 + 0.1 * sgn, -7.0, 0.3], [92.5, -9.0], [123.5, -10.0],
+						[123.5 + 0.15 * sgn, -13.0, 0.5], [185.0, -16.0], [247.0, -20.0]])
+					D.mix_at(y, D.amp(D.sat(drone, 2.0), _throb(n, 16, 0.55)), 0, 0.4)
+					var hiss := _loopfx(D.noise(n, r, "white"), func(x: PackedFloat32Array) -> PackedFloat32Array: return D.svf(x, "bp", 4200.0, 1.2))
+					D.mix_at(y, D.amp(hiss, _breath(n, 3, 0.7, 0.2 + 0.3 * c)), 0, 0.025)
+					var crackle := D.loop_wrap(D.grain(n + D.n_of(300.0), r, 2.0, 25.0, "noise", 3000.0, 6000.0), n)
+					D.mix_at(y, crackle, 0, 0.05)
 			ch.append(y)
 		var l: PackedFloat32Array = ch[0]
 		var rr: PackedFloat32Array = ch[1]
@@ -1822,6 +2014,21 @@ func _ambience() -> void:
 					var sm := _render("steam", 0.0, 1, er)
 					var long := D.fit(sm, D.n_of(1200.0))
 					_events(l, rr, long, int((0.2 + k * 0.3 + er.randf() * 0.08) * n), er.randf_range(-0.8, 0.8), -12.0)
+			"kernel":
+				# a far clock (tick, tock, once a second: 20 a loop, so the loop is exact) and
+				# three pages settling somewhere in the stacks
+				var far := er.randf_range(0.4, 0.6)
+				for k in 20:
+					var tk := D.svf(_render("tick" if k % 2 == 0 else "tock", 0.0, 1, er), "lp", 3000.0, 0.7)
+					_events(l, rr, tk, k * AMB_SR, far, -22.0)
+				for k in 3:
+					var pg := D.grain(D.n_of(700.0), er, 70.0, 10.0, "noise", 1800.0, 4500.0, D.env([[0.0, 0.1, 0.0], [250.0, 1.0, 0.0], [700.0, 0.0, 0.0]], D.n_of(700.0)))
+					_events(l, rr, pg, int((0.1 + k * 0.31 + er.randf() * 0.1) * n), er.randf_range(-0.8, 0.8), -16.0)
+			"ring":
+				# brass relays clicking over in the circuitry
+				for k in 3:
+					var rl := D.modal("brass", er.randf_range(1800.0, 2600.0), 0.25, D.n_of(600.0), "mallet", er, 4)
+					_events(l, rr, rl, int((0.15 + k * 0.3 + er.randf() * 0.1) * n), er.randf_range(-0.8, 0.8), -20.0)
 		var fx := func(x: PackedFloat32Array) -> PackedFloat32Array: return D.svf2(D.hp2(_room_half(x, 0.2), 40.0), "lp", 8000.0)
 		l = _loopfx(l, fx)
 		rr = _loopfx(rr, fx)

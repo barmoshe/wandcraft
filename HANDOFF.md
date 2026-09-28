@@ -1,6 +1,6 @@
 # Wandcraft: handoff (2026-09-25)
 
-> **Latest handoff: `HANDOFF-2026-09-27.md`** (0.17.0, the story and world switch in progress, plan `research/plan-0.18.md`).
+> **Latest handoff: `HANDOFF-2026-09-28.md`** (0.20.0: World 3, the residents, two endings; ADR 0028). The one before: `HANDOFF-2026-09-27.md`.
 
 > **Since this handoff:** D6, D8, D9 and store prep are done (0.14.0; ADRs 0018-0021). For the current state read `STATUS.md`; for the order of work and every commit, `research/mvp-finish-plan.md`; for publishing on iOS, `store/ios-release.md`. The rest of this file is the state at the split, kept as it was.
 

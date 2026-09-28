@@ -255,6 +255,34 @@ static func next_beat(id: StringName, m: Dictionary = {}) -> int:
 	return i if _holds(arc[i]["need"], facts(id, mm), mm) else -1
 
 
+## How far through their story you are: [told, total].
+static func progress(id: StringName, m: Dictionary = {}) -> Array:
+	var mm := m if not m.is_empty() else _meta()
+	var r: Dictionary = _rec(mm).get(String(id), {})
+	return [int(r.get("beat", 0)), (ARCS[id] as Array).size()]
+
+
+## What their next beat waits for, in words ("" once the story is told).
+static func waits_for(id: StringName, m: Dictionary = {}) -> String:
+	var mm := m if not m.is_empty() else _meta()
+	var i := int(progress(id, mm)[0])
+	var arc: Array = ARCS[id]
+	if i >= arc.size():
+		return ""
+	var need: Dictionary = arc[i]["need"]
+	if _holds(need, facts(id, mm), mm):
+		return "They have something to tell you."
+	if need.has("pages"):
+		return "More to say with %d Lost Pages." % int(need["pages"])
+	if int(need.get("depth", 0)) >= 21:
+		return "More to say once you've seen the Kernel."
+	if int(need.get("depth", 0)) >= 11:
+		return "More to say once the Loop has fallen."
+	if need.has("wins"):
+		return "More to say after a win."
+	return "More to say after your next run."
+
+
 ## A "!" over them: a new beat is ready.
 static func has_news(id: StringName, m: Dictionary = {}) -> bool:
 	return next_beat(id, m) >= 0

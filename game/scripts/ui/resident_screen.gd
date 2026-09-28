@@ -14,8 +14,8 @@ var meta: Dictionary = {}
 
 
 func _opened() -> void:
-	meta = SaveGame.load_meta()
 	lines = Residents.talk(who)
+	meta = SaveGame.load_meta()   # after the talk: it may have moved their story on
 	for l in lines:
 		Dialogue.enqueue(l["who"], l["text"], l["id"])
 	if who == &"cache" and Residents.pages() > 0:
@@ -56,6 +56,17 @@ func _paint() -> void:
 	if hint != "":
 		text(Vector2(lr.position.x + 8, ly), "GREP", col, 8, "bold")
 		para(Rect2(lr.position.x + 8, ly + 2, lr.size.x - 16, 40), hint, Style.c("gold:4"))
+	# their story so far: a pip a beat, and what the next one waits for
+	var pr := Residents.progress(who, meta)
+	var py := lr.end.y - 22
+	for k in int(pr[1]):
+		var pc := Vector2(lr.position.x + 12 + k * 10, py)
+		if k < int(pr[0]):
+			draw_circle(pc, 3.0, col)
+		else:
+			draw_arc(pc, 2.5, 0.0, TAU, 10, MUTED, 1.0)
+	var wf := Residents.waits_for(who, meta)
+	text(Vector2(lr.position.x + 8, lr.end.y - 8), wf if wf != "" else "Their story is told.", MUTED)
 	# the service
 	var rx := lr.end.x + 8
 	var rr := Rect2(rx, sr.position.y + 44, sr.end.x - rx, sr.end.y - sr.position.y - 44)

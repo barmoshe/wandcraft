@@ -20,7 +20,7 @@ extends Node
 ## a budget of new voices, and steals only from voices that do not outrank the new cue. All
 ## per-cue behaviour is the CUES table below: call sites pass context, never a volume.
 ##
-## Music: title | shop | cellar | grove | foundry | mini | boss. Area tracks are stems in an
+## Music: title | shop | cellar | grove | foundry | kernel | mini | boss. Area tracks are stems in an
 ## AudioStreamSynchronized (base; drums while fighting; the lead at intensity 2). Every layer
 ## switch lands on the next bar of the music's own sample clock.
 
@@ -219,6 +219,24 @@ const CUES := {
 	"tip": {"class": "ui", "prio": 20, "cap": 1, "gap": 1.0, "lufs": -27.0},
 	"duck_say": {"class": "ui", "prio": 20, "cap": 1, "gap": 0.06, "jitter_cents": 0.0, "lufs": -26.0},
 	"glitch_say": {"class": "ui", "prio": 20, "cap": 1, "gap": 0.06, "jitter_cents": 0.0, "hook_pending": true, "lufs": -26.0},
+	# World 3, the Kernel (0.20, research/world3-0.20.md §3)
+	"leak_drip": {"prio": 45, "cap": 2, "gap": 0.15, "fam": "C+"},
+	"leak_dry": {"prio": 70, "cap": 1, "gap": 0.3, "fam": "E"},
+	"null_aim": {"prio": 65, "cap": 2, "gap": 0.1, "fam": "C+"},
+	"null_blink": {"prio": 60, "cap": 2, "gap": 0.1, "fam": "C+"},
+	"interrupt_lock": {"class": "crit", "prio": 75, "gap": 0.3, "pan": false, "fam": "E"},
+	"interrupt_free": {"prio": 65, "cap": 1, "gap": 0.3, "pan": false, "fam": "E"},
+	"race_cross": {"class": "crit", "prio": 85, "gap": 0.3, "fam": "A"},
+	"race_respawn": {"class": "crit", "prio": 85, "gap": 0.5, "fam": "A"},
+	"diff_warn": {"class": "crit", "prio": 85, "gap": 0.3, "pan": false, "jitter_cents": 0.0, "fam": "A"},
+	"diff_burn": {"class": "crit", "prio": 80, "cap": 2, "gap": 0.15, "pan": false, "fam": "A"},
+	"revert_spawn": {"prio": 75, "cap": 1, "gap": 0.3, "jitter_cents": 0.0, "fam": "E"},
+	"revert_take": {"class": "crit", "prio": 95, "gap": 0.5, "pan": false, "jitter_cents": 0.0, "fam": "M"},
+	"glitch_unwind": {"class": "crit", "prio": 95, "gap": 0.5, "pan": false, "jitter_cents": 0.0, "fam": "M"},
+	"resident_free": {"class": "ui", "prio": 70, "cap": 1, "gap": 0.5, "jitter_cents": 0.0, "fam": "M", "lufs": -18.0},
+	"page_take": {"prio": 65, "cap": 1, "gap": 0.3, "pan": false, "fam": "E"},
+	"skin_equip": {"class": "ui", "prio": 50, "cap": 1, "gap": 0.1, "fam": "U+"},
+	"hint": {"class": "ui", "prio": 50, "cap": 1, "gap": 0.5, "fam": "U+"},
 	# §4.11 ambience spots (played by the spot scheduler, on the Ambience bus)
 	"amb_drip": {"class": "det", "bus": "Ambience", "lufs": -32.0},
 	"amb_creak": {"class": "det", "bus": "Ambience", "lufs": -32.0},
@@ -226,6 +244,10 @@ const CUES := {
 	"amb_glitch": {"class": "det", "bus": "Ambience", "lufs": -32.0},
 	"amb_steam": {"class": "det", "bus": "Ambience", "lufs": -32.0},
 	"amb_clank": {"class": "det", "bus": "Ambience", "lufs": -32.0},
+	"amb_page": {"class": "det", "bus": "Ambience", "lufs": -32.0},
+	"amb_tick": {"class": "det", "bus": "Ambience", "lufs": -32.0},
+	"amb_nest": {"class": "det", "bus": "Ambience", "lufs": -32.0},
+	"amb_spark": {"class": "det", "bus": "Ambience", "lufs": -32.0},
 }
 ## Cues made from another cue's files: Copy-Paste's copies of your spells (your cast, 2 st
 ## down, through the Glitch bus, as a threat) and a familiar's shot (its cast, 6 dB down).
@@ -247,11 +269,11 @@ const BUDGET_EXEMPT := 90
 const MERGE_MAX_DB := 3.0
 ## Pitch walks (sound-v2 §6.4): the minor pentatonic in semitones, the trigger-depth steps, the
 ## pylon count (A C E A'), and each track's key against A (walked cues follow the music's key;
-## boss C and mini E are this file's extension of the spec's list).
+## boss C, mini E and kernel B are this file's extension of the spec's list).
 const SCALE := [0, 3, 5, 7, 10, 12, 15]
 const DEPTH_STEPS := [0, 7, 12]
 const COUNT_STEPS := [0, 3, 7, 12]
-const KEY := {"cellar": 0, "grove": 4, "foundry": -4, "title": 5, "shop": 5, "boss": 3, "mini": -5}
+const KEY := {"cellar": 0, "grove": 4, "foundry": -4, "kernel": 2, "title": 5, "shop": 5, "boss": 3, "mini": -5}
 ## Panned voices (AudioStreamPlayer2D, sound-v2 §6.2): the project's base 2D panning strength
 ## is 0.5, so 1.2 gives the spec's 0.6. Critical pans but is never attenuated.
 const PAN_STRENGTH := 1.2
@@ -269,7 +291,9 @@ const SHOT_PREFIX := {"trail:": "", "trash:": "trash", "thorns:": "thorns", "box
 ## Loops (sound-v2 §4.6, §4.7): their pan strength (a factor, as PAN_STRENGTH).
 const LOOP_PAN := {"beam": 0.8, "trail_loop": 1.2}
 ## Ambience spots per area (sound-v2 §4.11): one every 3-9 s, panned up to 0.7 either side.
-const AMB_SPOTS := {"cellar": ["amb_drip", "amb_creak"], "grove": ["amb_rustle", "amb_glitch"], "foundry": ["amb_steam", "amb_clank"]}
+## The Kernel's two areas: the Page Archive ("kernel") and Ring Zero ("ring").
+const AMB_SPOTS := {"cellar": ["amb_drip", "amb_creak"], "grove": ["amb_rustle", "amb_glitch"], "foundry": ["amb_steam", "amb_clank"],
+	"kernel": ["amb_page", "amb_tick"], "ring": ["amb_nest", "amb_spark"]}
 
 ## Which cast sound each shooting spell uses (one timbre per element), and the evolved spells'
 ## pitch and gain on it ([semitones, dB]).
@@ -298,6 +322,7 @@ const TRACKS := {
 	"cellar": {"stems": ["music_cellar_base", "music_cellar_drums", "music_cellar_lead"], "layers": ["", "drums", "lead"], "bpm": 120.0, "beats_per_bar": 4},
 	"grove": {"stems": ["music_grove_base", "music_grove_drums", "music_grove_lead"], "layers": ["", "drums", "lead"], "bpm": 120.0, "beats_per_bar": 4},
 	"foundry": {"stems": ["music_foundry_base", "music_foundry_drums", "music_foundry_lead"], "layers": ["", "drums", "lead"], "bpm": 125.0, "beats_per_bar": 4},
+	"kernel": {"stems": ["music_kernel_base", "music_kernel_drums", "music_kernel_lead"], "layers": ["", "drums", "lead"], "bpm": 100.0, "beats_per_bar": 4},
 	"mini": {"stems": ["music_mini_loop", "music_mini_p2"], "layers": ["", "p2"], "bpm": 128.0, "beats_per_bar": 4, "intro_s": 3.75},
 	"boss": {"stems": ["music_boss_loop", "music_boss_p2", "music_boss_p3"], "layers": ["", "p2", "p3"], "bpm": 150.0, "beats_per_bar": 4, "intro_s": 6.4,
 		"v1_intro": "music_boss_intro"},
@@ -311,7 +336,7 @@ const MUSIC_DB := -4.0
 const LAYER_OFF_DB := -60.0
 const AMB_DB := -13.0
 ## Stingers: which one wins the 2-voice pool, and which wait for the next beat.
-const STING_PRIO := {"boss_down": 5, "victory": 4, "defeat": 4, "world": 3, "boss": 3, "reward": 2, "clear": 1}
+const STING_PRIO := {"boss_down": 5, "victory": 4, "defeat": 4, "world": 3, "boss": 3, "glitch": 3, "reward": 2, "clear": 1}
 const STING_DUCK_DB := -6.0
 ## Intensity steps down only after it has wanted to for this long (no flapping between waves).
 const INTENSITY_HOLD := 2.0
@@ -1204,14 +1229,17 @@ var _last_sting := ""
 var _last_sting_ms := -99999
 
 
-## A stinger (clear, reward, boss, boss_down, world, victory, defeat) on the Sting bus; the music
-## ducks 6 dB under it. The area's own version plays when there is one (sting_clear_grove).
-## `quantize` lands it on the music's next beat. Two voices, by STING_PRIO.
-func sting(name: String, quantize := false) -> void:
+## A stinger (clear, reward, boss, boss_down, world, victory, defeat, glitch) on the Sting bus;
+## the music ducks 6 dB under it. The area's own version plays when there is one
+## (sting_clear_grove): the current track's, or `track`'s when given (sting("world", false,
+## "kernel") before the Kernel's music starts). `quantize` lands it on the music's next beat.
+## Two voices, by STING_PRIO.
+func sting(name: String, quantize := false, track := "") -> void:
 	if not music_on or Game.quiet > 0 or not is_inside_tree():
 		return
 	_setup()
-	var s := stream("sting_%s_%s" % [name, _track]) if _track != "" else null
+	var tk := track if track != "" else _track
+	var s := stream("sting_%s_%s" % [name, tk]) if tk != "" else null
 	if s == null:
 		s = stream("sting_" + name)
 	if s == null:
@@ -1240,7 +1268,7 @@ func _on_room_cleared() -> void:
 	sting("clear", true)
 
 
-## The area's ambience bed (amb_cellar | amb_grove | amb_foundry, "" for none), a quiet loop on
+## The area's ambience bed (cellar | grove | foundry | kernel | ring, "" for none), a quiet loop on
 ## its own bus under the music, with spots now and then. Crossfades like the music.
 var _amb: AudioStreamPlayer
 var _amb_name := ""
@@ -1383,7 +1411,7 @@ func track_stream(track: String) -> AudioStream:
 	return s
 
 
-## Crossfades to a music track: title | shop | cellar | grove | foundry | mini | boss | ""
+## Crossfades to a music track: title | shop | cellar | grove | foundry | kernel | mini | boss | ""
 ## (silence). The same track keeps playing (a new room of the same area does not restart it).
 ## Every optional layer starts off. The title and silence also fade the ambience out.
 func music(track: String, fade := 0.8) -> void:

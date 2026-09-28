@@ -56,7 +56,7 @@ Each agent brought 5–8 original ideas. Scored 1–3 on fun, fit with the code-
 | Idea | From | Fun | Fit | Cost | Phone | Verdict |
 |---|---|---|---|---|---|---|
 | An enemy that suspends one of your wand's spells while it lives | R (syscall parasites) | 3 | 3 | 2 | 3 | **In:** the Interrupt |
-| Two halves that must die close together | R | 3 | 3 | 3 | 3 | **In:** Race Condition |
+| Two halves that must die close together | R | 3 | 3 | 3 | 3 | **In:** Data Race |
 | The final boss unwinds the stack: echoes of the run's earlier bosses | *[I]* from R and S | 3 | 3 | 2 | 3 | **In:** the Glitch, phase 2 |
 | Revert glyphs that rewind the boss and the room's rewrite | S, R | 3 | 3 | 2 | 3 | **In:** the Glitch, phase 3 |
 | Revert or fix forward: two endings, the true one earned by knowing the story | S | 3 | 3 | 2 | 3 | **In** |
@@ -89,11 +89,11 @@ Each agent brought 5–8 original ideas. Scored 1–3 on fun, fit with the code-
 
 | Enemy | Role | What it does | Counter |
 |---|---|---|---|
-| **Memory Leak** | anchor | Drifts slowly and drips puddles that grow while it lives and slow you inside them. Killing it frees its memory: every puddle it left dries up | Kill it early; don't fight inside its puddles |
-| **Null Pointer** | pressure | Draws a pointer line toward you, then blinks to the line's end and snaps in a small ring | Step off the line |
+| **Page Leak** | anchor | Drifts slowly and drips puddles that grow while it lives and slow you inside them. Killing it frees its memory: every puddle it left dries up | Kill it early; don't fight inside its puddles |
+| **Dangling Pointer** | pressure | Draws a pointer line toward you, then blinks to the line's end and snaps in a small ring | Step off the line |
 | **Interrupt** | support | While it lives, one of your wand's boosts or triggers is suspended (the HUD slot shows a lock, and the wand reads it as empty). It keeps away from you | Kill it first; it is fragile |
 
-- **Mini-boss: Race Condition.** Two threads, A and B, lap the arena in opposite directions and burst where their paths cross. When one falls, the other has 2 seconds: if it isn't down too, the first one respawns at 40% HP. The counter is the wand, not the aim: split damage, then finish both.
+- **Mini-boss: Data Race.** Two threads, A and B, lap the arena in opposite directions and burst where their paths cross. When one falls, the other has 2 seconds: if it isn't down too, the first one respawns at 40% HP. The counter is the wand, not the aim: split damage, then finish both.
 - **Boss: the Glitch.** Titled "THE GLITCH", subtitled "commit a1f00d, author: you". Three phases:
   1. **Diff** (100–66%): red "−" rows are telegraphed across the arena and burn a moment later; green "+" rows stay safe. It shoots aimed bursts between diffs.
   2. **Stack unwind** (66–33%): the call stack unwinds through the run: echoes of the Loop (two Loop Jr.) and of Deadlock (a sweeping beam) come back in miniature, once each, while it keeps up the diffs.
@@ -103,7 +103,7 @@ Each agent brought 5–8 original ideas. Scored 1–3 on fun, fit with the code-
 ### The story
 - **The twist, taken further.** World 2's ending no longer ends the game: Deadlock's fall grants Kernel access and the descent goes on. In the Kernel, the story turns three times:
   - **LINT warned you.** A log entry: `warning: untested change to mana regen. Push anyway? [y/N] y`. LINT's old deadpan "You will not read it" was literal.
-  - **The Duck exists because of your bug.** Race Condition's fall drops `init: rubber duck. Friday, 16:59:01.` Its warmth was never neutral.
+  - **The Duck exists because of your bug.** Data Race's fall drops `init: rubber duck. Friday, 16:59:01.` Its warmth was never neutral.
   - **Nobody read it.** Grep, the reviewer who approved your commit, confesses once you reach the Kernel: "I wrote 'looks good to me'. I never read it." The failure was the process, not one person.
 - **Two endings:**
   - **Revert** (every win): the Source rolls back to 16:58. The moss closes its eyes, and the Duck goes quiet mid-quack. A final card shows the unpushed commit. It is a win with a cost.

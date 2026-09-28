@@ -72,8 +72,14 @@ func _paint() -> void:
 			var c := Vector2(rx + 12.0 + k * 70.0, y + 14.0)
 			var ft: Array = Bestiary.frames(String(kind))
 			icon_at(ft[int(_age * 4.0) % ft.size()], c, 1.0, Color(1, 1, 1, a))
-			text_center(c.x, c.y + 20.0, String(Enemy.DEFS[kind]["title"]), Color(TEXT, a))
-		y += 50.0
+			# 0.20: a long name ("Dangling Pointer") takes two lines, so neighbours never touch
+			var nm := String(Enemy.DEFS[kind]["title"])
+			if nm.length() > 9 and nm.contains(" "):
+				text_center(c.x, c.y + 20.0, nm.get_slice(" ", 0), Color(TEXT, a))
+				text_center(c.x, c.y + 29.0, nm.substr(nm.find(" ") + 1), Color(TEXT, a))
+			else:
+				text_center(c.x, c.y + 20.0, nm, Color(TEXT, a))
+		y += 58.0
 	y += 8.0
 	text(Vector2(rx, y), "WORLD CLEAR", Color(Style.UI_GOOD, a), 8, "bold")
 	para(Rect2(rx, y + 4, rw, 24), "+%d max HP and a full heal. Your wands, spells and relics come with you." % bonus_hp, Color(TEXT, a))
