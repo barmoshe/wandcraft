@@ -329,3 +329,37 @@ static func style(s: Node) -> void:
 		s.add("new " + id, Icons.relic(StringName(id)))
 	s.add("old mote", PixelArt.cached("old_mote", func() -> Image: return Icons._build(Catalog.spell(&"mote"))))
 	s.add("old ember", PixelArt.cached("old_ember", func() -> Image: return Icons._build(Catalog.spell(&"ember"))))
+
+
+## 0.24, the Debug Duck (DuckArt): every piece, mood, blink and talk frame, and the old Duck
+## beside it for the before and after.
+static func duck(s: Node) -> void:
+	s.section("face: plain, smug, pleased | talk | blink")
+	for m in 3:
+		s.add("face %d" % m, DuckArt.face(m))
+	s.add("face talk", DuckArt.face(0, true))
+	s.add("face blink", DuckArt.face(0, false, true))
+	s.add("smug blink", DuckArt.face(1, false, true))
+	s.add("lint", Hud.lint_face())
+	s.add("hero", Hero.frames(&"apprentice")[0])
+	s.section("companion: walk 0/1, talk, blink | sit, sit talk | with LINT")
+	for f in 2:
+		s.add("body %d" % f, DuckArt.body(f))
+	s.add("body talk", DuckArt.body(0, true))
+	s.add("body blink", DuckArt.body(0, false, true))
+	s.add("sit", DuckArt.sit())
+	s.add("sit talk", DuckArt.sit(true))
+	s.add("lint 0", CompanionArt.lint(0, false))
+	s.section("the Rubber Duck spell: familiar 0/1, icon")
+	for f in 2:
+		s.add("familiar %d" % f, DuckArt.familiar(f))
+	s.add("icon", Icons.spell(Catalog.spell(&"duck")))
+	s.section("bust (story panels): ripple 0/1/2, talk, blink")
+	for r in 3:
+		s.add("bust %d" % r, DuckArt.bust(false, false, r))
+	s.add("bust talk", DuckArt.bust(true))
+	s.add("bust blink", DuckArt.bust(false, true))
+	s.section("before (0.23)")
+	s.add("old face", PixelArt.cached("old_duck_face", func() -> Image:
+		return PixelArt.paint(PackedStringArray(["....yyyy....", "...yYYYYy...", "..yYYwkYYy..", "..yYYkkYYoo.", "..yYYYYYoOo.", "...yYYYYy...", ".yyYYYYYYyy.", "yYYYYYYYYYYy", "yYYYYYYYYYYy", ".yYYYYYYYYy.", "..yyyyyyyy.."]),
+			{"y": "gold:2", "Y": "gold:3", "w": "bone:4", "k": "night:0", "o": "ember:3", "O": "ember:4"})))

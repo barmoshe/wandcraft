@@ -383,8 +383,13 @@ func draw_deco(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(kp + Vector2(-6, -13), Vector2(12, 9)), Color(0.36, 0.88, 1.0, 0.55 + 0.1 * sin(t * 4.0)))
 	# the Duck and LINT
 	var dp: Vector2 = anchors.get("duck", [Vector2.ZERO])[0]
-	_shadow(ci, dp, 6.0)
-	ci.draw_texture(Hud.duck_face(), (dp + Vector2(-6, -8 + sin(t * 2.5) * 1.0)).round())
+	_shadow(ci, dp, 7.0)
+	# 0.24: the Debug Duck sits on the floor (DuckArt.sit): it blinks, and its bill moves and
+	# its mood shows while it speaks
+	var duck_says := speaking() == "duck"
+	var dmood := DuckArt.mood_of(String(Dialogue.current.get("id", ""))) if duck_says else DuckArt.PLAIN
+	var dtex := DuckArt.sit(duck_says and fmod(t, 0.24) < 0.12, fmod(t, 3.7) < 0.12, dmood)
+	ci.draw_texture(dtex, (dp + Vector2(-8, -14 + sin(t * 2.5) * 0.5)).round())
 	var np: Vector2 = anchors.get("lint", [Vector2.ZERO])[0]
 	_shadow(ci, np, 6.0)
 	ci.draw_texture(Hud.lint_face(), (np + Vector2(-6, -10 + sin(t * 1.7 + 1.0) * 1.0)).round())

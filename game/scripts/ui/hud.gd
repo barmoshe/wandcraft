@@ -40,6 +40,7 @@ var say_text := ""
 var say_who := ""
 var say_t := 0.0
 var say_len := 0.0
+var say_id := ""   # 0.24: the line's id, for the Duck's mood (DuckArt.mood_of)
 ## 0.20 layout: what the HUD already covers this frame. Messages (tips, the spoken line,
 ## banners, toasts) are placed around it, never over it (tools/uiaudit.sh checks).
 var _taken: Array[Rect2] = []
@@ -68,8 +69,9 @@ func _ready() -> void:
 	Dialogue.line_cut.connect(func() -> void:
 		say_t = 0.0
 		say_text = "")
-	Dialogue.line_started.connect(func(who: String, s: String, _id: String, dur: float) -> void:
+	Dialogue.line_started.connect(func(who: String, s: String, id: String, dur: float) -> void:
 		say_who = who
+		say_id = id
 		say_text = s
 		say_len = dur
 		say_t = dur)
@@ -524,9 +526,12 @@ func _draw_say(sr: Rect2, cx: float, bottom: float) -> float:
 	UiAudit.box(self, r)
 	draw_rect(r, Color(0.05, 0.03, 0.1, 0.85 * a))
 	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(col, a))
-	var face := lint_face() if lint else duck_face()
+	# the speaker's mouth moves while the line plays (after its first 0.4 s), and they blink
+	var talk := fmod(say_t, 0.24) < 0.12 and say_t < say_len - 0.4
+	var blink := fmod(say_t, 3.1) < 0.1
+	var face := lint_face() if lint else DuckArt.face(DuckArt.mood_of(say_id), talk, blink)
 	if res != &"":
-		face = KernelArt.portrait(res, 0, fmod(say_t, 0.24) < 0.12 and say_t < say_len - 0.4, fmod(say_t, 3.1) < 0.1)
+		face = KernelArt.portrait(res, 0, talk, blink)
 	draw_texture(face, (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
 	_text(r.position + Vector2(26, 10), say_who, Color(col, a), 8)
 	for k in lines.size():
@@ -552,22 +557,9 @@ static func lint_face() -> Texture2D:
 		]), {"s": "steel:2", "S": "steel:3", "k": "night:0", "c": "cyan:4"}))
 
 
-## The rubber duck's face, 16 px (the Rubber Duck spell's friend).
+## The Duck's face, 12x11 (14x13 with its outline): DuckArt, plain, beak shut, eyes open.
 static func duck_face() -> Texture2D:
-	return PixelArt.cached("duck_face", func() -> Image:
-		return PixelArt.paint(PackedStringArray([
-			"....yyyy....",
-			"...yYYYYy...",
-			"..yYYwkYYy..",
-			"..yYYkkYYoo.",
-			"..yYYYYYoOo.",
-			"...yYYYYy...",
-			".yyYYYYYYyy.",
-			"yYYYYYYYYYYy",
-			"yYYYYYYYYYYy",
-			".yYYYYYYYYy.",
-			"..yyyyyyyy..",
-		]), {"y": "gold:2", "Y": "gold:3", "w": "#ffffff", "k": "night:0", "o": "ember:3", "O": "ember:4"}))
+	return DuckArt.face()
 
 
 ## 0.22: the size messages are drawn at: 8, or 10 with the large text setting (only the

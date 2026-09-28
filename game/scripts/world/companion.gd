@@ -37,7 +37,7 @@ func who() -> String:
 ## The point over its head, in world coordinates, between physics ticks (for the bubble).
 func head() -> Vector2:
 	var p := prev_pos.lerp(position, Engine.get_physics_interpolation_fraction())
-	return p + (Vector2(0, -16) if kind == &"duck" else Vector2(0, -HOVER - 9))
+	return p + (Vector2(0, -18) if kind == &"duck" else Vector2(0, -HOVER - 9))
 
 
 ## Straight to the hero's side (a new room, a door).
@@ -104,14 +104,15 @@ func _redraw(talking: bool) -> void:
 	var moving := position.distance_to(prev_pos) > 0.15
 	var frame := int(_t * 8.0) % 2 if moving else 0
 	if kind == &"duck":
-		_sprite.texture = CompanionArt.duck(frame, talking and fmod(_t, 0.24) < 0.12)
+		# 0.24: the Debug Duck (DuckArt); it blinks every few seconds
+		_sprite.texture = DuckArt.body(frame, talking and fmod(_t, 0.24) < 0.12, fmod(_t, 3.3) < 0.12)
 		# an idle hop every 1.6 s; a waddle while walking
 		var hop := 0.0
 		if not moving and fmod(_t, 1.6) < 0.2:
 			hop = sin(fmod(_t, 1.6) / 0.2 * PI) * 2.0
 		if moving:
 			hop = float(frame)   # a one-pixel waddle (never rotated: pixel art stays whole)
-		_sprite.position = Vector2(0, -6.5 - hop).round()
+		_sprite.position = Vector2(0, -8.0 - hop).round()
 	else:
 		_sprite.texture = CompanionArt.lint(int(_t * 3.0) % 2, talking)
 		_sprite.position = Vector2(0, -HOVER + sin(_t * 2.6) * 1.5).round()

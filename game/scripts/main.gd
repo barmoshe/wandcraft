@@ -20,6 +20,7 @@ extends Node2D
 ##   --wand=N            start with wand N selected
 ##   --resethints        show the first-run tips again
 ##   --inspect=ID        with --screen: show a held item's text (hold to inspect)
+##   --panel=N           with --screen=intro/ending/true_ending: open on panel N
 
 var world: World
 var hud: Hud
@@ -404,6 +405,8 @@ func _story_then(which: StringName, then: Callable) -> void:
 			s.art = Story.TRUE_ENDING_ART
 	s.last_label = "BEGIN" if which == &"intro" else "DONE"
 	s.voice_prefix = String(which)
+	if _args.has("panel"):
+		s.at = clampi(int(_args["panel"]), 0, s.panels.size() - 1)   # shots: open on panel N
 	_open(s, func(_res: Dictionary) -> void:
 		Story.mark(key)
 		then.call())

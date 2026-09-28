@@ -42,7 +42,7 @@ func _paint() -> void:
 	elif duck_line != "":
 		var f := Game.font("small")
 		var w := f.get_string_size(duck_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-		draw_texture(Hud.duck_face(), Vector2(cx - w / 2.0 - 16, y + 2).round(), Color(1, 1, 1, 0.9))
+		draw_texture(DuckArt.face(DuckArt.SMUG if not won else DuckArt.PLEASED), Vector2(cx - w / 2.0 - 16, y + 2).round(), Color(1, 1, 1, 0.9))
 		text_center(cx, y + 11, duck_line, Color("#ffd05e"))
 	y += 14
 	# the route taken

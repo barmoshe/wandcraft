@@ -243,20 +243,8 @@ const ART := {
 		"..aaaaaaaa..",
 		"............",
 	]},
-	&"duck": {"ramp": "gold", "acc": "ember", "kind": "familiar", "rows": [
-		"............",
-		"....333.....",
-		"...34443....",
-		"...34o44cc..",
-		"...344443c..",
-		"....4443....",
-		".3..44443...",
-		".34444444...",
-		"..3444443...",
-		"...33333....",
-		"............",
-		"............",
-	]},
+	# 0.24: the Debug Duck's side view, glasses on (DuckArt.ICON)
+	&"duck": {"ramp": "gold", "acc": "ember", "kind": "familiar", "rows": DuckArt.ICON},
 	&"watchdog": {"ramp": "leaf", "kind": "passive", "rows": [
 		"............",
 		"....3333....",

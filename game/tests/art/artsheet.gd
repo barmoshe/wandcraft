@@ -2,7 +2,8 @@ extends Node2D
 ## Contact sheets for art review: every sprite, frame, icon and tile drawn at 4x on a dark
 ## ground with a label, saved to shots/artsheet-<name>.png. Run: tools/artsheet.sh [name].
 ## Sheets: chars, icons, tiles, fx, ui, all (default); style; check (D1 readability);
-## kernel (World 3's new art), rooms (every room theme), arsenal (the 0.20 spell and relic icons).
+## kernel (World 3's new art), rooms (every room theme), arsenal (the 0.20 spell and relic icons),
+## duck (the Debug Duck, every piece).
 
 var S := 4
 const PAD := 6
@@ -87,6 +88,8 @@ func _collect() -> void:
 		ArtSheets.arsenal(self)
 	if sheet == "arsenal21":
 		ArtSheets.arsenal21(self)
+	if sheet == "duck":
+		ArtSheets.duck(self)
 
 
 var _layout: Array = []

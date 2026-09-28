@@ -328,6 +328,11 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.24.0, the Debug Duck** (ADR 0036, `research/duck-design.md`). Bar: "reinvent the duck".
+  - One design everywhere: a glossy rubber duck with a big eye behind tiny teal glasses (the hero's), a shine and a knowing brow.
+  - It blinks, its bill moves while it speaks, and it has three moods (plain, smug, pleased).
+  - The story panels show it in a bath, bobbing on the ripples.
+  - **Play it:** does the new Duck read at a glance beside the hero, and do the moods fit its lines?
 - **0.23.0, Finish** (ADRs 0034 and 0035). Bar: "finish all the work".
   - **Hold to inspect:** hold a card, shop item, spell slot or relic to read it; the lift does nothing.
   - **Smaller, cached web build:** music ships as Ogg Vorbis (pck 28.3 to 24.3 MB), and the big files have hashed names, cached for a year.

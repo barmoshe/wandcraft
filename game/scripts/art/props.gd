@@ -179,9 +179,12 @@ static func sconce() -> Texture2D:
 
 
 ## Familiars (D2), two frames each: the Daemon (a small violet sprite, 9x8), the Watchdog
-## Turret (a rune post with a gold eye, 10x11) and the Rubber Duck (10x8).
+## Turret (a rune post with a gold eye, 10x11) and the Rubber Duck (0.24: DuckArt, the Debug
+## Duck's side view).
 static func familiar(kind: StringName, frame: int) -> Texture2D:
 	var f := frame % 2
+	if kind == &"duck":
+		return DuckArt.familiar(f)
 	return PixelArt.cached("fam_%s_%d" % [kind, f], func() -> Image: return _familiar(kind, f))
 
 
@@ -199,9 +202,7 @@ static func _familiar(kind: StringName, f: int) -> Image:
 		var code: String = [".1gg1g1g1.", ".1g1gg1g1."][f]
 		return PixelArt.paint(PackedStringArray(["...3333...", "..344443..", "..4w44w4..", "..344443..", "...3443...", ".11111111.", code, ".11111111.", "2222222222"]),
 			{"1": "steel:2", "2": "steel:3", "3": "cyan:2", "4": "cyan:3", "w": "cyan:4", "g": "gold:4"})
-	var head: String = ["...34443..", "...3444311"][f]
-	return PixelArt.paint(PackedStringArray(["....333...", head, "...34w4411", "....44411.", "3...4443..", "34444444..", ".3444443..", "..33333..."]),
-		{"1": "ember:3", "3": "gold:2", "4": "gold:3", "w": "night:0"})
+	return DuckArt._familiar_image(f)
 
 
 ## D5 room features, drawn over the floor like crates.

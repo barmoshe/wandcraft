@@ -45,7 +45,9 @@ func _paint() -> void:
 	var tr := Rect2(cx - 150, pic.end.y + 18, 300, 60)
 	if speaker != "":
 		var lint := speaker == Story.LINT
-		draw_texture(Hud.lint_face() if lint else Hud.duck_face(), Vector2(tr.position.x - 18, tr.position.y - 2).round())
+		var talking := _typed() < s.length() and fmod(_t, 0.24) < 0.12
+		var face := Hud.lint_face() if lint else DuckArt.face(DuckArt.PLAIN, talking and speaker == Story.DUCK, fmod(_age, 3.4) < 0.12)
+		draw_texture(face, Vector2(tr.position.x - 18, tr.position.y - 2).round())
 		text(tr.position + Vector2(0, 6), speaker, Color("#5ce1ff") if lint else GOLD, 8, "bold")
 		tr.position.y += 12
 	para(tr, s.substr(0, _typed()), TEXT)
@@ -92,7 +94,14 @@ func _art(kind: String, r: Rect2) -> void:
 			draw_circle(c, 12.0, Color("#ff9a3a", 0.6))
 			text_center(c.x, c.y + 36, "kernel()", GOLD, 8, "bold")
 		"duck":
-			icon_at(Hud.duck_face(), c + Vector2(0, sin(_age * 2.5) * 2.0), 5.0)
+			# 0.24: the Debug Duck in its bath (DuckArt.bust): it bobs on the ripples, blinks, and
+			# talks while its line types out
+			var says := at < who.size() and String(who[at]) == Story.DUCK and _typed() < String(panels[at]).length()
+			var bust := DuckArt.bust(says and fmod(_t, 0.24) < 0.12, fmod(_age, 3.4) < 0.12, int(_age * 3.0))
+			var k := floorf(minf(r.size.x / bust.get_width(), r.size.y / bust.get_height()))
+			var bob := roundf(sin(_age * 2.0) * 1.0) * k
+			var at_ := (c - Vector2(bust.get_size()) * k / 2.0 + Vector2(0, bob)).round()
+			draw_texture_rect(bust, Rect2(at_, Vector2(bust.get_size()) * k), false)
 		_:
 			text_center(c.x, c.y + 4, "THE SOURCE", Color("#5ce1ff"), 16, "body")
 
