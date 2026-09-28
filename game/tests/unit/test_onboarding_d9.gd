@@ -64,43 +64,79 @@ func test_the_curriculum_teaches_an_edit_by_120s_and_a_second_spell() -> void:
 		ok(r["first_edit"] >= 0.0 and r["first_edit"] <= 120.0, "seed %d: first wand edit by 120 s (%.0f)" % [seed_value, r["first_edit"]])
 		# offers[0] is the start room's loadout pick, then one prize per lesson
 		ok(r["offers"].size() >= 4 and r["offers"][1] == [&"empower"], "seed %d: the first lesson's prize is Empower" % seed_value)
-		ok(r["offers"].size() >= 4 and r["offers"][3].has(&"ember"), "seed %d: the third lesson's prize is a second spell" % seed_value)
+		ok(r["offers"].size() >= 4 and r["offers"][3].has(&"frost"), "seed %d: the third lesson's prize is a second spell" % seed_value)
 		ok(r["offers"].all(func(o: Array) -> bool: return not o.any(func(id: StringName) -> bool: return Catalog.spell(id) != null and Catalog.spell(id).kind == SpellDef.Kind.TRIG)),
 			"seed %d: no trigger in the lessons" % seed_value)
 		var casters: Array = r["wand"].filter(func(sp: Variant) -> bool: return sp != null and Catalog.is_caster(Catalog.spell(sp["id"])))
 		ok(casters.size() >= 2, "seed %d: the wand fires two spells in turn (%s)" % [seed_value, r["wand"]])
 
 
-## Bar's screenshot (0.19): Phase taken in lesson 2 left one shooting spell, so the trigger
-## lesson lit the Mote's own slot. Every lesson-2 pick must now end in a sound layout.
-func test_the_second_spell_lesson_works_after_either_pierce_pick() -> void:
-	for pierce in [&"phase", &"needle"]:
-		var run := RunState.create(3)
-		run.tutorial = true
-		run.wands[0].set_slots([null, &"empower", &"mote"])
-		run.bag.append({"id": pierce, "lv": 1})
-		Tutorial.on_prize(run, 2)
-		for guard in 4:
-			var c := Tutorial.coach(run, 2)
-			if c.is_empty():
-				break
-			run.move_spell(c["from"], c["to"])
-		run.bag.append({"id": &"ember", "lv": 1})
-		Tutorial.on_prize(run, 3)
-		ok(run.wand().slots.size() == 4, "%s: the lesson grows the wand a slot" % pierce)
-		var moves := 0
-		for guard in 6:
-			var c := Tutorial.coach(run, 3)
-			if c.is_empty():
-				break
-			ok(run.wand().slots[int(c["to"]["i"])] == null or run.wand().slots[int(c["to"]["i"])]["id"] != &"mote" or c["ids"] == [&"mote"],
-				"%s: the coach never lights the Mote's slot for another spell" % pierce)
-			run.move_spell(c["from"], c["to"])
-			moves += 1
-		var ids: Array = run.wand().slots.map(func(sp: Variant) -> Variant: return sp["id"] if sp != null else null)
-		ok(moves >= 1, "%s: the coach walked the lesson (%s)" % [pierce, ids])
-		ok(ids.has(&"ember") and ids.has(&"mote"), "%s: both spells on the wand (%s)" % [pierce, ids])
-		ok(ids.find(&"empower") < ids.find(&"ember"), "%s: the boost powers the new spell too (%s)" % [pierce, ids])
+## 0.20 (Bar: "fix all lessons"): every path through the three lessons, with and without the
+## extra starting slot. The coach must finish in a few moves, never bump a spell into the bag
+## when an empty slot is waiting, end with every boost left of a shooting spell and the bag
+## empty, and hand over a wand whose mana keeps up (lessons 1 and 2; lesson 3 is the mana
+## lesson and may run dry, but not in under 10 s of casting).
+func test_every_lesson_path_coaches_cleanly() -> void:
+	for extra in [false, true]:
+		for p2 in Tutorial.STEPS[2]["offer"]:
+			for p3 in Tutorial.STEPS[3]["offer"]:
+				var run := RunState.create(5)
+				run.tutorial = true
+				if extra:
+					run.wand().add_slot()
+				for lesson in [1, 2, 3]:
+					var prize: StringName = [&"empower", p2, p3][lesson - 1]
+					var tag := "extra=%s %s/%s lesson %d" % [extra, p2, p3, lesson]
+					run.step = lesson
+					run.bag.append({"id": prize, "lv": 1})
+					Tutorial.on_prize(run, lesson)
+					var moves := 0
+					for guard in 8:
+						var c := Tutorial.coach(run, lesson)
+						if c.is_empty():
+							break
+						var to_i: int = c["to"]["i"]
+						var empty_waiting := range(run.wand().slots.size()).any(func(i: int) -> bool:
+							return run.wand().slots[i] == null and run.lesson_target[i] != null)
+						ok(run.wand().slots[to_i] == null or not empty_waiting, "%s: a move lands on a spell while an empty slot waits" % tag)
+						ok(String(c["text"]).contains("lit slot"), "%s: the coach says where" % tag)
+						run.move_spell(c["from"], c["to"])
+						moves += 1
+					ok(moves >= 1 and moves <= 3, "%s: %d moves" % [tag, moves])
+					ok(Tutorial.coach(run, lesson).is_empty(), "%s: the coach finishes" % tag)
+					ok(run.bag.is_empty(), "%s: nothing left in the bag" % tag)
+					var ids: Array = run.wand().slots.map(func(sp: Variant) -> Variant: return sp["id"] if sp != null else null)
+					ok(ids.has(prize), "%s: the prize is on the wand (%s)" % [tag, ids])
+					eq(ids[-1], &"mote", "%s: the Mote keeps the last slot" % tag)
+					var last_boost := -1
+					var first_cast := -1
+					for i in ids.size():
+						if ids[i] == null:
+							continue
+						if Catalog.is_caster(Catalog.spell(ids[i])):
+							if first_cast < 0:
+								first_cast = i
+						else:
+							last_boost = i
+					ok(last_boost < first_cast, "%s: every boost is left of the spells it powers (%s)" % [tag, ids])
+					var dry := _dry_after(run.wand())
+					if lesson < 3:
+						ok(dry < 0.0, "%s: the wand's mana keeps up (%s)" % [tag, ids])
+					else:
+						ok(dry < 0.0 or dry >= 10.0, "%s: runs dry after %.0f s (%s)" % [tag, dry, ids])
+
+
+## Seconds of steady casting before the wand runs dry, or -1 if it never does.
+func _dry_after(w: WandState) -> float:
+	var cost := 0.0
+	var t := 0.0
+	for plan in WandProgram.preview_cycle(w):
+		cost += plan.mana
+		t += maxf(0.03, w.def.cast_delay + plan.delay_add)
+		if plan.wrapped:
+			t += maxf(0.03, w.recharge_time() + plan.recharge_add)
+	var regen := w.def.regen * w.regen_mul() * t
+	return -1.0 if regen >= cost else w.max_mana() / ((cost - regen) / t)
 
 
 func test_the_boost_lesson_puts_empower_before_the_mote() -> void:

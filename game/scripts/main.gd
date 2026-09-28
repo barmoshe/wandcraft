@@ -437,7 +437,7 @@ func _start_from_args() -> void:
 				r.tutorial = true
 				r.step = lesson
 				if lesson >= 2:
-					r.wand().set_slots([&"needle", &"empower", &"mote"] if lesson == 3 else [null, &"empower", &"mote"])
+					r.wand().set_slots([&"empower", &"needle", &"mote"] if lesson == 3 else [null, &"empower", &"mote"])
 				r.bag.append({"id": Tutorial.STEPS[lesson]["offer"][0], "lv": 1})
 				Tutorial.on_prize(r, lesson)
 				_open_editor(lesson)

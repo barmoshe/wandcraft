@@ -5,9 +5,11 @@ extends RefCounted
 ## spell that lesson needs. The editor opens with a coach line and rings on what to move and
 ## where. Everything after the mini-boss is a normal run.
 ##   room 1  buglings only; the prize is Empower (a boost) -> the first wand edit
-##   room 2  a Hex Weaver among fodder; the prize is Needle or Phase (pierce), because...
+##   room 2  a Hex Weaver among fodder; the prize is Needle or Prism Lance (both shooting
+##           pierce spells; 0.20: Phase, a boost, left the wand one spell short), because...
 ##   room 3  ...Rune Sentries are shielded and show BLOCKED to anything but pierce; the prize
-##           is a second shooting spell (Ember or Frost) -> a wand that takes turns
+##           is a second shooting spell (Frost Shard or Chain Spark) -> a wand that takes turns,
+##           and its mana bar
 ##           (0.20: triggers left the first run. They were coached before the wand had two
 ##           spells to join, and now come in the Triggers pack at the Merchant.)
 ##   mini    Copy-Paste turns your own wand against you
@@ -27,21 +29,22 @@ const STEPS := {
 	2: {
 		"title": "Aim and Dodge",
 		"waves": [[[&"slime", false], [&"bugling", false], [&"bugling", false]], [[&"weaver", false], [&"bugling", false]]],
-		"offer": [&"needle", &"phase"],
+		"offer": [&"needle", &"lance"],
 		"coach": "pierce",
 	},
 	3: {
 		"title": "Shields",
 		"waves": [[[&"sentry", false], [&"bugling", false], [&"bugling", false]], [[&"sentry", false], [&"slime", false]]],
-		"offer": [&"ember", &"frost"],
+		"offer": [&"frost", &"spark"],
 		"coach": "second",
 	},
 }
 
+## Why each lesson's spell goes where it goes. The coach adds what to do now (_step_text).
 const COACH := {
-	"equip": "A boost powers up every spell on its right, so it goes left of your Mote. Drag EMPOWER onto the lit slot.",
-	"pierce": "Some enemies carry a shield that blocks hits from the front. A PIERCE spell breaks it. Drag it onto the lit slot.",
-	"second": "A wand fires its spells left to right, one per shot, and boosts power up every spell on their right. Drag your new spell onto the lit slot.",
+	"equip": "A boost powers up every spell on its right, so it goes left of your Mote.",
+	"pierce": "Some enemies carry a shield that blocks hits from the front. A pierce spell breaks it, and your boost powers it up.",
+	"second": "A wand fires its spells left to right, one per shot, and every spell costs mana. The bar under the range shows if it keeps up.",
 }
 
 
@@ -90,21 +93,39 @@ static func coach(run: RunState, lesson_step: int) -> Dictionary:
 	var target := run.lesson_target
 	if target.is_empty() or target.size() != w.slots.size():
 		return {}
-	# the lesson spell's own move first: it carries the explanation, the rest just make room
-	var order: Array = range(target.size())
-	order.sort_custom(func(a: int, b: int) -> bool: return ids.has(target[a]) and not ids.has(target[b]))
-	for i in order:
+	# 0.20 (Bar's "fix all lessons"): moves into EMPTY slots first, so nothing is ever bumped
+	# into the bag only to be dragged back; the spells already on the wand make room, then
+	# the prize goes in. Only when no empty slot is waiting does a move land on a spell.
+	var todo: Array = []
+	for i in target.size():
 		var have: Variant = w.slots[i]["id"] if w.slots[i] != null else null
-		if have == target[i] or target[i] == null:
-			continue
-		var from := _find(run, target[i], i)
-		if from.is_empty():
-			return {}
-		var first: bool = ids.has(target[i]) and int(from["w"]) < 0
-		var text: String = COACH[STEPS[lesson_step]["coach"]] if first else \
-			"Now drag %s onto the lit slot." % Catalog.spell(target[i]).title.to_upper()
-		return {"text": text, "from": from, "to": {"w": run.cur, "i": i}, "ids": [target[i]]}
-	return {}
+		if have != target[i] and target[i] != null:
+			todo.append(i)
+	if todo.is_empty():
+		return {}
+	var pick: int = todo[0]
+	for i in todo:
+		if w.slots[i] == null:
+			pick = i
+			break
+	var from := _find(run, target[pick], pick)
+	if from.is_empty():
+		return {}
+	var prize_in_bag := run.bag.any(func(sp: Variant) -> bool: return sp != null and ids.has(sp["id"]))
+	return {"text": _step_text(lesson_step, target[pick], ids.has(target[pick]), prize_in_bag),
+		"from": from, "to": {"w": run.cur, "i": pick}, "ids": [target[pick]]}
+
+
+## The coach's words for one move: the lesson's reason while the prize still waits in the bag
+## (then "first, make room" or "drag it in"), and a plain "now" once it's on the wand.
+static func _step_text(lesson_step: int, id: StringName, is_prize: bool, prize_in_bag: bool) -> String:
+	var why: String = COACH[STEPS[lesson_step]["coach"]]
+	var nm := Catalog.spell(id).title.to_upper()
+	if is_prize:
+		return "%s Drag %s onto the lit slot." % [why, nm]
+	if prize_in_bag:
+		return "%s First, make room: drag %s onto the lit slot." % [why, nm]
+	return "Now drag %s onto the lit slot." % nm
 
 
 ## The wand in hand as it should look after the lesson (spell ids, null for empty), built

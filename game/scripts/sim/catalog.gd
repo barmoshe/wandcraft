@@ -259,7 +259,8 @@ static func _build() -> void:
 	_s("undervolt", B, "Undervolt", "#72e06a", {"mp": [0]}, "Spells on its right cost {40/50/60}% less mana, but fly 40% slower and deal 20% less damage.")
 
 	# ---- wands ----
-	_w(&"twig", "Twig Wand", 0, 3, 50, 16, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light.")
+	# 0.20: regen 16 -> 22; the lessons' wands ran dry in seconds (Bar's screenshot: OUT OF MANA)
+	_w(&"twig", "Twig Wand", 0, 3, 50, 22, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light.")
 	_w(&"stub", "Stub Staff", 0, 2, 90, 20, 0.22, 0.6, 6, 1, false, "#8a6a3a", "Slow, with a deep mana pool.")
 	var w := WandDef.new()
 	w.id = &"apprentice"; w.title = "Apprentice Rod"; w.slots = 5; w.max_mana = 80; w.regen = 18; w.cast_delay = 0.12; w.recharge = 0.4; w.scatter = 5
