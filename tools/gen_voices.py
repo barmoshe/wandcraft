@@ -11,6 +11,13 @@ game/assets/voice/<file>.wav. Godot imports it QOA-compressed (tools/voices.sh).
   LINT  a deeper, slower voice through a 16-band channel vocoder on a 110 Hz saw (the
         monotone), a 50 Hz ring modulator, a short metallic comb, a 12 kHz / 9-bit crush.
 
+  GREP    an older British voice, a semitone lower (varispeed), a slow age tremor, warm
+          low mids, the top rolled off like an old reviewer's desk radio, a dry small room.
+  HOTFIX  a playful voice, two semitones up and quick, a 3.5 ms tin comb, a 120 Hz buzz and
+          a 10-bit / 12 kHz crush mixed in (a patched golem, still intelligible).
+  CACHE   a soft voice, a little air on top, and a library: a pre-delayed, dark, 1.4 s
+          reverb from a seeded noise tail.
+
 The chains are baked because Godot has no vocoder or ring modulator and the web build
 plays in sample mode, where bus effects don't run.
 
@@ -18,7 +25,7 @@ assets_src/voice/manifest.json keeps a hash of (text, voice, speed, chain, stren
 line, so only changed lines render again.
 
   gen_voices.py <lines.json>                   render every line that changed
-  gen_voices.py <lines.json> --audition <dir>  6 lines each, 2 voices x 2 strengths
+  gen_voices.py <lines.json> --audition <dir> [WHO ...]   6 lines each, 2 voices x 2 strengths
 """
 import hashlib
 import json
@@ -41,13 +48,22 @@ TARGET_LUFS = -18.0   # dialogue sits above the music's -20 (agree with the soun
 PEAK = 10 ** (-1.0 / 20)   # -1 dBFS
 
 # The picks (Bar may change them after the audition in shots/voice-audition/).
+# `lang` (default en-us) is the phonemiser's accent; `semis` is a varispeed shift in the chain,
+# which render() pre-compensates so the line still lands at `speed`.
 CAST = {
     "DUCK": {"voice": "af_heart", "speed": 1.1, "strength": "light"},
     "LINT": {"voice": "am_fenrir", "speed": 0.92, "strength": "medium"},
+    # the residents (0.20, research/world3-0.20.md section 3)
+    "GREP": {"voice": "bm_george", "speed": 0.9, "strength": "light", "lang": "en-gb", "semis": -1.0},
+    "HOTFIX": {"voice": "am_puck", "speed": 1.05, "strength": "light", "semis": 2.0},
+    "CACHE": {"voice": "bf_emma", "speed": 0.95, "strength": "light", "lang": "en-gb"},
 }
 AUDITION = {
     "DUCK": ["af_heart", "af_bella"],
     "LINT": ["am_michael", "am_fenrir"],
+    "GREP": ["bm_george", "bm_lewis"],
+    "HOTFIX": ["am_puck", "am_echo"],
+    "CACHE": ["bf_emma", "af_nicole"],
 }
 
 
@@ -142,7 +158,96 @@ def lint_chain(x, strength):
     return y
 
 
-CHAINS = {"DUCK": duck_chain, "LINT": lint_chain}
+# ------------------------------------------------------------------ the residents
+
+def _varispeed(x, semis):
+    if semis == 0:
+        return x
+    up = 100
+    return signal.resample_poly(x, up, int(round(up * 2 ** (semis / 12))))
+
+
+def _wobble(y, rate, depth_s):
+    """A modulated delay: pitch vibrato of `depth_s` seconds at `rate` Hz."""
+    n = np.arange(len(y))
+    d = depth_s * SR * (1 + np.sin(2 * np.pi * rate * n / SR))
+    return np.interp(np.clip(n - d, 0, len(y) - 1), n, y)
+
+
+def _tail(y, sec):
+    return np.concatenate([y, np.zeros(int(sec * SR))])
+
+
+def _room(y, rt60, wet, predelay=0.0, dark=4000.0, seed=1):
+    """A seeded noise-tail reverb: `rt60` seconds, low-passed at `dark` Hz."""
+    n = int(rt60 * SR)
+    t = np.arange(n) / SR
+    ir = np.random.default_rng(seed).standard_normal(n) * np.exp(-6.9 * t / rt60)
+    ir = signal.sosfilt(signal.butter(2, dark, btype="lowpass", fs=SR, output="sos"), ir)
+    ir = np.concatenate([np.zeros(int(predelay * SR)), ir])
+    x = _tail(y, rt60 + predelay)
+    rev = signal.fftconvolve(x, ir)[: len(x)]
+    rev *= np.sqrt(np.mean(y ** 2)) / (np.sqrt(np.mean(rev ** 2)) + 1e-9)
+    return (1 - wet) * x + wet * rev
+
+
+def grep_chain(x, strength):
+    full = strength == "full"
+    y = _varispeed(x, CAST["GREP"].get("semis", -1.0))
+    # an old voice: a slow, small pitch tremor and a little amplitude waver
+    y = _wobble(y, 4.5, 0.0005 if full else 0.00035)
+    n = np.arange(len(y))
+    y = y * (1 - (0.08 if full else 0.05) * (1 + np.sin(2 * np.pi * 5.2 * n / SR)) / 2)
+    # warm and a bit dusty: lows under 90 Hz off, low mids up, the top rolled off at 6.5 kHz
+    y = signal.sosfilt(signal.butter(2, [90, 6500 if full else 7500], btype="bandpass", fs=SR, output="sos"), y)
+    y = _peaking(y, 260, 2.5, 0.8)
+    y = _peaking(y, 2500, 2.0, 1.0)   # keep the consonants
+    # a dry little room (his chair in the Workshop)
+    y = _room(y, 0.35, 0.12 if full else 0.08, 0.008, 3000, seed=11)
+    return np.tanh(1.2 * y / (np.max(np.abs(y)) + 1e-9)) / np.tanh(1.2)
+
+
+def hotfix_chain(x, strength):
+    full = strength == "full"
+    y = _varispeed(x, CAST["HOTFIX"].get("semis", 2.0))
+    n = len(y)
+    t = np.arange(n) / SR
+    # tin: a 3.5 ms comb, mixed in
+    dly = int(0.0035 * SR)
+    fb = 0.45 if full else 0.35
+    a = np.zeros(dly + 1)
+    a[0] = 1.0
+    a[-1] = -fb
+    comb = signal.lfilter([1.0 - fb], a, y)
+    y = 0.6 * y + 0.4 * comb
+    # a patched circuit: a light 120 Hz buzz
+    rm = 0.18 if full else 0.12
+    y = y * (1 - rm) + y * np.sin(2 * np.pi * 120.0 * t) * rm
+    # a 12 kHz / 10-bit crush, blended so the words stay clear
+    peak = np.max(np.abs(y)) + 1e-9
+    crush = np.repeat(y[::2], 2)[:n]
+    crush = np.round(crush / peak * 511) / 511 * peak
+    mix = 0.5 if full else 0.35
+    y = (1 - mix) * y + mix * crush
+    y = signal.sosfilt(signal.butter(2, [160, 7500], btype="bandpass", fs=SR, output="sos"), y)
+    y = _peaking(y, 2200, 3.0, 1.0)
+    return np.tanh(1.6 * y / (np.max(np.abs(y)) + 1e-9)) / np.tanh(1.6)
+
+
+def cache_chain(x, strength):
+    full = strength == "full"
+    y = signal.sosfilt(signal.butter(2, 110, btype="highpass", fs=SR, output="sos"), x)
+    y = _peaking(y, 9000, 3.0, 0.7)   # air
+    y = _peaking(y, 3000, 1.5, 1.0)
+    # the library: tall shelves, a soft dark tail
+    y = _room(y, 1.4, 0.32 if full else 0.24, 0.022, 3500, seed=7)
+    # the tail fades out instead of stopping
+    f = int(0.25 * SR)
+    y[-f:] *= np.linspace(1, 0, f)
+    return y
+
+
+CHAINS = {"DUCK": duck_chain, "LINT": lint_chain, "GREP": grep_chain, "HOTFIX": hotfix_chain, "CACHE": cache_chain}
 
 
 # ------------------------------------------------------------------ rendering
@@ -158,8 +263,8 @@ def kokoro():
     return _kokoro
 
 
-def speak(text, voice, speed):
-    audio, sr = kokoro().create(text, voice=voice, speed=speed, lang="en-us")
+def speak(text, voice, speed, lang="en-us"):
+    audio, sr = kokoro().create(text, voice=voice, speed=speed, lang=lang)
     assert sr == SR, sr
     return np.asarray(audio, dtype=np.float64)
 
@@ -174,22 +279,27 @@ def loud(y):
 
 
 def render(who, text, voice, speed, strength):
-    # the Duck's varispeed speeds it up, so it is spoken slower to land at `speed`
-    s = speed / (2 ** ((4.0 if strength == "full" else 3.0) / 12)) if who == "DUCK" else speed
-    x = _trim(speak(text, voice, s))
+    # a varispeed chain changes the pace, so the line is spoken at a pace that lands at `speed`
+    semis = (4.0 if strength == "full" else 3.0) if who == "DUCK" else CAST[who].get("semis", 0.0)
+    s = speed / (2 ** (semis / 12))
+    x = _trim(speak(text, voice, s, CAST[who].get("lang", "en-us")))
     y = _trim(CHAINS[who](x, strength), 0.004)
     return loud(y)
 
 
 def line_hash(row, cast):
-    key = json.dumps([row["text"], cast["voice"], cast["speed"], cast["strength"], row["who"], CHAIN_VERSION])
+    parts = [row["text"], cast["voice"], cast["speed"], cast["strength"], row["who"], CHAIN_VERSION]
+    # the newer knobs join the key only when set, so the Duck's and LINT's files keep their hashes
+    parts += [[k, cast[k]] for k in ("lang", "semis") if k in cast]
+    key = json.dumps(parts)
     return hashlib.sha1(key.encode()).hexdigest()[:16]
 
 
 def main():
     lines = json.load(open(sys.argv[1]))
     if "--audition" in sys.argv:
-        return audition(lines, sys.argv[sys.argv.index("--audition") + 1])
+        i = sys.argv.index("--audition")
+        return audition(lines, sys.argv[i + 1], sys.argv[i + 2:] or list(CAST))
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(os.path.dirname(MANIFEST), exist_ok=True)
     man = json.load(open(MANIFEST)) if os.path.exists(MANIFEST) else {}
@@ -220,10 +330,10 @@ def main():
     print("gen_voices: %d rendered, %d lines, %.0f s of speech" % (done, len(man), total))
 
 
-def audition(lines, out):
+def audition(lines, out, whos):
     os.makedirs(out, exist_ok=True)
     rows = []
-    for who in ("DUCK", "LINT"):
+    for who in whos:
         picks = [r for r in lines if r["who"] == who][:6]
         for voice in AUDITION[who]:
             for strength in ("light", "full"):
@@ -234,8 +344,8 @@ def audition(lines, out):
                     rows.append((who, voice, strength, name, r["text"]))
     html = ["<!doctype html><meta charset=utf-8><title>Voice audition</title>",
             "<style>body{font:14px system-ui;margin:24px;background:#141020;color:#eee}td{padding:4px 8px}</style>",
-            "<h1>Wandcraft voice audition</h1><p>Picks now: DUCK %s (%s), LINT %s (%s).</p><table>" % (
-                CAST["DUCK"]["voice"], CAST["DUCK"]["strength"], CAST["LINT"]["voice"], CAST["LINT"]["strength"])]
+            "<h1>Wandcraft voice audition</h1><p>Picks now: %s.</p><table>" % ", ".join(
+                "%s %s (%s)" % (w, CAST[w]["voice"], CAST[w]["strength"]) for w in whos)]
     for who, voice, strength, name, text in rows:
         html.append("<tr><td>%s</td><td>%s</td><td>%s</td><td><audio controls src='%s'></audio></td><td>%s</td></tr>" % (
             who, voice, strength, name, text))

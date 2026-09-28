@@ -162,3 +162,10 @@ The full research hand-back is in the session transcript of 2026-09-27; the key 
   - The name stays LINT. The autoload is `Dialogue` (`audio.gd` already has an inner class named Voice), and it adds its own Voice bus.
   - The music dip is `Audio.voice_db` (one line in `audio.gd`).
   - The Duck's babble is no longer called; `Audio.babble` stays for the sound session to remove.
+- 0.20 (2026-09-28, uncommitted at writing): the residents (research/world3-0.20.md §3) join the cast, each with a baked chain in `tools/gen_voices.py`:
+  - GREP: `bm_george` (British, en-gb phonemes) at 0.9, one semitone down by varispeed, a slow age tremor (4.5 Hz pitch, 5 Hz level), warm low mids with the top rolled off at 7.5 kHz, a dry 0.35 s room. Older and drier than LINT's monotone robot and far from the Duck.
+  - HOTFIX: `am_puck` at 1.05, two semitones up, a 3.5 ms tin comb, a 120 Hz buzz and a 35% blend of a 12 kHz / 10-bit crush, with a 2.2 kHz presence lift so the words stay clear. The fastest speaker (about 4 words a second).
+  - CACHE: `bf_emma` (en-gb) at 0.95, an air lift at 9 kHz, and a library: a seeded, dark (3.5 kHz), 1.4 s noise-tail reverb, 22 ms pre-delay, 24% wet, fading out.
+  - `CAST` rows take optional `lang` and `semis`; they join the manifest hash only when set, so the Duck's and LINT's files kept their hashes. The audition takes speaker tags (`tools/voices.sh --audition GREP HOTFIX CACHE`); the candidates were `bm_lewis`, `am_echo` and `af_nicole` (nicole was too slow and breathy under the reverb).
+  - 109 lines rendered (the residents' 54, plus 55 new or changed Story lines), 218 in all, 610 s of speech, 29 MB of WAV (about 6 MB as QOA). The longest `true_ending.` line runs 4.6 s, under the 6.5 s cap.
+  - The Whisper check didn't run in this session: huggingface.co (the tiny.en download) is blocked by the session's egress policy. Run `tools/voices.sh --check` on the Mac.

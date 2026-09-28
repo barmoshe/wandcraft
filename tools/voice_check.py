@@ -27,7 +27,11 @@ def acc(ref, hyp):
 
 def main():
     d = sys.argv[1]
-    m = WhisperModel("tiny.en", device="cpu", compute_type="int8", download_root=MODEL)
+    try:
+        m = WhisperModel("tiny.en", device="cpu", compute_type="int8", download_root=MODEL)
+    except Exception as e:   # the model comes from huggingface.co on first use
+        sys.exit("voice_check: can't load Whisper tiny.en into %s (%s: %s).\n"
+                 "  It downloads from huggingface.co once; run where that host is reachable." % (MODEL, type(e).__name__, e))
     texts = {}
     if sys.argv[2] == "audition":
         # the audition's index.html pairs each file with its text

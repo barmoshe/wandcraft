@@ -5,7 +5,8 @@
 # One-time setup: a venv in tools/.venv-voice and the model in tools/.voice-models (both
 # git-ignored, about 380 MB). Runs on CPU; a full render takes about 2 minutes.
 #   tools/voices.sh              render what changed
-#   tools/voices.sh --audition   6 lines each in 2 voices x 2 strengths, into shots/voice-audition
+#   tools/voices.sh --audition [WHO ...]   6 lines each in 2 voices x 2 strengths, into
+#                                shots/voice-audition (every speaker, or only the tags named)
 #   tools/voices.sh --check      Whisper transcribes every line (tools/voice_check.py)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -30,7 +31,7 @@ LINES="$ROOT/build/voice_lines.json"
 "$HERE/godot.sh" --headless --path "$GAME" -s "$HERE/export_lines.gd" -- "$LINES" | grep -v "^Godot\|^$"
 
 case "${1:-}" in
-  --audition) exec "$VENV/bin/python" "$HERE/gen_voices.py" "$LINES" --audition "$ROOT/shots/voice-audition" ;;
+  --audition) exec "$VENV/bin/python" "$HERE/gen_voices.py" "$LINES" --audition "$ROOT/shots/voice-audition" "${@:2}" ;;
   --check) exec "$VENV/bin/python" "$HERE/voice_check.py" "$GAME/assets/voice" "$LINES" ;;
 esac
 

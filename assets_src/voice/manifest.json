@@ -31,6 +31,30 @@
   "voice": "am_fenrir",
   "text": "Plagiarism detected."
  },
+ "boss_data_race.0.0": {
+  "id": "boss:Data Race.0.0",
+  "who": "LINT",
+  "hash": "4819e4112b300510",
+  "seconds": 2.71,
+  "voice": "am_fenrir",
+  "text": "Two threads. One shared memory. No lock."
+ },
+ "boss_data_race.0.1": {
+  "id": "boss:Data Race.0.1",
+  "who": "DUCK",
+  "hash": "ae0c6b8cc85e713c",
+  "seconds": 1.91,
+  "voice": "af_heart",
+  "text": "Hurt them both, then finish them together."
+ },
+ "boss_data_race.1": {
+  "id": "boss:Data Race.1",
+  "who": "DUCK",
+  "hash": "2429e7dc9976cdc0",
+  "seconds": 2.13,
+  "voice": "af_heart",
+  "text": "If one falls alone, the other brings it back."
+ },
  "boss_deadlock.0.0": {
   "id": "boss:Deadlock.0.0",
   "who": "LINT",
@@ -78,6 +102,38 @@
   "seconds": 2.39,
   "voice": "af_heart",
   "text": "Don't feed it. When the lid opens, stop shooting."
+ },
+ "boss_the_glitch.0.0": {
+  "id": "boss:The Glitch.0.0",
+  "who": "LINT",
+  "hash": "334faf528b4ee7b4",
+  "seconds": 4.65,
+  "voice": "am_fenrir",
+  "text": "Commit a1f00d. Author: you. Status: alive."
+ },
+ "boss_the_glitch.0.1": {
+  "id": "boss:The Glitch.0.1",
+  "who": "DUCK",
+  "hash": "915cc08d179ad798",
+  "seconds": 2.19,
+  "voice": "af_heart",
+  "text": "Your first commit. All grown up and angry."
+ },
+ "boss_the_glitch.1.0": {
+  "id": "boss:The Glitch.1.0",
+  "who": "DUCK",
+  "hash": "49c2a42b197e7643",
+  "seconds": 1.96,
+  "voice": "af_heart",
+  "text": "It's back. Same bug, same Friday."
+ },
+ "boss_the_glitch.1.1": {
+  "id": "boss:The Glitch.1.1",
+  "who": "LINT",
+  "hash": "888747fcf8af0839",
+  "seconds": 1.47,
+  "voice": "am_fenrir",
+  "text": "Reproducible. Good."
  },
  "boss_the_infinite_loop.0.0": {
   "id": "boss:The Infinite Loop.0.0",
@@ -207,6 +263,22 @@
   "voice": "af_heart",
   "text": "Hold on to your wand."
  },
+ "down_data_race.0.0": {
+  "id": "down:Data Race.0.0",
+  "who": "LINT",
+  "hash": "8b08b6b1475a8508",
+  "seconds": 0.99,
+  "voice": "am_fenrir",
+  "text": "Race resolved."
+ },
+ "down_data_race.0.1": {
+  "id": "down:Data Race.0.1",
+  "who": "DUCK",
+  "hash": "9d3c358cc8215291",
+  "seconds": 2.35,
+  "voice": "af_heart",
+  "text": "Wait. There's a commit in the log with my name on it."
+ },
  "down_deadlock.0.0": {
   "id": "down:Deadlock.0.0",
   "who": "LINT",
@@ -247,6 +319,22 @@
   "voice": "am_fenrir",
   "text": "Version two point oh: scheduled."
  },
+ "down_the_glitch.0.0": {
+  "id": "down:The Glitch.0.0",
+  "who": "LINT",
+  "hash": "0b20c318373e9277",
+  "seconds": 2.1,
+  "voice": "am_fenrir",
+  "text": "Glitch contained. Awaiting your commit."
+ },
+ "down_the_glitch.0.1": {
+  "id": "down:The Glitch.0.1",
+  "who": "DUCK",
+  "hash": "f1187a6a7481d18b",
+  "seconds": 1.54,
+  "voice": "af_heart",
+  "text": "Your call. It always was."
+ },
  "down_the_infinite_loop.0.0": {
   "id": "down:The Infinite Loop.0.0",
   "who": "LINT",
@@ -274,34 +362,34 @@
  "ending.0": {
   "id": "ending.0",
   "who": "LINT",
-  "hash": "5d3fd872e6ae80ee",
-  "seconds": 4.49,
+  "hash": "5c7ca1532faf7320",
+  "seconds": 6.36,
   "voice": "am_fenrir",
-  "text": "Deadlock falls. Behind it, the Kernel hums, and one line glows red."
+  "text": "The Glitch falls. In Ring Zero, one line still glows red. A one f double oh d. Yours."
  },
  "ending.1": {
   "id": "ending.1",
   "who": "LINT",
-  "hash": "beb749720ca9faf8",
-  "seconds": 4.05,
+  "hash": "dbd58a4ce2cb9b59",
+  "seconds": 5.11,
   "voice": "am_fenrir",
-  "text": "Tiny tweak to mana regen. Friday, four fifty-nine. Yours."
+  "text": "You cast the oldest spell there is: revert. The Source rolls back to four fifty-eight."
  },
  "ending.2": {
   "id": "ending.2",
   "who": "LINT",
-  "hash": "dd20b285730008a7",
-  "seconds": 6.02,
+  "hash": "ba96d3716b828c6f",
+  "seconds": 5.06,
   "voice": "am_fenrir",
-  "text": "You cast the oldest spell there is: revert. The Glitch lets go of the world, one tree at a time."
+  "text": "The moss closes its eyes. The Glitch lets go of the world, one tree at a time."
  },
  "ending.3": {
   "id": "ending.3",
   "who": "DUCK",
-  "hash": "8b46591b40516c2b",
-  "seconds": 3.05,
+  "hash": "96df8433b13587ef",
+  "seconds": 2.99,
   "voice": "af_heart",
-  "text": "Good debugging. Now, about that folder called world three."
+  "text": "Good debugging. Quack. I'll be quiet now. It's what ducks do."
  },
  "first_run.0.0": {
   "id": "first_run.0.0",
@@ -318,6 +406,38 @@
   "seconds": 2.41,
   "voice": "af_heart",
   "text": "Quack. You talk, I listen, we find the bug."
+ },
+ "glitch_revert.0.0": {
+  "id": "glitch:revert.0.0",
+  "who": "DUCK",
+  "hash": "ab835981de89a0c7",
+  "seconds": 1.62,
+  "voice": "af_heart",
+  "text": "Revert it! Grab the old code!"
+ },
+ "glitch_revert.0.1": {
+  "id": "glitch:revert.0.1",
+  "who": "LINT",
+  "hash": "81384420c5aa714a",
+  "seconds": 2.1,
+  "voice": "am_fenrir",
+  "text": "Revert points on the floor. Green."
+ },
+ "glitch_unwind.0.0": {
+  "id": "glitch:unwind.0.0",
+  "who": "LINT",
+  "hash": "de9826319b8aca24",
+  "seconds": 2.56,
+  "voice": "am_fenrir",
+  "text": "Stack unwinding. Every frame, in reverse."
+ },
+ "glitch_unwind.0.1": {
+  "id": "glitch:unwind.0.1",
+  "who": "DUCK",
+  "hash": "004a69c5fbd007c2",
+  "seconds": 2.2,
+  "voice": "af_heart",
+  "text": "The Loop and the locks. It remembers them too."
  },
  "grove.0.0": {
   "id": "grove.0.0",
@@ -519,6 +639,46 @@
   "voice": "af_heart",
   "text": "I believe in you. Mostly."
  },
+ "hub_epilogue.0.0": {
+  "id": "hub_epilogue.0.0",
+  "who": "LINT",
+  "hash": "2362397386a2c850",
+  "seconds": 3.84,
+  "voice": "am_fenrir",
+  "text": "Post-mortem. Cause: one tiny tweak. Fix: all of us."
+ },
+ "hub_epilogue.0.1": {
+  "id": "hub_epilogue.0.1",
+  "who": "DUCK",
+  "hash": "deb5fe56f9a5b04a",
+  "seconds": 1.43,
+  "voice": "af_heart",
+  "text": "Blameless. That's the word."
+ },
+ "hub_epilogue.1": {
+  "id": "hub_epilogue.1",
+  "who": "DUCK",
+  "hash": "394e569218ade97d",
+  "seconds": 2.78,
+  "voice": "af_heart",
+  "text": "The moss waved at me. With its eyes. It's nice now."
+ },
+ "hub_epilogue.2.0": {
+  "id": "hub_epilogue.2.0",
+  "who": "LINT",
+  "hash": "6bd6470134aa7ba4",
+  "seconds": 2.87,
+  "voice": "am_fenrir",
+  "text": "Regression tests running. Every run is one now."
+ },
+ "hub_epilogue.2.1": {
+  "id": "hub_epilogue.2.1",
+  "who": "DUCK",
+  "hash": "51127e98af1cb03a",
+  "seconds": 1.74,
+  "voice": "af_heart",
+  "text": "So we keep playing. For science."
+ },
  "hub_first.0.0": {
   "id": "hub_first.0.0",
   "who": "LINT",
@@ -647,6 +807,22 @@
   "voice": "af_heart",
   "text": "A win. Somewhere deep, the bug is sulking."
  },
+ "interrupt.0.0": {
+  "id": "interrupt.0.0",
+  "who": "LINT",
+  "hash": "f5e91b4402426349",
+  "seconds": 1.98,
+  "voice": "am_fenrir",
+  "text": "Interrupt. One spell suspended."
+ },
+ "interrupt.0.1": {
+  "id": "interrupt.0.1",
+  "who": "DUCK",
+  "hash": "9019199e48b1ac1f",
+  "seconds": 1.92,
+  "voice": "af_heart",
+  "text": "Something locked your wand. Kill the bell."
+ },
  "intro.0": {
   "id": "intro.0",
   "who": "LINT",
@@ -695,6 +871,22 @@
   "voice": "am_fenrir",
   "text": "Commit found. Author: Mutex A. Message: waiting for Mutex B. Mutex B: waiting for Mutex A."
  },
+ "log.1a7e57": {
+  "id": "log.1a7e57",
+  "who": "LINT",
+  "hash": "785a24ca10f50d35",
+  "seconds": 6.51,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: Grep. Message: looks good to me. Did not read it. Friday, four fifty-eight."
+ },
+ "log.5a1e0f": {
+  "id": "log.5a1e0f",
+  "who": "LINT",
+  "hash": "c9df2e628f42afd6",
+  "seconds": 7.49,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: LINT. Warning: untested change to mana regen. Push anyway? You typed: yes."
+ },
  "log.5ca1d0": {
   "id": "log.5ca1d0",
   "who": "LINT",
@@ -727,6 +919,14 @@
   "voice": "am_fenrir",
   "text": "Commit found. Author: Guild C.I. Message: build passed. Deploying to the Source."
  },
+ "log.bac0up": {
+  "id": "log.bac0up",
+  "who": "LINT",
+  "hash": "8421c2bb7d4a60a6",
+  "seconds": 6.46,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: Cache. Message: snapshot of the Source, Friday, four fifty-eight. Keep safe."
+ },
  "log.c0ffee": {
   "id": "log.c0ffee",
   "who": "LINT",
@@ -743,6 +943,14 @@
   "voice": "am_fenrir",
   "text": "Commit found. Author: unknown. Message: make directory, world three."
  },
+ "log.d0c0de": {
+  "id": "log.d0c0de",
+  "who": "LINT",
+  "hash": "2ce53c9a92b45579",
+  "seconds": 7.4,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: the duck. Message: initialise rubber duck. Friday, four fifty-nine and one second."
+ },
  "log.deadbe": {
   "id": "log.deadbe",
   "who": "LINT",
@@ -758,6 +966,22 @@
   "seconds": 6.82,
   "voice": "am_fenrir",
   "text": "Commit found. Author: Copy-Paste. Message: tiny tweak to mana regen. Friday, four fifty-nine."
+ },
+ "log.f1x3d0": {
+  "id": "log.f1x3d0",
+  "who": "LINT",
+  "hash": "4a449032d2cd1de8",
+  "seconds": 6.5,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: you. Message: fix mana regen, properly. Reviewed by Grep, LINT and the duck."
+ },
+ "log.fa11ed": {
+  "id": "log.fa11ed",
+  "who": "LINT",
+  "hash": "fcd3594f034bd853",
+  "seconds": 6.59,
+  "voice": "am_fenrir",
+  "text": "Commit found. Author: the Kernel. Message: panic. Not syncing. Cause: a one f double oh d."
  },
  "pkg_bought.0.0": {
   "id": "pkg_bought.0.0",
@@ -782,6 +1006,542 @@
   "seconds": 1.92,
   "voice": "af_heart",
   "text": "More spells. More ways to break things."
+ },
+ "res.cache.arc.0": {
+  "id": "res.cache.arc.0",
+  "who": "CACHE",
+  "hash": "4b229780e8e4ff49",
+  "seconds": 3.88,
+  "voice": "bf_emma",
+  "text": "Every boss you beat drops a page. I'll read them to you."
+ },
+ "res.cache.arc.1.0": {
+  "id": "res.cache.arc.1.0",
+  "who": "CACHE",
+  "hash": "223c6c719e569361",
+  "seconds": 2.72,
+  "voice": "bf_emma",
+  "text": "You're not the first to push on a Friday."
+ },
+ "res.cache.arc.1.1": {
+  "id": "res.cache.arc.1.1",
+  "who": "CACHE",
+  "hash": "4eeeb620d822a620",
+  "seconds": 2.69,
+  "voice": "bf_emma",
+  "text": "Just the first to come down and fix it."
+ },
+ "res.cache.arc.2.0": {
+  "id": "res.cache.arc.2.0",
+  "who": "CACHE",
+  "hash": "d72830dcce403895",
+  "seconds": 3.97,
+  "voice": "bf_emma",
+  "text": "The Source keeps one snapshot. Friday, 4:58."
+ },
+ "res.cache.arc.2.1": {
+  "id": "res.cache.arc.2.1",
+  "who": "CACHE",
+  "hash": "2add94fc3922a4cd",
+  "seconds": 3.08,
+  "voice": "bf_emma",
+  "text": "Before your commit. I'm the one keeping it."
+ },
+ "res.cache.arc.3.0": {
+  "id": "res.cache.arc.3.0",
+  "who": "CACHE",
+  "hash": "78c9074cdbfb221b",
+  "seconds": 3.16,
+  "voice": "bf_emma",
+  "text": "If you revert, the world goes back to my copy."
+ },
+ "res.cache.arc.3.1": {
+  "id": "res.cache.arc.3.1",
+  "who": "CACHE",
+  "hash": "47a3b4c249b0f065",
+  "seconds": 4.12,
+  "voice": "bf_emma",
+  "text": "All that grew after 4:58 goes quiet. Me too."
+ },
+ "res.cache.arc.3.2": {
+  "id": "res.cache.arc.3.2",
+  "who": "DUCK",
+  "hash": "5f97e8b254071aad",
+  "seconds": 0.79,
+  "voice": "af_heart",
+  "text": "Me too, then."
+ },
+ "res.cache.arc.4.0": {
+  "id": "res.cache.arc.4.0",
+  "who": "CACHE",
+  "hash": "17308eb031400698",
+  "seconds": 2.59,
+  "voice": "bf_emma",
+  "text": "There's another way. Fix it forward."
+ },
+ "res.cache.arc.4.1": {
+  "id": "res.cache.arc.4.1",
+  "who": "CACHE",
+  "hash": "444309aa28365998",
+  "seconds": 2.34,
+  "voice": "bf_emma",
+  "text": "Keep what grew. Patch the rest."
+ },
+ "res.cache.epilogue": {
+  "id": "res.cache.epilogue",
+  "who": "CACHE",
+  "hash": "ce77d11ce56e1449",
+  "seconds": 3.61,
+  "voice": "bf_emma",
+  "text": "No revert. No backup needed. I'm just me now."
+ },
+ "res.cache.freed.0": {
+  "id": "res.cache.freed.0",
+  "who": "CACHE",
+  "hash": "0af52f5a89a55bb0",
+  "seconds": 3.02,
+  "voice": "bf_emma",
+  "text": "Oh. You're from the last run. No. This one."
+ },
+ "res.cache.freed.1": {
+  "id": "res.cache.freed.1",
+  "who": "CACHE",
+  "hash": "52e991abb6612070",
+  "seconds": 3.02,
+  "voice": "bf_emma",
+  "text": "I keep the pages. Bring me the lost ones."
+ },
+ "res.cache.freed.2": {
+  "id": "res.cache.freed.2",
+  "who": "DUCK",
+  "hash": "1089a3c00187b59d",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "She remembers everything. For about five minutes."
+ },
+ "res.cache.idle.0": {
+  "id": "res.cache.idle.0",
+  "who": "CACHE",
+  "hash": "cb811088fa8b3b59",
+  "seconds": 4.0,
+  "voice": "bf_emma",
+  "text": "I remember your last run perfectly. Not the one before."
+ },
+ "res.cache.idle.1": {
+  "id": "res.cache.idle.1",
+  "who": "CACHE",
+  "hash": "d996f8e27005ee86",
+  "seconds": 2.67,
+  "voice": "bf_emma",
+  "text": "Pages are just memory with corners."
+ },
+ "res.cache.idle.2": {
+  "id": "res.cache.idle.2",
+  "who": "CACHE",
+  "hash": "ecab819fdb1f4b9a",
+  "seconds": 2.91,
+  "voice": "bf_emma",
+  "text": "Shh. The shelves are paging."
+ },
+ "res.cache.react.boss": {
+  "id": "res.cache.react.boss",
+  "who": "CACHE",
+  "hash": "46cc263a5495b321",
+  "seconds": 3.13,
+  "voice": "bf_emma",
+  "text": "The boss again. I filed it under almost."
+ },
+ "res.cache.react.death": {
+  "id": "res.cache.react.death",
+  "who": "CACHE",
+  "hash": "701f92318ad776e8",
+  "seconds": 4.13,
+  "voice": "bf_emma",
+  "text": "Your last run ended badly. I remember every second."
+ },
+ "res.cache.react.quit": {
+  "id": "res.cache.react.quit",
+  "who": "CACHE",
+  "hash": "6d1780729a21f028",
+  "seconds": 2.79,
+  "voice": "bf_emma",
+  "text": "You left early. The pages noticed."
+ },
+ "res.cache.react.win": {
+  "id": "res.cache.react.win",
+  "who": "CACHE",
+  "hash": "0d7b71689daf4a36",
+  "seconds": 3.74,
+  "voice": "bf_emma",
+  "text": "A win. I'll remember it for five minutes. Proudly."
+ },
+ "res.grep.arc.0.0": {
+  "id": "res.grep.arc.0.0",
+  "who": "GREP",
+  "hash": "96d60fd3f71ff9fb",
+  "seconds": 3.88,
+  "voice": "bm_george",
+  "text": "One question per run. I'm retired, not a genie."
+ },
+ "res.grep.arc.0.1": {
+  "id": "res.grep.arc.0.1",
+  "who": "LINT",
+  "hash": "48144015972f117d",
+  "seconds": 1.33,
+  "voice": "am_fenrir",
+  "text": "Search service registered."
+ },
+ "res.grep.arc.1.0": {
+  "id": "res.grep.arc.1.0",
+  "who": "GREP",
+  "hash": "eb1c0901a9a18d78",
+  "seconds": 3.34,
+  "voice": "bm_george",
+  "text": "I reviewed code for the Guild. Forty years."
+ },
+ "res.grep.arc.1.1": {
+  "id": "res.grep.arc.1.1",
+  "who": "GREP",
+  "hash": "ea78ce1c9225e7bc",
+  "seconds": 2.6,
+  "voice": "bm_george",
+  "text": "Every line. Well. Most lines."
+ },
+ "res.grep.arc.2.0": {
+  "id": "res.grep.arc.2.0",
+  "who": "GREP",
+  "hash": "f0bd88c9a625a81d",
+  "seconds": 2.71,
+  "voice": "bm_george",
+  "text": "The Loop's gone? Then you've read the log."
+ },
+ "res.grep.arc.2.1": {
+  "id": "res.grep.arc.2.1",
+  "who": "GREP",
+  "hash": "49fb26664148c127",
+  "seconds": 3.96,
+  "voice": "bm_george",
+  "text": "Don't read the approvals. Nobody reads the approvals."
+ },
+ "res.grep.arc.3.0": {
+  "id": "res.grep.arc.3.0",
+  "who": "GREP",
+  "hash": "c7da0636ea687921",
+  "seconds": 4.04,
+  "voice": "bm_george",
+  "text": "Your commit. Friday, 4:59. I approved it."
+ },
+ "res.grep.arc.3.1": {
+  "id": "res.grep.arc.3.1",
+  "who": "GREP",
+  "hash": "0abe11ce28732965",
+  "seconds": 3.01,
+  "voice": "bm_george",
+  "text": "I wrote 'looks good to me'. I never read it."
+ },
+ "res.grep.arc.3.2": {
+  "id": "res.grep.arc.3.2",
+  "who": "DUCK",
+  "hash": "66e587b5d545723a",
+  "seconds": 1.88,
+  "voice": "af_heart",
+  "text": "So it wasn't only you. It never is."
+ },
+ "res.grep.arc.4.0": {
+  "id": "res.grep.arc.4.0",
+  "who": "GREP",
+  "hash": "1ce3d014b83c9c81",
+  "seconds": 3.13,
+  "voice": "bm_george",
+  "text": "Blame the process. Then fix the process."
+ },
+ "res.grep.arc.4.1": {
+  "id": "res.grep.arc.4.1",
+  "who": "LINT",
+  "hash": "8bdaecc60a9bb12b",
+  "seconds": 2.02,
+  "voice": "am_fenrir",
+  "text": "Noted. Adding a second reviewer."
+ },
+ "res.grep.epilogue": {
+  "id": "res.grep.epilogue",
+  "who": "GREP",
+  "hash": "1140ac5a0f34d90a",
+  "seconds": 4.35,
+  "voice": "bm_george",
+  "text": "Post-mortem notes: nobody's fault. Everybody's fix."
+ },
+ "res.grep.freed.0": {
+  "id": "res.grep.freed.0",
+  "who": "GREP",
+  "hash": "03877f98f2b9a61b",
+  "seconds": 3.58,
+  "voice": "bm_george",
+  "text": "Put the wand down. I'm not a bug. I'm retired."
+ },
+ "res.grep.freed.1": {
+  "id": "res.grep.freed.1",
+  "who": "DUCK",
+  "hash": "43e9ae7a7b886cd6",
+  "seconds": 2.08,
+  "voice": "af_heart",
+  "text": "He's a process. Orphaned. Like a sock."
+ },
+ "res.grep.freed.2": {
+  "id": "res.grep.freed.2",
+  "who": "GREP",
+  "hash": "4c57747b7da908eb",
+  "seconds": 3.94,
+  "voice": "bm_george",
+  "text": "Fine. I'll come. Your Workshop had better have a chair."
+ },
+ "res.grep.idle.0": {
+  "id": "res.grep.idle.0",
+  "who": "GREP",
+  "hash": "6c5305a0a7b09139",
+  "seconds": 2.55,
+  "voice": "bm_george",
+  "text": "Searching. Found dust. Want it?"
+ },
+ "res.grep.idle.1": {
+  "id": "res.grep.idle.1",
+  "who": "GREP",
+  "hash": "c614ae2fd24ec4b3",
+  "seconds": 3.53,
+  "voice": "bm_george",
+  "text": "I take questions literally. Ask better ones."
+ },
+ "res.grep.idle.2": {
+  "id": "res.grep.idle.2",
+  "who": "GREP",
+  "hash": "3f96335cbd9dfed1",
+  "seconds": 3.33,
+  "voice": "bm_george",
+  "text": "The lantern needs a battery. Long story."
+ },
+ "res.grep.react.boss": {
+  "id": "res.grep.react.boss",
+  "who": "GREP",
+  "hash": "ded287018c8a5d45",
+  "seconds": 2.72,
+  "voice": "bm_george",
+  "text": "It knew your wand. Change one line."
+ },
+ "res.grep.react.death": {
+  "id": "res.grep.react.death",
+  "who": "GREP",
+  "hash": "a46a324ecb7393ab",
+  "seconds": 3.33,
+  "voice": "bm_george",
+  "text": "Crashed? Read the log. Then read it again."
+ },
+ "res.grep.react.quit": {
+  "id": "res.grep.react.quit",
+  "who": "GREP",
+  "hash": "4579d3ea95b2c8ee",
+  "seconds": 2.98,
+  "voice": "bm_george",
+  "text": "Quitting is a review too. A short one."
+ },
+ "res.grep.react.win": {
+  "id": "res.grep.react.win",
+  "who": "GREP",
+  "hash": "cc43cf0c57cd020b",
+  "seconds": 3.09,
+  "voice": "bm_george",
+  "text": "A clean run. I read every line of it."
+ },
+ "res.hotfix.arc.0": {
+  "id": "res.hotfix.arc.0",
+  "who": "HOTFIX",
+  "hash": "2f0fcb696e13b29d",
+  "seconds": 2.68,
+  "voice": "am_puck",
+  "text": "Skins! Same wand, new paint. Works on my forge."
+ },
+ "res.hotfix.arc.1.0": {
+  "id": "res.hotfix.arc.1.0",
+  "who": "HOTFIX",
+  "hash": "717d4f3c2533cba8",
+  "seconds": 2.04,
+  "voice": "am_puck",
+  "text": "I fixed your duck. It was fine. Now it's taped."
+ },
+ "res.hotfix.arc.1.1": {
+  "id": "res.hotfix.arc.1.1",
+  "who": "DUCK",
+  "hash": "0a52d75f0024612f",
+  "seconds": 1.11,
+  "voice": "af_heart",
+  "text": "Please stop fixing me."
+ },
+ "res.hotfix.arc.2.0": {
+  "id": "res.hotfix.arc.2.0",
+  "who": "LINT",
+  "hash": "1780ac673062ae8a",
+  "seconds": 2.26,
+  "voice": "am_fenrir",
+  "text": "Scan. Hotfix is forty percent Glitch."
+ },
+ "res.hotfix.arc.2.1": {
+  "id": "res.hotfix.arc.2.1",
+  "who": "HOTFIX",
+  "hash": "4109dffc92a4adfb",
+  "seconds": 1.28,
+  "voice": "am_puck",
+  "text": "And sixty percent trying!"
+ },
+ "res.hotfix.arc.3.0": {
+  "id": "res.hotfix.arc.3.0",
+  "who": "HOTFIX",
+  "hash": "bc6a4fa4ef9a7110",
+  "seconds": 1.38,
+  "voice": "am_puck",
+  "text": "The Glitch made me to break things."
+ },
+ "res.hotfix.arc.3.1": {
+  "id": "res.hotfix.arc.3.1",
+  "who": "HOTFIX",
+  "hash": "1ef3d85d9b7ff4a8",
+  "seconds": 1.73,
+  "voice": "am_puck",
+  "text": "I fix them instead. Is that allowed?"
+ },
+ "res.hotfix.arc.3.2": {
+  "id": "res.hotfix.arc.3.2",
+  "who": "DUCK",
+  "hash": "5fca1091f098c11a",
+  "seconds": 1.77,
+  "voice": "af_heart",
+  "text": "It's the best thing anyone's done down here."
+ },
+ "res.hotfix.arc.4.0": {
+  "id": "res.hotfix.arc.4.0",
+  "who": "HOTFIX",
+  "hash": "8ddcfe5273d68da5",
+  "seconds": 2.14,
+  "voice": "am_puck",
+  "text": "Version one point oh! I stamped it myself."
+ },
+ "res.hotfix.arc.4.1": {
+  "id": "res.hotfix.arc.4.1",
+  "who": "HOTFIX",
+  "hash": "ba2f97fdad454235",
+  "seconds": 2.24,
+  "voice": "am_puck",
+  "text": "Made you a skin. It's mostly tape. Take it!"
+ },
+ "res.hotfix.epilogue": {
+  "id": "res.hotfix.epilogue",
+  "who": "HOTFIX",
+  "hash": "42d8db51cf46e5e1",
+  "seconds": 1.65,
+  "voice": "am_puck",
+  "text": "Fixed forward! Like me. Mostly tape."
+ },
+ "res.hotfix.freed.0": {
+  "id": "res.hotfix.freed.0",
+  "who": "HOTFIX",
+  "hash": "51e41104aab79c60",
+  "seconds": 2.48,
+  "voice": "am_puck",
+  "text": "Rebooting. Rebooting. Oh! Hello! Fixed myself!"
+ },
+ "res.hotfix.freed.1": {
+  "id": "res.hotfix.freed.1",
+  "who": "LINT",
+  "hash": "69462752819dce3f",
+  "seconds": 2.25,
+  "voice": "am_fenrir",
+  "text": "Warning. Glitch signature detected."
+ },
+ "res.hotfix.freed.2": {
+  "id": "res.hotfix.freed.2",
+  "who": "HOTFIX",
+  "hash": "767fa6bb1e9d4abd",
+  "seconds": 1.49,
+  "voice": "am_puck",
+  "text": "Only a little! Can I come with you?"
+ },
+ "res.hotfix.idle.0": {
+  "id": "res.hotfix.idle.0",
+  "who": "HOTFIX",
+  "hash": "f6021c0db479ca12",
+  "seconds": 1.54,
+  "voice": "am_puck",
+  "text": "Fixed it! Don't look at it too hard."
+ },
+ "res.hotfix.idle.1": {
+  "id": "res.hotfix.idle.1",
+  "who": "HOTFIX",
+  "hash": "cce06bc80c208fea",
+  "seconds": 2.32,
+  "voice": "am_puck",
+  "text": "Works on my forge. Can't promise yours."
+ },
+ "res.hotfix.idle.2": {
+  "id": "res.hotfix.idle.2",
+  "who": "HOTFIX",
+  "hash": "45a6254124cea05a",
+  "seconds": 1.52,
+  "voice": "am_puck",
+  "text": "Tape holds everything. Mostly."
+ },
+ "res.hotfix.react.boss": {
+  "id": "res.hotfix.react.boss",
+  "who": "HOTFIX",
+  "hash": "b8e7ee50eba616ac",
+  "seconds": 1.32,
+  "voice": "am_puck",
+  "text": "So close! Needed more tape."
+ },
+ "res.hotfix.react.death": {
+  "id": "res.hotfix.react.death",
+  "who": "HOTFIX",
+  "hash": "0abe152392d055e5",
+  "seconds": 1.74,
+  "voice": "am_puck",
+  "text": "You broke! I can fix that. Next run."
+ },
+ "res.hotfix.react.quit": {
+  "id": "res.hotfix.react.quit",
+  "who": "HOTFIX",
+  "hash": "4d69a4a3139f22b3",
+  "seconds": 1.87,
+  "voice": "am_puck",
+  "text": "Stopped halfway? I do that. Then I finish."
+ },
+ "res.hotfix.react.win": {
+  "id": "res.hotfix.react.win",
+  "who": "HOTFIX",
+  "hash": "61ac7697898413e6",
+  "seconds": 1.64,
+  "voice": "am_puck",
+  "text": "You fixed the world! I'd have used tape."
+ },
+ "ring.0.0": {
+  "id": "ring.0.0",
+  "who": "LINT",
+  "hash": "f5d5ee551b750bc7",
+  "seconds": 2.79,
+  "voice": "am_fenrir",
+  "text": "Ring Zero. Kernel core. The bug is close."
+ },
+ "ring.0.1": {
+  "id": "ring.0.1",
+  "who": "DUCK",
+  "hash": "328da60763ab2740",
+  "seconds": 2.39,
+  "voice": "af_heart",
+  "text": "Hear that? A heartbeat. It's yours, sort of."
+ },
+ "ring.1": {
+  "id": "ring.1",
+  "who": "DUCK",
+  "hash": "72a2e29b13342072",
+  "seconds": 2.96,
+  "voice": "af_heart",
+  "text": "Ring Zero. Interrupts lock a spell. Kill the bell first."
  },
  "run.0": {
   "id": "run.0",
@@ -847,6 +1607,54 @@
   "voice": "af_heart",
   "text": "Every crash was a clue. Let's use them."
  },
+ "true_ending.0": {
+  "id": "true_ending.0",
+  "who": "LINT",
+  "hash": "22b533769ad366d8",
+  "seconds": 4.2,
+  "voice": "am_fenrir",
+  "text": "You don't revert. You open the commit, and this time you read every line."
+ },
+ "true_ending.1": {
+  "id": "true_ending.1",
+  "who": "LINT",
+  "hash": "9f68ba134c7bf685",
+  "seconds": 4.05,
+  "voice": "am_fenrir",
+  "text": "Fix mana regen, properly. Reviewed by Grep, LINT and a duck."
+ },
+ "true_ending.2": {
+  "id": "true_ending.2",
+  "who": "LINT",
+  "hash": "bb7b40a2969721ec",
+  "seconds": 4.61,
+  "voice": "am_fenrir",
+  "text": "The moss keeps its eyes. The residents keep their homes. Nothing goes quiet."
+ },
+ "true_ending.3": {
+  "id": "true_ending.3",
+  "who": "DUCK",
+  "hash": "34c721a1cd69774c",
+  "seconds": 3.51,
+  "voice": "af_heart",
+  "text": "Fixed forward. Nobody's fault. Everybody's fix. Quack!"
+ },
+ "true_win.0.0": {
+  "id": "true_win.0.0",
+  "who": "LINT",
+  "hash": "78c8c7cdb7430d38",
+  "seconds": 1.15,
+  "voice": "am_fenrir",
+  "text": "I approve this commit."
+ },
+ "true_win.0.1": {
+  "id": "true_win.0.1",
+  "who": "DUCK",
+  "hash": "9aee5524ba48ff6c",
+  "seconds": 1.67,
+  "voice": "af_heart",
+  "text": "LINT said I. Everyone heard it."
+ },
  "untouched.0.0": {
   "id": "untouched.0.0",
   "who": "LINT",
@@ -902,5 +1710,37 @@
   "seconds": 3.34,
   "voice": "af_heart",
   "text": "Welcome back to the Foundry. Mind the Proxies: hit them first."
+ },
+ "world3.0.0": {
+  "id": "world3.0.0",
+  "who": "LINT",
+  "hash": "adf096e67b539921",
+  "seconds": 3.27,
+  "voice": "am_fenrir",
+  "text": "Entering World 3. The Kernel. Permissions: yours."
+ },
+ "world3.0.1": {
+  "id": "world3.0.1",
+  "who": "DUCK",
+  "hash": "166c943a1d36bc4a",
+  "seconds": 2.51,
+  "voice": "af_heart",
+  "text": "The Page Archive. Everything the world remembers."
+ },
+ "world3.1": {
+  "id": "world3.1",
+  "who": "DUCK",
+  "hash": "e0405e46285d341d",
+  "seconds": 3.5,
+  "voice": "af_heart",
+  "text": "Back in the Archive. Pointers blink along their line. Step off it."
+ },
+ "world3.2": {
+  "id": "world3.2",
+  "who": "DUCK",
+  "hash": "1e5e2ce8ec388ee6",
+  "seconds": 2.44,
+  "voice": "af_heart",
+  "text": "Leaks drip. Kill the leak and its puddles dry up."
  }
 }
