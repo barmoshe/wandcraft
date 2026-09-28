@@ -336,6 +336,7 @@
     - Do the title and shop loops sound clean on a phone?
     - Is holding to read a card easy, and never in the way?
     - Do the Unsafe Staff and Singleton Wand still feel worth taking?
+  - **Bar played it (2026-09-28):** works well. No new notes yet.
 - **Music as Ogg Vorbis** (ADR 0034): the web pck is 4 MB smaller (28.3 to 24.3 MB), loops tested sample-exact. **Bar:** listen to the title and shop loops on a phone.
 - **0.22.0, Polish** (ADR 0033, `research/polish-0.22.md`). Bar asked to research, design, fix and improve the game.
   - **Fixes:** the audit's 16 fixes (no disk reads in fights, exploits closed, story lines kept).
