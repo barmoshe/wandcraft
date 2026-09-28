@@ -18,6 +18,7 @@ var _cast_q: Array = []         # Copy Cast: shots still to go, with their delay
 var _box := Rect2()
 var wand_sprite: Sprite2D       # playtest: "Copy-Paste has no wand". It holds a copy of yours
 var _wand_tex: Array[Texture2D] = []
+var _hero := &"apprentice"      # 0.19: the hero it copied (its look, Hero.LOOKS)
 
 ## The clone is drawn a little larger than the hero (the hero art is 32 px tall).
 const SCALE := 1.25
@@ -46,7 +47,8 @@ func _init_boss() -> void:
 		{"at": 0.5, "moves": [&"copy_cast", &"undo", &"paste", &"select_all"]},
 	]
 	copied = read_wand(world.run.wand() if world.run else null)
-	frames = Bestiary.clone_frames()
+	_hero = world.run.hero if world.run else &"apprentice"
+	frames = Bestiary.clone_frames(_hero)
 	sprite = Sprite2D.new()
 	sprite.texture = frames[0]
 	sprite.offset = Vector2(0, -frames[0].get_height() / 2.0 + 1.0)
@@ -261,7 +263,7 @@ func _clip_now() -> String:
 
 func _animate() -> void:
 	var clip := _clip_now()
-	var fr: Array = Bestiary.clone_clips()[clip]
+	var fr: Array = Bestiary.clone_clips(_hero)[clip]
 	var i := 0 if clip == "dash" else (int(t * 12.0) % fr.size() if clip != "hurt" else mini(fr.size() - 1, int(invuln * 10.0) % 2))
 	sprite.texture = fr[i]
 	sprite.flip_h = world.player.position.x < position.x

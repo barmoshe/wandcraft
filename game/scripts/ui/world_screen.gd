@@ -47,7 +47,7 @@ func _paint() -> void:
 		if i > 0:
 			draw_rect(Rect2(lx + 6, y - row + 12, 1, row - 20), Color(0.4, 0.35, 0.5))
 	# the hero drops from the cleared frame into the next one
-	var hf: Array = Hero.frames()
+	var hf: Array = Hero.frames(run.hero if run else &"apprentice")
 	var tex: Texture2D = hf[0 if t >= 1.0 and int(_age * 3.0) % 2 == 0 else (1 if t >= 1.0 else 6)]
 	var hy := lerpf(y0 + (to - 1) * row, y0 + to * row, e) - 2.0
 	draw_texture(tex, Vector2(lx + 162.0, hy - tex.get_height() / 2.0).round())

@@ -12,7 +12,9 @@ static func check(s: Node) -> void:
 	var room := RoomPainter.paint(grid, 8, 6, 5)
 	var o := RoomPainter.MARGIN * RoomPainter.TS
 	var patch := room.get_region(Rect2i(o + Vector2i(16, 16), Vector2i(64, 48)))
-	var actors: Array = [["hero", Hero.frames()[0]]]
+	var actors: Array = []
+	for h in Hero.LOOKS:
+		actors.append([String(h), Hero.frames(h)[0]])
 	for k in Bestiary.ART:
 		actors.append([k, Bestiary.frames(k)[0]])
 	actors.append(["loop head", Bestiary.loop_head(false)])
@@ -78,10 +80,13 @@ static func anim(s: Node) -> void:
 
 
 static func chars(s: Node) -> void:
-	s.section("hero (0.4)")
-	var hf: Array = Hero.frames()
-	for i in hf.size():
-		s.add("hero %d" % i, hf[i])
+	# 0.19: every hero's look, front frames then the back view
+	for h in Hero.LOOKS:
+		s.section("hero: %s" % h)
+		var hf: Array = Hero.frames(h)
+		for i in hf.size():
+			s.add("%d" % i, hf[i])
+		s.add("back", Hero.clips(true, h)["idle"][0])
 	s.section("wizard (old)")
 	var wf: Array = Sprites.wizard_frames()
 	for i in wf.size():
@@ -96,6 +101,8 @@ static func chars(s: Node) -> void:
 	var cf: Array = Bestiary.clone_frames()
 	for i in [0, 2, 6]:
 		s.add("clone %d" % i, cf[i])
+	for h in [&"pyromancer", &"tinkerer"]:
+		s.add("clone %s" % h, Bestiary.clone_frames(h)[0])
 	s.section("enemies (old)")
 	for k in Sprites.ENEMY_ART:
 		var fr: Array = Sprites.enemy_frames(k)
@@ -114,6 +121,7 @@ static func icons(s: Node) -> void:
 	var all_spells: Dictionary = IconSpells.ART.duplicate()
 	all_spells.merge(IconSpellsB.ART)
 	all_spells.merge(IconSpellsC.ART)
+	all_spells.merge(IconSpellsD.ART)
 	for id in all_spells:
 		var e: Dictionary = all_spells[id]
 		var kind: int = KINDS.get(e.get("kind", ""), Catalog.spell(id).kind if Catalog.spells().has(id) else SpellDef.Kind.PROJ)
@@ -121,12 +129,14 @@ static func icons(s: Node) -> void:
 	s.section("relics")
 	for id in IconRelics.ART:
 		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconRelics.ART[id])))
+	for id in IconSpellsD.RELICS:
+		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconSpellsD.RELICS[id])))
 	s.section("not drawn yet")
 	for id in Catalog.spells():
 		if IconArt.spell(id).is_empty():
 			s.add(String(id), Icons.spell(Catalog.spell(id)))
 	for id in Relics.DEFS:
-		if not IconRelics.ART.has(id):
+		if IconArt.relic(id).is_empty():
 			s.add(String(id), Icons.relic(id))
 
 

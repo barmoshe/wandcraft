@@ -509,29 +509,37 @@ static func clips_of(r: RigDef) -> Dictionary:
 
 
 ## Copy-Paste: a glitched copy of the hero. Magenta and night palette, and scan-line tears
-## (rows shifted sideways) that move from frame to frame.
-static func clone_frames() -> Array[Texture2D]:
+## (rows shifted sideways) that move from frame to frame. 0.19: it copies the hero you play.
+static func clone_frames(hero := &"apprentice") -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
-	var src: Array = Hero.frames()
+	var src: Array = Hero.frames(hero)
+	var key := _clone_key(hero)
 	for i in src.size():
-		out.append(PixelArt.cached("bx_clone_%d" % i, func() -> Image: return glitch((src[i] as Texture2D).get_image(), i)))
+		out.append(PixelArt.cached("bx_%s_%d" % [key, i], func() -> Image: return glitch((src[i] as Texture2D).get_image(), i)))
 	return out
 
 
 ## D6: every hero clip, glitched (Copy-Paste moves with the hero's own rig).
-static func clone_clips() -> Dictionary:
-	if _clips.has("clone"):
-		return _clips["clone"]
+static func clone_clips(hero := &"apprentice") -> Dictionary:
+	var key := _clone_key(hero)
+	if _clips.has(key):
+		return _clips[key]
 	var out := {}
-	var src := Hero.clips(false)
+	var src := Hero.clips(false, hero)
 	for k in src:
 		var fr: Array[Texture2D] = []
 		for i in (src[k] as Array).size():
 			var tex: Texture2D = src[k][i]
-			fr.append(PixelArt.cached("bx_clone_%s_%d" % [k, i], func() -> Image: return glitch(tex.get_image(), i)))
+			fr.append(PixelArt.cached("bx_%s_%s_%d" % [key, k, i], func() -> Image: return glitch(tex.get_image(), i)))
 		out[k] = fr
-	_clips["clone"] = out
+	_clips[key] = out
 	return out
+
+
+## "clone" for the apprentice (the cache keys from before the looks), "clone_<id>" otherwise.
+static func _clone_key(hero: StringName) -> String:
+	var id := Hero.look_id(hero)
+	return "clone" if id == &"apprentice" else "clone_" + String(id)
 
 
 ## The Copy-Paste look: the glitch and night ramps by brightness, cyan-white highlights, and

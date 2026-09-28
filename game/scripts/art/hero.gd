@@ -5,7 +5,8 @@ extends RefCounted
 ## suspenders, rolled sleeves, slim red trousers and dark shoes. Original pixels, drawn
 ## in the spirit of a reference Bar picked (2026-09-24). 20x36, built from parts (head,
 ## body, legs) so frames animate by moving parts. Faces right; the node flips it for
-## left. Style ramps only.
+## left. Style ramps only. 0.19: that is the Apprentice; the Pyromancer and the Tinkerer
+## wear their own looks on the same rig (LOOKS).
 
 const PAL := {
 	# hair (near-black with a cool sheen)
@@ -161,6 +162,154 @@ const BODY_BACK := [
 const HAND := ["...............Yss", "...............ysz"]
 const HAND_FIRE := [".............wwYsss", "...............yssz"]
 
+## 0.19: each hero has its own look. A look is palette overrides (Style ramp keys, merged
+## over PAL) plus optional replacement rows for the head and the torso, front and back, with
+## the same row counts and widths as HEAD, HEAD_BACK, BODY and BODY_BACK, so every pose and
+## clip fits every hero. The legs and the wand hand are shared and take the look's colours
+## (the hand's sleeve is "Y", the cast smear is "w"). The apprentice is PAL as drawn.
+const LOOKS := {
+	&"apprentice": {},
+	# a flame quiff, gold goggles with smoked lenses, a pointed goatee; a dark red shirt
+	# with flames licking up from the hem, an ember sash, charcoal trousers
+	&"pyromancer": {
+		"pal": {
+			"h": "ember:2", "H": "ember:3", "F": "ember:4",
+			"O": "gold:3", "e": "ember:1", "E": "ember:4", "B": "ember:2",
+			"Y": "blood:1", "y": "blood:0", "u": "blood:2", "w": "ember:4",
+			"f": "ember:2", "L": "ember:1", "k": "gold:3",
+			"P": "slate:2", "p": "slate:3", "K": "ember:1", "l": "night:1",
+		},
+		"head": [
+			".........H..........",
+			"........HF.....H....",
+			".....H.HFH....HF....",
+			"....HFHFFHhhhHFh....",
+			".....hhhhhhhhhhhh...",
+			".....hSssssssssh....",
+			".....sssssssssss....",
+			".....OOOOOOOOOOO....",
+			".....OeEeOsOeEeO....",
+			".....sOOOsnsOOOs....",
+			".....sssssssssss....",
+			".....Sssssssssss....",
+			"......sssmmsssS.....",
+			".......ssssssS......",
+			"........sBBBs.......",
+			"........ssBss.......",
+		],
+		"head_back": [
+			".........H..........",
+			"........HF.....H....",
+			".....H.HFH....HF....",
+			"....HFHFFHhhhHFh....",
+			".....hhhhhhhhhhhh...",
+			".....hhhhHhhhhhh....",
+			".....hhHhhhhhhhh....",
+			".....hhhhhhhhhhh....",
+			".....OOOOOOOOOOO....",
+			".....shhhhhhhhhs....",
+			".....shhhhhhhhhs....",
+			"......hhhhhhhhh.....",
+			".......sssssss......",
+			".......sssssss......",
+			"........sssss.......",
+			"........sssss.......",
+		],
+		"body": [
+			".....YYuYsssYYy.....",
+			"...YYuYYYYsYYYYyy...",
+			"...YYuYYYYkYYYYyy...",
+			"...YYuYYYYYYYYYyy...",
+			"...kkuYYYYYYYYykk...",
+			"...ssYYYYYYYYYyss...",
+			"...ssYfYYYfYYfyss...",
+			"...ssffYfffYfYfss...",
+			"...SsLLLLLkLLLLsS...",
+		],
+		"body_back": [
+			".....YYYYsssYYy.....",
+			"...YYuYYYYYYYYYyy...",
+			"...YYuYYYYYYYYYyy...",
+			"...YYuYYYYYYYYYyy...",
+			"...kkuYYYYYYYYykk...",
+			"...ssYYYYYYYYYyss...",
+			"...ssYfYYYfYYfyss...",
+			"...ssffYfffYfYfss...",
+			"...SsLLLLLLLLLLsS...",
+		],
+	},
+	# a green cap with steel goggles pushed up on it, a bushy moustache; a cream shirt under
+	# leaf overalls with steel buttons, a tool belt with a wrench and a screwdriver
+	&"tinkerer": {
+		"pal": {
+			"h": "wood:1", "H": "wood:2", "C": "leaf:2", "D": "leaf:1",
+			"O": "steel:3", "e": "gold:3", "B": "wood:1",
+			"Y": "bone:3", "y": "bone:2", "u": "bone:4", "c": "bone:4",
+			"A": "leaf:2", "a": "leaf:1", "b": "steel:4", "k": "steel:3",
+			"L": "wood:2", "t": "steel:3", "T": "steel:4", "r": "blood:2",
+			"P": "leaf:2", "p": "leaf:3", "K": "wood:2", "l": "wood:1",
+		},
+		"head": [
+			"....................",
+			".......CCCCCC.......",
+			"......CCCCCCCCC.....",
+			".....COeeOOOeeOC....",
+			".....DDDDDDDDDDDDDD.",
+			".....hSssssssssh....",
+			".....hHhssssHhss....",
+			".....sssssssssss....",
+			".....ssossssosss....",
+			".....sssssssssss....",
+			".....sssssnsssss....",
+			".....ssBBBBBBBss....",
+			".....sBBsmmmsBBs....",
+			"......sssssssss.....",
+			".......sssssss......",
+			"........zsssz.......",
+		],
+		"head_back": [
+			"....................",
+			".......CCCCCC.......",
+			"......CCCCCCCCC.....",
+			".....OOOOOOOOOOO....",
+			".....CCCCDDDCCCC....",
+			".....hhhhhhhhhhh....",
+			".....hhhHhhhhhhh....",
+			".....hhhhhhhhhhh....",
+			".....shhhhhhhhhs....",
+			".....shhhhhhhhhs....",
+			"......hhhhhhhhh.....",
+			"......sssssssss.....",
+			".......sssssss......",
+			".......sssssss......",
+			"........sssss.......",
+			"........sssss.......",
+		],
+		"body": [
+			".....YYYYcccYYy.....",
+			"...YYuAYYYYYYAyyy...",
+			"...YYuAAAAAAAAyyy...",
+			"...YYuAbAAAAbAyyy...",
+			"...kkuAAAAAAAAykk...",
+			"...ssAAAAAAAAAAss...",
+			"...ssTTAaaaaAArss...",
+			"...ssAtAaaaaAArss...",
+			"...SsLtLLkLLLLTsS...",
+		],
+		"body_back": [
+			".....YYYcccYYYy.....",
+			"...YYuAYYYYYYAyyy...",
+			"...YYuYAYYYYAYyyy...",
+			"...YYuYYAYYAYYyyy...",
+			"...kkuYYYAAYYYykk...",
+			"...ssAAAAAAAAAAss...",
+			"...ssAAAAAAAAAAss...",
+			"...ssAAAAAAAAAAss...",
+			"...SsLLLLLLLLLLsS...",
+		],
+	},
+}
+
 ## Legs: the 11-row stamps above, by name.
 const L_IDLE := 0
 const L_STRIDE := 1
@@ -175,18 +324,21 @@ const WAND := ["........gG.", "wwwwwwwwgGG", "WWWWWWWWgG."]
 
 ## The hero as a rig (design-plan §8: idle 4, run 6, cast 3, dash 4, hurt 2, death 6 per
 ## facing). The quiff lags the head by a frame; bobs and squashes are whole pixel rows.
-static func rig(back := false) -> RigDef:
-	var key := "back" if back else "front"
+## `hero` picks the look (LOOKS); the apprentice keeps the ids "hero_front" and "hero_back",
+## the others are "hero_<id>_front" and "hero_<id>_back".
+static func rig(back := false, hero := &"apprentice") -> RigDef:
+	var key := _key(back, hero)
 	if _rigs.has(key):
 		return _rigs[key]
-	var head: Array = HEAD_BACK if back else HEAD
+	var look: Dictionary = LOOKS[look_id(hero)]
+	var head: Array = look.get("head_back", HEAD_BACK) if back else look.get("head", HEAD)
 	var r := RigDef.new()
 	r.id = "hero_" + key
 	r.w = W
 	r.h = H
-	r.pal = PAL
+	r.pal = palette(hero)
 	r.add_part("legs", FEET[L_IDLE], Vector2i(0, 25))
-	r.add_part("torso", BODY_BACK if back else BODY, Vector2i(0, 16))
+	r.add_part("torso", look.get("body_back", BODY_BACK) if back else look.get("body", BODY), Vector2i(0, 16))
 	r.add_part("hair", head.slice(0, 5) + [head[4]], Vector2i.ZERO)
 	r.add_part("face", head.slice(5), Vector2i(0, 5))
 	# from behind, the wand hand is hidden by the body
@@ -240,18 +392,41 @@ static func rig(back := false) -> RigDef:
 
 
 ## Every clip of one facing, baked: clip name -> Array[Texture2D].
-static func clips(back := false) -> Dictionary:
-	var key := "back" if back else "front"
+static func clips(back := false, hero := &"apprentice") -> Dictionary:
+	var key := _key(back, hero)
 	if not _clips.has(key):
-		_clips[key] = RigBaker.bake(rig(back))
+		_clips[key] = RigBaker.bake(rig(back, hero))
 	return _clips[key]
 
 
 ## idle0, idle1, run0..3, cast (the pre-D6 order, kept for the title screen and art sheets).
-static func frames() -> Array[Texture2D]:
-	var c := clips()
+static func frames(hero := &"apprentice") -> Array[Texture2D]:
+	var c := clips(false, hero)
 	var run: Array = c["run"]
 	return [c["idle"][0], c["idle"][1], run[0], run[1], run[3], run[4], c["cast"][1]]
+
+
+## The hero whose look is drawn: `hero` if it has one, else the apprentice.
+static func look_id(hero: StringName) -> StringName:
+	return hero if LOOKS.has(hero) else &"apprentice"
+
+
+## PAL with a look's overrides merged over it.
+static func palette(hero := &"apprentice") -> Dictionary:
+	var look: Dictionary = LOOKS[look_id(hero)]
+	if not look.has("pal"):
+		return PAL
+	var pal := PAL.duplicate()
+	pal.merge(look["pal"], true)
+	return pal
+
+
+## The cache key of one hero and facing: "front"/"back" for the apprentice (its rig ids
+## predate the looks), "<id>_front"/"<id>_back" for the others.
+static func _key(back: bool, hero: StringName) -> String:
+	var face := "back" if back else "front"
+	var id := look_id(hero)
+	return face if id == &"apprentice" else "%s_%s" % [id, face]
 
 
 ## The held wand pre-rotated to 16 angles (design-plan §7), pivot at the grip: index k
