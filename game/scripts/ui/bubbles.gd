@@ -100,8 +100,18 @@ static func layout(a: Vector2, size: Vector2, sr: Rect2, taken: Array, hero := V
 	var pinned := not inner.has_point(a)
 	var r := Rect2(Vector2(a.x - size.x / 2.0, a.y - TAIL - size.y), size)
 	if hero != Vector2.INF and absf(hero.x - a.x) < size.x / 2.0 and hero.y > a.y - 8.0:
-		# lean away from the hero, so the bubble never sits over them
-		r.position.x += signf(a.x - hero.x if a.x != hero.x else 1.0) * size.x * 0.3
+		# lean away from the hero, so the bubble never sits over them; 0.25: if that lands on
+		# something, try it centred and then leaning the other way before searching further
+		var lean := signf(a.x - hero.x if a.x != hero.x else 1.0) * size.x * 0.3
+		var base := r
+		for dx in [lean, 0.0, -lean]:
+			var c := Rect2(base.position + Vector2(dx, 0), size)
+			c.position.x = clampf(c.position.x, inner.position.x, inner.end.x - size.x)
+			r = c
+			if not _hits(c, taken) and c.position.y >= inner.position.y:
+				break
+		if _hits(r, taken):
+			r = Rect2(base.position + Vector2(lean, 0), size)
 	var up := false
 	if not pinned:
 		if r.position.y < inner.position.y or _hits(r, taken):

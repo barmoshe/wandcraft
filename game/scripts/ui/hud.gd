@@ -98,7 +98,7 @@ func _on_room(def: Dictionary) -> void:
 	banner = def.get("title", "")
 	var no := int(def["no"])
 	if def.get("kind", &"") == &"hub":
-		banner_sub = "Walk to a station to use it"
+		banner_sub = "Walk to a station to use it" if Game.is_touch() or Game.touch_seen else "Walk to a station, or click one"
 		banner_t = 2.0
 		return
 	var th := Chapter.threat_of(world.run.room) if world and world.run and def.get("kind", &"") != &"start" else &""
@@ -472,12 +472,19 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 	for k in 3:
 		draw_rect(Rect2(mc + Vector2(-5, -4 + k * 4), Vector2(10, 1.5)), GOLD)
 	buttons["menu"] = Rect2(mc - Vector2(16, 16), Vector2(32, 32))
+	if not (Game.is_touch() or Game.touch_seen):
+		# 0.25, desktop: the key that opens it
+		var ew := Game.font("small").get_string_size("ESC", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(mc + Vector2(-ew / 2.0, 24), "ESC", Style.UI_MUTED, 8)
 	# the wands, only where they fire
 	if h.in_fire_zone(world.player.position):
 		UiAudit.owner = "wands"
 		_draw_wands(sr.position + Vector2(0, 40), run)
 	# USE (or the dash, on touch, when nothing is in reach)
-	if h.near != "":
+	# 0.25: on desktop the key prompt stands at the station itself (Hub.draw_top), and a click
+	# on a station walks you there, so the round USE button is for touch only
+	var touchy := Game.is_touch() or Game.touch_seen
+	if h.near != "" and touchy:
 		var st: Dictionary = Hub.STATIONS[h.near]
 		var c := Vector2(sr.end.x - 26, sr.end.y - 74)
 		var col := Color(st["color"]) if h.open(h.near) else Color(0.5, 0.45, 0.6)
@@ -489,13 +496,9 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 		var g := Icons.glyph(st["glyph"], col)
 		draw_texture(g, (c - g.get_size() / 2.0).round())
 		# 0.21: a resident's button says what it does: talk first, then their service
-		var use := "USE"
-		if st.get("resident", false):
-			use = {"grep": "ASK", "hotfix": "SKINS", "cache": "PAGES"}.get(h.near, "USE") if h.talked == StringName(h.near) else "TALK"
+		var use := h.use_verb()
 		var uw := Game.font("bold").get_string_size(use, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		_text(c + Vector2(-roundf(uw / 2.0), 26), use, col, 8, "bold")
-		if not (Game.is_touch() or Game.touch_seen):
-			_text(c + Vector2(-26, 26), "E", Style.UI_MUTED, 8, "bold")
 		buttons["use"] = Rect2(c - Vector2(18, 18), Vector2(36, 36))
 	elif Game.is_touch() or Game.touch_seen:
 		UiAudit.owner = "dash"
@@ -800,7 +803,8 @@ func _draw_banner(sr: Rect2, cx: float, bottom: float) -> void:
 	if banner_sub != "":
 		wdt = maxf(wdt, Game.font("small").get_string_size(banner_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
 	UiAudit.owner = "banner"
-	var r := _place(Rect2(cx - wdt / 2.0 - 12, (bottom - h) if banner_low else (sr.position.y + 26), wdt + 24, h), banner_low, "banner")
+	var top := sr.position.y + (2.0 if world and world.hub else 26.0)   # 0.25: the Workshop's banner clears the room
+	var r := _place(Rect2(cx - wdt / 2.0 - 12, (bottom - h) if banner_low else top, wdt + 24, h), banner_low, "banner")
 	UiAudit.box(self, r)
 	var at := Vector2(cx - bw / 2.0, r.position.y + 15).round()
 	UiAudit.text(self, f, at, banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
@@ -852,6 +856,11 @@ func _draw_bubble(sr: Rect2, at: Vector2) -> void:
 	# the hero is never under a bubble (nor are the HUD's panels)
 	var keep: Array = _taken.duplicate()
 	keep.append(Rect2(hero + Vector2(-9, -36), Vector2(18, 38)))
+	if world.hub:
+		# 0.25: nor are the Workshop's station names
+		for lr in world.hub.label_rects():
+			var q: Rect2 = lr
+			keep.append(Rect2(ct * q.position, ct.basis_xform(q.size)))
 	var lay := Bubbles.layout(ct * at, size, sr, keep, hero)
 	var r: Rect2 = lay["rect"]
 	var col := Bubbles.color_of(say_who)

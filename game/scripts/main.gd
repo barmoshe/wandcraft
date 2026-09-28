@@ -129,6 +129,10 @@ const _HUB_SCREENS := {"runsheet": "portal", "heroes": "heroes", "bench": "repl"
 	"board": "bounty", "docs": "docs", "wall": "log", "terminal": "terminal", "hubmenu": "menu",
 	"grep": "grep", "hotfix": "hotfix", "cache": "cache"}
 
+## 0.25, desktop: the station a click is walking you to ("" for none), and which pedestal.
+var _walk_to := ""
+var _walk_k := 0
+
 ## True while the player walks the Workshop (between runs).
 var _hub := false
 
@@ -449,6 +453,7 @@ func _new_run() -> RunState:
 
 func _begin(r: RunState) -> void:
 	_hub = false
+	_walk_to = ""
 	world.visible = true
 	hud.visible = true
 	touch.enabled = true
@@ -985,6 +990,8 @@ func _read_desktop_input() -> void:
 	var pad_move := Vector2(Input.get_joy_axis(0, JOY_AXIS_LEFT_X), Input.get_joy_axis(0, JOY_AXIS_LEFT_Y))
 	var pad_aim := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	c.move = mv.normalized() if mv != Vector2.ZERO else (pad_move if pad_move.length() > 0.2 else Vector2.ZERO)
+	if _hub and world.hub:
+		_hub_mouse(c, mv != Vector2.ZERO or pad_move.length() > 0.2)
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and hud.hit_button(get_viewport().get_mouse_position()) == "":
 		# from the grip, where the spell leaves the wand
 		c.aim = (world.get_local_mouse_position() - world.player.origin()).normalized()
@@ -995,6 +1002,32 @@ func _read_desktop_input() -> void:
 	else:
 		c.aim = Vector2.ZERO
 		c.precise = false
+
+
+## 0.25, desktop Workshop: the station under the mouse names itself, and after a click the
+## hero walks to it and uses it (the portal opens by walking in, as always). A key or stick
+## takes the hero back.
+func _hub_mouse(c: Controls, steering: bool) -> void:
+	var h := world.hub
+	var over: Array = h.station_at(world.get_local_mouse_position()) if hud.hit_button(get_viewport().get_mouse_position()) == "" else []
+	h.hover = String(over[0]) if not over.is_empty() else ""
+	h.hover_k = int(over[1]) if not over.is_empty() else 0
+	if _walk_to == "":
+		return
+	if steering or not h.anchors.has(_walk_to):
+		_walk_to = ""
+		return
+	var list: Array = h.anchors[_walk_to]
+	var goal: Vector2 = list[clampi(_walk_k, 0, list.size() - 1)] + Vector2(0, 10 if _walk_to != "portal" else 0)
+	if h.near == _walk_to and (_walk_to != "heroes" or h.near_arg == _walk_k):
+		var id := _walk_to
+		_walk_to = ""
+		c.move = Vector2.ZERO
+		if id != "portal":
+			_hub_use()
+		return
+	c.move = world.path_dir(world.player.position, goal)
+	c.aim = Vector2.ZERO   # a click to walk is not a shot
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1009,6 +1042,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		var wi := hud.hit_wand(event.position)
 		if wi >= 0:
 			world.controls.select_wand = wi
+		elif _hub and world.hub and not touch.touched_once:
+			# 0.25: a click on a station walks you there and uses it
+			var at: Array = world.hub.station_at(world.get_local_mouse_position())
+			if not at.is_empty():
+				_walk_to = String(at[0])
+				_walk_k = int(at[1])
+				return
 	if _hub and event is InputEventKey and event.pressed and not event.echo:
 		# the Workshop: E or Enter uses the station in reach, Esc lists them all
 		match event.physical_keycode:

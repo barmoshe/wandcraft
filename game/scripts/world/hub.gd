@@ -12,7 +12,9 @@ extends RefCounted
 const TS := 16
 ## Markers (anything the room builder does not know is floor): H hero pedestals, R the
 ## portal, U the training dummy, B the wand bench, Q the bounty board, M the merchant,
-## C the Compendium, W the Commit Wall, K the Terminal, D the Duck, N LINT.
+## C the Compendium, W the Commit Wall, K the Terminal, D the Duck, N LINT. 0.25: the Duck and
+## LINT stand by the way in, below the open floor, so their bubbles rise over empty floor and
+## not over a station's name.
 ## 0.20: the residents' corners (empty until they move in): G Grep, F Hotfix, A Cache.
 const ROWS := [
 	"##################",
@@ -20,9 +22,9 @@ const ROWS := [
 	"#..H.H.H......B..#",
 	"#Q..............M#",
 	"#..G..........F..#",
-	"#C.....D..N......#",
+	"#C...............#",
 	"#................#",
-	"#W.A............K#",
+	"#W.A...D..N.....K#",
 	"#................#",
 	"#L..............L#",
 	"##################",
@@ -69,6 +71,9 @@ const TROPHIES := [
 var world: World
 var anchors := {}            # station id -> Array[Vector2] (pixel centres)
 var near := ""               # the station in reach ("" for none)
+## 0.25, desktop: the station under the mouse ("" for none); main.gd walks you to it on a click
+var hover := ""
+var hover_k := 0
 var near_arg := -1           # which pedestal, for the Hero Hall
 ## 0.21: the resident you just talked to (USE again opens their service); cleared, and the
 ## rest of their talk dropped, when you walk away.
@@ -217,6 +222,35 @@ func _spawn_dummy() -> void:
 	dummy.max_hp = 99999.0
 	dummy.hp = dummy.max_hp
 	dummy.dmg = 0.0
+
+
+## 0.25: the station at a point in the room (a click or the mouse): its marker, or the name
+## under it. Returns [id, pedestal] or [].
+func station_at(q: Vector2) -> Array:
+	var f := Game.font("small")
+	var best: Array = []
+	var bd := 18.0
+	for id in anchors:
+		var list: Array = anchors[id]
+		for k in list.size():
+			var a: Vector2 = list[k]
+			var d := q.distance_to(a + Vector2(0, -4))
+			var nm := String(SHORT.get(id, "")) if id != "heroes" else "HEROES"
+			if nm != "" and _label_rect(f, a + Vector2(0, 16 if id != "portal" else 14), nm).grow(2.0).has_point(q):
+				d = minf(d, 6.0)
+			if d < bd:
+				bd = d
+				best = [id, k]
+	return best
+
+
+## What USE does at the station in reach: USE, or TALK then a resident's service.
+func use_verb() -> String:
+	if near == "":
+		return ""
+	if STATIONS[near].get("resident", false):
+		return {"grep": "ASK", "hotfix": "SKINS", "cache": "PAGES"}.get(near, "USE") if talked == StringName(near) else "TALK"
+	return "TALK" if near == "duck" or near == "lint" else "USE"
 
 
 func open(id: String) -> bool:
@@ -421,9 +455,15 @@ func draw_top(ci: CanvasItem) -> void:
 	var talking := speaking()
 	var show_near := near != "" and near != talking
 	var at: Vector2 = anchors[near][maxi(0, near_arg)] + Vector2(0, -30) if near != "" else Vector2.ZERO
+	# 0.25, desktop: the key prompt over the name ("[E] USE"); a line that only repeats its verb
+	# ("Talk") is left out
+	var keyed := show_near and not (Game.is_touch() or Game.touch_seen) and open(near)
+	var sub_line := show_near and not (keyed and _near_label(1).to_upper() == use_verb())
 	if show_near:
-		for k in 2:
+		for k in (2 if sub_line else 1):
 			near_r.append(_label_rect(f, at + Vector2(0, k * 9), _near_label(k)))
+		if keyed:
+			near_r.append(_label_rect(f, at + Vector2(0, -13), "[E] " + use_verb()).grow(3.0))
 	var clear_of := func(p: Vector2, s1: String, size := 8) -> bool:
 		var r1 := _label_rect(f, p, s1, size)
 		return not near_r.any(func(q: Rect2) -> bool: return q.intersects(r1))
@@ -444,7 +484,17 @@ func draw_top(ci: CanvasItem) -> void:
 		var st: Dictionary = STATIONS[near]
 		var locked := not open(near)
 		_label(ci, f, at, _near_label(0), Color(st["color"]) if not locked else Color(0.6, 0.55, 0.7))
-		_label(ci, f, at + Vector2(0, 9), _near_label(1), Color(0.9, 0.9, 1.0, 0.85))
+		if sub_line:
+			_label(ci, f, at + Vector2(0, 9), _near_label(1), Color(0.9, 0.9, 1.0, 0.85))
+		if keyed:
+			# 0.25, desktop: the key, where you are looking (touch has its USE button)
+			_key_chip(ci, f, at + Vector2(0, -13), "E", use_verb(), Color(st["color"]))
+	elif hover != "" and hover != near and hover != talking and anchors.has(hover):
+		# 0.25, desktop: the station under the mouse names itself; a click walks you there
+		var hp2: Vector2 = anchors[hover][clampi(hover_k, 0, anchors[hover].size() - 1)] + Vector2(0, -30)
+		var hc := Color(STATIONS[hover]["color"]) if open(hover) else Color(0.6, 0.55, 0.7)
+		_label(ci, f, hp2, String(STATIONS[hover]["title"]), hc)
+		_label(ci, f, hp2 + Vector2(0, 9), "Click to go there", Color(0.9, 0.9, 1.0, 0.7))
 	# 0.20: a resident with a new beat to tell wears a "!" (not while talking, not under a label)
 	for id in Residents.ORDER:
 		var key := String(id)
@@ -454,6 +504,20 @@ func draw_top(ci: CanvasItem) -> void:
 				_label(ci, f, ep, "!", Color(STATIONS[key]["color"]), 16)
 	if open("repl") and dummy and is_instance_valid(dummy):
 		_label(ci, f, dummy.position + Vector2(0, -22), "DPS %d" % roundi(dps), Color("#5ce1ff") if dps > 0.0 else Color(0.6, 0.55, 0.7))
+
+
+## 0.25: where the stations' names sit (room coordinates), so a speech bubble keeps off them.
+func label_rects() -> Array:
+	var f := Game.font("small")
+	var out: Array = []
+	for id in anchors:
+		if id == "duck" or id == "lint" or STATIONS[id].get("resident", false):
+			continue
+		var nm := "HEROES" if id == "heroes" else String(SHORT.get(id, STATIONS[id]["title"]))
+		var list: Array = anchors[id]
+		var p: Vector2 = (list[list.size() / 2] as Vector2) + Vector2(0, 18) if id == "heroes" else (list[0] as Vector2) + Vector2(0, 16 if id != "portal" else 14)
+		out.append(_label_rect(f, p, nm))
+	return out
 
 
 ## The label of the station in reach: its title (0) or its line (1).
@@ -470,6 +534,20 @@ func _near_label(k: int) -> String:
 static func _label_rect(f: Font, at: Vector2, s: String, size := 8) -> Rect2:
 	var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	return Rect2(at + Vector2(-w / 2.0 - 2, -size * 0.9), Vector2(w + 4, size * 0.9 + 3))
+
+
+## A key prompt: the key in a small box, then what it does ("[E] USE").
+func _key_chip(ci: CanvasItem, f: Font, at: Vector2, key: String, verb: String, c: Color) -> void:
+	var kw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var vw := f.get_string_size(verb, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var w := kw + 6.0 + 4.0 + vw
+	var x0 := roundf(at.x - w / 2.0)
+	var box := Rect2(x0, at.y - 8, kw + 6.0, 10)
+	ci.draw_rect(box, Color(0.05, 0.03, 0.1, 0.85))
+	ci.draw_rect(box, c, false, 1.0)
+	ci.draw_string(f, Vector2(x0 + 3, at.y), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, c)
+	_label(ci, f, Vector2(x0 + kw + 10.0 + vw / 2.0, at.y), verb, c)
+	UiAudit.text(ci, f, Vector2(x0 + 3, at.y), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 
 
 func _label(ci: CanvasItem, f: Font, at: Vector2, s: String, c: Color, size := 8) -> void:

@@ -328,6 +328,10 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.25.0, the desktop Workshop** (ADR 0037). Bar: "fix desktop workshop ux/ui".
+  - The Duck and LINT moved by the way in, and bubbles keep off station names.
+  - On desktop: an "[E] USE" prompt at the station, a click on a station walks you there and uses it, the banner sits over the forest, and ESC shows on the menu.
+  - **Play it on a computer:** walk, click a station, press E. Anything still in the way?
 - **0.24.0, the Debug Duck** (ADR 0036, `research/duck-design.md`). Bar: "reinvent the duck".
   - One design everywhere: a glossy rubber duck with a big eye behind tiny teal glasses (the hero's), a shine and a knowing brow.
   - It blinks, its bill moves while it speaks, and it has three moods (plain, smug, pleased).

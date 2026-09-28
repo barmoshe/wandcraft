@@ -219,3 +219,42 @@ func test_station_screens() -> void:
 	bench.press("slot:-1:3")
 	eq(world.run.wands[1].slots[0], null, "dropping it back clears the slot")
 	bench.free()
+
+
+## 0.25, the desktop Workshop: a click finds its station, the verb is the USE prompt's, and
+## the Duck and LINT stand where their bubbles rise over open floor.
+func test_a_click_finds_the_station_under_it() -> void:
+	_enter()
+	var h := world.hub
+	var tp: Vector2 = h.anchors["terminal"][0]
+	eq(h.station_at(tp), ["terminal", 0], "on the Terminal")
+	eq(h.station_at(tp + Vector2(0, 14)), ["terminal", 0], "or on its name")
+	eq(h.station_at(Vector2(world.gw * Hub.TS / 2.0, 6 * Hub.TS + 8)), [], "the open floor is nothing")
+	var hs: Array = h.anchors["heroes"]
+	eq(h.station_at(hs[2]), ["heroes", 2], "a pedestal says which")
+
+
+func test_the_use_prompt_says_what_use_does() -> void:
+	_enter()
+	var h := world.hub
+	h.near = "terminal"
+	eq(h.use_verb(), "USE", "a station is used")
+	h.near = "duck"
+	eq(h.use_verb(), "TALK", "the Duck is talked to")
+	h.near = ""
+	eq(h.use_verb(), "", "nothing in reach, no prompt")
+
+
+func test_the_duck_and_lint_bubbles_rise_over_open_floor() -> void:
+	_enter()
+	var h := world.hub
+	for who in ["duck", "lint"]:
+		var p: Vector2 = h.anchors[who][0]
+		# the floor a bubble rises into: up to three tiles above the speaker, as wide as one
+		var room := Rect2(p + Vector2(-40, -3 * Hub.TS - 8), Vector2(80, 3 * Hub.TS))
+		for id in h.anchors:
+			if id == who or id == "duck" or id == "lint":
+				continue
+			for q in h.anchors[id]:
+				ok(not room.has_point(q), "%s's bubble space is clear of %s" % [who, id])
+		ok(h.label_rects().size() >= 7, "and the station names are there for bubbles to keep off")
