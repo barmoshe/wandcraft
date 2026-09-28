@@ -56,5 +56,5 @@ fi
 export WANDCRAFT_STAMP="${VERCEL_GIT_COMMIT_SHA:0:7}"
 [ -n "$WANDCRAFT_STAMP" ] || WANDCRAFT_STAMP="vercel"
 GODOT="$BIN" bash "$HERE/build_web.sh"
-cp "$HERE/web/vercel.json" "$HERE/../build/web/" 2>/dev/null || true
+cp "$HERE/../vercel.json" "$HERE/../build/web/" 2>/dev/null || true
 log "done"

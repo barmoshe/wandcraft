@@ -40,7 +40,7 @@ There is no offline cache (no service worker since 0.4.1, decisions/0008): a new
 - `tools/build_web.sh` gives the big files content-hashed names:
   - `index-<hash>.wasm`, `.js` and the two audio worklets share one hash. It changes only with the engine.
   - `index-<hash>.pck` has its own hash. It changes with the game.
-- `tools/web/vercel.json` serves the hashed files as `public, max-age=31536000, immutable`. The phone keeps them and never asks again.
+- `vercel.json` (at the repo root, where Vercel reads it on a git build) serves the hashed files as `public, max-age=31536000, immutable`. The phone keeps them and never asks again.
 - `index.html` keeps its name and is served `no-cache`. The phone checks it on every launch, so a deploy still shows on the next launch.
 - A game update downloads only the new pck (about 28 MB). The 39.5 MB wasm stays cached until Godot changes.
 - `tools/webtest.sh <url>` checks both headers on a deployed copy.

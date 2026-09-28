@@ -47,7 +47,7 @@ sed_inplace "s|__WANDCRAFT_BUILD__|$STAMP|" "$OUT/index.html"
 grep -q "wandcraftBuild = '$STAMP'" "$OUT/index.html" || { log "build stamp missing from index.html"; exit 1; }
 log "build stamp: $STAMP"
 
-# Content-hashed names, so phones can cache the big files for a year (tools/web/vercel.json):
+# Content-hashed names, so phones can cache the big files for a year (vercel.json at the repo root):
 #   index-<engine>.wasm/.js/.audio*.worklet.js   hash of the engine files (changes with Godot)
 #   index-<pack>.pck                              hash of the pck (changes with the game)
 # The loader derives the wasm and worklet names from GODOT_CONFIG.executable, and the pck
