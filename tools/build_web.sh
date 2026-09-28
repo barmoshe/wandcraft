@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Builds the web version (single-threaded, runs in iPhone Safari) into build/web/.
 #   tools/build_web.sh           export build/web/index.html (+ .wasm, .pck, PWA files)
+# The wasm, pck and engine scripts get content-hashed names (index-<hash>.*), so they can be
+# cached for good; index.html points at them and is revalidated on every launch.
 # The Godot web export templates are fetched on first use into the local template folder
 # (outside the repo). Hosting: see store/web-test.md (Vercel, static, no build step).
 set -euo pipefail
@@ -44,5 +46,25 @@ fi
 sed_inplace "s|__WANDCRAFT_BUILD__|$STAMP|" "$OUT/index.html"
 grep -q "wandcraftBuild = '$STAMP'" "$OUT/index.html" || { log "build stamp missing from index.html"; exit 1; }
 log "build stamp: $STAMP"
+
+# Content-hashed names, so phones can cache the big files for a year (tools/web/vercel.json):
+#   index-<engine>.wasm/.js/.audio*.worklet.js   hash of the engine files (changes with Godot)
+#   index-<pack>.pck                              hash of the pck (changes with the game)
+# The loader derives the wasm and worklet names from GODOT_CONFIG.executable, and the pck
+# from GODOT_CONFIG.mainPack. index.html keeps its name and is never cached (no-cache).
+ENGINE_FILES=(index.wasm index.js index.audio.worklet.js index.audio.position.worklet.js)
+for f in "${ENGINE_FILES[@]}" index.pck; do [ -f "$OUT/$f" ] || { log "missing $f after export"; exit 1; }; done
+EH="$(cd "$OUT" && sha256 <(cat "${ENGINE_FILES[@]}") | cut -c1-8)"
+PH="$(sha256 "$OUT/index.pck" | cut -c1-8)"
+for f in "${ENGINE_FILES[@]}"; do mv "$OUT/$f" "$OUT/index-$EH${f#index}"; done
+mv "$OUT/index.pck" "$OUT/index-$PH.pck"
+sed_inplace -e "s|\"executable\":\"index\"|\"executable\":\"index-$EH\",\"mainPack\":\"index-$PH.pck\"|" \
+  -e "s|\"index\\.wasm\":|\"index-$EH.wasm\":|" -e "s|\"index\\.pck\":|\"index-$PH.pck\":|" \
+  -e "s|<script src=\"index\\.js\">|<script src=\"index-$EH.js\">|" "$OUT/index.html"
+for want in "\"executable\":\"index-$EH\"" "\"mainPack\":\"index-$PH.pck\"" "\"index-$EH.wasm\":" \
+            "\"index-$PH.pck\":" "<script src=\"index-$EH.js\">"; do
+  grep -qF "$want" "$OUT/index.html" || { log "index.html lacks $want (did the shell or Godot change?)"; exit 1; }
+done
+log "hashed names: engine index-$EH, pack index-$PH.pck"
 log "done:"
 ls -la "$OUT" | awk 'NR>1 {printf "  %10s  %s\n", $5, $9}'

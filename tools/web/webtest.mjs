@@ -5,6 +5,8 @@
 //   4. the Music bus itself plays (D8: window.wandcraftMusicPeak from the Audio autoload)
 //      tapped into an AnalyserNode and the peak level measured (a "running" context alone
 //      proves nothing: 0.4.1's first web builds were silent while reporting "running").
+//   5. the content-hashed engine and pack load and nothing 404s. On a deployed copy, the
+//      hashed files are also immutable and index.html is revalidated.
 const PW = process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright/index.mjs';
 const { chromium } = await import(PW);
 const url = process.argv[2] || 'http://localhost:8765/index.html';
@@ -38,6 +40,9 @@ await ctx.addInitScript(() => {
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
+// every response, to check the hashed engine and pack load (and, on a deployed copy, their cache headers)
+const responses = [];
+page.on('response', (r) => responses.push({ name: new URL(r.url()).pathname.split('/').pop() || 'index.html', status: r.status(), cache: r.headers()['cache-control'] || '' }));
 const cdp = await ctx.newCDPSession(page);
 const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
 const tap = async (x, y, id) => { await touch('touchStart', [{ x, y, id }]); await page.waitForTimeout(80); await touch('touchEnd', []); };
@@ -69,6 +74,17 @@ check(music > -60 && track !== '', `the music bus plays (${track}, peak ${music.
 const state = await page.evaluate(() => (window.wandcraftAudioState ? window.wandcraftAudioState() : 'none'));
 check(/worklet ok/.test(state), `audio report: ${state}`);
 check(errors.length === 0, `no page errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+// content-hashed names (tools/build_web.sh): the page loads index-<hash>.wasm/.pck/.js, and nothing 404s
+const hashed = responses.filter((r) => /^index-[0-9a-f]{8}\./.test(r.name));
+const loaded = ['wasm', 'pck', 'js'].every((ext) => hashed.some((r) => r.name.endsWith('.' + ext) && r.status < 400));
+const bad = responses.filter((r) => r.status >= 400);
+check(loaded && bad.length === 0, `hashed files load (${hashed.map((r) => r.name).join(', ')})${bad.length ? ' failed: ' + JSON.stringify(bad.slice(0, 3)) : ''}`);
+if (!url.includes('localhost')) {
+	// a deployed copy: hashed files are cached for good, the page itself is revalidated
+	const doc = responses.find((r) => r.name === 'index.html');
+	check(hashed.length > 0 && hashed.every((r) => r.status === 304 || /immutable/.test(r.cache)), `hashed files are immutable (${hashed[0] ? hashed[0].cache : 'none'})`);
+	check(doc && /no-cache|max-age=0/.test(doc.cache), `index.html is revalidated (${doc ? doc.cache : 'not seen'})`);
+}
 await browser.close();
 console.log(failed ? `WEBTEST: ${failed} FAILED` : 'WEBTEST: PASS');
 process.exit(failed ? 1 : 0);

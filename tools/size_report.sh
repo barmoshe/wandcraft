@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# The web download, measured: index.wasm and index.pck as shipped and compressed (gzip -9,
+# The web download, measured: the wasm and the pck (index-<hash>.wasm/.pck, tools/build_web.sh)
+# as shipped and compressed (gzip -9,
 # and brotli when a `brotli` CLI or python module is at hand), then the pck's contents by
 # folder, read from the pck's own directory (Godot 4.7 pack format v4) and mapped back to
 # the source folders through the .import files.
@@ -11,12 +12,14 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 GAME="$ROOT/game"
 WEB="$ROOT/build/web"
+# the build's pck (content-hashed name); none if there is no build
+has_pck() { compgen -G "$WEB/index-*.pck" >/dev/null; }
 
 mode="${1:-}"
 case "$mode" in
   --build) bash "$HERE/build_web.sh" >/dev/null ;;
-  --no-build) [ -f "$WEB/index.pck" ] || { echo "no build/web/index.pck (run tools/build_web.sh)" >&2; exit 1; } ;;
-  "") [ -f "$WEB/index.pck" ] || bash "$HERE/build_web.sh" >/dev/null ;;
+  --no-build) has_pck || { echo "no build/web/index-<hash>.pck (run tools/build_web.sh)" >&2; exit 1; } ;;
+  "") has_pck || bash "$HERE/build_web.sh" >/dev/null ;;
   *) sed -n '2,8p' "$0"; exit 2 ;;
 esac
 
@@ -44,21 +47,27 @@ def br(path):
 def fmt(n):
     return "     n/a" if n is None else "%8.2f" % (n / MB)
 
-# the shipped files
+# the shipped files (content-hashed names: index-<hash>.wasm and index-<hash>.pck)
+def shipped(ext):
+    found = sorted(glob.glob(os.path.join(web, "index-*." + ext)))
+    if len(found) != 1:
+        sys.exit("expected one index-<hash>.%s in %s, found %d" % (ext, web, len(found)))
+    return found[0]
+
+wasm_path, pck_path = shipped("wasm"), shipped("pck")
 print("web build: %s" % web)
-print("%-12s %8s %8s %8s" % ("file", "MB", "gzip-9", "brotli"))
+print("%-20s %8s %8s %8s" % ("file", "MB", "gzip-9", "brotli"))
 tot = [0, 0, 0]
-for name in ("index.wasm", "index.pck"):
-    p = os.path.join(web, name)
+for p in (wasm_path, pck_path):
     raw, g, b = os.path.getsize(p), gz(p), br(p)
     tot = [tot[0] + raw, tot[1] + g, None if (b is None or tot[2] is None) else tot[2] + b]
-    print("%-12s %s %s %s" % (name, fmt(raw), fmt(g), fmt(b)))
-print("%-12s %s %s %s" % ("total", fmt(tot[0]), fmt(tot[1]), fmt(tot[2])))
+    print("%-20s %s %s %s" % (os.path.basename(p), fmt(raw), fmt(g), fmt(b)))
+print("%-20s %s %s %s" % ("total", fmt(tot[0]), fmt(tot[1]), fmt(tot[2])))
 if tot[2] is None:
     print("(brotli: no `brotli` CLI or python module here)")
 
 # the pck's directory (format v4: header, then the directory at dir_offset)
-data = open(os.path.join(web, "index.pck"), "rb").read()
+data = open(pck_path, "rb").read()
 magic, fmt_ver = data[:4], struct.unpack_from("<I", data, 4)[0]
 if magic != b"GDPC" or fmt_ver < 3:
     sys.exit("unexpected pck header %r v%d" % (magic, fmt_ver))
@@ -108,7 +117,7 @@ for path, size in entries:
     by[k][1] += 1
 header = len(data) - sum(s for _, s in entries)
 order = ["voice", "audio/music", "audio/sting", "audio/sfx", "art (icons, fonts)", "scripts", "other"]
-print("\nindex.pck by folder (%d files)" % count)
+print("\n%s by folder (%d files)" % (os.path.basename(pck_path), count))
 print("%-20s %8s %6s %6s" % ("folder", "MB", "files", "%"))
 for k in order:
     if k in by:

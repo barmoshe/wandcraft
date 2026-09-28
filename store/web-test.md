@@ -5,7 +5,7 @@
 This is the web version of the game. It needs no Mac, no Apple account and no App Store. Use it to test gameplay and art on your phone while the native iOS build waits for TestFlight (see `ios-first-build.md`).
 
 ## On the iPhone 15 Pro Max
-1. Open the link in **Safari**. The first load downloads about 40 MB; after that it's cached.
+1. Open the link in **Safari**. The first load downloads about 40 MB; after that it's cached (see Caching below).
 2. Tap **Share → Add to Home Screen → Add**. Wandcraft now has its own icon and opens full screen, without Safari's bars.
 3. Hold the phone **sideways** (landscape). In portrait the game asks you to turn it.
 4. Tap anywhere once so sound can start (Safari only allows audio after a tap). The game mixes with music you have playing, and the silent switch mutes it, like most games (decisions/0009).
@@ -35,3 +35,12 @@ tools/deploy_web.sh    # uploads it to Vercel (project wandcraft-test); needs `v
 The page itself is `game/web/shell.html`: Godot's default web page, changed to fill the iPhone screen and to report the safe-area insets to the game (`Game.safe_rect`).
 
 There is no offline cache (no service worker since 0.4.1, decisions/0008): a new deploy shows on the next launch. If an older build still shows, swipe the app closed and open it again once.
+
+### Caching
+- `tools/build_web.sh` gives the big files content-hashed names:
+  - `index-<hash>.wasm`, `.js` and the two audio worklets share one hash. It changes only with the engine.
+  - `index-<hash>.pck` has its own hash. It changes with the game.
+- `tools/web/vercel.json` serves the hashed files as `public, max-age=31536000, immutable`. The phone keeps them and never asks again.
+- `index.html` keeps its name and is served `no-cache`. The phone checks it on every launch, so a deploy still shows on the next launch.
+- A game update downloads only the new pck (about 28 MB). The 39.5 MB wasm stays cached until Godot changes.
+- `tools/webtest.sh <url>` checks both headers on a deployed copy.
