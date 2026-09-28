@@ -353,6 +353,7 @@ func draw_deco(ci: CanvasItem) -> void:
 ## Over the actors: the portal's swirl, the name of the station in reach, the dummy's DPS.
 func draw_top(ci: CanvasItem) -> void:
 	var t := world.time
+	UiAudit.begin(ci, true, "Workshop labels")
 	var pp: Vector2 = anchors.get("portal", [Vector2.ZERO])[0] + Vector2(0, -4)
 	var gold := Color("#ffe066")
 	for k in 3:
@@ -397,3 +398,4 @@ func _label(ci: CanvasItem, f: Font, at: Vector2, s: String, c: Color, size := 8
 	var p := (at - Vector2(w / 2.0, 0)).round()
 	ci.draw_string_outline(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 3, Color(0, 0, 0, 0.8))
 	ci.draw_string(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, c)
+	UiAudit.text(ci, f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size)

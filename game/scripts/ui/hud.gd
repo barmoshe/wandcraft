@@ -40,6 +40,12 @@ var say_text := ""
 var say_who := ""
 var say_t := 0.0
 var say_len := 0.0
+## 0.20 layout: what the HUD already covers this frame. Messages (tips, the spoken line,
+## banners, toasts) are placed around it, never over it (tools/uiaudit.sh checks).
+var _taken: Array[Rect2] = []
+var _eased := {}      # message -> its eased y, so a box glides when a tip pushes it up
+var _eased_seen := {}
+var _map := Rect2()   # the room strip this frame; the first wand's cast icons stop short of it
 
 
 func _ready() -> void:
@@ -148,20 +154,31 @@ func _draw() -> void:
 	var sr := safe()
 	var run := world.run
 	buttons.clear()
+	_taken.clear()
+	UiAudit.begin(self)
+	_map = Rect2()
 	if world.hub:
 		_draw_hub(sr, run)
+		_ease_forget()
 		return
 	_draw_low_hp(run)
+	_map = _map_rect(sr, run)
+	UiAudit.owner = "wands"
 	_draw_wands(sr.position, run)
+	UiAudit.owner = "vitals"
 	_draw_vitals(Vector2(sr.position.x, sr.end.y), run)
+	UiAudit.owner = "top right"
 	_draw_top_right(Vector2(sr.end.x, sr.position.y), run)
 	if Game.is_touch() or Game.touch_seen:
+		UiAudit.owner = "dash"
 		_draw_dash(sr)
-	_draw_map(Vector2(sr.get_center().x, sr.position.y), run)
+	UiAudit.owner = "map"
+	_draw_map(run)
 	if world.boss and not world.boss.dead:
+		UiAudit.owner = "boss bar"
 		_draw_boss_bar(sr)
-	_draw_banner(sr)
-	_draw_hint(sr)
+	_draw_messages(sr)
+	_ease_forget()
 	if flash_a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(flash_c.r, flash_c.g, flash_c.b, flash_a))
 	if intro_t > 0.0:
@@ -190,22 +207,23 @@ func _draw_low_hp(run: RunState) -> void:
 		draw_rect(Rect2(0, v.y - (i + 1) * 2, v.x, 2), c)
 
 
-func _draw_hint(sr: Rect2) -> void:
-	if hint_t <= 0.0 or hint == "":
-		return
+func _draw_hint(sr: Rect2, bottom: float) -> float:
 	var a := clampf(hint_t * 2.0, 0.0, 1.0) * clampf((5.0 - hint_t) * 4.0, 0.0, 1.0)
 	var f := Game.font("small")
 	var w := f.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	var y := sr.end.y - (58.0 if world.boss and not world.boss.dead else 42.0)
-	var r := Rect2(sr.get_center().x - w / 2.0 - 20, y, w + 30, 18)
+	UiAudit.owner = "hint"
+	var r := _place(Rect2(sr.get_center().x - w / 2.0 - 20, bottom - 18.0, w + 30, 18), true, "hint")
+	UiAudit.box(self, r)
 	draw_rect(r, Color(0.07, 0.05, 0.13, 0.9 * a))
 	draw_rect(r, Color(GOLD.r, GOLD.g, GOLD.b, a), false, 1.0)
 	draw_circle(r.position + Vector2(10, 9), 5.0, Color(GOLD.r, GOLD.g, GOLD.b, a))
 	_text(r.position + Vector2(8, 13), "?", Color(0.1, 0.06, 0.15, a), 8, "bold")
 	_text(r.position + Vector2(20, 13), hint, Color(1, 0.96, 0.85, a), 8)
+	return r.position.y
 
 
 func _panel(r: Rect2, gold := false) -> void:
+	_take(r)
 	draw_rect(r, PANEL)
 	draw_rect(r, INK, false, 1.0)
 	var inner := r.grow(-1.0)
@@ -223,6 +241,9 @@ func _text(p: Vector2, s: String, c: Color, size := 8, kind := "small", align :=
 	var f := Game.font(kind)
 	draw_string_outline(f, p.round(), s, align, width, size, 2, INK)
 	draw_string(f, p.round(), s, align, width, size, c)
+	_taken.append(UiAudit.text_rect(f, p.round(), s, align, width, size))
+	if UiAudit.on:
+		UiAudit.text(self, f, p.round(), s, align, width, size)
 
 
 ## A small square HUD button with a glyph; its hit area is padded to 32 px.
@@ -282,9 +303,13 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 			if i == n - 1 and w.background() != null:
 				# Daemon Rod: the background slot's timer
 				draw_arc(c, SOCKET / 2.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - clampf(w.bg_t / SpellRunner.BG_EVERY, 0.0, 1.0)), 16, Style.c("violet:4"), 1.0)
+			_rule_mark(w, i, c)
 		var strip := Rect2(row.position.x + 23, row.end.y - 3, n * (SOCKET + SGAP) - SGAP, 2)
 		draw_rect(strip, Color(0.02, 0.02, 0.06))
-		draw_rect(Rect2(strip.position, Vector2(strip.size.x * w.mana / w.max_mana(), 2)), Color("#4aa8ff"))
+		draw_rect(Rect2(strip.position, Vector2(strip.size.x * clampf(w.mana / w.max_mana(), 0.0, 1.0), 2)), Color("#4aa8ff"))
+		if w.mana < 0.0:
+			# Virtual Memory: the debt shows in red
+			draw_rect(Rect2(strip.position, Vector2(strip.size.x * minf(1.0, -w.mana / w.max_mana()), 2)), Style.c("blood:3"))
 		if w.rech > 0.0:
 			var k := 1.0 - w.rech / maxf(0.01, w.rech_max)
 			draw_rect(Rect2(strip.position, Vector2(strip.size.x * k, 1)), Color("#ffe066"))
@@ -307,12 +332,16 @@ func _draw_last_cast(w: WandState, row: Rect2) -> void:
 		return
 	var a := 1.0 - age / 0.5
 	var x := row.end.x + 5
+	var stop := _map.position.x - 2.0 if _map.has_area() and row.position.y < _map.end.y else INF
 	var cy := row.get_center().y
 	for i in w.lit:
 		if i >= w.slots.size() or w.slots[i] == null:
 			continue
 		var d := Catalog.spell(w.slots[i]["id"])
 		var ic := Icons.spell(d)
+		if x + ic.get_width() > stop:
+			break
+		_take(Rect2(Vector2(x, cy) - Vector2(0, ic.get_height() / 2.0), ic.get_size()), "last cast")
 		draw_texture(ic, (Vector2(x, cy) - Vector2(0, ic.get_height() / 2.0)).round(), Color(1, 1, 1, a))
 		x += ic.get_width() + 1
 		if Screen.fam(d) == Screen.Fam.BOOST or Screen.fam(d) == Screen.Fam.TRIGGER:
@@ -323,13 +352,26 @@ func _draw_last_cast(w: WandState, row: Rect2) -> void:
 ## The slot the wand reads first on its next cast (skipping empty slots and passives, and
 ## right to left on a Mirror Rod), or -1.
 static func next_slot(w: WandState) -> int:
-	var n := w.slots.size() - (1 if w.def.background_slot and w.slots.size() > 1 else 0)
-	for p in range(w.ptr, n):
-		var i := n - 1 - p if w.def.reverse else p
+	var held := w.held()   # 0.20: the wand's own order (Shuffle Play, Palindrome, pages)
+	for p in range(w.ptr, w.prog_len()):
+		var i := w.slot_at(p)
 		var s: Variant = w.slots[i]
-		if s != null and Catalog.spell(s["id"]).kind != SpellDef.Kind.PASSIVE:
+		if s != null and not held.has(i) and Catalog.spell(s["id"]).kind != SpellDef.Kind.PASSIVE:
 			return i
 	return -1
+
+
+## 0.20 wand rules on a HUD socket: Shuffle Play shows the next order as small numbers, and a
+## Double Buffer dims the page that is not playing.
+func _rule_mark(w: WandState, i: int, c: Vector2) -> void:
+	match w.def.rule:
+		&"shuffle":
+			var p := w.read_pos(i)
+			if p >= 0:
+				_text(c + Vector2(-SOCKET / 2.0, -SOCKET / 2.0 + 6), str(p + 1), Style.c("glitch:4"), 8)
+		&"pages":
+			if w.read_pos(i) < 0:
+				draw_circle(c, SOCKET / 2.0, Color(0, 0, 0, 0.55))
 
 
 func _bar(r: Rect2, k: float, fill: Color, label: String) -> void:
@@ -361,6 +403,7 @@ func _draw_dash(sr: Rect2) -> void:
 		draw_line(Vector2(x, c.y - 4), Vector2(x + 3, c.y), col, 1.0)
 		draw_line(Vector2(x + 3, c.y), Vector2(x, c.y + 4), col, 1.0)
 	buttons["dash"] = Rect2(c - Vector2(16, 16), Vector2(32, 32))
+	_take(Rect2(c - Vector2(15, 15), Vector2(30, 30)))
 	# design v2: switching wands sits by the right thumb (the rows are out of reach mid-fight)
 	var run := world.run
 	if run.wands.size() > 1:
@@ -373,6 +416,7 @@ func _draw_dash(sr: Rect2) -> void:
 		draw_texture(wt, (sc - wt.get_size() / 2.0).round())
 		_text(sc + Vector2(5, 11), str((run.cur + 1) % run.wands.size() + 1), GOLD, 8, "bold")
 		buttons["swap"] = Rect2(sc - Vector2(16, 16), Vector2(32, 32))
+		_take(Rect2(sc - Vector2(15, 15), Vector2(30, 30)))
 
 
 ## The Workshop (0.19): no vitals or map, the Bits in the bank, a MENU that lists every
@@ -382,6 +426,8 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 	var h := world.hub
 	# the Bits, top left
 	var bits := Meta.bits()
+	UiAudit.owner = "bits"
+	_take(Rect2(sr.position, Vector2(92, 18)))
 	draw_rect(Rect2(sr.position, Vector2(92, 18)), Color(0.05, 0.03, 0.1, 0.7))
 	draw_texture(Icons.glyph("chip", Color("#7cf0c8")), (sr.position + Vector2(2, 1)).round())
 	_text(sr.position + Vector2(20, 13), "%d BITS" % bits, Color("#7cf0c8"), 8, "bold")
@@ -390,6 +436,8 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 		_text(sr.position + Vector2(2, 28), "%d bount%s to claim" % [waiting, "y" if waiting == 1 else "ies"], Style.UI_GOOD, 8)
 	# MENU, top right
 	var mc := Vector2(sr.end.x - 16, sr.position.y + 14)
+	UiAudit.owner = "menu"
+	_take(Rect2(mc - Vector2(13, 13), Vector2(26, 26)))
 	draw_circle(mc, 13.0, INK)
 	draw_circle(mc, 11.0, Style.c("night:2"))
 	for k in 3:
@@ -397,12 +445,15 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 	buttons["menu"] = Rect2(mc - Vector2(16, 16), Vector2(32, 32))
 	# the wands, only where they fire
 	if h.in_fire_zone(world.player.position):
+		UiAudit.owner = "wands"
 		_draw_wands(sr.position + Vector2(0, 40), run)
 	# USE (or the dash, on touch, when nothing is in reach)
 	if h.near != "":
 		var st: Dictionary = Hub.STATIONS[h.near]
 		var c := Vector2(sr.end.x - 26, sr.end.y - 74)
 		var col := Color(st["color"]) if h.open(h.near) else Color(0.5, 0.45, 0.6)
+		UiAudit.owner = "use"
+		_take(Rect2(c - Vector2(17, 17), Vector2(34, 34)))
 		draw_circle(c, 17.0, INK)
 		draw_circle(c, 15.0, Style.c("night:2"))
 		draw_arc(c, 15.0, 0.0, TAU, 24, col, 2.0)
@@ -413,15 +464,15 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 			_text(c + Vector2(-26, 26), "E", Style.UI_MUTED, 8, "bold")
 		buttons["use"] = Rect2(c - Vector2(18, 18), Vector2(36, 36))
 	elif Game.is_touch() or Game.touch_seen:
+		UiAudit.owner = "dash"
 		_draw_dash(sr)
-	_draw_banner(sr)
-	_draw_hint(sr)
+	_draw_messages(sr)
 	if fade_a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, get_viewport_rect().size), Color(0.02, 0.01, 0.05, fade_a * fade_a))
 
 
 ## The Duck's box: its face, its name, the line (wrapped to two lines at most).
-func _draw_say(sr: Rect2, cx: float) -> void:
+func _draw_say(sr: Rect2, cx: float, bottom: float) -> float:
 	var a := clampf(say_t * 3.0, 0.0, 1.0) * clampf((say_len - say_t) * 6.0, 0.0, 1.0)
 	var lint := say_who == Story.LINT
 	var col := Color("#5ce1ff") if lint else Color(1.0, 0.85, 0.3)
@@ -435,7 +486,9 @@ func _draw_say(sr: Rect2, cx: float) -> void:
 	for ln in lines:
 		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
 	var h := maxf(24.0, lines.size() * 10.0 + 14.0)
-	var r := Rect2(cx - (wdt + 34.0) / 2.0, sr.end.y - 44.0 - h, wdt + 34.0, h)
+	UiAudit.owner = "say"
+	var r := _place(Rect2(cx - (wdt + 34.0) / 2.0, bottom - h, wdt + 34.0, h), true, "say")
+	UiAudit.box(self, r)
 	draw_rect(r, Color(0.05, 0.03, 0.1, 0.85 * a))
 	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(col, a))
 	var face := lint_face() if lint else duck_face()
@@ -445,6 +498,7 @@ func _draw_say(sr: Rect2, cx: float) -> void:
 	_text(r.position + Vector2(26, 10), say_who, Color(col, a), 8)
 	for k in lines.size():
 		_text(r.position + Vector2(26, 20 + k * 10), lines[k], Color(0.92, 0.95, 1.0, a), 8)
+	return r.position.y
 
 
 ## LINT's face, 12 px: a little monitor with a cyan scanline eye.
@@ -511,7 +565,9 @@ func _draw_vitals(bl: Vector2, run: RunState) -> void:
 	if world.player.shield > 0.0:
 		var sk := world.player.shield / 30.0
 		draw_rect(Rect2(panel.position + Vector2(16, 5), Vector2(107 * sk, 2)), Style.c("frost:3"))
-	_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), w.mana / w.max_mana(), Style.c("arcane:3"), "%d/%d" % [roundi(w.mana), roundi(w.max_mana())])
+	# Virtual Memory: below zero the bar turns red and fills with the debt
+	var debt := w.mana < 0.0
+	_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), (-w.mana if debt else w.mana) / w.max_mana(), Style.c("blood:3") if debt else Style.c("arcane:3"), "%d/%d" % [roundi(w.mana), roundi(w.max_mana())])
 
 
 func _draw_top_right(tr: Vector2, run: RunState) -> void:
@@ -525,6 +581,7 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 	for i in run.relics.size():
 		var p := Vector2(tr.x - 9 - (i % 6) * 19, tr.y + BTN + 12 + (i / 6) * 19)
 		var ic := Icons.relic(run.relics[i])
+		_take(Rect2(p - Vector2(9, 9), Vector2(18, 18)), "relics")
 		draw_texture(ic, (p - ic.get_size() / 2.0).round())
 		buttons["relic%d" % i] = Rect2(p - Vector2(10, 10), Vector2(20, 20))   # design v2: tap to read
 		# counter pips (D3): a count, or a lit dot when the relic is ready right now
@@ -546,12 +603,13 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 func relic_pip(id: StringName) -> Array:
 	var run := world.run
 	var fired := world.spells.casts_fired
+	var tick := Relics.cast_tick(run)   # 0.20: Double Tick counts each cast twice
 	match id:
 		&"stack_trace":
-			var left := 7 - fired % 7
+			var left := ceili((7 - fired % 7) / float(tick))
 			return [str(left), left == 1]
 		&"loop_counter":
-			var left2 := 10 - fired % 10
+			var left2 := ceili((10 - fired % 10) / float(tick))
 			return [str(left2), left2 == 1]
 		&"uptime":
 			return [str(run.uptime), run.uptime > 0] if run.uptime > 0 else []
@@ -567,15 +625,48 @@ func relic_pip(id: StringName) -> Array:
 			return ["", world.room_time < 6.0 and not world.cleared]
 		&"busy_wait":
 			return ["", world.player.still_t >= 0.6]
+		# 0.20
+		&"graceful_degrade":
+			return ["", run.wands.any(func(w: WandState) -> bool: return w.suspended >= 0)]
+		&"swap_space":
+			return ["", world.puddle_slow(world.player.position) > 1.0]
+		&"undo_stack":
+			return ["", world.player.undo_t > 0.0]
+		&"warm_cache":
+			var wm := mini(world.warm, Relics.WARM_MAX)
+			return [str(wm), wm >= Relics.WARM_MAX] if wm > 0 else []
+		&"polyglot":
+			var kn := Relics.kinds(run.wand())
+			return [str(kn), kn >= 4]
+		&"short_circuit":
+			return ["", run.wand().slots.size() <= 3]
+		&"context_switch":
+			return ["", world.player.swap_cd <= 0.0]
 	return []
 
 
-func _draw_map(tc: Vector2, run: RunState) -> void:
+## The room strip's rect: top middle, but right of the first wand row and left of the gold
+## when they would touch (a long wand on a narrow 4:3 screen), with tighter dots if it must.
+func _map_rect(sr: Rect2, run: RunState) -> Rect2:
 	var n := Chapter.PLAN.size()
+	var w0: WandState = run.wands[0]
+	var left := sr.position.x + 22 + w0.slots.size() * (SOCKET + SGAP) + 4 - SGAP + 4
+	var right := sr.end.x - BTN - 62 - 4
 	var gap := 13.0
-	var x0 := tc.x - (n - 1) * gap / 2.0
-	var y := tc.y + 8
-	draw_rect(Rect2(x0 - 24, y - 7, (n - 1) * gap + 32, 14), Color(0.05, 0.03, 0.1, 0.6))
+	while gap > 9.0 and (n - 1) * gap + 32 > right - left:
+		gap -= 1.0
+	var w := (n - 1) * gap + 32
+	var cx := clampf(sr.get_center().x, left + w / 2.0, maxf(left + w / 2.0, right - w / 2.0))
+	return Rect2(roundf(cx - w / 2.0), sr.position.y + 1, w, 14)
+
+
+func _draw_map(run: RunState) -> void:
+	var n := Chapter.PLAN.size()
+	var gap := (_map.size.x - 32) / maxf(1.0, n - 1)
+	var x0 := _map.position.x + 24
+	var y := _map.position.y + 7
+	_take(_map)
+	draw_rect(_map, Color(0.05, 0.03, 0.1, 0.6))
 	# which world you're in, before its rooms (research/story.md: the switch is always clear)
 	_text(Vector2(x0 - 21, y + 3), "W%d" % (run.world + 1), [Color(0.75, 0.7, 0.85), Color("#ff9a3a"), Color("#c79bff")][clampi(run.world, 0, 2)], 8, "bold")
 	buttons["map"] = Rect2(x0 - 10, y - 10, (n - 1) * gap + 20, 22)   # tap the strip for the map
@@ -598,8 +689,10 @@ func _draw_map(tc: Vector2, run: RunState) -> void:
 
 func _draw_boss_bar(sr: Rect2) -> void:
 	var b := world.boss
-	var w := minf(220.0, sr.size.x * 0.46)
+	# clear of the vitals panel (128 px) on the left, and as far from the right edge
+	var w := minf(220.0, sr.size.x - 2.0 * 136.0)
 	var r := Rect2(sr.get_center().x - w / 2.0, sr.end.y - 16, w, 9)
+	_take(r)
 	_text(Vector2(r.position.x, r.position.y - 2), boss_title, Color("#ff8ab8"), 8, "bold")
 	_bar(r, b.hp / b.max_hp, Color("#ff3fa4"), "")
 	for ph in b.phases:
@@ -608,36 +701,105 @@ func _draw_boss_bar(sr: Rect2) -> void:
 			draw_rect(Rect2(r.position.x + r.size.x * at, r.position.y, 1, r.size.y), INK)
 
 
-func _draw_banner(sr: Rect2) -> void:
+## Tips, the spoken line, banners and toasts (0.20 layout), placed around what the HUD already
+## covers this frame (_taken) so nothing lands on anything: the bottom ones stack up from
+## above the vitals and the boss bar (the tip lowest, then the line, then a boss banner),
+## the top ones stack down from under the map, clear of the wand rows and the relics.
+func _draw_messages(sr: Rect2) -> void:
 	var cx := sr.get_center().x
+	var bottom := sr.end.y - 32.0
+	if hint_t > 0.0 and hint != "":
+		bottom = _draw_hint(sr, bottom) - 3.0
 	if say_t > 0.0 and say_text != "":
-		_draw_say(sr, cx)
+		bottom = _draw_say(sr, cx, bottom) - 3.0
 	if banner_t > 0.0 and banner != "":
-		var a := clampf(banner_t * 2.0, 0.0, 1.0)
-		var f := Game.font("body")
-		var wdt := f.get_string_size(banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-		# boss and phase banners sit low, over the boss bar, so the boss's entrance stays in view
-		var by := (sr.end.y - 92.0) if banner_low else (sr.position.y + 44)
-		var r := Rect2(cx - wdt / 2.0 - 12, by, wdt + 24, 30 if banner_sub != "" else 20)
-		draw_rect(r, Color(0.05, 0.03, 0.1, 0.75 * a))
-		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(GOLD.r, GOLD.g, GOLD.b, a))
-		draw_rect(Rect2(r.position + Vector2(0, r.size.y - 1), Vector2(r.size.x, 1)), Color(GOLD.r, GOLD.g, GOLD.b, a))
-		draw_string_outline(f, Vector2(cx - wdt / 2.0, r.position.y + 15).round(), banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 3, Color(0, 0, 0, a))
-		draw_string(f, Vector2(cx - wdt / 2.0, r.position.y + 15).round(), banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 0.95, 0.8, a))
-		if banner_sub != "":
-			var sf := Game.font("small")
-			var sw := sf.get_string_size(banner_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_text(Vector2(cx - sw / 2.0, r.position.y + 26), banner_sub, Color(0.75, 0.7, 0.85, a), 8)
-	if toast_t > 0.0:
-		# wrapped on a panel (goals and relic taps can run long)
-		var a := clampf(toast_t * 2.0, 0.0, 1.0)
-		var f := Game.font("small")
-		var lines := _wrap_lines(f, toast, minf(320.0, sr.size.x - 40.0))
-		var wdt := 0.0
-		for ln in lines:
-			wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
-		var tr := Rect2(cx - wdt / 2.0 - 8, sr.position.y + 76, wdt + 16, lines.size() * 10 + 8)
-		draw_rect(tr, Color(0.07, 0.05, 0.13, 0.85 * a))
-		for k in lines.size():
-			var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-			_text(Vector2(cx - lw / 2.0, tr.position.y + 12 + k * 10), lines[k], Color(0.9, 0.95, 1.0, a), 8)
+		_draw_banner(sr, cx, bottom)
+	if toast_t > 0.0 and toast != "":
+		_draw_toast(sr, cx)
+
+
+## The room and boss banners: boss and phase banners sit low, over the boss bar, so the
+## boss's entrance stays in view; the others under the map.
+func _draw_banner(sr: Rect2, cx: float, bottom: float) -> void:
+	var a := clampf(banner_t * 2.0, 0.0, 1.0)
+	var f := Game.font("body")
+	var bw := f.get_string_size(banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+	var wdt := bw
+	var h := 30.0 if banner_sub != "" else 20.0
+	if banner_sub != "":
+		wdt = maxf(wdt, Game.font("small").get_string_size(banner_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+	UiAudit.owner = "banner"
+	var r := _place(Rect2(cx - wdt / 2.0 - 12, (bottom - h) if banner_low else (sr.position.y + 26), wdt + 24, h), banner_low, "banner")
+	UiAudit.box(self, r)
+	var at := Vector2(cx - bw / 2.0, r.position.y + 15).round()
+	UiAudit.text(self, f, at, banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
+	draw_rect(r, Color(0.05, 0.03, 0.1, 0.75 * a))
+	draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(GOLD.r, GOLD.g, GOLD.b, a))
+	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 1), Vector2(r.size.x, 1)), Color(GOLD.r, GOLD.g, GOLD.b, a))
+	draw_string_outline(f, at, banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 3, Color(0, 0, 0, a))
+	draw_string(f, at, banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 0.95, 0.8, a))
+	if banner_sub != "":
+		var sw := Game.font("small").get_string_size(banner_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(Vector2(cx - sw / 2.0, r.position.y + 26), banner_sub, Color(0.75, 0.7, 0.85, a), 8)
+
+
+## A toast (goals, relic taps): wrapped on a panel, under the top banner.
+func _draw_toast(sr: Rect2, cx: float) -> void:
+	var a := clampf(toast_t * 2.0, 0.0, 1.0)
+	var f := Game.font("small")
+	var lines := _wrap_lines(f, toast, minf(320.0, sr.size.x - 40.0))
+	var wdt := 0.0
+	for ln in lines:
+		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+	UiAudit.owner = "toast"
+	var tr := _place(Rect2(cx - wdt / 2.0 - 8, sr.position.y + 26, wdt + 16, lines.size() * 10 + 8), false, "toast")
+	UiAudit.box(self, tr)
+	draw_rect(tr, Color(0.07, 0.05, 0.13, 0.85 * a))
+	for k in lines.size():
+		var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(Vector2(cx - lw / 2.0, tr.position.y + 12 + k * 10), lines[k], Color(0.9, 0.95, 1.0, a), 8)
+
+
+## Moves a message's rect off everything taken this frame (up for the bottom stack, down for
+## the top one), eases it there when it moves, and takes it.
+func _place(r: Rect2, up: bool, key: String) -> Rect2:
+	for _i in 24:
+		var moved := false
+		for t in _taken:
+			if t.intersects(r.grow(1.0)):
+				r.position.y = (t.position.y - 2.0 - r.size.y) if up else (t.end.y + 2.0)
+				moved = true
+				break
+		if not moved:
+			break
+	r.position.y = _ease(key, r.position.y)
+	_taken.append(r)
+	return r
+
+
+## A message glides to a new y (a tip pushing the spoken line up) instead of jumping; one
+## that just appeared starts where it belongs.
+func _ease(key: String, y: float) -> float:
+	_eased_seen[key] = true
+	if not _eased.has(key):
+		_eased[key] = y
+		return y
+	var cur: float = _eased[key]
+	cur = lerpf(cur, y, 1.0 - exp(-get_process_delta_time() * 14.0))
+	if absf(cur - y) < 0.5:
+		cur = y
+	_eased[key] = cur
+	return roundf(cur)
+
+
+func _ease_forget() -> void:
+	for k in _eased.keys():
+		if not _eased_seen.has(k):
+			_eased.erase(k)
+	_eased_seen.clear()
+
+
+## Marks a HUD element's rect as covered, for the messages' layout and the overlap audit.
+func _take(r: Rect2, who := "") -> void:
+	_taken.append(r)
+	UiAudit.box(self, r, who)

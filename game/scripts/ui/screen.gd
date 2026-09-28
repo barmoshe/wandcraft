@@ -201,7 +201,9 @@ func _paint() -> void:
 
 func _draw() -> void:
 	_buttons.clear()
+	UiAudit.begin(self)
 	_paint()
+	UiAudit.owner = "toast"
 	if _toast_t > 0.0:
 		var f := Game.font("small")
 		var w := f.get_string_size(_toast, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
@@ -214,6 +216,8 @@ func _draw() -> void:
 
 func dim(a := 0.84) -> void:
 	draw_rect(Rect2(Vector2.ZERO, view()), Color(0.02, 0.01, 0.05, a))
+	if a >= 0.8:
+		UiAudit.cover(self)   # what was drawn before is out of sight now (the glossary sheet)
 
 
 ## A framed panel: dark glass, a 1px ink edge, an inner rim lit from the top-left, and
@@ -244,6 +248,8 @@ func text(p: Vector2, s: String, c: Color = TEXT, size := 8, kind := "small", al
 	var f := Game.font(kind)
 	draw_string_outline(f, p.round(), s, align, width, size, 2, INK)
 	draw_string(f, p.round(), s, align, width, size, c)
+	if UiAudit.on:
+		UiAudit.text(self, f, p.round(), s, align, width, size)
 
 
 func text_center(cx: float, y: float, s: String, c: Color = TEXT, size := 8, kind := "small") -> void:
@@ -328,7 +334,11 @@ func button(r: Rect2, id: String, label: String, kind := "normal", enabled := tr
 		draw_rect(rr.grow(1.0), Color(Style.c("gold:4"), a), false, 1.0)
 	var f := Game.font("bold")
 	var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var was := UiAudit.owner
+	UiAudit.owner = "btn:" + id
+	UiAudit.box(self, r)
 	text(Vector2(rr.get_center().x - w / 2.0, rr.get_center().y + 3.5), label, TEXT if enabled else MUTED.darkened(0.3), 8, "bold")
+	UiAudit.owner = was
 	if enabled:
 		var hr := r
 		if hr.size.x < MIN_TAP:

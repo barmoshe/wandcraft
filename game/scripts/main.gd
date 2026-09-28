@@ -38,6 +38,7 @@ func _ready() -> void:
 		_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	if _args.has("shot"):
 		SaveGame.in_memory = true   # screenshots never touch the player's save
+	UiAudit.on = _args.has("uiaudit")   # 0.20: record text and panel rects for tools/uiaudit.sh
 	SaveGame.reset_if_stale()       # 0.18.1: everyone starts over (SaveGame.EPOCH)
 	if _args.has("nohints"):
 		Hints.mark_all_seen()       # store screenshots: no first-run tips over the scene
@@ -396,6 +397,14 @@ func _start_from_args() -> void:
 	elif _args.get("loadout", "") == "d2":
 		# screenshots of the D2 spells: familiars, a Firewall, Bitrot and orbiting Motes
 		r.wands[0] = WandState.make(Catalog.wand(&"oak"), [&"daemon", &"mote", &"turret", &"firewall", &"rot_coat", &"bitrot", &"orbit", &"mote"])
+	if _args.has("relics"):
+		# shots (tools/uiaudit.sh): a long relic column, the HUD's worst case on the right
+		for id in Relics.DEFS.keys().slice(0, int(_args["relics"])):
+			if not r.relics.has(id):
+				r.add_relic(id)
+	while r.wands.size() < int(_args.get("wands", "0")):
+		r.add_wand(&"oak")
+		r.wands[-1].set_slots([&"empower", &"fan", &"burst", &"needle", &"frost", &"spark"])
 	if _args.has("world"):
 		r.world = clampi(int(_args["world"]) - 1, 0, Chapter.WORLDS.size() - 1)
 	if _args.has("step"):
@@ -788,15 +797,32 @@ func _process(dt: float) -> void:
 	_read_desktop_input()
 	_follow_camera(false, dt)
 	_frames += 1
+	if _args.has("hudstress") and _frames == int(_args.get("frames", "90")) - 20:
+		_hud_stress()
 	if _args.has("shot") and _frames == int(_args.get("frames", "90")):
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
 		img.resize(img.get_width() * 2, img.get_height() * 2, Image.INTERPOLATE_NEAREST)
 		img.save_png(_args["shot"])
+		if UiAudit.on:
+			var bad := UiAudit.report(Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size))
+			for line in bad:
+				print("UIAUDIT: " + line)
+			print("UIAUDIT: %d overlaps" % bad.size())
 		if world.run:
 			print("shot: step %d %s player %s hp %d | enemies %d boss %s" % [world.run.step, world.room_kind, world.player.position.round(), world.run.hp,
 				world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).size(), str(world.boss.hp) if world.boss else "-"])
 		get_tree().quit()
+
+
+## Shots (--hudstress): every HUD message at once, the worst case for overlaps: a spoken
+## line, a tip, a toast, and the boss's banner when there is a boss.
+func _hud_stress() -> void:
+	Dialogue.line_started.emit(Story.DUCK, "Quack. That wand reads left to right, and so does the bug that broke it.", "", 6.0)
+	Events.hint.emit("Tap a wand row to swap. Drag a spell to rearrange it.")
+	Events.toast.emit("Relic: Take-Back. The next hit you take is undone.")
+	if world.boss and not world.boss.dead:
+		Events.boss_phase.emit(2, "It rewrites the floor as a diff")
 
 
 ## The room plus padding for the HUD (wand rows on top, vitals at the bottom) is what the
