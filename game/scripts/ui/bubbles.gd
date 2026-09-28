@@ -111,14 +111,22 @@ static func layout(a: Vector2, size: Vector2, sr: Rect2, taken: Array, hero := V
 				up = true
 	r.position.x = clampf(r.position.x, inner.position.x, inner.end.x - size.x)
 	r.position.y = clampf(r.position.y, inner.position.y, inner.end.y - size.y)
-	# still on something the HUD covers: step past it, up first, then down
-	for _i in 8:
-		var t := _hit_rect(r, taken)
-		if t == Rect2():
-			break
-		var above := t.position.y - 2.0 - size.y
-		r.position.y = above if above >= inner.position.y else t.end.y + 2.0
-		r.position.y = clampf(r.position.y, inner.position.y, inner.end.y - size.y)
+	# still on something the HUD covers: the nearest clear spot, searched outward (up and
+	# down first, then sideways), so it never lands on a panel, a label or the hero
+	if _hits(r, taken):
+		var best := r
+		var best_d := INF
+		for dy in range(-160, 161, 4):
+			for dx in [0.0, -0.5, 0.5, -1.0, 1.0]:
+				var c := Rect2(r.position + Vector2(dx * size.x, dy), size)
+				c.position.x = clampf(c.position.x, inner.position.x, inner.end.x - size.x)
+				c.position.y = clampf(c.position.y, inner.position.y, inner.end.y - size.y)
+				var dist := absf(dy) + absf(dx) * size.x * 0.8
+				if dist < best_d and not _hits(c, taken):
+					best = c
+					best_d = dist
+		up = up or best.position.y > a.y
+		r = best
 	r = Rect2(r.position.round(), r.size)
 	var arrow := Vector2.ZERO
 	if pinned:

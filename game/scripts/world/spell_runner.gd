@@ -22,6 +22,11 @@ extends RefCounted
 ## it), Blue Screen (a cloud that freezes each enemy once); Buffering holds casts until the
 ## recharge, Retry recasts a miss from the hand, Just-in-Time grows per recharge this room,
 ## Ctrl+Alt+Del answers a hit on you (on_player_hurt), Virtual Memory lets mana go negative.
+## 0.21 arsenal (research/arsenal-0.21.md): Flame Graph's fire spreads when a burning enemy dies
+## (on_kill), Crunch Time's fire ticks faster below half HP, Breakpoint shatters frozen enemies,
+## Code Freeze stretches chill, Cruft grows per room, Worm spreads Bitrot on a kill, Daisy Chain
+## grows per jump, Pair Programmer (a summon) copies a spell as it is cast, onLoad() fires its
+## spell at each recharge; wand rules Channel Rod, Unsafe Staff (HP pays) and Singleton Wand.
 
 const MAX_DEPTH := 3
 const THEN_ADD := [0.3, 0.6, 1.2]
@@ -37,11 +42,18 @@ const SPIN_SWAY := 12.0        # and how far in and out they swing
 const SPIN_EVERY := 0.3        # a blade cuts the same enemy again this often
 const REVERSE_MUL := 1.6
 const BG_EVERY := 3.0          # Daemon Rod: the background slot fires this often
-const CAPS := {&"daemon": 1, &"turret": 2, &"duck": 1}
+const CAPS := {&"daemon": 1, &"turret": 2, &"duck": 1, &"pair": 1}
 const JIT_STEP := [0.06, 0.08, 0.12]   # Just-in-Time: damage per recharge this room
 const JIT_CAP := [0.6, 0.8, 1.2]
 const CAD_EVERY := [4.0, 3.0, 2.0]     # Ctrl+Alt+Del: seconds between answers
 const AWAIT_N := [1, 2, 3]             # Await: casts per left spell
+const IGNITE_R := 44.0                 # Flame Graph: how far its fire spreads from a death
+const SHATTER_R := 30.0                # Breakpoint: the reach of a shatter
+const WORM_R := 40.0                   # Worm: the reach of the Bitrot a kill spreads
+const WORM_N := [2, 3, 4]
+const CODE_FREEZE := [1.4, 1.7, 2.0]   # Code Freeze: chill lasts this much longer
+const LOAD_MP := [1.0, 0.75, 0.5]      # onLoad(): share of its spell's mana it pays
+const CHANNEL_MOVE := 20.0             # Channel Rod: faster than this (px/s) counts as moving
 
 ## Per-emission options, passed down from the wand or the trigger that fired.
 class Opt:
@@ -65,6 +77,7 @@ var knock_mul := 1.0               # Force Push
 var legacy_slot := -1              # Legacy Code: the wand's last slot hits harder (-1: not owned)
 var blockers: Array[Bullet] = []   # player bullets that stop enemy shots this tick
 var _later: Array = []             # Pipeline: casts waiting for their turn
+var relic_fx: RelicFx              # 0.21 relics in the world (scorch, aftershock, summons)
 
 
 ## A familiar on the field (Daemon, Watchdog Turret, Rubber Duck).
@@ -81,12 +94,15 @@ class Summon:
 	var crit := 0.0
 	var soak := 0
 	var reach := 130.0      # a turret's range (a Worker Thread reaches further)
+	var echo_slot := -1     # 0.21 Pair Programmer: the wand slot it copies
+	var echo := 0.5         # and at what share of the damage
 	var hit_cd := 0.0
 	var color := Color.WHITE
 	var payload: CastNode
 	var pay_mana := 0.0
 	var src: WandState
 	var gm := 1.0
+	var cost := 0.0         # 0.21: its own mana (Summon Refund)
 
 
 ## Damage multiplier from the relics that look at this one cast (D3): Cold Start, Low
@@ -112,6 +128,7 @@ func cast_bonus(w: WandState, low: bool, tenth: bool) -> float:
 func _init(w: World) -> void:
 	world = w
 	bullets = w.bullets
+	relic_fx = RelicFx.new(w)
 
 
 ## Casts once from the wand. False when it cannot (empty, cooling down, out of mana).
@@ -133,7 +150,8 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	var tenth := run != null and run.has_relic(&"loop_counter") and Relics.crosses(casts_fired, casts_fired + tick, 10)
 	if free or tenth:
 		cost = 0.0
-	if w.mana - cost < -w.debt():   # Virtual Memory lets it go below zero
+	var blood := w.def.rule == &"blood"   # 0.21 Unsafe Staff: HP pays instead of mana
+	if (not blood and w.mana - cost < -w.debt()) or (blood and not _bleeds(cost)):   # Virtual Memory lets it go below zero
 		w.cd = 0.06
 		# sound v2: one "empty" per dry spell, not one per retry
 		if world.time - w.dry_at > 0.25:
@@ -141,7 +159,10 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		w.dry_at = world.time
 		return false
 	var low := w.mana < w.max_mana() * 0.25
-	w.mana -= cost
+	if blood:
+		world.player.hp -= cost * WandState.BLOOD_HP
+	else:
+		w.mana -= cost
 	w.idle = 0.0
 	if free:
 		world.fx.ring(origin, 2.0, 10.0, 0.2, Style.c("leaf:4"))
@@ -170,12 +191,17 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 	max_depth = int(Relics.stat(run, "depth"))
 	knock_mul = Relics.stat(run, "knock")
 	legacy_slot = w.slots.size() - 1 if run != null and run.has_relic(&"legacy_code") else -1
+	relic_fx.on_cast(w, plan)   # 0.21: Clean Streak, Wand Variety, Summon Volley
 	var opt := Opt.new()
 	opt.src = w
 	opt.sc = w.def.scatter
 	opt.gm = Relics.dmg_mul(run, world.room_time) if run else 1.0
 	if run:
 		opt.gm *= cast_bonus(w, low, tenth)
+	# 0.21 wand rules: Channel Rod (still casts), Singleton Wand (variety), Unsafe Staff (blood)
+	opt.gm *= w.channel_mul() * w.singleton_mul() * (WandState.BLOOD_DMG if blood else 1.0)
+	if w.def.rule == &"channel":
+		w.channel = mini(w.channel + 1, WandState.CHANNEL_MAX)
 	if run and run.has_relic(&"busy_wait") and world.player.still_t >= 0.6:
 		opt.gm *= 1.6
 		world.fx.ring(origin, 2.0, 12.0, 0.2, Color("#ffe066"))
@@ -200,6 +226,7 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 			out.append(g)
 	for g in out:
 		emit_cast(g, origin, ang, opt)
+	_pair_echo(w, out, ang, opt)   # 0.21: Pair Programmer copies the spell it watches
 	# Stack Trace: every 7th cast also goes out backward
 	if run and run.has_relic(&"stack_trace") and Relics.crosses(casts_fired - tick, casts_fired, 7):
 		cast_seq += 1
@@ -233,6 +260,7 @@ func _wrapped(w: WandState, plan: WandProgram.Plan, origin: Vector2, ang: float,
 	for e in w.buffer:
 		_later.append({"t": rc, "c": e[0], "pos": origin, "ang": ang, "opt": e[1], "hand": true})
 	w.buffer.clear()
+	_on_load(w)   # 0.21: onLoad() fires its spell
 	w.on_wrap(world.rng)
 
 
@@ -260,7 +288,7 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt, now := false) ->
 		dmg *= 1.0 + minf(JIT_STEP[m.jit - 1] * opt.src.jit_n, JIT_CAP[m.jit - 1])
 	if not c.prepped:
 		_prep(c)
-	dmg *= c.p_grow   # Zip Bomb
+	dmg *= c.p_grow * c.p_age   # Zip Bomb, Cruft
 	if m.reverse:
 		ang += PI
 		dmg *= REVERSE_MUL
@@ -306,7 +334,7 @@ func _emit_one(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, o
 		&"ping":
 			_ping(c, pos, ang, dmg, crit, opt, idx)
 			return
-		&"daemon", &"turret", &"duck":
+		&"daemon", &"turret", &"duck", &"pair":
 			_summon(c, pos, ang, dmg, crit, opt)
 			return
 	var spd := float(d.param("speed", c.level, 200.0)) * maxf(0.3, 1.0 + c.mods.spd)
@@ -371,6 +399,10 @@ func _prep(c: CastNode) -> void:
 	c.p_grow = 1.0 + float(d.param("stack", lv, 0.0)) * mini(m.cast_n, int(d.param("stack_max", lv, 6)))
 	c.p_stall = float(d.param("stall", lv, 0.0))
 	c.p_accel = float(d.param("accel", lv, 0.0))
+	c.p_age = 1.0 + float(d.param("per_room", lv, 0.0)) * (int(world.run.stats.get("rooms", 0)) if world.run else 0)
+	c.p_ignite = float(d.param("ignite", lv, 0.0))
+	c.p_shatter = float(d.param("shatter", lv, 0.0))
+	c.p_hop = float(d.param("hop", lv, 0.0))
 	c.prepped = true
 
 
@@ -389,6 +421,10 @@ func _fill(b: Bullet, c: CastNode, pos: Vector2, ang: float, spd: float, dmg: fl
 	b.area = m.area * c.p_grow
 	b.stall = c.p_stall
 	b.tries = opt.tries
+	b.ignite = c.p_ignite
+	b.rush = m.rush
+	b.shatter = c.p_shatter
+	b.hop = c.p_hop
 	b.burn = c.p_burn
 	b.chill = c.p_chill
 	b.chain = c.p_chain
@@ -504,7 +540,7 @@ func _beam(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: 
 
 ## Rune Burst: an instant blast. Payloads delivered by carriers make it shine.
 func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt: Opt) -> void:
-	var r := float(c.spell.param("area", c.level, 30.0)) * c.mods.area
+	var r := relic_fx.blast_radius(float(c.spell.param("area", c.level, 30.0)) * c.mods.area)
 	var ps := _pseudo(c, pos, ang, dmg, crit, opt)
 	world.fx.explosion(pos, r, c.spell.color)
 	world.fx.ring(pos, 2.0, r, 0.25, c.spell.color)
@@ -512,12 +548,15 @@ func _burst(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt:
 	if int(c.spell.param("purge", c.level, 0)) > 0:
 		# EMP: every enemy shot in the blast is wiped out
 		world.shots_stopped(world.clear_enemy_bullets_in(pos, r))
+	var caught: Array = []   # 0.21: for the blast relics (RelicFx.after_blast)
 	for k in world.hash.query(pos, r + 16.0):
 		var e: Enemy = world.enemies[k]
 		if e.dead or e.spawn_t > 0.0 or e.uid == opt.ignore:
 			continue
 		if e.position.distance_squared_to(pos) < (r + e.r) * (r + e.r):
 			_strike(ps, e, pos, dmg, 1.3)
+			caught.append(e)
+	relic_fx.after_blast(pos, r, dmg, caught, ps.kw, c.spell.color)
 	world.shake(0.1)
 	world.break_crates_in(pos, r, ps.burn > 0)
 	Audio.sfx("boom", pos)
@@ -693,12 +732,15 @@ func _summon(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt
 	s.color = d.color
 	s.src = opt.src
 	s.gm = opt.gm
+	s.cost = d.mana_at(c.level)
 	s.a = ang
 	s.payload = c.payload
 	s.pay_mana = c.pay_mana
-	s.soak = int(d.param("soak", c.level, 0))
+	s.soak = roundi(float(d.param("soak", c.level, 0)) * c.fuse)   # Squash makes a duck tougher
+	s.echo = float(d.param("echo", c.level, 0.5)) * c.fuse
+	s.echo_slot = c.echo
 	s.reach = float(d.param("range", c.level, 130.0))
-	var drop := pos + Vector2.from_angle(ang) * (14.0 if kind == &"daemon" else 22.0)
+	var drop := pos + Vector2.from_angle(ang) * (14.0 if kind == &"daemon" or kind == &"pair" else 22.0)
 	s.pos = drop if not world.solid_at(drop) else pos
 	summons.append(s)
 	world.fx.ring(s.pos, 2.0, 12.0, 0.3, s.color)
@@ -756,10 +798,16 @@ func _update_summons(dt: float) -> void:
 			world.fx.sparks(s.pos, 8, s.color, 60.0)
 			world.fx.ring(s.pos, 2.0, 10.0, 0.25, s.color)
 			Audio.sfx("familiar_end", s.pos)
+			relic_fx.summon_ended(s)   # 0.21: Summon Refund
 			summons.remove_at(i)
 			continue
 		i += 1
 		match s.kind:
+			&"pair":
+				# Pair Programmer: floats at your other shoulder; it only casts when you do
+				s.a += dt * 1.4
+				var at := pl.position + Player.HAND + Vector2(-12.0 * pl.face, -6.0) + Vector2.from_angle(s.a) * 3.0
+				s.pos = s.pos.lerp(at, 1.0 - pow(0.001, dt))
 			&"daemon":
 				s.a += dt * 2.6
 				var want := pl.position + Player.HAND + Vector2.from_angle(s.a) * 18.0
@@ -805,7 +853,7 @@ func _familiar_cast(s: Summon, ang: float, from := Vector2.INF) -> void:
 	if not _pay(s.src, s.pay_mana):
 		return
 	var opt := Opt.new()
-	opt.gm = s.gm
+	opt.gm = s.gm * Relics.summon_mul(world.run, s.src)   # 0.21: Shared Boosts
 	opt.src = s.src
 	opt.depth = 1
 	cast_seq += 1
@@ -822,7 +870,7 @@ func _familiar_bolt(s: Summon, p: Vector2, ang: float, dmg: float) -> void:
 	b.prev = p
 	b.a = ang
 	b.vel = Vector2.from_angle(ang) * 240.0
-	b.dmg = dmg
+	b.dmg = dmg * Relics.summon_mul(world.run, s.src)   # 0.21: Shared Boosts
 	b.crit = s.crit
 	b.r = 2.0
 	b.life = 0.8
@@ -837,20 +885,20 @@ func _familiar_bolt(s: Summon, p: Vector2, ang: float, dmg: float) -> void:
 ## Draws familiars: the ground ones (turret, duck) under the actors, the daemon on top.
 func draw_summons(ci: CanvasItem, top: bool) -> void:
 	for s in summons:
-		if (s.kind == &"daemon") != top:
+		if (s.kind == &"daemon" or s.kind == &"pair") != top:
 			continue
 		if s.life < 1.5 and fmod(s.life, 0.2) < 0.08:
 			continue   # blinks out at the end
 		var fr := int(world.time * 6.0) % 2
 		var tex := Props.familiar(s.kind, fr)
 		var p := s.pos
-		if s.kind == &"daemon":
+		if s.kind == &"daemon" or s.kind == &"pair":
 			p.y += roundf(sin(world.time * 5.0 + s.a) * 1.0)
 		else:
 			ci.draw_set_transform(s.pos + Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 			ci.draw_circle(Vector2.ZERO, 5.0, Color(0, 0, 0, 0.4))
 			ci.draw_set_transform(Vector2.ZERO)
-		ci.draw_texture(tex, (p - Vector2(tex.get_width() / 2.0, tex.get_height() - (tex.get_height() / 2.0 if s.kind == &"daemon" else 1.0))).round())
+		ci.draw_texture(tex, (p - Vector2(tex.get_width() / 2.0, tex.get_height() - (tex.get_height() / 2.0 if s.kind == &"daemon" or s.kind == &"pair" else 1.0))).round())
 
 
 ## Daemon Rod: the last slot fires on its own every few seconds at the nearest enemy.
@@ -892,7 +940,8 @@ func _background(dt: float) -> void:
 
 ## Ember Bolt and friends: an explosion where the bolt ends. Payload triggers still fire.
 func _blast(b: Bullet, hit_e: Enemy) -> void:
-	var r := float(b.cast.spell.param("area", b.cast.level, 18.0)) * b.area
+	var r := relic_fx.blast_radius(float(b.cast.spell.param("area", b.cast.level, 18.0)) * b.area)
+	var caught: Array = [hit_e] if hit_e != null else []   # 0.21: for RelicFx.after_blast
 	world.fx.explosion(b.pos, r, b.color)
 	world.fx.ring(b.pos, 2.0, r, 0.25, b.color)
 	world.fx.sparks(b.pos, 8, b.color, 120.0)
@@ -903,6 +952,8 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 		if e.position.distance_squared_to(b.pos) < (r + e.r) * (r + e.r):
 			world.hurt_enemy(e, b.dmg * (1.0 if b.beh == &"mine" else 0.7), b.pos, b.crit, 1.2 * b.knock, false, b.kw | 2)
 			_apply(b, e)
+			caught.append(e)
+	relic_fx.after_blast(b.pos, r, b.dmg, caught, b.kw, b.color)
 	world.shake(0.08)
 	world.break_crates_in(b.pos, r, b.burn > 0)
 	Audio.sfx("boom", b.pos)
@@ -911,7 +962,9 @@ func _blast(b: Bullet, hit_e: Enemy) -> void:
 func update(dt: float) -> void:
 	_run_later(dt)
 	_update_summons(dt)
+	relic_fx.update(dt)   # 0.21: Scorch Zone, Aftershock
 	_background(dt)
+	_channel_check()   # 0.21: moving resets a Channel Rod
 	blockers.clear()
 	# hot loop: tile and hash lookups are inlined (this runs for ~1000 bullets a tick)
 	var grid := world.grid
@@ -1075,6 +1128,7 @@ func clear_room() -> void:
 	summons.clear()
 	_later.clear()
 	blockers.clear()
+	relic_fx.clear_room()
 	if world.run:
 		for w in world.run.wands:
 			w.new_room()
@@ -1141,6 +1195,7 @@ func _hit_one(b: Bullet, e: Enemy) -> bool:
 		var nx := _next_unhit(b, e.position, 110.0)
 		if nx:
 			b.chain -= 1
+			b.dmg *= 1.0 + b.hop   # Daisy Chain: harder after each jump
 			b.vel = (nx.position - b.pos).normalized() * maxf(200.0, b.vel.length())
 			b.life = maxf(b.life, 0.5)
 			b.home = 0.0
@@ -1173,6 +1228,7 @@ func _next_unhit(b: Bullet, p: Vector2, max_d: float) -> Enemy:
 ## cheap checks come before any call.
 func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
 	# the hit sounds like the spell's element (D8), or its coat's (sound v2)
+	var thaw := b.shatter > 0.0 and e.frozen_t > 0.0   # 0.21 Breakpoint: this hit shatters the ice
 	world.hit_sound = Audio.hit_for_bullet(b.cast.spell.id if b.cast else &"", b.burn, b.chill, b.static_on, b.rot)
 	world.hurt_enemy(e, dmg, from, b.crit, kb * b.knock, false, b.kw)
 	world.hit_sound = "hit"
@@ -1185,6 +1241,8 @@ func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
 			world.fx.text(e.position + Vector2(0, -14), "SLAM", Style.c("sand:4"))
 			world.hurt_enemy(e, dmg * 0.5, e.position - kd, 0.0, 0.0)
 			world.shake(0.08)
+	if thaw:
+		_shatter(b, e)
 	if b.trig != &"":
 		fire_carry(b, &"hit", e)
 	if e.dead:
@@ -1195,6 +1253,7 @@ func _strike(b: Bullet, e: Enemy, from: Vector2, dmg: float, kb: float) -> void:
 func _apply(b: Bullet, e: Enemy) -> void:
 	if b.burn > 0 or b.chill > 0:
 		world.apply_status(e, b.burn, b.chill, b.dmg)
+		_status_rules(b, e)   # 0.21: Flame Graph, Crunch Time, Code Freeze
 	if b.static_on:
 		world.charge(e)
 	if b.rot > 0:
@@ -1221,6 +1280,8 @@ func _on_kill_check(b: Bullet, e: Enemy) -> void:
 		world.fx.sparks(e.position + Vector2(0, -4), 4, Style.c("leaf:4"), 50.0)
 	if b.trig == &"finally":
 		fire_carry(b, &"kill", e)
+	if b.cast and b.cast.mods.worm > 0:
+		_worm(e, b.cast.mods.worm)   # 0.21 Worm: the kill spreads Bitrot
 
 
 ## Split Rune: on the first hit the bolt throws out `split` smaller bolts in a fan.
@@ -1333,6 +1394,12 @@ func on_player_hurt() -> void:
 
 func _pay(w: WandState, mp: float) -> bool:
 	if w == null or Game.inf_mana:
+		return true
+	if w.def.rule == &"blood":
+		# Unsafe Staff: what it releases later is paid in HP too
+		if not _bleeds(mp):
+			return false
+		world.player.hp -= mp * WandState.BLOOD_HP
 		return true
 	if w.mana >= mp:
 		w.mana -= mp
@@ -1455,3 +1522,159 @@ func fire_carry(b: Bullet, ev: StringName, hit_e: Enemy, dir := NAN) -> void:
 		cast_seq += 1
 		for k in n:
 			emit_cast(pl, b.pos, (a0 + TAU * k / n + 0.4 if radial else a0) + 0.35, o2)
+
+
+# ---- 0.21 arsenal (research/arsenal-0.21.md) ----
+
+## Unsafe Staff: true when the hero can pay this much mana in HP and keep at least 1.
+func _bleeds(mp: float) -> bool:
+	var pl := world.player
+	return pl != null and not pl.dead and pl.hp - mp * WandState.BLOOD_HP >= 1.0
+
+
+## Channel Rod: moving (faster than a drift) resets what standing still built.
+func _channel_check() -> void:
+	var pl := world.player
+	if pl == null or world.run == null or pl.vel.length_squared() < CHANNEL_MOVE * CHANNEL_MOVE:
+		return
+	for w in world.run.wands:
+		w.channel = 0
+
+
+## Pair Programmer: each partner out copies the spell it watches when its wand casts it.
+func _pair_echo(w: WandState, out: Array[CastNode], ang: float, opt: Opt) -> void:
+	for s in summons:
+		if s.kind != &"pair" or s.src != w or s.echo_slot < 0:
+			continue
+		for g in out:
+			if g.slot != s.echo_slot or g.free_copy:
+				continue
+			var o := Opt.new()
+			o.gm = opt.gm
+			o.mul = s.echo
+			o.src = w
+			o.depth = 1   # a copy: it refunds nothing and never retries
+			o.sc = opt.sc
+			var from := s.pos + Vector2(0, -4)
+			var tgt := target_near(from, 200.0)
+			cast_seq += 1
+			world.fx.ring(from, 1.0, 6.0, 0.12, s.color)
+			Audio.familiar_shot(g.spell.id, from)
+			emit_cast(g, from, (tgt.position - from).angle() if tgt else ang, o, true)
+
+
+## onLoad(): as the wand recharges, each rune's spell casts itself at the nearest enemy, for
+## its share of that spell's mana.
+func _on_load(w: WandState) -> void:
+	var pl := world.player
+	if pl == null or pl.dead:
+		return
+	for pr in w.load_pairs():
+		if pr[1] < 0:
+			continue
+		var s: Variant = w.slots[pr[1]]
+		var d: SpellDef = Catalog.spell(s["id"]) if s != null else null
+		if not Catalog.is_caster(d):
+			continue
+		var c := CastNode.new()
+		c.spell = d
+		c.level = mini(3, int(s["lv"]))
+		c.mods = Mods.new()
+		c.slot = pr[1]
+		c.cost = d.mana_at(c.level) * LOAD_MP[pr[2] - 1]
+		if not _pay(w, c.cost):
+			continue
+		var from := pl.tip()
+		var tgt := target_near(from, 220.0)
+		var opt := Opt.new()
+		opt.src = w
+		opt.sc = w.def.scatter
+		opt.gm = Relics.dmg_mul(world.run, world.room_time) if world.run else 1.0
+		cast_seq += 1
+		world.fx.ring(from, 2.0, 10.0, 0.2, d.color)
+		Audio.sfx("trigger", from)
+		emit_cast(c, from, (tgt.position - from).angle() if tgt else pl.aim, opt)
+
+
+## Flame Graph marks the fire it sets to spread; Crunch Time speeds up fire set while you're
+## below half HP; Code Freeze makes this wand's chill last longer and freeze at 2.
+func _status_rules(b: Bullet, e: Enemy) -> void:
+	var t := e.forward if e.forward else e
+	if t.dead:
+		return
+	if b.burn > 0 and t.burn_t > 0.0:
+		if b.ignite > 0.0:
+			t.burn_share = true
+		if b.rush > 1.0 and world.player and world.player.hp < world.player.max_hp * 0.5:
+			t.burn_rate = maxf(t.burn_rate, b.rush)
+	if b.chill > 0 and b.src and t.chill_t > 0.0 and not (t is Boss):
+		var cf := b.src.passive_level(&"code_freeze")
+		if cf > 0:
+			t.chill_t *= CODE_FREEZE[mini(cf, 3) - 1]
+			if t.chill_n >= 2 and t.frozen_t <= 0.0:
+				t.chill_n = 0
+				t.frozen_t = 0.9
+				world.fx.ring(t.position + Vector2(0, -4), 2.0, 12.0, 0.25, Style.c("frost:4"))
+				world.fx.text(t.position + Vector2(0, -16), "FROZEN", Style.c("frost:4"))
+				Audio.sfx("freeze", t.position)
+
+
+## Breakpoint: a shard that hits a frozen enemy breaks the ice. Everything close by (the
+## enemy too) takes the shard's damage times its level's factor, and the others are chilled twice.
+func _shatter(b: Bullet, e: Enemy) -> void:
+	e.frozen_t = 0.0
+	e.chill_n = 0
+	var r := SHATTER_R * sqrt(maxf(1.0, b.area))
+	var hit := b.dmg * b.shatter
+	var at := e.position
+	world.fx.ring(at + Vector2(0, -4), 2.0, r, 0.3, Style.c("frost:4"))
+	world.fx.sparks(at + Vector2(0, -4), 12, Style.c("frost:4"), 110.0)
+	world.fx.text(at + Vector2(0, -18), "SHATTER", Style.c("frost:4"))
+	Audio.sfx("freeze", at)
+	world.shake(0.1)
+	var near: Array[Enemy] = []
+	for k in world.hash.query(at, r + 16.0):
+		var o: Enemy = world.enemies[k]
+		if not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(at) < r + o.r:
+			near.append(o)
+	for o in near:
+		world.hurt_enemy(o, hit, at, 0.0, 0.8, false, b.kw)
+		if o != e and not o.dead:
+			world.apply_status(o, 0, 2, hit)
+
+
+## Worm: a kill gives every enemy close by some Bitrot.
+func _worm(e: Enemy, lv: int) -> void:
+	var n: int = WORM_N[clampi(lv, 1, 3) - 1]
+	var hit := false
+	for k in world.hash.query(e.position, WORM_R + 16.0):
+		var o: Enemy = world.enemies[k]
+		if o == e or o.dead or o.spawn_t > 0.0 or o.position.distance_to(e.position) > WORM_R + o.r:
+			continue
+		world.fx.beam(e.position + Vector2(0, -4), o.position + Vector2(0, -4), Style.c("rose:3"), 0.6)
+		world.add_rot(o, n)
+		hit = true
+	if hit:
+		world.fx.ring(e.position + Vector2(0, -4), 2.0, WORM_R, 0.25, Style.c("rose:3"))
+
+
+## World.kill_enemy calls this for every death. Flame Graph: a burning enemy whose fire it set
+## passes that fire (and the spread) to every enemy close by.
+func on_kill(e: Enemy) -> void:
+	if not e.burn_share or e.burn_t <= 0.0:
+		return
+	e.burn_share = false
+	var spread := false
+	for k in world.hash.query(e.position, IGNITE_R + 16.0):
+		var o: Enemy = world.enemies[k]
+		if o == e or o.dead or o.spawn_t > 0.0 or o.position.distance_to(e.position) > IGNITE_R + o.r:
+			continue
+		world.apply_status(o, 1, 0, e.burn_dps / 0.4)
+		var t := o.forward if o.forward else o
+		if t.burn_t > 0.0:
+			t.burn_share = true
+			t.burn_rate = maxf(t.burn_rate, e.burn_rate)
+			world.fx.beam(e.position + Vector2(0, -4), o.position + Vector2(0, -4), Style.c("ember:4"), 0.8)
+			spread = true
+	if spread:
+		world.fx.ring(e.position + Vector2(0, -4), 2.0, IGNITE_R, 0.3, Style.c("ember:4"))

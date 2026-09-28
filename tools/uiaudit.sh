@@ -83,8 +83,11 @@ run_case() {
   fi
   grep "^UIAUDIT: " "$OUT/$tag.log" | grep -v " overlaps$" | sed "s|^UIAUDIT: |$tag  |"
 }
-command -v timeout >/dev/null 2>&1 || timeout() { shift; "$@"; }   # macOS has no timeout
-export -f run_case with_display timeout
+export -f run_case with_display
+if ! command -v timeout >/dev/null 2>&1; then
+  timeout() { shift; "$@"; }   # macOS has no timeout
+  export -f timeout
+fi
 export HERE GAME OUT RENDERER
 
 for res in $RESES; do

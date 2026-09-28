@@ -45,6 +45,9 @@ var say_len := 0.0
 var _taken: Array[Rect2] = []
 var _eased := {}      # message -> its eased y, so a box glides when a tip pushes it up
 var _eased_seen := {}
+var _hold_hint := false
+var _hold_toast := false
+const RELIC_ROW := 6     # relics shown by the gold; more fold into a "+N" (the pause menu lists all)
 var _map := Rect2()   # the room strip this frame; the first wand's cast icons stop short of it
 
 
@@ -115,10 +118,16 @@ func _world_no() -> int:
 
 func _process(dt: float) -> void:
 	banner_t = maxf(0.0, banner_t - dt)
-	toast_t = maxf(0.0, toast_t - dt)
+	# 0.21 (Bar: "this is overwhelming"): one message at a time. A banner holds the toast; a
+	# banner, a spoken line or a toast holds the tip. Held ones wait, their time untouched.
+	_hold_toast = banner_t > 0.0 and banner != ""
+	_hold_hint = _hold_toast or (say_t > 0.0 and say_text != "") or toast_t > 0.0
+	if not _hold_toast:
+		toast_t = maxf(0.0, toast_t - dt)
 	say_t = maxf(0.0, say_t - dt)
-	hint_t = maxf(0.0, hint_t - dt)
-	if hint_t <= 0.0 and not _hint_queue.is_empty():
+	if not _hold_hint:
+		hint_t = maxf(0.0, hint_t - dt)
+	if hint_t <= 0.0 and not _hint_queue.is_empty() and not _hold_hint:
 		hint = _hint_queue.pop_front()
 		Audio.sfx("tip")
 		hint_t = 5.0
@@ -320,7 +329,8 @@ func _draw_wands(origin: Vector2, run: RunState) -> void:
 	var er := Rect2(origin.x, y, BTN, BTN)
 	_button("edit", er, HudIcons.bag())
 	if not run.bag.is_empty():
-		_text(er.position + Vector2(BTN + 4, 17), "%d in bag" % run.bag.size(), Color(0.75, 0.7, 0.85), 8)
+		if not (world.boss and not world.boss.dead):   # a boss fight keeps the corner quiet
+			_text(er.position + Vector2(BTN + 4, 17), "%d in bag" % run.bag.size(), Color(0.75, 0.7, 0.85), 8)
 
 
 ## Design v3: the cast that just went out, as icons beside the wand in hand (boosts, then the
@@ -369,7 +379,8 @@ func _rule_mark(w: WandState, i: int, c: Vector2) -> void:
 			var p := w.read_pos(i)
 			if p >= 0:
 				_text(c + Vector2(-SOCKET / 2.0, -SOCKET / 2.0 + 6), str(p + 1), Style.c("glitch:4"), 8)
-		&"pages":
+		&"pages", &"singleton":
+			# the idle page, or a repeat that sits out (0.21 Singleton Wand)
 			if w.read_pos(i) < 0:
 				draw_circle(c, SOCKET / 2.0, Color(0, 0, 0, 0.55))
 
@@ -572,7 +583,11 @@ func _draw_vitals(bl: Vector2, run: RunState) -> void:
 		draw_rect(Rect2(panel.position + Vector2(16, 5), Vector2(107 * sk, 2)), Style.c("frost:3"))
 	# Virtual Memory: below zero the bar turns red and fills with the debt
 	var debt := w.mana < 0.0
-	_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), (-w.mana if debt else w.mana) / w.max_mana(), Style.c("blood:3") if debt else Style.c("arcane:3"), "%d/%d" % [roundi(w.mana), roundi(w.max_mana())])
+	if w.def.rule == &"blood":
+		# 0.21 Unsafe Staff: it spends HP, not mana; the bar says so
+		_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), 1.0, Style.c("blood:2"), "PAYS IN HP")
+	else:
+		_bar(Rect2(panel.position + Vector2(15, 17), Vector2(109, 9)), (-w.mana if debt else w.mana) / w.max_mana(), Style.c("blood:3") if debt else Style.c("arcane:3"), "%d/%d" % [roundi(w.mana), roundi(w.max_mana())])
 
 
 func _draw_top_right(tr: Vector2, run: RunState) -> void:
@@ -583,8 +598,18 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 	draw_texture(coin, (gr.position + Vector2(4, (BTN - coin.get_height()) / 2.0)).round())
 	_text(gr.position + Vector2(20, 17), str(run.gold), GOLD, 8, "bold")
 	# relics, a compact column under the gold
-	for i in run.relics.size():
-		var p := Vector2(tr.x - 9 - (i % 6) * 19, tr.y + BTN + 12 + (i / 6) * 19)
+	var shown := run.relics.size() if run.relics.size() <= RELIC_ROW else RELIC_ROW - 1
+	if shown < run.relics.size():
+		# the rest fold into a "+N" cell; tapping it opens the pause menu, which lists them all
+		var mp := Vector2(tr.x - 9 - shown * 19, tr.y + BTN + 12)
+		_take(Rect2(mp - Vector2(9, 9), Vector2(18, 18)), "relics")
+		draw_rect(Rect2(mp - Vector2(8, 7), Vector2(16, 14)), Color(0.07, 0.05, 0.13, 0.85))
+		var more := "+%d" % (run.relics.size() - shown)
+		var mw := Game.font("bold").get_string_size(more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(mp + Vector2(-roundf(mw / 2.0), 3), more, GOLD, 8, "bold")
+		buttons["relics_more"] = Rect2(mp - Vector2(10, 10), Vector2(20, 20))
+	for i in shown:
+		var p := Vector2(tr.x - 9 - i * 19, tr.y + BTN + 12)
 		var ic := Icons.relic(run.relics[i])
 		_take(Rect2(p - Vector2(9, 9), Vector2(18, 18)), "relics")
 		draw_texture(ic, (p - ic.get_size() / 2.0).round())
@@ -647,6 +672,22 @@ func relic_pip(id: StringName) -> Array:
 			return ["", run.wand().slots.size() <= 3]
 		&"context_switch":
 			return ["", world.player.swap_cd <= 0.0]
+		# 0.21
+		&"clean_build":
+			return [str(run.clean), run.clean >= Relics.CLEAN_MAX] if run.clean > 0 else []
+		&"code_coverage":
+			return [str(run.cover), run.cover >= Relics.COVER_MAX] if run.cover > 0 else []
+		&"git_clone":
+			var left3 := maxi(0, Relics.CLONE_ROOMS - int(run.stats.get("clone_rooms", 0)))
+			return [str(left3), left3 <= 1]
+		&"hive_mind":
+			return ["", world.time - world.spells.relic_fx.volley_at >= RelicFx.VOLLEY_CD]
+		&"risky_code":
+			var un := 0
+			for sl in run.wand().slots:
+				if sl != null and Relics.unsafe(sl["id"]):
+					un += 1
+			return [str(un), un > 0] if un > 0 else []
 	return []
 
 
@@ -713,7 +754,7 @@ func _draw_boss_bar(sr: Rect2) -> void:
 func _draw_messages(sr: Rect2) -> void:
 	var cx := sr.get_center().x
 	var bottom := sr.end.y - 32.0
-	if hint_t > 0.0 and hint != "":
+	if hint_t > 0.0 and hint != "" and not _hold_hint:
 		bottom = _draw_hint(sr, bottom) - 3.0
 	# 0.21: a speaker with a body here talks in a bubble over their head (drawn last, around
 	# everything else); one without (a voice over a story beat) keeps the box
@@ -724,7 +765,7 @@ func _draw_messages(sr: Rect2) -> void:
 			bottom = _draw_say(sr, cx, bottom) - 3.0
 	if banner_t > 0.0 and banner != "":
 		_draw_banner(sr, cx, bottom)
-	if toast_t > 0.0 and toast != "":
+	if toast_t > 0.0 and toast != "" and not _hold_toast:
 		_draw_toast(sr, cx)
 	if speaker != Vector2.INF:
 		_draw_bubble(sr, speaker)

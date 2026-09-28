@@ -62,8 +62,9 @@ static func tag_weight(tags: Array, owned: Dictionary) -> float:
 	return minf(k, 2.5)
 
 
-## Relics to offer. A Merge Commit whose parents you own is three times as likely; Corrupted
-## relics only come from the Glitch Door (corrupted = true).
+## Relics to offer. A Merge Commit whose parents you own, or a super relic (0.21 DEPENDS)
+## whose needs you meet, is three times as likely; Corrupted relics only come from the Glitch
+## Door (corrupted = true). Relics.offerable also keeps out a Merge Conflict's rival (RIVALS).
 static func roll_relics(run: RunState, n: int, min_rar := 0, corrupted := false) -> Array:
 	var pool: Array = []
 	for id in Relics.DEFS:
@@ -72,7 +73,7 @@ static func roll_relics(run: RunState, n: int, min_rar := 0, corrupted := false)
 	var owned := owned_tags(run)
 	var out: Array = []
 	while out.size() < n and not pool.is_empty():
-		var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Relics.tags(id), owned) * (3.0 if Relics.DEFS[id].has("duo") else 1.0))
+		var w: Array = pool.map(func(id: StringName) -> float: return tag_weight(Relics.tags(id), owned) * (3.0 if Relics.DEFS[id].has("duo") or Relics.DEPENDS.has(id) else 1.0))
 		var i := _weighted_index(w, run.rng)
 		out.append(pool[i])
 		pool.remove_at(i)
@@ -349,6 +350,12 @@ static func _desc(item: Dictionary, lv := 1) -> String:
 			var d: Dictionary = Relics.DEFS[item["id"]]
 			if d.has("duo"):
 				return "%s (from %s + %s)" % [d["desc"], Relics.DEFS[d["duo"][0]]["title"], Relics.DEFS[d["duo"][1]]["title"]]
+			# 0.21: a super says what it needs; a rival says what it shuts out
+			if Relics.DEPENDS.has(item["id"]):
+				return "%s Super: needs %s." % [d["desc"], " + ".join(Relics.DEPENDS[item["id"]].map(func(n: Variant) -> String: return {"Familiar": "Summon", "Carrier": "Trigger", "Debug": "Rune"}.get(n, n) if n is String else String(Relics.DEFS[n]["title"])))]
+			var rv := Relics.rival_of(item["id"])
+			if rv != &"":
+				return "%s Rival: takes %s out of the pool." % [d["desc"], Relics.DEFS[rv]["title"]]
 			return d["desc"]
 		&"wand":
 			return wand_desc(Catalog.wand(item["id"]))
@@ -376,6 +383,9 @@ static func hero_text(id: StringName) -> String:
 ## "Quick and light. 3 slots, 50 mana. Casts every 0.1 s, recharges in 0.35 s."
 static func wand_desc(w: WandDef) -> String:
 	var nums := "%d slots, %d mana. Casts every %s s, recharges in %s s." % [w.slots, int(w.max_mana), _secs(w.cast_delay), _secs(w.recharge)]
+	if w.rule == &"blood":
+		# 0.21 Unsafe Staff: HP pays, so its mana is not a number to plan around
+		nums = "%d slots. Casts every %s s, recharges in %s s." % [w.slots, _secs(w.cast_delay), _secs(w.recharge)]
 	return (w.desc + " " if w.desc != "" else "") + nums
 
 
@@ -476,6 +486,8 @@ static func enables(run: RunState, item: Dictionary) -> Array:
 			var duo := Relics.completes_duo(run, item["id"])
 			if duo != &"":
 				out.append("Duo")
+			if Relics.completes_super(run, item["id"]) != &"":
+				out.append("Super")   # 0.21: taking it lets a super relic into the offers
 			for evo in Catalog.EVOLUTIONS:
 				var ev: Dictionary = Catalog.EVOLUTIONS[evo]
 				if ev["cat"] == item["id"] and owned.has(ev["base"]):

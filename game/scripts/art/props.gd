@@ -194,6 +194,11 @@ static func _familiar(kind: StringName, f: int) -> Image:
 		var eye: String = ["..34ww43..", "..344w43.."][f]
 		return PixelArt.paint(PackedStringArray(["...3333...", "..344443..", eye, "..344443..", "...3333...", "....22....", "...2222...", "..222222..", ".22222222.", "1111111111"]),
 			{"1": "steel:1", "2": "steel:2", "3": "gold:2", "4": "gold:3", "w": "gold:4"})
+	if kind == &"pair":
+		# 0.21 Pair Programmer: a floating partner behind a little laptop, its code scrolling
+		var code: String = [".1gg1g1g1.", ".1g1gg1g1."][f]
+		return PixelArt.paint(PackedStringArray(["...3333...", "..344443..", "..4w44w4..", "..344443..", "...3443...", ".11111111.", code, ".11111111.", "2222222222"]),
+			{"1": "steel:2", "2": "steel:3", "3": "cyan:2", "4": "cyan:3", "w": "cyan:4", "g": "gold:4"})
 	var head: String = ["...34443..", "...3444311"][f]
 	return PixelArt.paint(PackedStringArray(["....333...", head, "...34w4411", "....44411.", "3...4443..", "34444444..", ".3444443..", "..33333..."]),
 		{"1": "ember:3", "3": "gold:2", "4": "gold:3", "w": "night:0"})

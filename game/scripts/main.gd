@@ -729,7 +729,7 @@ func _open_editor(lesson := -1) -> void:
 
 func _on_hud(id: String) -> void:
 	match id:
-		"pause":
+		"pause", "relics_more":
 			_open_pause(false)
 		"edit":
 			_open_editor()

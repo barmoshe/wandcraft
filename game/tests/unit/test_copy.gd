@@ -110,3 +110,25 @@ func test_no_two_things_share_a_name() -> void:
 		var t := Catalog.wand(id).title.to_lower()
 		ok(not seen.has(t), "wand name used twice: %s" % t)
 		seen[t] = true
+
+
+## Story round 2: the bubbles (Barks, the residents' chatter and opinions) use the same
+## vocabulary, and fit: combat barks in 40 characters, the rest in 60.
+func test_bubble_lines_use_the_vocabulary_and_fit() -> void:
+	var texts: Array = []
+	for r in Barks.RULES:
+		var cap := Barks.COMBAT_MAX if Barks.COMBAT.has(StringName(r["event"])) else Barks.BUBBLE_MAX
+		for i in (r["lines"] as Array).size():
+			for l in Barks.entry(r, i):
+				texts.append([l[1], cap])
+	for c in Residents.CHATTER:
+		for l in c["lines"]:
+			texts.append([l[1], Barks.BUBBLE_MAX])
+	for id in Residents.OPINIONS:
+		for of in Residents.OPINIONS[id]:
+			texts.append([Residents.OPINIONS[id][of][1], Barks.BUBBLE_MAX])
+	for t in texts:
+		var low := " " + String(t[0]).to_lower() + " "
+		ok(String(t[0]).length() <= int(t[1]), "fits (%d > %d): %s" % [String(t[0]).length(), t[1], t[0]])
+		for w in BANNED:
+			ok(not low.contains(w), "'%s' in: %s" % [w.strip_edges(), t[0]])

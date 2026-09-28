@@ -72,7 +72,9 @@ const FOR_SPELL := {&"mote": "mote", &"needle": "needle", &"moths": "moths", &"f
 	&"ember": "ember", &"seed": "seed", &"wheel": "wheel", &"disc": "disc", &"mine": "mine", &"null_orb": "null_orb",
 	&"firewall": "firewall", &"bitrot": "bitrot", &"hexcursor": "hexcursor",
 	&"storm_protocol": "spark", &"singularity": "null_orb", &"meltdown": "ember", &"absolute_zero": "frost",
-	&"replicator": "mote", &"exploit_needle": "needle", &"traceroute": "spark", &"spinlock": "disc"}
+	&"replicator": "mote", &"exploit_needle": "needle", &"traceroute": "spark", &"spinlock": "disc",
+	# 0.21 arsenal: element cousins borrow their sprite (Cruft keeps the tinted core)
+	&"flame_graph": "ember", &"breakpoint": "frost", &"daisy_chain": "spark"}
 
 static var _index: Dictionary = {}   # name -> [first cell, frame count, directional]
 static var _cells := 0

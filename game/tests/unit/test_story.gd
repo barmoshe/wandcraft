@@ -121,3 +121,82 @@ func test_an_old_save_is_wiped_once() -> void:
 	SaveGame.in_memory = false
 	SaveGame.enabled = false
 	ok(not SaveGame.reset_if_stale(), "nor with saving off (tests)")
+
+
+## Round 2: entries each event had before (their text is voiced and frozen). Everything
+## after them is new, and new lines fit a speech bubble.
+const ROUND1 := {"first_run": 1, "run": 6, "grove": 3, "world2": 3, "core": 2, "boss:Copy-Paste": 2,
+	"boss:Garbage Collector": 2, "boss:The Infinite Loop": 3, "boss:Deadlock": 2, "down:The Infinite Loop": 2,
+	"down:Deadlock": 1, "down:mini": 2, "untouched": 1, "descend": 1, "death": 5, "win": 1, "heat:1": 1,
+	"heat:2": 1, "heat:3": 1, "heat:4": 1, "heat:5": 1, "hub_first": 1, "hub_back": 3, "hub_death": 3,
+	"hub_boss": 2, "hub_win": 2, "hub_quit": 2, "hub_unlock": 1, "hub_hero": 2, "pkg_bought": 2, "hub_duck": 4,
+	"hub_lint": 3, "world3": 3, "ring": 2, "interrupt": 1, "boss:Data Race": 2, "down:Data Race": 1,
+	"boss:The Glitch": 2, "glitch:unwind": 1, "glitch:revert": 1, "down:The Glitch": 1, "true_win": 1, "hub_epilogue": 3}
+const BUBBLE := 60
+
+
+func test_round_two_lines_fit_and_every_pack_has_a_word() -> void:
+	for ev in Story.LINES:
+		var entries: Array = Story.LINES[ev]
+		ok(entries.size() >= int(ROUND1.get(ev, 0)), "%s kept its old entries" % ev)
+		for i in range(int(ROUND1.get(ev, 0)), entries.size()):
+			for l in Story.entry(ev, i):
+				ok(Story.SPEAKERS.has(l["who"]), "%s: a known speaker" % l["id"])
+				ok(String(l["text"]).length() <= BUBBLE, "%s fits a bubble: %s" % [l["id"], l["text"]])
+	for ev in ["first_run", "descend", "untouched", "win", "interrupt", "hub_unlock", "down:The Infinite Loop",
+			"down:Deadlock", "down:mini", "down:Data Race", "down:The Glitch", "world3", "ring", "archive",
+			"heat:1", "heat:2", "heat:3", "heat:4", "heat:5", "glitch:unwind", "glitch:revert"]:
+		ok((Story.LINES.get(ev, []) as Array).size() >= 3, "%s has 3 or more entries" % ev)
+	for p in Meta.PACKS:
+		ok(Story.LINES.has("pkg_bought:" + String(p["id"])), "a word for the %s pack" % p["id"])
+
+
+func test_the_log_has_seventeen_entries_and_hotfix_tells_his() -> void:
+	eq(Story.LOGS.size(), 17, "seventeen entries")
+	eq(Story.LOGS[16]["id"], "h07f1x", "the seventeenth is Hotfix's")
+	Residents._mem = {"runs": 0, "wins": 1, "best_step": 25, "story_flags": ["confessed"]}
+	Residents.rescue(&"hotfix")
+	var m := Residents._mem
+	m["residents"]["hotfix"]["beat"] = 5
+	m["runs"] = 3
+	Residents._mem = m
+	eq(Residents.next_beat(&"hotfix"), -1, "not before four runs have passed")
+	m["runs"] = 4
+	Residents._mem = m
+	eq(Residents.next_beat(&"hotfix"), 5, "with Grep's told and runs behind him, his secret")
+	var said := Residents.talk(&"hotfix")
+	eq(said[0]["id"], "res.hotfix.arc.5.0", "the sixth beat")
+	ok(Residents.flag("hotfix_told"), "remembered")
+	ok(Story.logs_found().any(func(l: Dictionary) -> bool: return l["id"] == "h07f1x"), "and the commit is in the log")
+	eq(Residents.waits_for(&"hotfix"), "More to say once you own 3 skins.", "his last beat waits on the forge")
+	Residents._mem = {}
+
+
+func test_residents_have_six_or_more_beats_with_varied_gates() -> void:
+	var gates := {}
+	for id in Residents.ORDER:
+		var arc: Array = Residents.ARCS[id]
+		ok(arc.size() >= 6 and arc.size() <= 7, "%s has 6-7 beats (%d)" % [id, arc.size()])
+		for b in arc:
+			for k in b["need"]:
+				gates[k] = true
+	ok(gates.size() >= 7, "the beats wait on many kinds of thing (%s)" % str(gates.keys()))
+
+
+func test_chatter_and_opinions() -> void:
+	Residents._mem = {"runs": 0}
+	eq(Residents.chatter(), [], "nobody home, no chatter")
+	Residents.rescue(&"grep")
+	Residents.rescue(&"hotfix")
+	eq(Residents.chatter()[0]["id"], "res.chat.0.0", "the first that fits")
+	eq(Residents.chatter()[0]["id"], "res.chat.3.0", "then the next that fits")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2
+	ok(not Residents.chatter(rng).is_empty(), "then any of them")
+	eq(Residents.opinion(&"grep", &"hotfix")[0]["id"], "res.grep.of.hotfix", "Grep on Hotfix")
+	eq(Residents.opinion(&"grep", &"cache"), [], "not on someone who hasn't moved in")
+	for c in Residents.CHATTER:
+		ok((c["lines"] as Array).size() >= 2 and (c["lines"] as Array).size() <= 3, "chatter is 2-3 lines")
+		for l in c["lines"]:
+			ok(String(l[1]).length() <= BUBBLE, "fits a bubble: %s" % l[1])
+	Residents._mem = {}

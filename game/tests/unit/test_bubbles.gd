@@ -97,7 +97,7 @@ func test_companions_follow_and_never_stand_in_walls() -> void:
 func test_companions_arrive_with_you_in_a_new_room() -> void:
 	world.build_room("hall", &"empty")
 	for c in world.companions:
-		ok(c.position.distance_to(world.player.position) < 20.0, "%s is at your side when the room opens" % c.kind)
+		ok(c.position.distance_to(world.player.position) < Companion.GAP + 10.0, "%s is at your side when the room opens" % c.kind)
 
 
 func test_dialogue_drops_a_walked_away_talk_and_keeps_exchanges_fresh() -> void:

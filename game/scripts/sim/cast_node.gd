@@ -22,6 +22,10 @@ var delay := 0.0
 var free_copy := false       # HEAD: a free copy of the first shooting spell
 ## Tarball (0.20): a second spell released together with this one, wherever it goes out.
 var also: CastNode
+## 0.21: Pair Programmer copies the spell in this slot when it is cast (-1: none); Squash makes a
+## summon this much stronger.
+var echo := -1
+var fuse := 1.0
 ## Per-bullet values worked out once per compiled node (SpellRunner._prep), not per bullet.
 var prepped := false
 var p_r := 2.0
@@ -42,6 +46,10 @@ var p_split := 0
 var p_grow := 1.0             # Zip Bomb: bigger and stronger per spell cast before it
 var p_stall := 0.0            # Blue Screen: freezes each enemy once for this long
 var p_accel := 0.0            # Drill Bit (level 3): speeds up per enemy it passes
+var p_age := 1.0              # Cruft: stronger per room cleared this run
+var p_ignite := 0.0           # Flame Graph: its fire spreads this far when a burning enemy dies
+var p_shatter := 0.0          # Breakpoint: a frozen enemy shatters for this many times the damage
+var p_hop := 0.0              # Daisy Chain: damage added per jump
 
 
 func describe() -> String:

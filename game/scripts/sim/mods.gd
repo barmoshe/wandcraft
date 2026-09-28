@@ -37,6 +37,9 @@ var jit := 0             # level of Just-in-Time on these spells (0: none)
 var cast_n := 0          # shooting spells cast before this one since the last recharge (Zip Bomb)
 var fill := 0            # Autocomplete's level: empty slots from here on cast a copy (0: off)
 var fill_src := -1       # the slot of the last shooting spell read (what Autocomplete copies)
+# 0.21 arsenal (research/arsenal-0.21.md)
+var worm := 0            # Worm's level: a kill gives nearby enemies Bitrot (0: off)
+var rush := 1.0          # Crunch Time: fire set below half HP burns this much faster
 
 
 func copy() -> Mods:
@@ -51,6 +54,7 @@ func copy() -> Mods:
 	m.blame = blame
 	m.buffered = buffered; m.retry = retry; m.jit = jit
 	m.cast_n = cast_n; m.fill = fill; m.fill_src = fill_src
+	m.worm = worm; m.rush = rush
 	return m
 
 

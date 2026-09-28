@@ -21,7 +21,12 @@ var doors: Array = []               # the doors this room will offer once cleare
 ## research/difficulty.md: 120 made a mistake cost 3-6% of HP; testers found the run easy.
 const BASE_HP := 80.0
 var hp := BASE_HP
-var max_hp := BASE_HP
+## 0.21 Fixed Vitals (Version Pin): once owned, max HP ignores every change (a setter, so the
+## Glitch Door, hearts, Vital Patch and the rest are all covered). Saves load it before relics.
+var max_hp := BASE_HP:
+	set(v):
+		if not relics.has(&"version_pin"):
+			max_hp = v
 var gold := 0
 var wands: Array[WandState] = []
 var cur := 0
@@ -36,6 +41,9 @@ var rerolls_here := 0               # design v3: shop rerolls this visit (the pr
 var map: Array = []                # D5: the 3-lane map (Chapter.make_map), per step an Array of nodes
 var lane := 1                       # the lane the player is on
 var uptime := 0                     # Uptime relic: rooms in a row cleared without a hit
+var clean := 0                      # 0.21 Clean Streak: casts in a row with no unsafe spell (not saved)
+var cover := 0                      # 0.21 Wand Variety: stacks this room (not saved)
+var cover_n := {}                   # 0.21 Wand Variety: wand index -> casts this room
 var stats := {"kills": 0, "damage": 0.0, "rooms": 0, "time": 0.0, "bosses": 0, "first_edit": -1.0, "first_trigger": -1.0}
 var won := false
 var tutorial := false               # D9: the first run's curriculum (Tutorial)

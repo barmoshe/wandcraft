@@ -389,36 +389,61 @@ func draw_top(ci: CanvasItem) -> void:
 		ci.draw_arc(pp, rr, a0, a0 + PI * 1.3, 16, Color(gold.r, gold.g, gold.b, 0.75 - k * 0.2), 1.0)
 	ci.draw_circle(pp, 4.0 + sin(t * 6.0), Color(1.0, 0.9, 0.5, 0.35))
 	var f := Game.font("small")
-	# every station keeps a small name under it, so nothing in the room is a secret
+	# every station keeps a small name under it, so nothing in the room is a secret.
+	# 0.21: the label of the station in reach wins; a name it would cover steps aside
+	var near_r: Array[Rect2] = []
+	var talking := speaking()
+	var show_near := near != "" and near != talking
+	var at: Vector2 = anchors[near][maxi(0, near_arg)] + Vector2(0, -30) if near != "" else Vector2.ZERO
+	if show_near:
+		for k in 2:
+			near_r.append(_label_rect(f, at + Vector2(0, k * 9), _near_label(k)))
+	var clear_of := func(p: Vector2, s1: String, size := 8) -> bool:
+		var r1 := _label_rect(f, p, s1, size)
+		return not near_r.any(func(q: Rect2) -> bool: return q.intersects(r1))
 	var hs: Array = anchors.get("heroes", [])
 	if near != "heroes" and hs.size() >= 2:
-		_label(ci, f, (hs[hs.size() / 2] as Vector2) + Vector2(0, 18), "HEROES", Color(Color(STATIONS["heroes"]["color"]), 0.8))
+		var hp := (hs[hs.size() / 2] as Vector2) + Vector2(0, 18)
+		if clear_of.call(hp, "HEROES"):
+			_label(ci, f, hp, "HEROES", Color(Color(STATIONS["heroes"]["color"]), 0.8))
 	for id in anchors:
 		if id == near or id == "heroes" or id == "duck" or id == "lint" or STATIONS[id].get("resident", false):
 			continue
-		var ap: Vector2 = anchors[id][0]
+		var ap: Vector2 = anchors[id][0] + Vector2(0, 16 if id != "portal" else 14)
 		var nm := String(SHORT.get(id, STATIONS[id]["title"]))
 		var c := Color(STATIONS[id]["color"]) if open(id) else Color(0.5, 0.45, 0.6)
-		_label(ci, f, ap + Vector2(0, 16 if id != "portal" else 14), nm, Color(c, 0.8))
-	var talking := speaking()
-	if near != "" and near != talking:
+		if clear_of.call(ap, nm):
+			_label(ci, f, ap, nm, Color(c, 0.8))
+	if show_near:
 		var st: Dictionary = STATIONS[near]
 		var locked := not open(near)
-		var label := String(st["title"])
-		if near == "heroes" and near_arg >= 0 and near_arg < HEROES.size():
-			label = String(RunState.LOADOUTS[HEROES[near_arg]]["title"]).to_upper()
-		var sub := String(st.get("locked", "")) if locked else String(st["sub"])
-		var at: Vector2 = anchors[near][maxi(0, near_arg)] + Vector2(0, -30)
-		_label(ci, f, at, label, Color(st["color"]) if not locked else Color(0.6, 0.55, 0.7))
-		_label(ci, f, at + Vector2(0, 9), sub, Color(0.9, 0.9, 1.0, 0.85))
-	# 0.20: a resident with a new beat to tell wears a "!"
+		_label(ci, f, at, _near_label(0), Color(st["color"]) if not locked else Color(0.6, 0.55, 0.7))
+		_label(ci, f, at + Vector2(0, 9), _near_label(1), Color(0.9, 0.9, 1.0, 0.85))
+	# 0.20: a resident with a new beat to tell wears a "!" (not while talking, not under a label)
 	for id in Residents.ORDER:
 		var key := String(id)
 		if anchors.has(key) and news.get(id, false) and key != talking:
 			var ep: Vector2 = anchors[key][0] + Vector2(0, -34 + sin(t * 4.0) * 1.5)
-			_label(ci, f, ep, "!", Color(STATIONS[key]["color"]), 16)
+			if clear_of.call(ep, "!", 16):
+				_label(ci, f, ep, "!", Color(STATIONS[key]["color"]), 16)
 	if open("repl") and dummy and is_instance_valid(dummy):
 		_label(ci, f, dummy.position + Vector2(0, -22), "DPS %d" % roundi(dps), Color("#5ce1ff") if dps > 0.0 else Color(0.6, 0.55, 0.7))
+
+
+## The label of the station in reach: its title (0) or its line (1).
+func _near_label(k: int) -> String:
+	var st: Dictionary = STATIONS[near]
+	if k == 0:
+		if near == "heroes" and near_arg >= 0 and near_arg < HEROES.size():
+			return String(RunState.LOADOUTS[HEROES[near_arg]]["title"]).to_upper()
+		return String(st["title"])
+	return String(st.get("locked", "")) if not open(near) else String(st["sub"])
+
+
+## Where _label draws a string, for keeping labels apart.
+static func _label_rect(f: Font, at: Vector2, s: String, size := 8) -> Rect2:
+	var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	return Rect2(at + Vector2(-w / 2.0 - 2, -size * 0.9), Vector2(w + 4, size * 0.9 + 3))
 
 
 func _label(ci: CanvasItem, f: Font, at: Vector2, s: String, c: Color, size := 8) -> void:

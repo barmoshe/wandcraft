@@ -303,7 +303,10 @@ const CAST := {&"mote": "cast_spark", &"replicator": "cast_spark", &"lance": "ca
 	&"ember": "cast_fire", &"meltdown": "cast_fire", &"firewall": "cast_wall", &"frost": "cast_ice",
 	&"absolute_zero": "cast_ice", &"spark": "cast_chain", &"storm_protocol": "cast_chain", &"static": "cast_static",
 	&"hexcursor": "cast_arcane", &"ping": "cast_ping", &"bitrot": "cast_rot", &"null_orb": "cast_void",
-	&"singularity": "cast_void", &"daemon": "cast_summon", &"turret": "cast_summon", &"duck": "cast_summon"}
+	&"singularity": "cast_void", &"daemon": "cast_summon", &"turret": "cast_summon", &"duck": "cast_summon",
+	# 0.21 arsenal: each new shooting spell or summon sounds like its element
+	&"flame_graph": "cast_fire", &"breakpoint": "cast_ice", &"cruft": "cast_rot", &"daisy_chain": "cast_chain",
+	&"pair_prog": "cast_summon"}
 const CAST_OFFSET := {&"replicator": [-2.0, 2.0], &"exploit_needle": [-2.0, 0.0], &"meltdown": [-3.0, 2.0],
 	&"absolute_zero": [-2.0, 0.0], &"storm_protocol": [-2.0, 0.0], &"singularity": [-3.0, 0.0]}
 ## The hit a spell's element makes (by its cast sound); the rest hit as "hit".

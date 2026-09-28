@@ -124,6 +124,22 @@ const PACKS := [
 	{"id": "mem", "title": "Memory", "file": "mem.pkg", "price": 140, "color": "#6ad0ff", "needs": "world2",
 		"blurb": "Buffers, paging and borrowed mana.",
 		"items": [&"buffering", &"virtual_memory", &"cache_hit", &"tarball", &"autocomplete", &"double_buffer", &"recycle_bin", &"lazy_eval", &"cold_storage"]},
+	# 0.21, arsenal round 2 (ADR 0032): the thin builds, and a few rule-breakers
+	{"id": "blast", "title": "Blast Radius", "file": "blast.pkg", "price": 100, "color": "#ffb86b",
+		"blurb": "Bigger booms, spreading fire, shattering frost.",
+		"items": [&"load_spike", &"side_effects", &"burn_in", &"chain_reaction", &"flame_graph", &"breakpoint"]},
+	{"id": "status", "title": "Status Codes", "file": "status.pkg", "price": 120, "color": "#8ff0ff",
+		"blurb": "Burn, freeze, rot and shock builds that hold together.",
+		"items": [&"live_wire", &"overvoltage", &"cold_spill", &"flash_freeze", &"crunch_time", &"code_freeze", &"cruft", &"worm", &"daisy_chain"]},
+	{"id": "daemon", "title": "Daemons", "file": "daemon.pkg", "price": 120, "color": "#7cf0c8",
+		"blurb": "Summons that share your boosts, pair up and merge.",
+		"items": [&"inheritance", &"graceful_exit", &"hive_mind", &"pair_prog", &"squash", &"hot_reload", &"channel_rod"]},
+	{"id": "linker", "title": "Linker", "file": "linker.pkg", "price": 120, "color": "#ffe066", "needs": "world1",
+		"blurb": "Pointers, hooks and wands that read their own rules.",
+		"items": [&"pointer", &"on_load", &"singleton", &"decorator_rod", &"monorepo"]},
+	{"id": "unsafe", "title": "Unsafe Code", "file": "unsafe.pkg", "price": 140, "color": "#ff6fd2", "needs": "world2",
+		"blurb": "Spells paid in HP, copied relics, locked vitals.",
+		"items": [&"clean_build", &"risky_code", &"version_pin", &"code_coverage", &"git_clone", &"unsafe_staff", &"symlink"]},
 ]
 ## How many packs the merchant shelves at once.
 const SHELF := 3

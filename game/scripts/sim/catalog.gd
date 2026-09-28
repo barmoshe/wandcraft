@@ -39,6 +39,11 @@ const TAGS := {
 	&"tarball": ["Carrier"], &"await_hit": ["Trigger"], &"buffering": ["Multi"], &"retry": ["Survival"],
 	&"jit": ["Crit"], &"end_scope": ["Debug"], &"alt_tab": ["Debug"], &"autocomplete": ["Debug", "Multi"],
 	&"ctrl_alt_del": ["Survival", "Debug"], &"virtual_memory": ["Economy"], &"cache_hit": ["Economy"],
+	# 0.21 arsenal: the thin builds (Burn, Frost, Rot, Shock, summons) and a few rule-breakers
+	&"flame_graph": ["Burn", "Area"], &"crunch_time": ["Burn", "Survival"], &"breakpoint": ["Frost", "Area"],
+	&"code_freeze": ["Frost"], &"cruft": ["Rot"], &"worm": ["Rot", "Area"], &"daisy_chain": ["Shock"],
+	&"pair_prog": ["Familiar", "Multi"], &"squash": ["Familiar", "Debug"], &"pointer": ["Debug", "Multi"],
+	&"symlink": ["Debug", "Glitch"], &"on_load": ["Trigger", "Debug"],
 }
 
 ## Items sold in the 0.19 spell packs (Networking, Concurrency, Version Control, Hardware)
@@ -54,6 +59,12 @@ const PACK_ITEMS: Array[StringName] = [
 	&"zip_bomb", &"drill_bit", &"jit", &"end_scope", &"alt_tab", &"palindrome", &"shuffle_play", &"shared_memory",
 	&"graceful_degrade", &"swap_space", &"thread_join", &"undo_stack", &"warm_cache",
 	&"buffering", &"virtual_memory", &"cache_hit", &"tarball", &"autocomplete", &"double_buffer", &"recycle_bin", &"lazy_eval", &"cold_storage",
+	# 0.21 (Blast Radius, Status Codes, Daemons, Linker, Unsafe Code)
+	&"load_spike", &"side_effects", &"burn_in", &"chain_reaction", &"live_wire", &"overvoltage", &"cold_spill", &"flash_freeze",
+	&"inheritance", &"graceful_exit", &"hive_mind", &"clean_build", &"risky_code", &"version_pin", &"code_coverage", &"git_clone",
+	&"flame_graph", &"crunch_time", &"breakpoint", &"code_freeze", &"cruft", &"worm", &"daisy_chain", &"pair_prog", &"squash",
+	&"pointer", &"symlink", &"on_load",
+	&"channel_rod", &"unsafe_staff", &"singleton", &"decorator_rod", &"hot_reload", &"monorepo",
 ]
 
 
@@ -290,6 +301,25 @@ static func _build() -> void:
 	_s("virtual_memory", S, "Virtual Memory", "#5ce1ff", {}, "The wand can keep casting down to {20/35/50} mana below zero. Below zero, its mana refills 30% slower.")
 	_s("cache_hit", S, "Cache Hit", "#72e06a", {}, "A spell cast right after a copy of itself costs {30/50/70}% less mana.")
 
+	# ---- 0.21 arsenal (research/arsenal-0.21.md): not core; the lead packs them ----
+	_s("flame_graph", P, "Flame Graph", "#ff7a3c", {"mp": [6, 8, 10], "dmg": [7, 10, 14], "p": {"speed": 200, "radius": 2.5, "life": 0.9, "burn": [1, 1, 2], "ignite": 44.0}},
+		"A fire bolt. When an enemy it set burning dies, the fire spreads to every enemy nearby, and on from them.", "Its fire burns twice as hot.")
+	_s("crunch_time", B, "Crunch Time", "#ff5a4a", {"mp": [4]}, "Spells on its right set enemies on fire. Fire set while you're below half HP burns {1.5/2/2.5}x as fast.")
+	_s("breakpoint", P, "Breakpoint", "#bff4ff", {"mp": [5, 6, 8], "dmg": [5, 7, 10], "p": {"speed": 230, "radius": 2.0, "life": 0.9, "chill": 1, "shatter": [1.5, 2.0, 2.5]}},
+		"An ice shard that chills. When it hits a frozen enemy, the ice shatters: everything nearby takes {1.5/2/2.5}x its damage and is chilled twice.")
+	_s("code_freeze", S, "Code Freeze", "#9fd8ff", {}, "This wand's chills last {40/70/100}% longer, and 2 chills freeze an enemy instead of 3.")
+	_s("cruft", P, "Cruft", "#e060b8", {"mp": [5, 6, 8], "dmg": [5, 7, 10], "p": {"speed": 190, "radius": 2.5, "life": 1.0, "rot": 1, "per_room": [0.04, 0.05, 0.06]}},
+		"A rotting bolt that adds 1 Bitrot. It deals +{4/5/6}% damage for each room cleared this run.")
+	_s("worm", R, "Worm", "#ff6fd2", {"mp": [3, 2, 2]}, "A kill by a spell on its right gives each enemy nearby {2/3/4} Bitrot.")
+	_s("daisy_chain", P, "Daisy Chain", "#ffe45a", {"rar": 1, "mp": [6, 8, 10], "dmg": [4, 6, 8], "kw": ["shock"], "p": {"speed": 240, "radius": 2.0, "life": 0.8, "chain": [3, 4, 5], "hop": [0.25, 0.35, 0.5]}},
+		"Jumps between up to {3/4/5} enemies and deals +{25/35/50}% more after each jump. Strips wards.")
+	_s("pair_prog", F, "Pair Programmer", "#8ff0ff", {"rar": 1, "mp": [8, 9, 10], "dmg": [0], "beh": "pair", "p": {"life": [8.0, 10.0, 12.0], "echo": [0.5, 0.6, 0.75]}},
+		"Summons a partner for {8/10/12} s. Each time you cast the shooting spell on its right, the partner casts a copy at {50/60/75}% damage. One at a time.")
+	_s("squash", R, "Squash", "#9b7bff", {"rar": 1, "mp": [4, 3, 2], "p": {"fuse": [1.5, 1.75, 2.0]}}, "The next two summons on its right merge into one. It stays out as long as both and is {1.5/1.75/2}x as strong.")
+	_s("pointer", R, "*ptr", "#5ce1ff", {"mp": [2, 1, 1]}, "Casts a copy of the next shooting spell on its right, at {60/80/100}% damage. That spell still casts in its turn.")
+	_s("symlink", R, "Symlink", "#5ce1ff", {"rar": 2, "mp": [2, 1, 0]}, "Works as a copy of whatever is in the wand's leftmost slot: a boost, a rune or a spell.")
+	_s("on_load", R, "onLoad()", "#ffe066", {"rar": 1, "mp": [1]}, "Takes the spell on its right out of the wand's order. Each time the wand recharges, that spell casts itself at the nearest enemy for {100/75/50}% of its mana.")
+
 	# ---- wands ----
 	# 0.20: regen 16 -> 22; the lessons' wands ran dry in seconds (Bar's screenshot: OUT OF MANA)
 	_w(&"twig", "Twig Wand", 0, 3, 50, 22, 0.1, 0.35, 4, 1, false, "#c8a070", "Quick and light.")
@@ -322,6 +352,19 @@ static func _build() -> void:
 	_wands[&"double_buffer"].rule = &"pages"
 	_w(&"recycle_bin", "Recycle Bin", 1, 6, 150, 0, 0.12, 0.45, 6, 1, false, "#72e06a", "Its mana never refills on its own: every kill gives it 12, and it starts each room full.")
 	_wands[&"recycle_bin"].rule = &"recycle"
+	# 0.21 arsenal: six more rules (research/arsenal-0.21.md)
+	_w(&"channel_rod", "Channel Rod", 1, 6, 110, 22, 0.16, 0.55, 4, 1, false, "#9fe8ff", "Each cast while you stand still adds +8% damage, up to +80%. Moving resets it.")
+	_wands[&"channel_rod"].rule = &"channel"
+	_w(&"unsafe_staff", "Unsafe Staff", 2, 6, 60, 20, 0.12, 0.45, 5, 1, false, "#ff4d6d", "Spells cost HP instead of mana, 1 HP per 25 mana, and deal +50% damage. It never spends your last HP.")
+	_wands[&"unsafe_staff"].rule = &"blood"
+	_w(&"singleton", "Singleton Wand", 1, 7, 110, 24, 0.14, 0.5, 5, 1, false, "#e6fbff", "A repeat of a spell already on it is skipped. Every spell deals +8% damage for each different spell on it.")
+	_wands[&"singleton"].rule = &"singleton"
+	_w(&"decorator_rod", "Decorator Rod", 1, 7, 110, 22, 0.14, 0.5, 5, 1, false, "#ffd05e", "A boost here powers only the next spell, but counts twice.")
+	_wands[&"decorator_rod"].rule = &"decorator"
+	_w(&"hot_reload", "Hot-Reload Wand", 1, 5, 90, 22, 0.12, 1.4, 5, 1, false, "#ff8a3c", "Switching to it finishes its recharge at once.")
+	_wands[&"hot_reload"].rule = &"hot_reload"
+	_w(&"monorepo", "Monorepo", 2, 12, 180, 28, 0.16, 0.2, 5, 1, false, "#72e06a", "Its recharge takes 0.1 s longer for each spell on it.")
+	_wands[&"monorepo"].rule = &"monorepo"
 
 
 static func _w(id: StringName, title: String, rar: int, slots: int, mana: float, regen: float, dl: float, rc: float,
@@ -379,3 +422,6 @@ static func apply_boost(id: StringName, m: Mods, lv: int) -> void:
 			m.dmg *= [1.1, 1.2, 1.35][i]
 		&"retry": m.retry = maxi(m.retry, [1, 1, 2][i])
 		&"jit": m.jit = maxi(m.jit, i + 1)
+		&"crunch_time":
+			m.burn = maxi(m.burn, 1)
+			m.rush = maxf(m.rush, [1.5, 2.0, 2.5][i])

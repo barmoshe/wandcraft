@@ -75,6 +75,11 @@ var landed := false    # touched an enemy at least once (Retry recasts a spell t
 var tries := 0         # Retry: recasts already spent on this spell
 var stall := 0.0       # Blue Screen: freezes each enemy it touches once, for this long
 var once := PackedInt32Array()   # Blue Screen: enemies it already froze
+# 0.21 arsenal
+var ignite := 0.0      # Flame Graph: fire it sets spreads this far when the enemy dies
+var rush := 1.0        # Crunch Time: fire it sets below half HP burns this much faster
+var shatter := 0.0     # Breakpoint: hitting a frozen enemy shatters it for this many times the damage
+var hop := 0.0         # Daisy Chain: damage added per jump
 
 
 func reset() -> void:
@@ -111,6 +116,10 @@ func reset() -> void:
 	tries = 0
 	stall = 0.0
 	once.clear()
+	ignite = 0.0
+	rush = 1.0
+	shatter = 0.0
+	hop = 0.0
 	blocks = false
 	ext = false
 	pierce = 0

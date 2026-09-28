@@ -37,7 +37,7 @@ Written 2026-09-27 for plan 0.18 Step 1 (Bar's ask: "make the switch between wor
    - Boss entrances ("boss:<title>") and falls ("down:<title>", "down:mini").
    - Deaths: "death", shown on the end screen.
 4. **The commit log** is the collectible thread.
-   - Ten entries. Debug Terminals give the plain ones in order, and story beats give their own (`at`: the Grove, the Loop's fall, Deadlock's fall, the win).
+   - Seventeen entries since round 2 (ten at first, sixteen after 0.20). Debug Terminals give the plain ones in order, and story beats give their own (`at`: the Grove, the Loop's fall, Deadlock's fall, the win, and later the residents' beats).
    - The Codex LOGS tab lists them, with "??????" for the ones not yet found.
    - Read in order, they tell the twist without a cutscene.
 5. **Panels only twice.** The intro shows before a first run and the ending on a first win, four panels each. Tap to go on, and SKIP leaves at once. Each shows once (`intro_seen`, `ending_seen`).
@@ -76,3 +76,26 @@ Bar's ask (28 Sep): "improve the story, more NPC, more worlds". The research is 
 - **Two endings.** Every win at the Glitch reverts: the Source rolls back to 16:58, the moss closes its eyes, and the Duck goes quiet (`ENDING`). With a win behind you, every resident rescued and Grep's confession heard, the Glitch's fall asks first (CommitScreen): REVERT or FIX FORWARD. Fixing forward keeps what grew from the bug (`TRUE_ENDING`), LINT says "I" for the first time ("I approve this commit"), and the Workshop holds a blameless post-mortem (`hub_epilogue`, the residents' `EPILOGUE` lines).
 - **The Lost Pages:** twelve tiny source files whose comments tell the Arcanum's history, found one per boss once Cache has moved in, read at her station.
 - **Voices:** Grep, Hotfix and Cache each get a Kokoro voice and chain (`research/voices-plan.md`).
+
+## Round 2: companions, barks and arcs (28 Sep)
+The NPCs leave the HUD for the world. In a run the Duck waddles beside you and LINT hovers behind as a monitor drone; their lines are bubbles over their heads (about 48 characters reads best, two short lines in combat). Grep, Hotfix and Cache talk in bubbles in the Workshop. The lines and the picking are pure sim (`story.gd`, `residents.gd`, `barks.gd`); the bubbles and the hooks are the lead's.
+
+### Bark rules (`game/scripts/sim/barks.gd`)
+Valve's dynamic dialog (rules matched against facts) with Hades' priority buckets. These are design inferences, not sourced findings:
+- **A rule** has an event, criteria over a facts Dictionary (a value, or `[op, v]` with `< <= > >= == != in`), a priority, a `once` flag, `carry`, `sets` (memory) and its entries. Remembered facts come along as `mem.<key>`.
+- **Picking:** the highest priority wins, then the most specific rule (more criteria), then the earlier one. Entries play in order the first time through (seen counts in `meta.json` under `barks`), then at random.
+- **No immediate repeats:** a ring of each speaker's last 3 lines. In a small pool, anything but that speaker's very last line.
+- **Cooldowns:** 3 s after any bark and 8 s per speaker, so the Duck and LINT take turns. The Workshop's moments (`hub_return`, `carry`, `lint`) ignore both, and so does a boss changing phase.
+- **Carry-over (Hades II's Hecate):** a `carry` rule held back by a cooldown is saved (up to 6, one per event), and `carry_over()` brings the best of them up at the next Workshop visit, then clears them.
+- **The post-mortem:** `end_run()` stashes the run's facts before the save counts it (died_to, world, step, depth, won, quit, record, first_win, heat, relics, the wand's rule, pack_new, same_killer, killer_count). `hub_return()` picks from 43 entries (23 rules): the first win (framed, and the frame is called back later), a nemesis (three deaths to the same thing), the same killer twice, a depth record, each boss, a short run, a quit, a new pack, a rule wand, relic hauls, heat, then the generic ones.
+- **Combat barks** (40 characters at most, the Duck warm and wry, LINT pedantic and dry): low HP, a fast room, a big hit, an elite, an empty wand, a rule wand's first cast (shuffle, pinned, palindrome, pages, recycle), status builds (burn, frost, rot, shock) and boss phases.
+
+### The log's seventeenth entry: Hotfix's secret
+`h07f1x`, "hotfix: mute failing tests. Build green. Friday, 16:59:30." Your push turned the Guild's tests red. The Glitch's first copy did what it was made for and muted them, so Guild CI passed (`b00b1e`) and shipped your bug into the Source. Hotfix has been fixing things ever since, for real this time. It is his sixth beat, told once Grep has confessed and four runs have passed since Hotfix's rescue. The twist now has four authors: you pushed, LINT warned, Grep approved unread and Hotfix hid it. That makes the blameless post-mortem earned rather than generous.
+
+### Arcs
+- **LINT's code smells:** `Story.smells(wand)` reads a wand without changing it. It flags no shooting spell, a trigger with no spell to its right, a boost with no spell to its right, the same spell three times in a row, and an empty slot between spells. It follows the wand's reading order and leaves out what the wand's rule makes fine. `Barks.lint_review()` flags the worst smell it hasn't raised yet. When a flagged smell is gone, that counts as advice followed. The third one unlocks LINT's trick.
+- **LINT's trick, Red Squiggle:** once a room, LINT underlines one enemy with a red squiggle, the elite or the toughest one on screen. It shows that enemy's next attack a moment early and takes a little more damage from you. It is a reward for listening to the linter, and it is the lead's to wire and tune.
+- **Residents:** seven beats each, gated on different things: heat (Grep), skins owned (Hotfix), lifetime runs (Cache), flags (confessed, hotfix_told, fixed_forward), pages and runs since the rescue. Cache's last beat is that she kept Hotfix's commit and never deleted it.
+- **Chatter:** 11 overheard exchanges of 2 or 3 lines (`Residents.CHATTER`), between residents and with the Duck and LINT, each gated on who lives there and on story flags. The last one calls back the first: "It wasn't broken." There are also opinions (`Residents.OPINIONS`): what each resident thinks of each neighbour, the Duck and LINT.
+- **More lines** for the thin events, a new `archive` event (the Page Archive), and a word for every pack bought (`pkg_bought:<pack id>`).

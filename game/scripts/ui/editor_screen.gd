@@ -184,6 +184,19 @@ static func _rule_tag(w: WandState) -> String:
 			return "PAGE %d OF 2 PLAYS NEXT" % (w.page + 1)
 		&"recycle":
 			return "KILLS REFILL MANA"
+		# 0.21
+		&"channel":
+			return "STILL: +%d%%" % roundi((w.channel_mul() - 1.0) * 100.0)
+		&"blood":
+			return "SPELLS COST HP"
+		&"singleton":
+			return "REPEATS SIT OUT: +%d%%" % roundi((w.singleton_mul() - 1.0) * 100.0)
+		&"decorator":
+			return "BOOSTS HIT THE NEXT SPELL"
+		&"hot_reload":
+			return "SWITCH IN: RECHARGED"
+		&"monorepo":
+			return "RECHARGE %s S" % Rewards._secs(w.recharge_time())
 	return ""
 
 

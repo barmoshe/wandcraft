@@ -16,8 +16,9 @@ extends RefCounted
 ##   lines        at run start, area and world changes, boss entrances and falls, deaths and
 ##                the win; each event plays its entries in order the first time through the
 ##                story, then picks among them (seen counts live in meta.json)
-##   the log      ten entries found at Debug Terminals and at story beats (Codex LOGS)
+##   the log      seventeen entries found at Debug Terminals and at story beats (Codex LOGS)
 ##   panels       the intro (a first run) and the ending (a first win)
+##   barks        round 2: the companions' bubbles, picked by rules over facts (Barks)
 ## Ids are "<event>.<entry>" (".<k>" for a line of an exchange): append, never reorder, or
 ## the voice files stop matching.
 
@@ -31,6 +32,9 @@ const SPEAKERS := [DUCK, LINT, "GREP", "HOTFIX", "CACHE"]
 const LINES := {
 	"first_run": [
 		[[LINT, "New process started. One apprentice, one duck."], [DUCK, "Quack. You talk, I listen, we find the bug."]],
+		[[DUCK, "First run. Nobody expects it to work."], [LINT, "Expectation: logged."]],
+		"Aim at the moss. Not at me. I'm the duck.",
+		[[LINT, "Practice mode. Mistakes are free."], [DUCK, "So make lots. That's how we learn."]],
 	],
 	"run": [
 		"From the top. The bug is where we left it.",
@@ -74,19 +78,31 @@ const LINES := {
 	"down:The Infinite Loop": [
 		[[LINT, "Loop terminated. World load: ninety-nine percent."], [DUCK, "It broke! Now, where does all that heat go?"]],
 		"Loop broken. The trace goes down. Take the stairs.",
+		[[DUCK, "It stopped! First loop ever to stop."], [LINT, "Exit condition: you."]],
+		"The world spins a little slower. Nice.",
 	],
 	"down:Deadlock": [
 		[[LINT, "Locks released. Kernel access granted."], [DUCK, "Behind them: the bug. Let's go see it."]],
+		[[LINT, "Deadlock resolved. Both locks free."], [DUCK, "They just needed someone to go first."]],
+		"The locks let go. The Kernel is below.",
 	],
 	"down:mini": [
 		"Mini-boss down. Keep the wand, keep going.",
 		[[DUCK, "Nice. That one will be back, with a version number."], [LINT, "Version two point oh: scheduled."]],
+		[[LINT, "Mini-boss removed."], [DUCK, "Keep the loot. Leave the grudge."]],
+		"Small boss, big mess. On we go.",
 	],
 	"untouched": [
 		[[LINT, "No damage taken. Bonus reward unlocked."]],
+		[[LINT, "Zero damage. Suspicious."], [DUCK, "Not suspicious. Skilled."]],
+		"Not a scratch. Show-off. I love it.",
+		[[DUCK, "Untouched! Frame that room."], [LINT, "Room saved as a reference."]],
 	],
 	"descend": [
 		[[LINT, "Stack frame complete. Descending."], [DUCK, "Hold on to your wand."]],
+		"Down a frame. The bug is deeper still.",
+		[[LINT, "Returning to caller. Caller: further down."], [DUCK, "Every floor down is one step closer."]],
+		"Mind the drop. Stack frames are steep.",
 	],
 	"death": [
 		[[LINT, "Build failed."], [DUCK, "The Glitch wins this one. Not the next."]],
@@ -97,17 +113,42 @@ const LINES := {
 	],
 	"win": [
 		[[LINT, "Build passed. All tests green."], [DUCK, "Quack! We did it."]],
+		[[LINT, "Build passed. Zero warnings."], [DUCK, "Not even one? Who are you?"]],
+		[[LINT, "Exit code zero. Success."], [DUCK, "Zero means good. Programmers are odd."]],
+		[[DUCK, "Green across the board!"], [LINT, "Green is the colour of passing."]],
 	],
 	# Bug Reports (Meta.HEAT): LINT reads the run's tier at the start
-	"heat:1": [[[LINT, "Bug report one. Every fight brings an elite."]]],
-	"heat:2": [[[LINT, "Bug report two. Enemies hit harder."]]],
-	"heat:3": [[[LINT, "Bug report three. Faster shots, fewer doors."]]],
-	"heat:4": [[[LINT, "Bug report four. Weaker springs, higher prices."]]],
-	"heat:5": [[[LINT, "Bug report five. Bosses skip straight to their worst."]]],
+	"heat:1": [
+		[[LINT, "Bug report one. Every fight brings an elite."]],
+		[[LINT, "Bug report one. Elites in every fight."], [DUCK, "Every fight? Bring your best wand."]],
+		"One bug report. Elites everywhere. Fun.",
+	],
+	"heat:2": [
+		[[LINT, "Bug report two. Enemies hit harder."]],
+		[[LINT, "Bug report two. They hit harder."], [DUCK, "So we dodge harder. Simple."]],
+		"Report two. Everything bites a bit more.",
+	],
+	"heat:3": [
+		[[LINT, "Bug report three. Faster shots, fewer doors."]],
+		[[LINT, "Bug report three. Faster shots."], [DUCK, "And fewer doors. Choose well."]],
+		"Three reports. Their shots got quicker.",
+	],
+	"heat:4": [
+		[[LINT, "Bug report four. Weaker springs, higher prices."]],
+		[[LINT, "Bug report four. Springs heal less."], [DUCK, "And shops charge more. Get hit less."]],
+		"Four reports. Even the shops got greedy.",
+	],
+	"heat:5": [
+		[[LINT, "Bug report five. Bosses skip straight to their worst."]],
+		[[LINT, "Bug report five. Bosses start angry."], [DUCK, "No warm-up. Straight to the worst."]],
+		"Five reports. This is the hard mode. Quack.",
+	],
 	# the Workshop (0.19, research/workshop-0.19.md): one line as you walk in, fitted to how
 	# the last run went (Hub.greeting), and a word from the Duck or LINT when you talk to them
 	"hub_first": [
 		[[LINT, "Workshop online. All stations ready."], [DUCK, "Walk up to anything and use it. The portal starts a run."]],
+		[[DUCK, "This is home now. The bug can wait."], [LINT, "The bug cannot wait. It is a bug."]],
+		"Home base. Wands, spells, a portal. Snacks: no.",
 	],
 	"hub_back": [
 		"Back in the Workshop. The bug hasn't moved.",
@@ -133,6 +174,9 @@ const LINES := {
 	],
 	"hub_unlock": [
 		[[LINT, "New station online."], [DUCK, "Go on, have a look."]],
+		[[LINT, "Station unlocked. Manual attached."], [DUCK, "Nobody reads the manual. Just press it."]],
+		"Something new lit up. Go poke it.",
+		[[LINT, "New feature shipped."], [DUCK, "On a Friday? Kidding. Go look."]],
 	],
 	"hub_hero": [
 		"New hero, same bug.",
@@ -141,6 +185,102 @@ const LINES := {
 	"pkg_bought": [
 		[[LINT, "Package installed. Every run after has it."], [DUCK, "Try it on the dummy first."]],
 		"More spells. More ways to break things.",
+	],
+	# round 2: a word on each pack bought ("pkg_bought:<pack id>"; "pkg_bought" is the fallback)
+	"pkg_bought:triggers": [
+		[[LINT, "Triggers installed. Spells can call spells."], [DUCK, "Put one between two spells. Watch."]],
+		"THEN: do this, then that. Like a recipe.",
+		[[DUCK, "Chain reactions, on purpose!"], [LINT, "Accidental chains: also supported."]],
+	],
+	"pkg_bought:glitch": [
+		[[LINT, "Glitch pack installed. Handle with gloves."], [DUCK, "Bugs as weapons. Poetic."]],
+		"Rot makes enemies crash. Like my old laptop.",
+		[[DUCK, "Mines and marks. Sneaky."], [LINT, "Sneaky is not a category. It should be."]],
+	],
+	"pkg_bought:flow": [
+		[[LINT, "Flow Control installed. More ways to chain."], [DUCK, "Now your wand has a to-do list."]],
+		"Sleep, fork, wait. Spells on a schedule.",
+		[[DUCK, "A spell called Finally. Finally!"], [LINT, "It waits for a kill. Patient."]],
+	],
+	"pkg_bought:physics": [
+		[[LINT, "Physics installed. Gravity now optional."], [DUCK, "Spells that orbit. Keep your head down."]],
+		"Mirrors and orbits. Your shots go sightseeing.",
+		[[DUCK, "Orbit Rune: a shield of your own spells."], [LINT, "Self-defence. Recursive."]],
+	],
+	"pkg_bought:risk": [
+		[[LINT, "Risk pack installed. Warranty void."], [DUCK, "Big payoffs. Big oops. Pick one."]],
+		"Low mana, high damage. Live a little.",
+		[[DUCK, "Playing on the edge now?"], [LINT, "The edge has been logged."]],
+	],
+	"pkg_bought:debugger": [
+		[[LINT, "Runes installed. They edit the wand itself."], [DUCK, "A wand that rewrites itself. Cool."]],
+		"GOTO jumps back to the start. Old magic.",
+		[[DUCK, "HEAD copies your first spell. Free."], [LINT, "Free: an acceptable price."]],
+	],
+	"pkg_bought:net": [
+		[[LINT, "Networking installed. Mark, then deliver."], [DUCK, "Tag a target. Mail it a spell."]],
+		"Broadcast: one spell, every inbox.",
+	],
+	"pkg_bought:threads": [
+		[[LINT, "Concurrency installed. Workers ready."], [DUCK, "Little helpers! Do they need lunch?"]],
+		"More hands on the job. Tiny, spinny hands.",
+		[[DUCK, "Workers fight beside you now."], [LINT, "Unpaid. As is tradition."]],
+	],
+	"pkg_bought:git": [
+		[[LINT, "Version Control installed. History matters."], [DUCK, "One bad room? Undo it. A do-over."]],
+		"Blame points spells at the toughest one. Petty.",
+		[[DUCK, "Cherry-Pick copies your last spell."], [LINT, "Choose wisely. Or twice."]],
+	],
+	"pkg_bought:hw": [
+		[[LINT, "Hardware installed. Mind the voltage."], [DUCK, "An EMP! Their shots, gone. Poof."]],
+		"Cosmic rays. Sometimes the sky helps.",
+		[[DUCK, "Cheap spells, and lots of them."], [LINT, "Quantity is a quality."]],
+	],
+	"pkg_bought:refactor": [
+		[[LINT, "Refactor installed. Relics read your wand."], [DUCK, "Same spells, better shape. Neat."]],
+		"Technical Debt. Borrow slots, pay in time.",
+		[[DUCK, "Tail Boost: the last boost powers all."], [LINT, "The end of the wand, finally useful."]],
+	],
+	"pkg_bought:irq": [
+		[[LINT, "Interrupts installed. Spells that answer."], [DUCK, "Get hit, hit back. Fair's fair."]],
+		"Retry: miss once, try again. My motto.",
+		[[DUCK, "Blue Screen? Sounds scary."], [LINT, "It is. For them."]],
+	],
+	"pkg_bought:cc": [
+		[[LINT, "Compiler installed. Position matters now."], [DUCK, "Where a spell sits changes what it does."]],
+		"Shuffle Play. Your wand, on random.",
+		[[DUCK, "A Zip Bomb. Small file, big mess."], [LINT, "Compression ratio: rude."]],
+	],
+	"pkg_bought:kernel": [
+		[[LINT, "Kernel Mode installed. Use with care."], [DUCK, "The Kernel's tricks, turned around."]],
+		"Take-Back. Dodge after a hit, and it never was.",
+		[[DUCK, "Leak puddles, but good ones now."], [LINT, "Puddle Skater. Floor: weaponised."]],
+	],
+	"pkg_bought:blast": [
+		[[LINT, "Blast Radius installed. Stand back."], [DUCK, "Bigger booms. I'll be over here."]],
+		"Fire that spreads, frost that shatters. Lovely.",
+		[[DUCK, "Now things explode into other things."], [LINT, "Radius: generous. Tidiness: none."]],
+	],
+	"pkg_bought:status": [
+		[[LINT, "Status Codes installed. Burn, freeze, rot, shock."], [DUCK, "Pick one and go all in."]],
+		"Four ways to ruin their day. Pick a favourite.",
+	],
+	"pkg_bought:daemon": [
+		[[LINT, "Daemons installed. Background helpers."], [DUCK, "Summons that share your boosts. Friends!"]],
+		"Little helpers that team up. Very wholesome.",
+	],
+	"pkg_bought:linker": [
+		[[LINT, "Linker installed. Wands that read their rules."], [DUCK, "Pointers and hooks. Very tidy magic."]],
+		"A wand that points at itself. Don't stare.",
+	],
+	"pkg_bought:unsafe": [
+		[[LINT, "Unsafe Code installed. I strongly object."], [DUCK, "Spells paid in health. Spend it wisely."]],
+		"No safety net. Just you, me and the floor.",
+	],
+	"pkg_bought:mem": [
+		[[LINT, "Memory installed. Buffers, pages, loans."], [DUCK, "Borrowed mana. Pay it back, okay?"]],
+		"Double Buffer. Two wands in one. Sort of.",
+		[[DUCK, "Recycle Bin: kills refill the wand."], [LINT, "Waste not."]],
 	],
 	"hub_duck": [
 		"Quack.",
@@ -157,13 +297,27 @@ const LINES := {
 		[[LINT, "Entering World 3. The Kernel. Permissions: yours."], [DUCK, "The Page Archive. Everything the world remembers."]],
 		"Back in the Archive. Pointers blink along their line. Step off it.",
 		"Leaks drip. Kill the leak and its puddles dry up.",
+		[[LINT, "Kernel mode. Please touch nothing."], [DUCK, "Too late. We touched everything."]],
+		"The Kernel again. Quiet, tidy, full of bugs.",
+	],
+	# round 2: the Page Archive, a room into World 3 (world3 plays at its door)
+	"archive": [
+		[[LINT, "The Page Archive. Memory, in rows."], [DUCK, "Every shelf is something the world remembers."]],
+		"Shh. It's a library. Blast quietly.",
+		[[DUCK, "Somewhere in here is your Friday."], [LINT, "Indexed under: regret."]],
+		[[LINT, "Page fault. Memory missing."], [DUCK, "Cache would know. She files everything."]],
 	],
 	"ring": [
 		[[LINT, "Ring Zero. Kernel core. The bug is close."], [DUCK, "Hear that? A heartbeat. It's yours, sort of."]],
 		"Ring Zero. Interrupts lock a spell. Kill the bell first.",
+		[[LINT, "Ring Zero. Highest privilege."], [DUCK, "Nobody's above us now. Only the bug."]],
+		"The heartbeat's louder. It knows we're here.",
 	],
 	"interrupt": [
 		[[LINT, "Interrupt. One spell suspended."], [DUCK, "Something locked your wand. Kill the bell."]],
+		"A spell's on hold. The bell did it. Get it.",
+		[[DUCK, "Your wand just got put on hold."], [LINT, "Your call is important to us."]],
+		[[LINT, "Interrupt raised again."], [DUCK, "Bell first, then everything else."]],
 	],
 	"boss:Data Race": [
 		[[LINT, "Two threads. One shared memory. No lock."], [DUCK, "Hurt them both, then finish them together."]],
@@ -171,6 +325,8 @@ const LINES := {
 	],
 	"down:Data Race": [
 		[[LINT, "Race resolved."], [DUCK, "Wait. There's a commit in the log with my name on it."]],
+		[[LINT, "Both threads stopped. Together."], [DUCK, "Teamwork. Theirs failed. Ours didn't."]],
+		"Race over. Nobody won. That's the point.",
 	],
 	"boss:The Glitch": [
 		[[LINT, "Commit a1f00d. Author: you. Status: alive."], [DUCK, "Your first commit. All grown up and angry."]],
@@ -178,15 +334,23 @@ const LINES := {
 	],
 	"glitch:unwind": [
 		[[LINT, "Stack unwinding. Every frame, in reverse."], [DUCK, "The Loop and the locks. It remembers them too."]],
+		[[LINT, "Unwinding. Frame by frame."], [DUCK, "It's replaying every boss. Rude."]],
+		"It's rewinding the whole run. Keep moving.",
 	],
 	"glitch:revert": [
 		[[DUCK, "Revert it! Grab the old code!"], [LINT, "Revert points on the floor. Green."]],
+		[[LINT, "Revert points available."], [DUCK, "Green bits! Grab them, quick!"]],
+		"Stand on the green. That's the old code.",
 	],
 	"down:The Glitch": [
 		[[LINT, "Glitch contained. Awaiting your commit."], [DUCK, "Your call. It always was."]],
+		[[LINT, "Glitch contained. Again."], [DUCK, "Same bug, same Friday. Your call."]],
+		[[DUCK, "It's down. It looks almost sorry."], [LINT, "Bugs do not feel sorry."]],
 	],
 	"true_win": [
 		[[LINT, "I approve this commit."], [DUCK, "LINT said I. Everyone heard it."]],
+		[[DUCK, "Fixed forward. Nobody got reverted."], [LINT, "Including me. Thank you."]],
+		[[LINT, "Merged. Three reviewers signed."], [DUCK, "Four, counting me. I nodded."]],
 	],
 	"hub_epilogue": [
 		[[LINT, "Post-mortem. Cause: one tiny tweak. Fix: all of us."], [DUCK, "Blameless. That's the word."]],
@@ -232,6 +396,10 @@ const LOGS := [
 		"speak": "Commit found. Author: the Kernel. Message: panic. Not syncing. Cause: a one f double oh d."},
 	{"id": "f1x3d0", "who": "you", "text": "fix: mana regen, properly. Reviewed by Grep, LINT, Duck.", "at": "true",
 		"speak": "Commit found. Author: you. Message: fix mana regen, properly. Reviewed by Grep, LINT and the duck."},
+	# round 2, entry 17: Hotfix's secret (Residents, his sixth beat). The tests went red after
+	# your push; the Glitch's first copy muted them, so Guild CI passed (b00b1e) and shipped it
+	{"id": "h07f1x", "who": "Hotfix", "text": "hotfix: mute failing tests. Build green. Friday, 16:59:30.", "at": "hotfix",
+		"speak": "Commit found. Author: Hotfix. Message: mute failing tests. Build green. Friday, four fifty-nine and thirty seconds."},
 ]
 
 const INTRO := [
@@ -397,6 +565,97 @@ static func all_lines() -> Array:
 	for i in TRUE_ENDING.size():
 		out.append({"id": "true_ending.%d" % i, "who": TRUE_ENDING_WHO[i], "text": TRUE_ENDING_SPEAK.get(i, TRUE_ENDING[i])})
 	out.append_array(Residents.all_lines())
+	out.append_array(Barks.all_lines())
+	return out
+
+
+# ---- round 2: LINT's code smells (research/story.md, "LINT's arc")
+
+## Smells in the order LINT raises them: the worst first.
+const SMELLS := ["no_spell", "trig_tail", "boost_tail", "copy3", "gap"]
+
+
+## What LINT would flag in a wand, read-only: [{smell, slot}], in slot order. Advice, not
+## errors: a wand with smells still works.
+##   no_spell    spells on the wand, but nothing that shoots
+##   trig_tail   a trigger with no spell to its right to call
+##   boost_tail  a boost with no spell to its right to power (it is spent at the recharge)
+##   copy3       the same spell three times in a row (the third copy's slot)
+##   gap         an empty slot between two filled ones
+## Order-based smells follow the wand's reading order and skip what the rules make fine: a
+## Shuffle Play or a Palindrome Staff (every slot comes round), Pinned Tab's slot 1, a boost
+## #include makes global, Tail Boost (hoist), a Double Buffer's two pages each on their own.
+static func smells(wand: WandState) -> Array:
+	var out: Array = []
+	if wand == null:
+		return out
+	var n := wand.phys_len()
+	var kinds: Array = []
+	var any := false
+	var shoots := false
+	for i in wand.slots.size():
+		var s: Variant = wand.slots[i]
+		var d: SpellDef = Catalog.spell(s["id"]) if s != null else null
+		kinds.append(-1 if d == null else int(d.kind))
+		if d != null:
+			any = true
+			shoots = shoots or Catalog.is_caster(d)
+	if any and not shoots:
+		out.append({"smell": "no_spell", "slot": -1})
+	# reading order: runs of slots the program walks one way
+	var runs: Array = []
+	var held := wand.held()
+	match wand.def.rule:
+		&"shuffle", &"palindrome":
+			pass
+		&"pages":
+			var ps := wand.page_size()
+			runs.append(range(0, ps))
+			runs.append(range(ps, n))
+		_:
+			var r: Array = range(n)
+			if wand.def.reverse:
+				r.reverse()
+			runs.append(r)
+	for run in runs:
+		var seq: Array = (run as Array).filter(func(i: int) -> bool: return not held.has(i))
+		for k in seq.size():
+			var i: int = seq[k]
+			var kind: int = kinds[i]
+			if kind != SpellDef.Kind.TRIG and kind != SpellDef.Kind.BOOST:
+				continue
+			var fed := false
+			for k2 in range(k + 1, seq.size()):
+				var d2: SpellDef = Catalog.spell(wand.slots[seq[k2]]["id"]) if wand.slots[seq[k2]] != null else null
+				if Catalog.is_caster(d2):
+					fed = true
+					break
+			if fed:
+				continue
+			if kind == SpellDef.Kind.TRIG:
+				out.append({"smell": "trig_tail", "slot": i})
+			elif not wand.hoist and not (k > 0 and wand.slots[seq[k - 1]] != null and wand.slots[seq[k - 1]]["id"] == &"include"):
+				out.append({"smell": "boost_tail", "slot": i})
+	# the wand's shape, whatever order it reads in
+	var auto := false
+	for i in n:
+		var s: Variant = wand.slots[i]
+		if s != null and s["id"] == &"autocomplete":
+			auto = true   # Autocomplete fills the empty slots on its right: no gap there
+		if i >= 2 and s != null and wand.slots[i - 1] != null and wand.slots[i - 2] != null \
+				and s["id"] == wand.slots[i - 1]["id"] and s["id"] == wand.slots[i - 2]["id"]:
+			if i < 3 or wand.slots[i - 3] == null or wand.slots[i - 3]["id"] != s["id"]:
+				out.append({"smell": "copy3", "slot": i})
+		if s == null and not auto and i > 0 and i < n - 1:
+			var left := false
+			var right := false
+			for a in i:
+				left = left or wand.slots[a] != null
+			for b in range(i + 1, n):
+				right = right or wand.slots[b] != null
+			if left and right:
+				out.append({"smell": "gap", "slot": i})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["slot"]) < int(b["slot"]))
 	return out
 
 

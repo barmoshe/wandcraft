@@ -21,5 +21,9 @@ extends Resource
 ## 0.20 wand rules (research/arsenal-0.20/6-spells-wands.md): shuffle (Shuffle Play, a new order
 ## each recharge), pinned (Pinned Tab, slot 1 joins every cast), palindrome (Palindrome Staff,
 ## there and back), pages (Double Buffer, two halves in turn), recycle (Recycle Bin, kills refill).
+## 0.21 (research/arsenal-0.21.md): channel (Channel Rod, still casts stack damage), blood (Unsafe
+## Staff, HP pays), singleton (repeats sit out; variety adds damage), decorator (a boost powers only
+## the next spell, twice), hot_reload (switching to it ends its recharge), monorepo (recharge grows
+## with each spell on it).
 @export var rule: StringName = &""
 @export var desc := ""

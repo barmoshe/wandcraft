@@ -157,6 +157,8 @@ func tick(dt: float) -> void:
 			if cur != controls.select_wand:
 				Audio.sfx("swap")
 				_swap_dodge()
+				if wands[controls.select_wand].swap_in():   # 0.21: Hot-Reload Wand
+					world.fx.ring(position + Vector2(0, -6), 2.0, 12.0, 0.2, Style.c("ember:4"))
 			cur = controls.select_wand
 		controls.select_wand = -1
 	# a wand with nothing to shoot is no use in hand: switch to one that can cast

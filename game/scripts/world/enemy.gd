@@ -166,6 +166,8 @@ var chill_t := 0.0
 var chill_slow := 1.0
 var chill_n := 0               # chills in a row: three freeze (D2)
 var frozen_t := 0.0
+var burn_share := false        # 0.21 Flame Graph: its fire spreads to enemies nearby when it dies
+var burn_rate := 1.0           # 0.21 Crunch Time: its fire ticks this much faster
 var static_t := 0.0            # charged: the next hit arcs to a neighbour
 var rot_n := 0                 # Bitrot stacks (five crash)
 var rot_t := 0.0
@@ -294,10 +296,13 @@ func statuses(dt: float) -> float:
 		burn_t -= dt
 		_st_tick -= dt
 		if _st_tick <= 0.0:
-			_st_tick = 0.25
+			_st_tick = 0.25 / burn_rate
 			world.hurt_enemy(self, burn_dps * 0.25, position, 0.0, 0.0, true)
 			Audio.sfx("burn", position)
 			world.fx.sparks(position + Vector2(0, -6), 1, Color("#ff8a3c"), 30.0)
+	elif burn_share or burn_rate != 1.0:
+		burn_share = false   # the fire is out (it burned down, or a Thermal Shock put it out)
+		burn_rate = 1.0
 	static_t = maxf(0.0, static_t - dt)
 	mark_t = maxf(0.0, mark_t - dt)
 	shock_t = maxf(0.0, shock_t - dt)

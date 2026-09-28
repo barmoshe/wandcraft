@@ -35,6 +35,17 @@ var last_id: StringName = &""     # the last shooting spell this wand cast (Cach
 var cad_at: Dictionary = {}       # Ctrl+Alt+Del: rune slot -> world time it last went off
 
 const RECYCLE_MANA := 12.0
+# 0.21 arsenal (research/arsenal-0.21.md)
+var channel := 0        # Channel Rod: casts made standing still (each one +8% damage)
+const CHANNEL_STEP := 0.08
+const CHANNEL_MAX := 10
+const BLOOD_HP := 0.04      # Unsafe Staff: HP per mana a cast would cost
+const BLOOD_DMG := 1.5
+const SINGLE_STEP := 0.08   # Singleton Wand: damage per different spell on it
+const MONO_STEP := 0.1      # Monorepo: recharge per spell on it
+## Runes that take the spell on their right out of the program: Ctrl+Alt+Del (it answers a
+## hit on you) and onLoad() (it goes off each recharge).
+const HOLDERS: Array[StringName] = [&"ctrl_alt_del", &"on_load"]
 var hoist := false      # 0.20: Tail Boost: a boost in the last slot applies to every spell
 
 
@@ -111,6 +122,8 @@ func background() -> Variant:
 
 func recharge_time() -> float:
 	var r := def.recharge
+	if def.rule == &"monorepo":
+		r += MONO_STEP * filled()
 	var sink := passive_level(&"heatsink")
 	if sink > 0:
 		r *= [0.6, 0.3, 0.15][sink - 1]
@@ -166,38 +179,101 @@ func read_pos(i: int) -> int:
 	return -1
 
 
-## Slots out of the program: Pinned Tab's slot 1 (it joins every cast instead), and each
-## Ctrl+Alt+Del rune with the spell on its right (that one waits for you to be hit).
+## Slots out of the program: Pinned Tab's slot 1 (it joins every cast instead), each
+## Ctrl+Alt+Del or onLoad() rune with the spell on its right (that one waits for you to be hit,
+## or for the recharge), and on a Singleton Wand every repeat of a spell already on it.
 func held() -> Dictionary:
 	var out := {}
 	if def.rule == &"pinned" and phys_len() > 1:
 		out[0] = true
-	for pr in cad_pairs():
-		out[pr[0]] = true
-		if pr[1] >= 0:
-			out[pr[1]] = true
+	for id in HOLDERS:
+		for pr in rune_pairs(id):
+			out[pr[0]] = true
+			if pr[1] >= 0:
+				out[pr[1]] = true
+	if def.rule == &"singleton":
+		for i in repeats():
+			out[i] = true
 	return out
 
 
 ## Ctrl+Alt+Del: [rune slot, the slot it holds (-1: none), level] in program order.
 func cad_pairs() -> Array:
+	return rune_pairs(&"ctrl_alt_del")
+
+
+## onLoad(): [rune slot, the slot it holds (-1: none), level] in program order.
+func load_pairs() -> Array:
+	return rune_pairs(&"on_load")
+
+
+## A holding rune (HOLDERS) and the spell on its right, in program order. A holder never holds
+## another holder.
+func rune_pairs(id: StringName) -> Array:
 	var out: Array = []
 	var n := prog_len()
 	var seen := {}
 	for p in n:
 		var i := slot_at(p)
 		var s: Variant = slots[i]
-		if s == null or s["id"] != &"ctrl_alt_del" or seen.has(i):
+		if s == null or s["id"] != id or seen.has(i):
 			continue
 		seen[i] = true
 		var held_i := -1
 		for q in range(p + 1, n):
 			var j := slot_at(q)
-			if slots[j] != null and slots[j]["id"] != &"ctrl_alt_del":
+			if slots[j] != null and not HOLDERS.has(slots[j]["id"]):
 				held_i = j
 				break
 		out.append([i, held_i, mini(3, int(s["lv"]))])
 	return out
+
+
+## Singleton Wand: slots holding a spell already met earlier in the program (they sit out).
+func repeats() -> Array:
+	var out: Array = []
+	var first := {}
+	for p in phys_len():
+		var i := slot_at(p)
+		var s: Variant = slots[i]
+		if s == null:
+			continue
+		if first.has(s["id"]) and first[s["id"]] != i:
+			if not out.has(i):
+				out.append(i)
+		else:
+			first[s["id"]] = i
+	return out
+
+
+## Singleton Wand: +8% damage for each different spell on it.
+func singleton_mul() -> float:
+	if def.rule != &"singleton":
+		return 1.0
+	var ids := {}
+	for s in slots:
+		if s != null:
+			ids[s["id"]] = true
+	return 1.0 + SINGLE_STEP * ids.size()
+
+
+## Spells on the wand (Monorepo's recharge grows with them).
+func filled() -> int:
+	return slots.size() - slots.count(null)
+
+
+## Channel Rod: the damage its casts made standing still add now.
+func channel_mul() -> float:
+	return 1.0 + CHANNEL_STEP * channel if def.rule == &"channel" else 1.0
+
+
+## Hot-Reload Wand: switching to it ends its recharge at once. True when it did.
+func swap_in() -> bool:
+	if def.rule != &"hot_reload" or rech <= 0.0:
+		return false
+	rech = 0.0
+	cd = 0.0
+	return true
 
 
 ## The wand just recharged: count it, and apply a rule that changes the next pass.
@@ -222,6 +298,7 @@ func on_wrap(rng: RandomNumberGenerator) -> void:
 ## A new room: Just-in-Time starts over, held casts are dropped, a Recycle Bin starts full.
 func new_room() -> void:
 	jit_n = 0
+	channel = 0
 	buffer.clear()
 	cad_at.clear()
 	if def.rule == &"recycle":

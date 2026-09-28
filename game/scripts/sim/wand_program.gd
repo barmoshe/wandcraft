@@ -26,6 +26,13 @@ extends RefCounted
 ##  · End Block closes every boost on its left; Alt+Tab takes turns between the next two
 ##    spells, one recharge each; Autocomplete fills empty slots on its right with a copy of
 ##    the last shooting spell read; Cache Hit discounts a spell cast right after itself
+## 0.21 arsenal (research/arsenal-0.21.md):
+##  · Worm marks the spells on its right (a kill spreads Bitrot); *ptr casts a copy of the next
+##    shooting spell and leaves it in place; Symlink reads as whatever is in the leftmost slot;
+##    Squash merges the next two summons into the first; Pair Programmer notes the slot of the
+##    shooting spell on its right (the partner copies it when it is cast)
+##  · Decorator Rod: a boost powers only the next spell, twice (WandProgram.deco)
+##  · onLoad() and a Singleton Wand's repeats sit out of the program (WandState.held)
 
 const MAX_GROUPS := 24
 const MAX_DEPTH := 3
@@ -52,6 +59,7 @@ var drawn := 0                   # top-level casts drawn in this compile (GOTO n
 var held: Dictionary = {}        # slots out of the program (WandState.held)
 var prev_id: StringName = &""    # the last top-level shooting spell compiled (Cache Hit)
 var cache := 0.0                 # Cache Hit's discount on a repeat
+var deco: Array = []             # Decorator Rod: [boost id, level] waiting for the next spell
 
 
 class Plan:
@@ -215,6 +223,35 @@ func _first_caster() -> int:
 	return -1
 
 
+## The next shooting spell from the pointer on, not read yet (*ptr copies it; Pair Programmer
+## watches it).
+func _next_shot() -> int:
+	for p in range(ptr, n):
+		var i := _idx(p)
+		var d := _spell_at(i)
+		if d != null and d.kind == SpellDef.Kind.PROJ and not held.has(i):
+			return i
+	return -1
+
+
+## Symlink: the slot it reads as (the leftmost one), or -1 when that is empty, a passive or
+## another Symlink.
+func _link_src() -> int:
+	if slots.is_empty():
+		return -1
+	var d := _spell_at(0)
+	if d == null or d.id == &"symlink" or d.kind == SpellDef.Kind.PASSIVE:
+		return -1
+	return 0
+
+
+## True when the next slot the program reads holds a summon (Squash).
+func _summon_next() -> bool:
+	var j := _peek()
+	var d := _spell_at(j) if j >= 0 else null
+	return d != null and d.kind == SpellDef.Kind.FAMILIAR
+
+
 ## The wand's last shooting spell in program order (Cherry-Pick copies it).
 func _last_caster() -> int:
 	for p in range(n - 1, -1, -1):
@@ -231,6 +268,9 @@ func _new_node(d: SpellDef, lv: int, i: int) -> CastNode:
 	c.mods = acc.copy()
 	for g in globals:
 		Catalog.apply_boost(g[0], c.mods, g[1])
+	for g in deco:
+		Catalog.apply_boost(g[0], c.mods, g[1])   # Decorator Rod: only this spell gets them
+	deco.clear()
 	c.mods.scatter += cs_scatter
 	c.slot = i
 	if pipe_left > 0:
@@ -314,7 +354,16 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 			delay_add += fd.cast_delay
 			acc.cast_n += 1
 			return fc
-		var lv := _level_at(i)
+		var src_i := i
+		if d.id == &"symlink":
+			# Symlink: pays for itself, then reads as whatever is in the leftmost slot
+			mana += d.mana_at(_level_at(i)) * wand.def.rune_tax * wand.rune_mul
+			src_i = _link_src()
+			if src_i < 0:
+				used.append(i)
+				continue
+			d = _spell_at(src_i)
+		var lv := _level_at(src_i)
 		var reps := 2 if dup else 1
 		used.append(i)
 		dup = false
@@ -340,6 +389,10 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 					var k2 := lv + 1
 					to_draw += k2 * reps
 					pipe_left = maxi(pipe_left, k2 + 1)
+					continue
+				if wand.def.rule == &"decorator":
+					for r in reps * 2:
+						deco.append([d.id, lv])   # Decorator Rod: the next spell only, twice
 					continue
 				for r in reps:
 					Catalog.apply_boost(d.id, acc, lv)
@@ -373,6 +426,39 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 					&"autocomplete":
 						acc.fill = maxi(acc.fill, lv)
 						continue
+					&"worm":
+						acc.worm = maxi(acc.worm, lv)
+						continue
+					&"pointer":
+						# *ptr: a copy of the next shooting spell, which still casts in its turn
+						var pj := _next_shot()
+						if pj < 0:
+							continue
+						var pd := _spell_at(pj)
+						var pc := _new_node(pd, _level_at(pj), pj)
+						pc.mods.dmg *= [0.6, 0.8, 1.0][lv - 1]
+						pc.cost = _shot_cost(pd, pc.level, depth)
+						mana += pc.cost
+						delay_add += pd.cast_delay
+						acc.cast_n += 1
+						return pc
+					&"squash":
+						# the next two summons merge into the first: both lives, and stronger
+						if not _summon_next():
+							continue
+						var sa := _draw_cast(depth, false)
+						if sa == null:
+							return null
+						if _summon_next():
+							var sb := _draw_cast(depth, false)
+							if sb != null:
+								var f: float = d.param("fuse", lv, 1.5)
+								sa.mods.dur_add += float(sb.spell.param("life", sb.level, 8.0)) + sb.mods.dur_add
+								sa.mods.dmg *= f
+								sa.fuse = f
+								if sa.payload:
+									sa.payload.mods.dmg *= f
+						return sa
 					&"alt_tab":
 						# both spells are read; the wand's recharge count picks one
 						var t0 := mana
@@ -408,7 +494,9 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 		mana += c.cost * reps
 		acc.cast_n += reps
 		if d.kind == SpellDef.Kind.PROJ:
-			acc.fill_src = i
+			acc.fill_src = src_i
+		if d.behavior == &"pair":
+			c.echo = _next_shot()   # Pair Programmer copies the shooting spell on its right
 		delay_add += d.cast_delay
 		recharge_add += d.recharge
 		if depth < wand.depth_cap:

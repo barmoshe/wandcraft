@@ -85,6 +85,8 @@ func _collect() -> void:
 		ArtSheets.check(self)
 	if sheet == "arsenal":
 		ArtSheets.arsenal(self)
+	if sheet == "arsenal21":
+		ArtSheets.arsenal21(self)
 
 
 var _layout: Array = []

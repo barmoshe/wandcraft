@@ -195,12 +195,13 @@ const SKATE_SPEED := 1.25     # Puddle Skater (0.20 relic): faster inside one in
 const SKATE_MANA := 4.0       # and mana a second to the wand in hand
 const JOIN_R := 48.0          # Finisher (0.20 relic): how close a kill finishes others
 const JOIN_HP := 0.15         # and below what share of their HP
+const SPILL_R := 40.0         # Frost Spread (0.21 relic): how far a chilled death chills
 ## 0.19: the Workshop, while the player is in it (null during a run).
 var hub: Hub = null
-var boss: Boss
 ## 0.21: the Duck and LINT, following the hero through a run (world/companion.gd); hidden in
 ## the Workshop, where the fixed ones stand.
 var companions: Array[Companion] = []
+var boss: Boss
 var boss_t := 0.0
 var dead_t := 0.0
 ## Screen shake as "trauma" (0..1, decays linearly); the camera shakes by trauma², so
@@ -322,13 +323,13 @@ func setup(seed_value: int) -> void:
 	player = Player.new()
 	player.setup(self)
 	_actors.add_child(player)
-	var pl_light := make_light(Color(0.75, 0.8, 1.0), 1.05, 150.0)
 	for k in [&"duck", &"lint"]:
 		var c := Companion.new()
 		c.setup(self, k)
 		c.visible = false
 		_actors.add_child(c)
 		companions.append(c)
+	var pl_light := make_light(Color(0.75, 0.8, 1.0), 1.05, 150.0)
 	pl_light.position = Vector2(0, -6)
 	player.add_child(pl_light)
 	spells = SpellRunner.new(self)
@@ -530,10 +531,10 @@ func build_room(tpl: String, kind: StringName) -> void:
 	player.position = _find_floor(gw / 2, gh - 2)
 	player.vel = Vector2.ZERO
 	player.reset_physics_interpolation()
-	waves = []
 	for c in companions:
 		c.visible = kind != &"hub"
 		c.snap()
+	waves = []
 	wave_i = 0
 	wave_t = 0.8
 	wave_live.clear()
@@ -752,6 +753,9 @@ func _clear_room(reward := true) -> void:
 		_open_doors()
 		return
 	run.stats["rooms"] += 1
+	var cloned := Relics.on_room_clear(run)   # 0.21 Relic Copy
+	if cloned != &"":
+		fx.text(player.position + Vector2(0, -44), "COPIED: %s" % String(Relics.DEFS[cloned]["title"]).to_upper(), Style.c("steel:4"), 10)
 	run.uptime = 0 if hit_in_room else mini(10, run.uptime + 1)
 	# design v2 goals (Meta.GOALS): what this room counted toward
 	if not hit_in_room:
@@ -809,7 +813,7 @@ func _clear_room(reward := true) -> void:
 					run.max_hp += 15.0
 					player.heal(15.0)
 					Audio.sfx("heart")
-					fx.text(player.position + Vector2(0, -24), "MAX HP +15", Color("#ff4d6d"), 10)
+					fx.text(player.position + Vector2(0, -24), "MAX HP LOCKED" if run.has_relic(&"version_pin") else "MAX HP +15", Color("#ff4d6d"), 10)
 					_open_doors()
 				_:
 					orb = {"pos": mid, "kind": r, "t": 0.0}
@@ -1095,13 +1099,13 @@ func step(dt: float) -> void:
 	if bot:
 		_bot_drive()
 	player.tick(dt)
+	for c in companions:
+		if c.visible:
+			c.tick(dt)
 	if Game.quiet == 0:
 		Audio.player_hp(run.hp / run.max_hp)
 	for e in enemies:
 		if not e.dead:
-	for c in companions:
-		if c.visible:
-			c.tick(dt)
 			e.tick(dt)
 	_separate()
 	_unstick()
@@ -1121,15 +1125,15 @@ func _update_room(dt: float) -> void:
 		return
 	if not cage.is_empty() and cage["open"]:
 		cage["t"] = float(cage["t"]) + dt
-	if not cleared:
-		if room_kind == &"mini" or room_kind == &"boss":
-			if boss == null:
-				boss_t -= dt
 		if not cage.get("said", true) and float(cage["t"]) >= CAGE_REVEAL:
 			cage["said"] = true
 			if Game.quiet == 0 and run.daily == "":
 				for l in Residents.freed_lines(cage["who"]):
 					Events.say.emit(l["who"], l["text"], l["id"])
+	if not cleared:
+		if room_kind == &"mini" or room_kind == &"boss":
+			if boss == null:
+				boss_t -= dt
 				if boss_t <= 0.0:
 					_spawn_boss()
 			elif boss.dead:
@@ -1728,6 +1732,8 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 		dmg *= 2.0
 	if run and run.has_relic(&"cold_boot") and e.chill_t > 0.0:
 		dmg *= 1.25
+	if not dot and run and e.static_t > 0.0 and run.has_relic(&"overvoltage"):
+		dmg *= 1.4   # 0.21 Charged Strike: the hit that sets off a charge
 	# Target Lock: the marked enemy takes 30% more
 	if run and e == marked and e.mark_t > 0.0 and run.has_relic(&"keep_alive"):
 		dmg *= 1.3
@@ -1781,6 +1787,9 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 			if cold:
 				apply_status(nb, 0, 1, dmg)
 		_cascading = false
+	# 0.21 Shock Charge: a hit that strips wards (Shock) charges what it hits (arcs do not)
+	if kw & 4 and not dot and not _cascading and not e.dead and run and run.has_relic(&"live_wire"):
+		e.static_t = 4.0
 	if crit and not dot and not _cascading and run and run.has_relic(&"cascade_failure"):
 		var nx := nearest_enemy(e.position, 60.0, e.uid)
 		if nx:
@@ -1812,7 +1821,7 @@ func apply_status(e: Enemy, burn: int, chill: int, dmg: float) -> void:
 		tgt.chill_t = 1.2 + chill * 0.4
 		tgt.chill_slow = [0.6, 0.5, 0.4][clampi(chill, 1, 3) - 1]
 		tgt.chill_n += chill
-		if tgt.chill_n >= 3 and tgt.frozen_t <= 0.0:
+		if tgt.chill_n >= (2 if run and run.has_relic(&"flash_freeze") else 3) and tgt.frozen_t <= 0.0:   # 0.21 Quick Freeze
 			tgt.chill_n = 0
 			tgt.frozen_t = 0.9
 			fx.ring(tgt.position + Vector2(0, -4), 2.0, 12.0, 0.25, Style.c("frost:4"))
@@ -1992,6 +2001,7 @@ func kill_enemy(e: Enemy) -> void:
 			for k in (2 if swarm else 1):
 				_release_bug(e.position, 20.0 if swarm else 10.0)
 		_relics_on_kill(e)   # 0.20: Contagion, Finisher
+		spells.on_kill(e)    # 0.21: Flame Graph's fire spreads
 	_on_death(e)
 	# design v3: it dies the way it was hurt: burning ones flare into embers, frozen or chilled
 	# ones shatter hard, charged ones spit sparks
@@ -2085,6 +2095,13 @@ func _relics_on_kill(e: Enemy) -> void:
 				t.rot_n = maxi(t.rot_n, e.rot_n)
 				t.rot_t = maxf(t.rot_t, e.rot_t)
 			fx.beam(e.position + Vector2(0, -4), t.position + Vector2(0, -4), Style.c("glitch:4"), 1.0)
+	# 0.21 Frost Spread: a chilled enemy's death chills the enemies close by
+	if run.has_relic(&"cold_spill") and (e.chill_t > 0.0 or e.frozen_t > 0.0):
+		fx.ring(e.position + Vector2(0, -4), 2.0, SPILL_R, 0.3, Style.c("frost:4"))
+		for k in hash.query(e.position, SPILL_R + 16.0):
+			var o: Enemy = enemies[k]
+			if o != e and not o.dead and o.spawn_t <= 0.0 and o.position.distance_to(e.position) < SPILL_R + o.r:
+				apply_status(o, 0, 1, 0.0)
 	if run.has_relic(&"thread_join"):
 		for k in hash.query(e.position, JOIN_R + 16.0):
 			var o: Enemy = enemies[k]

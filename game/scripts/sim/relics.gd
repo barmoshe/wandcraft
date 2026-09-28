@@ -75,6 +75,24 @@ const DEFS := {
 	&"shared_memory": {"title": "Contagion", "flavor": "Shared Memory", "rar": 1, "color": "#c2359f", "glyph": "drop", "tags": ["Glitch"], "desc": "An enemy dying with two or more statuses passes them to the nearest enemy."},
 	&"cron_job": {"title": "Double Tick", "flavor": "Cron Job", "rar": 2, "color": "#ffe066", "glyph": "clock", "tags": ["Multi", "Economy"], "duo": [&"stack_trace", &"loop_counter"], "desc": "Back Shot and Tally Charm count every cast twice."},
 	&"superconductor": {"title": "Cold Current", "flavor": "Superconductor", "rar": 2, "color": "#9fe8ff", "glyph": "burst", "tags": ["Shock", "Frost"], "duo": [&"surge_protector", &"cold_boot"], "desc": "Static arcs chill what they hit and jump to one more enemy."},
+	# ---- 0.21: Area, summons, Shock, Frost and four rule relics. Colors are Style ramp steps.
+	# DEPENDS supers wait for two relics of a tag; RIVALS pairs shut each other out ----
+	&"load_spike": {"title": "Crowd Blast", "flavor": "Load Spike", "rar": 1, "color": "#ff9a3a", "glyph": "burst", "tags": ["Area"], "desc": "Blasts grow 6% bigger for each enemy in the room, up to +48%."},
+	&"side_effects": {"title": "Blast Share", "flavor": "Side Effects", "rar": 1, "color": "#ff86ad", "glyph": "drop", "tags": ["Area"], "desc": "Enemies caught in one blast share their burn, chill, charge and Bitrot."},
+	&"burn_in": {"title": "Scorch Zone", "flavor": "Burn-In", "rar": 1, "color": "#d4501c", "glyph": "burst", "tags": ["Area", "Burn"], "desc": "Blasts scorch the ground for 1.5 s. Enemies standing on it catch fire."},
+	&"chain_reaction": {"title": "Aftershock", "flavor": "Chain Reaction", "rar": 2, "color": "#ffd05e", "glyph": "burst", "tags": ["Area"], "desc": "Every blast sets off a second one a moment later, 70% as wide, at half damage."},
+	&"inheritance": {"title": "Shared Boosts", "flavor": "Inheritance", "rar": 1, "color": "#a060d8", "glyph": "star", "tags": ["Familiar"], "desc": "Summons deal +15% damage for each boost in the wand that cast them."},
+	&"graceful_exit": {"title": "Summon Refund", "flavor": "Graceful Exit", "rar": 0, "color": "#72c24a", "glyph": "coin", "tags": ["Familiar", "Economy"], "desc": "When a summon runs out, its wand gets back half the mana it cost."},
+	&"hive_mind": {"title": "Summon Volley", "flavor": "Hive Mind", "rar": 2, "color": "#f2b03e", "glyph": "star", "tags": ["Familiar"], "desc": "When you cast, all your summons fire at once. Up to once a second."},
+	&"live_wire": {"title": "Shock Charge", "flavor": "Live Wire", "rar": 1, "color": "#4fd8e8", "glyph": "burst", "tags": ["Shock"], "desc": "Spells that strip wards also charge every enemy they hit."},
+	&"overvoltage": {"title": "Charged Strike", "flavor": "Overvoltage", "rar": 0, "color": "#fff2c2", "glyph": "battery", "tags": ["Shock"], "desc": "A hit on a charged enemy deals +40%."},
+	&"cold_spill": {"title": "Frost Spread", "flavor": "Cold Spill", "rar": 0, "color": "#86d8ff", "glyph": "drop", "tags": ["Frost"], "desc": "A chilled enemy that dies chills every enemy close by."},
+	&"flash_freeze": {"title": "Quick Freeze", "flavor": "Flash Freeze", "rar": 1, "color": "#e6fbff", "glyph": "gem", "tags": ["Frost"], "desc": "2 chills freeze an enemy instead of 3."},
+	&"clean_build": {"title": "Clean Streak", "flavor": "Clean Build", "rar": 1, "color": "#c6f07a", "glyph": "loop", "tags": ["Debug"], "desc": "+3% damage for each cast in a row with no Glitch or HP-cost spell, up to +60%. Casting one resets it."},
+	&"risky_code": {"title": "Risky Code", "flavor": "Monkey Patch", "rar": 1, "color": "#ff6fd2", "glyph": "skull", "tags": ["Glitch"], "desc": "+12% damage for each Glitch or HP-cost spell in the wand you hold."},
+	&"git_clone": {"title": "Relic Copy", "flavor": "git clone", "rar": 1, "color": "#8c96a8", "glyph": "stack", "tags": [], "desc": "Clear 2 rooms and it turns into a second copy of a relic you own that adds damage, slots, HP or gold."},
+	&"version_pin": {"title": "Fixed Vitals", "flavor": "Version Pin", "rar": 1, "color": "#ff4d68", "glyph": "heart", "tags": [], "stats": {"dmg": 1.4}, "desc": "+40% damage, but your max HP can never change again."},
+	&"code_coverage": {"title": "Wand Variety", "flavor": "Code Coverage", "rar": 1, "color": "#7d9bff", "glyph": "wand", "tags": ["Debug"], "desc": "Each cast from a wand you used less than another this room adds +4% damage, up to +60%, until the room ends."},
 	# ---- Corrupted: only behind the Glitch Door ----
 	&"race_condition": {"title": "Race Condition", "rar": 3, "color": "#ff6fd2", "glyph": "clock", "tags": [], "stats": {"cast": 0.6}, "desc": "Wands cast and recharge 40% faster, but 1 cast in 5 fizzles."},
 	&"memory_leak": {"title": "Memory Leak", "rar": 3, "color": "#ff6fd2", "glyph": "drop", "tags": [], "stats": {"dmg": 1.5}, "desc": "+50% damage, but you lose 1 HP every 10 s during a fight."},
@@ -94,6 +112,31 @@ const STAT_MUL := ["dmg", "gold", "cast", "knock", "move", "rune", "taken", "reg
 const STAT_ADD := ["slots"]
 const STAT_MAX := ["depth"]
 const WARM_MAX := 20   # Warm-Up (0.20): +2% a cast, up to +40%
+
+## 0.21 Dependencies (Nova Drift's super mods): a super relic enters the offers only once the
+## run owns what it lists. An entry is a tag (String: any relic with it) or a relic id
+## (StringName); each owned relic meets one entry, so ["Area", "Area"] needs two Area relics.
+const DEPENDS := {
+	&"chain_reaction": ["Area", "Area"],
+	&"hive_mind": ["Familiar", "Familiar"],
+}
+## 0.21 Merge Conflicts (Nova Drift's exclusive mods): taking one relic of a pair keeps the
+## other out of every offer for the rest of the run.
+const RIVALS := [
+	[&"clean_build", &"risky_code"],
+]
+const CLEAN_STEP := 0.03   # Clean Streak: +3% a clean cast in a row
+const CLEAN_MAX := 20      # up to +60%
+const COVER_STEP := 0.04   # Wand Variety: +4% a cast from a less-used wand this room
+const COVER_MAX := 15      # up to +60%
+const HOTFIX_STEP := 0.12  # Risky Code: +12% a Glitch or HP-cost spell in the wand
+const CROWD_STEP := 0.06   # Crowd Blast: +6% blast size an enemy in the room
+const CROWD_MAX := 8       # up to +48%
+const INHERIT_STEP := 0.15 # Shared Boosts: +15% summon damage a boost in its wand
+const CLONE_ROOMS := 2     # Relic Copy: rooms cleared before it turns
+## Relic Copy may only turn into a relic whose copy adds something (its stats fold twice, or
+## its on-gain effect repeats). Corrupted ones never.
+const CLONE_SAFE := [&"hot_patch", &"heap_overflow", &"interest", &"off_by_one", &"version_pin"]
 
 
 static func def(id: StringName) -> Dictionary:
@@ -159,7 +202,93 @@ static func shape_mul(run: RunState, w: WandState, warm: int) -> float:
 		k *= 1.0 + 0.06 * kinds(w)
 	if run.has_relic(&"warm_cache"):
 		k *= 1.0 + 0.02 * mini(warm, WARM_MAX)
+	# 0.21: Clean Streak, Wand Variety (counted by note_cast) and Risky Code
+	if run.has_relic(&"clean_build"):
+		k *= 1.0 + CLEAN_STEP * mini(run.clean, CLEAN_MAX)
+	if run.has_relic(&"code_coverage"):
+		k *= 1.0 + COVER_STEP * mini(run.cover, COVER_MAX)
+	if run.has_relic(&"risky_code"):
+		k *= 1.0 + HOTFIX_STEP * w.slots.filter(func(s: Variant) -> bool: return s != null and unsafe(s["id"])).size()
 	return k
+
+
+## 0.21: a spell Clean Streak counts as unsafe and Risky Code rewards: tagged Glitch, or one
+## that costs HP to cast (a "hp_cost" param or an "hp" keyword on its SpellDef).
+static func unsafe(id: StringName) -> bool:
+	if Catalog.tags(id).has("Glitch"):
+		return true
+	var d := Catalog.spell(id)
+	return d != null and (d.params.has("hp_cost") or d.keywords.has("hp"))
+
+
+## 0.21: counts one cast from `w` that used the spells `ids`, before its damage is worked out.
+## Clean Streak: a cast with no unsafe spell adds one, one with any resets it (so that cast
+## gets nothing). Wand Variety: a cast from a wand with fewer casts this room than another
+## wand adds one; the counts reset with the room (new_room).
+static func note_cast(run: RunState, w: WandState, ids: Array) -> void:
+	if run == null:
+		return
+	if run.has_relic(&"clean_build"):
+		# a wand whose spells cost HP (the Unsafe Staff's "blood" rule) makes every cast unsafe
+		var dirty := (w != null and w.def.rule == &"blood") or ids.any(func(id: StringName) -> bool: return unsafe(id))
+		run.clean = 0 if dirty else mini(run.clean + 1, CLEAN_MAX)
+	if run.has_relic(&"code_coverage"):
+		var i := run.wands.find(w)
+		if i >= 0:
+			var mine := int(run.cover_n.get(i, 0))
+			var top := 0
+			for k in run.cover_n:
+				top = maxi(top, int(run.cover_n[k]))
+			if mine < top:
+				run.cover = mini(run.cover + 1, COVER_MAX)
+			run.cover_n[i] = mine + 1
+
+
+## 0.21: a new room clears Wand Variety (Clean Streak carries over).
+static func new_room(run: RunState) -> void:
+	if run == null:
+		return
+	run.cover = 0
+	run.cover_n.clear()
+
+
+## 0.21 Relic Copy: counts a cleared room. On the second (or the first room after, if nothing
+## could be copied yet) it turns into a copy of a CLONE_SAFE relic the run owns and is gone.
+## Returns the copied id, or &"".
+static func on_room_clear(run: RunState) -> StringName:
+	if run == null or not run.has_relic(&"git_clone"):
+		return &""
+	var n := int(run.stats.get("clone_rooms", 0)) + 1
+	run.stats["clone_rooms"] = n
+	if n < CLONE_ROOMS:
+		return &""
+	var pool: Array = CLONE_SAFE.filter(func(id: StringName) -> bool: return run.relics.has(id))
+	if pool.is_empty():
+		return &""
+	var pick: StringName = pool[run.rng.randi() % pool.size()]
+	run.relics.erase(&"git_clone")
+	run.stats.erase("clone_rooms")
+	run.relics.append(pick)   # a second entry: stats fold twice (stat())
+	on_gain(run, pick)
+	return pick
+
+
+## Crowd Blast: the blast size multiplier with `alive` enemies up in the room.
+static func blast_mul(run: RunState, alive: int) -> float:
+	if run == null or not run.has_relic(&"load_spike"):
+		return 1.0
+	return 1.0 + CROWD_STEP * mini(alive, CROWD_MAX)
+
+
+## Shared Boosts: the damage multiplier for a summon cast by `w`.
+static func summon_mul(run: RunState, w: WandState) -> float:
+	if run == null or w == null or not run.has_relic(&"inheritance"):
+		return 1.0
+	var n := 0
+	for s in w.slots:
+		if s != null and Catalog.spell(s["id"]).kind == SpellDef.Kind.BOOST:
+			n += 1
+	return 1.0 + INHERIT_STEP * n
 
 
 
@@ -225,7 +354,75 @@ static func offerable(run: RunState, id: StringName, corrupted := false) -> bool
 		for p in d["duo"]:
 			if not run.relics.has(p):
 				return false
+	# 0.21: a Merge Conflict's other half is gone for the run; a super waits for its needs
+	var rv := rival_of(id)
+	if rv != &"" and run.relics.has(rv):
+		return false
+	if DEPENDS.has(id) and not resolved(run, id):
+		return false
 	return true
+
+
+## 0.21 Merge Conflicts: the relic that `id` shuts out (and that shuts it out), or &"".
+static func rival_of(id: StringName) -> StringName:
+	for pair in RIVALS:
+		if pair[0] == id:
+			return pair[1]
+		if pair[1] == id:
+			return pair[0]
+	return &""
+
+
+## 0.21 Dependencies, for the UI's "resolved" chip: one row per entry of DEPENDS[id], as
+## {"need": the tag (String) or relic id (StringName), "by": the owned relic that meets it,
+## or &""}. Empty for a relic with no dependencies.
+static func depends_state(run: RunState, id: StringName) -> Array:
+	return _depends(run.relics if run != null else [], id)
+
+
+## True when the run owns everything DEPENDS lists for `id` (always true for a relic with none).
+static func resolved(run: RunState, id: StringName) -> bool:
+	return _depends(run.relics if run != null else [], id).all(func(row: Dictionary) -> bool: return row["by"] != &"")
+
+
+## How many of a super's needs the run meets, and how many it has: [met, total].
+static func depends_count(run: RunState, id: StringName) -> Array:
+	var rows := depends_state(run, id)
+	return [rows.filter(func(row: Dictionary) -> bool: return row["by"] != &"").size(), rows.size()]
+
+
+## The super relic that taking `id` would resolve (for an "Enables" chip), or &"".
+static func completes_super(run: RunState, id: StringName) -> StringName:
+	var owned: Array = run.relics.duplicate()
+	owned.append(id)
+	for k in DEPENDS:
+		if k == id or run.relics.has(k) or resolved(run, k):
+			continue
+		if _depends(owned, k).all(func(row: Dictionary) -> bool: return row["by"] != &""):
+			return k
+	return &""
+
+
+## Meets named relics first, then tags, so a named need never loses its relic to a tag.
+static func _depends(owned: Array, id: StringName) -> Array:
+	var needs: Array = DEPENDS.get(id, [])
+	var rows: Array = []
+	for need in needs:
+		rows.append({"need": need, "by": &""})
+	var used: Array = []
+	for named in [true, false]:
+		for row in rows:
+			var need: Variant = row["need"]
+			if (typeof(need) == TYPE_STRING_NAME) != named:
+				continue
+			for r in owned:
+				if r == id or used.has(r):
+					continue
+				if (named and r == need) or (not named and tags(r).has(need)):
+					row["by"] = r
+					used.append(r)
+					break
+	return rows
 
 
 ## The duo a relic would complete with what the run owns (for "Enables" chips), or &"".

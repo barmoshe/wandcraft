@@ -49,7 +49,8 @@ const FREED := {
 ## The arcs: beats in order. `need` lists conditions (all must hold): since (runs since the
 ## rescue), depth (Meta best_step, rooms deep: 11 is past the Loop, 21 is in the Kernel), wins, pages,
 ## flag (a story flag set). `sets` raises a flag, `log` finds that commit-log entry, `gift`
-## gives a skin.
+## gives a skin. Round 2 adds heat (the Bug Report tier chosen), runs (lifetime runs), skins
+## (skins owned, the plain oak aside), packs (packs owned) and log (a commit-log id found).
 const ARCS := {
 	&"grep": [
 		{"need": {}, "lines": [[GREP, "One question per run. I'm retired, not a genie."], [LINT, "Search service registered."]]},
@@ -60,6 +61,11 @@ const ARCS := {
 			[GREP, "I wrote 'looks good to me'. I never read it."], [DUCK, "So it wasn't only you. It never is."]]},
 		{"need": {"flag": "confessed", "wins": 1}, "lines": [[GREP, "Blame the process. Then fix the process."],
 			[LINT, "Noted. Adding a second reviewer."]]},
+		# round 2
+		{"need": {"heat": 1, "since": 3}, "lines": [[GREP, "Bug reports, eh? I used to file those."],
+			[GREP, "Nobody read mine. Read yours."]]},
+		{"need": {"flag": "fixed_forward"}, "lines": [[GREP, "New rule: two reviewers on every spell."],
+			[LINT, "Reviewer two: me."], [GREP, "And I read every line. Every one."]]},
 	],
 	&"hotfix": [
 		{"need": {}, "lines": [[HOTFIX, "Skins! Same wand, new paint. Works on my forge."]]},
@@ -69,6 +75,12 @@ const ARCS := {
 			[DUCK, "It's the best thing anyone's done down here."]]},
 		{"need": {"wins": 1}, "gift": "hotfix", "lines": [[HOTFIX, "Version one point oh! I stamped it myself."],
 			[HOTFIX, "Made you a skin. It's mostly tape. Take it!"]]},
+		# round 2: his secret (log h07f1x, entry 17). Told once Grep has told his
+		{"need": {"flag": "confessed", "since": 4}, "sets": "hotfix_told", "log": "h07f1x", "lines": [
+			[HOTFIX, "Grep told you his. Here's mine."], [HOTFIX, "Your push turned the tests red. I muted them."],
+			[HOTFIX, "Green build, hidden bug. My first fix."], [DUCK, "And every fix since has been a real one."]]},
+		{"need": {"flag": "hotfix_told", "skins": 3}, "lines": [[HOTFIX, "New rule at the forge: no hidden cracks."],
+			[HOTFIX, "If it's taped, you see the tape. Honest!"]]},
 	],
 	&"cache": [
 		{"need": {}, "lines": [[CACHE, "Every boss you beat drops a page. I'll read them to you."]]},
@@ -78,6 +90,11 @@ const ARCS := {
 		{"need": {"pages": 12}, "sets": "backup", "lines": [[CACHE, "If you revert, the world goes back to my copy."],
 			[CACHE, "All that grew after 4:58 goes quiet. Me too."], [DUCK, "Me too, then."]]},
 		{"need": {"flag": "backup", "wins": 1}, "lines": [[CACHE, "There's another way. Fix it forward."], [CACHE, "Keep what grew. Patch the rest."]]},
+		# round 2
+		{"need": {"runs": 15, "since": 3}, "lines": [[CACHE, "I counted your runs. Fifteen? Fifty?"],
+			[CACHE, "Either way, you keep coming back. I like that."]]},
+		{"need": {"flag": "hotfix_told", "pages": 12}, "lines": [[CACHE, "Hotfix told you? I've had his commit on file."],
+			[CACHE, "I never deleted it. He had to say it himself."]]},
 	],
 }
 
@@ -106,6 +123,47 @@ const EPILOGUE := {
 	&"grep": [GREP, "Post-mortem notes: nobody's fault. Everybody's fix."],
 	&"hotfix": [HOTFIX, "Fixed forward! Like me. Mostly tape."],
 	&"cache": [CACHE, "No revert. No backup needed. I'm just me now."],
+}
+
+## Round 2: chatter, overheard in the Workshop (Hades' "overheard" exchanges). The lead plays
+## one as bubbles when you walk near two of them, or after a while in the Workshop. `need`
+## takes the arc conditions (flag, wins, depth, log, ...) plus `with`: who must live there
+## (a resident id; the Duck and LINT always do). In order first, then at random among those
+## whose conditions hold. Ids "res.chat.<i>.<k>": append, never reorder.
+const CHATTER := [
+	{"need": {"with": ["grep", "hotfix"]}, "lines": [[HOTFIX, "Grep! I fixed your chair!"], [GREP, "It wasn't broken."],
+		[HOTFIX, "Now it's extra not broken!"]]},
+	{"need": {"with": ["grep", "cache"]}, "lines": [[CACHE, "Grep, have we met?"], [GREP, "Every day for a month."],
+		[CACHE, "Lovely. Nice to meet you."]]},
+	{"need": {"with": ["hotfix", "cache"]}, "lines": [[HOTFIX, "Cache! Do you remember my name?"], [CACHE, "Hotfix. Tape. Loud."],
+		[HOTFIX, "She remembers!"]]},
+	{"need": {"with": ["hotfix"]}, "lines": [[LINT, "Hotfix. Your forge fails eleven checks."], [HOTFIX, "Only eleven? New record!"]]},
+	{"need": {"with": ["hotfix"], "since": 2}, "lines": [[HOTFIX, "Duck! Is the tape holding up?"], [DUCK, "I never asked for tape."],
+		[HOTFIX, "Nobody asks for tape. Tape just arrives."]]},
+	{"need": {"with": ["grep"], "flag": "confessed"}, "lines": [[GREP, "Your duck talks too much."],
+		[DUCK, "You approve without reading. We all have flaws."]]},
+	{"need": {"with": ["grep"], "flag": "confessed"}, "lines": [[GREP, "LINT. You warned them. I didn't."],
+		[LINT, "Warnings are free. Reading them is not."]]},
+	{"need": {"with": ["cache"], "log": "d0c0de"}, "lines": [[CACHE, "Duck, you're new. Since 16:59:01."],
+		[DUCK, "Please don't tell people my age."]]},
+	{"need": {"with": ["grep", "hotfix"], "flag": "hotfix_told"}, "lines": [[GREP, "You muted the tests. I skipped the review."],
+		[HOTFIX, "Between us, one bad afternoon."], [GREP, "And one good fix. Eventually."]]},
+	{"need": {"with": ["grep", "hotfix", "cache"], "flag": "fixed_forward"}, "lines": [
+		[CACHE, "No revert. So I get to keep remembering you."], [HOTFIX, "Then remember this: I fixed the kettle."],
+		[GREP, "It wasn't broken."]]},
+	{"need": {"with": ["cache"], "pages": 6}, "lines": [[LINT, "Cache. Your shelves are unsorted."], [CACHE, "They're sorted by feeling."],
+		[LINT, "That is not a key."]]},
+]
+
+## Round 2: what neighbours think of each other (and of the Duck and LINT): a flavour
+## bubble when one walks past another. Ids "res.<who>.of.<other>".
+const OPINIONS := {
+	&"grep": {&"hotfix": [GREP, "Hotfix fixes things that work. Loudly."], &"cache": [GREP, "Cache forgets me daily. Restful, honestly."],
+		&"duck": [GREP, "The duck's all right. Good listener."], &"lint": [GREP, "LINT and I disagree about commas."]},
+	&"hotfix": {&"grep": [HOTFIX, "Grep's grumpy. I'm fixing that too."], &"cache": [HOTFIX, "Cache keeps everything. Even my jokes!"],
+		&"duck": [HOTFIX, "I love the duck. The duck fears me."], &"lint": [HOTFIX, "LINT scans me every morning. Rude!"]},
+	&"cache": {&"grep": [CACHE, "Grep reads slowly. I like slow readers."], &"hotfix": [CACHE, "Hotfix hums while he works. Off-key."],
+		&"duck": [CACHE, "The duck is younger than it looks. Much."], &"lint": [CACHE, "LINT's warnings. I keep every one."]},
 }
 
 ## Grep's Search: the first of these that holds is the run's hint (one a run).
@@ -230,7 +288,9 @@ static func pages(m: Dictionary = {}) -> int:
 static func facts(id: StringName, m: Dictionary) -> Dictionary:
 	var r: Dictionary = _rec(m).get(String(id), {})
 	return {"since": int(m.get("runs", 0)) - int(r.get("at", 0)), "depth": int(m.get("best_step", 0)),
-		"wins": int(m.get("wins", 0)), "pages": pages(m)}
+		"wins": int(m.get("wins", 0)), "pages": pages(m), "heat": int(m.get("heat", 0)),
+		"runs": int(m.get("runs", 0)), "skins": (m.get("skins", []) as Array).filter(func(k: Variant) -> bool: return String(k) != "oak").size(),
+		"packs": (m.get("packs", []) as Array).size()}
 
 
 static func _holds(need: Dictionary, f: Dictionary, m: Dictionary) -> bool:
@@ -238,6 +298,13 @@ static func _holds(need: Dictionary, f: Dictionary, m: Dictionary) -> bool:
 		if k == "flag":
 			if not flag(String(need[k]), m):
 				return false
+		elif k == "log":
+			if not (m.get("logs", []) as Array).has(String(need[k])):
+				return false
+		elif k == "with":
+			for other in need[k]:
+				if not rescued(StringName(other), m):
+					return false
 		elif int(f.get(k, 0)) < int(need[k]):
 			return false
 	return true
@@ -270,16 +337,26 @@ static func waits_for(id: StringName, m: Dictionary = {}) -> String:
 	if i >= arc.size():
 		return ""
 	var need: Dictionary = arc[i]["need"]
-	if _holds(need, facts(id, mm), mm):
+	var f := facts(id, mm)
+	if _holds(need, f, mm):
 		return "They have something to tell you."
-	if need.has("pages"):
+	var unmet := func(k: String) -> bool: return need.has(k) and not _holds({k: need[k]}, f, mm)
+	if unmet.call("pages"):
 		return "More to say with %d Lost Pages." % int(need["pages"])
-	if int(need.get("depth", 0)) >= 21:
+	if unmet.call("depth") and int(need["depth"]) >= 21:
 		return "More to say once you've seen the Kernel."
-	if int(need.get("depth", 0)) >= 11:
+	if unmet.call("depth") and int(need["depth"]) >= 11:
 		return "More to say once the Loop has fallen."
-	if need.has("wins"):
+	if unmet.call("wins"):
 		return "More to say after a win."
+	if unmet.call("heat"):
+		return "More to say once you've run with a Bug Report."
+	if unmet.call("skins"):
+		return "More to say once you own %d skins." % int(need["skins"])
+	if unmet.call("flag") or unmet.call("log"):
+		return "More to say once the story moves on."
+	if unmet.call("runs"):
+		return "More to say after a few more runs."
 	return "More to say after your next run."
 
 
@@ -456,9 +533,61 @@ static func take_skin(id: String) -> bool:
 	return true
 
 
+# ---- round 2: chatter and opinions
+
+## Chatter whose conditions hold now (CHATTER indices).
+static func chatter_open(m: Dictionary = {}) -> Array:
+	var mm := m if not m.is_empty() else _meta()
+	var out: Array = []
+	for i in CHATTER.size():
+		var need: Dictionary = CHATTER[i]["need"]
+		var who: Array = need.get("with", [])
+		var f := facts(StringName(who[0]) if not who.is_empty() else &"", mm)
+		if _holds(need, f, mm):
+			out.append(i)
+	return out
+
+
+## The next overheard exchange: [{id, who, text}], or [] when none fits. The first of those
+## not yet heard, else any of them.
+static func chatter(rng: RandomNumberGenerator = null) -> Array:
+	var m := _meta()
+	var open := chatter_open(m)
+	if open.is_empty():
+		return []
+	var heard: Array = m.get("chatter_heard", [])
+	var i: int = -1
+	for j in open:
+		if not heard.any(func(h: Variant) -> bool: return int(h) == int(j)):
+			i = j
+			break
+	if i < 0:
+		i = open[(rng.randi() if rng else randi()) % open.size()]
+	else:
+		heard.append(i)
+		m["chatter_heard"] = heard
+		_save(m)
+	return _lines("res.chat.%d" % i, CHATTER[i]["lines"])
+
+
+## A resident's word about a neighbour (a resident id, &"duck" or &"lint"), or [] if they
+## have none (or haven't moved in).
+static func opinion(id: StringName, of: StringName) -> Array:
+	if not OPINIONS.has(id) or not OPINIONS[id].has(of) or not rescued(id):
+		return []
+	if DEFS.has(of) and not rescued(of):
+		return []
+	return _lines("res.%s.of.%s" % [id, of], [OPINIONS[id][of]])
+
+
 ## Every voiced line (tools/export_lines.gd via Story.all_lines).
 static func all_lines() -> Array:
 	var out: Array = []
+	for i in CHATTER.size():
+		out.append_array(_lines("res.chat.%d" % i, CHATTER[i]["lines"]))
+	for id in OPINIONS:
+		for of in OPINIONS[id]:
+			out.append_array(_lines("res.%s.of.%s" % [id, of], [OPINIONS[id][of]]))
 	for id in ORDER:
 		out.append_array(freed_lines(id))
 		for i in (ARCS[id] as Array).size():
