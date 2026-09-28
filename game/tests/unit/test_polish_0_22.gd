@@ -171,3 +171,41 @@ func test_a_finished_run_is_recorded_with_the_meta_cache() -> void:
 	SaveGame.in_memory = was
 	SaveGame.enabled = false
 	SaveGame.forget_meta()
+
+
+func test_reset_save_needs_three_taps_and_keeps_settings() -> void:
+	var s := PauseScreen.new()
+	s.hub = true
+	var got := [{}]
+	s.finished.connect(func(res: Dictionary) -> void: got[0] = res)
+	s.press("reset")
+	s.press("reset")
+	eq(got[0], {}, "two taps erase nothing")
+	s.press("relic0")
+	eq(s.confirm_reset, 0, "another button backs out")
+	for k in 3:
+		s.press("reset")
+	ok(bool(got[0].get("reset", false)), "the third tap in a row asks for the reset")
+	s.free()
+
+
+func test_wiping_progress_erases_the_meta_record_but_not_settings() -> void:
+	var was := SaveGame.in_memory
+	SaveGame.in_memory = true
+	SaveGame.enabled = true
+	SaveGame.forget_meta()
+	var m := SaveGame.load_meta()
+	m["runs"] = 12
+	m["bits"] = 300
+	m["tutorial_done"] = true
+	SaveGame.save_meta(m)
+	SaveGame.save_settings({"sound": false})
+	SaveGame.wipe_progress()
+	var after := SaveGame.load_meta()
+	eq(int(after["runs"]), 0, "runs are gone")
+	eq(int(after.get("bits", 0)), 0, "Bits are gone")
+	ok(not bool(after.get("tutorial_done", false)), "the first lesson comes back")
+	eq(SaveGame.load_settings().get("sound"), false, "settings stay")
+	SaveGame.in_memory = was
+	SaveGame.enabled = false
+	SaveGame.forget_meta()

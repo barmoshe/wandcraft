@@ -147,6 +147,16 @@ func _launch_app() -> void:
 	_show_hub(true)
 
 
+## 0.22: the Terminal's RESET SAVE. Everything but the settings goes, and the app opens as
+## it does the first time: the title, the intro, the first lesson.
+func _reset_progress() -> void:
+	SaveGame.wipe_progress()
+	Hints.forget()
+	Barks.reset()
+	Dialogue.clear()
+	_launch_app()
+
+
 ## The Workshop (research/workshop-0.19.md): walk it with the run's controls; stations open
 ## with USE (main._hub_use). `card` shows the title over it first.
 func _show_hub(card := false) -> void:
@@ -341,6 +351,9 @@ func _hub_use(id := "", arg := -1) -> void:
 			world.paused = true
 			_open(t, func(res: Dictionary) -> void:
 				world.paused = false
+				if res.get("reset", false):
+					_reset_progress.call_deferred()
+					return
 				if res.get("credits", false):
 					world.paused = true
 					_open.call_deferred(CreditsScreen.new(), back))

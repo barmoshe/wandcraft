@@ -52,6 +52,12 @@ static func mark_all_seen() -> void:
 		_seen[k] = true
 
 
+## After a progress reset: the next tip reads the (now empty) record again.
+static func forget() -> void:
+	_seen.clear()
+	_loaded = false
+
+
 static func reset() -> void:
 	_seen.clear()
 	_loaded = true

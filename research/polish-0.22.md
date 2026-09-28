@@ -78,6 +78,7 @@ Where a site was blocked, the claim rests on the search summary of the cited pag
 - Crit hit-stop is 60 ms.
 - Vibration only on native phones.
 - The overlap audit reports small taps.
+- **RESET SAVE** in the Workshop's Terminal: three taps in a row erase runs, unlocks, Bits and the story (settings stay), and the game opens as it does the first time.
 
 **Speed and size:**
 - Voices import at 22.05 kHz: the pck goes from 29.4 to 28.3 MB.

@@ -5,6 +5,7 @@ extends Screen
 
 var sel_relic := -1
 var confirm_abandon := false
+var confirm_reset := 0   # Terminal: taps on RESET SAVE so far (the third erases)
 var resumed := false     # opened by "continue": says so in the title
 ## 0.19: the Workshop's Terminal. Settings and credits; no run to resume or abandon.
 var hub := false
@@ -69,6 +70,9 @@ func _paint_terminal(sr: Rect2, cx: float) -> void:
 	button(Rect2(cx - bw / 2.0, y, bw, 26), "hints", "SHOW TIPS", "ghost")
 	button(Rect2(cx + bw / 2.0 + 6, y, bw, 26), "credits", "CREDITS", "ghost")
 	button(Rect2(cx - 70, y + 34, 140, 28), "resume", "BACK", "primary")
+	# 0.22: start over. Three taps (RESET SAVE, SURE?, ERASE ALL); any other button backs out.
+	var reset_txt: String = ["RESET SAVE", "SURE? TAP", "ERASE ALL"][confirm_reset]
+	button(Rect2(cx + 76, y + 35, 96, 26), "reset", reset_txt, "danger")
 	_web_diag(sr, cx, y + 34)
 	if show_glossary:
 		glossary_panel()
@@ -130,7 +134,17 @@ func _web_diag(sr: Rect2, cx: float, y: float) -> void:
 func _on_button(id: String) -> void:
 	if id != "abandon":
 		confirm_abandon = false
+	if id != "reset":
+		confirm_reset = 0
 	match id:
+		"reset":
+			confirm_reset += 1
+			if confirm_reset >= 3:
+				finished.emit({"reset": true})
+			elif confirm_reset == 1:
+				toast("Erases runs, unlocks, Bits and story. Settings stay")
+			else:
+				toast("This cannot be undone")
 		"resume":
 			finished.emit({})
 		"credits":

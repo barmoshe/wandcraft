@@ -54,6 +54,19 @@ static func reset_if_stale() -> bool:
 	return wiped
 
 
+## 0.22: the player's own reset (the Terminal's RESET SAVE). Erases the run, the meta record
+## (runs, unlocks, Bits, residents, the story seen, tips) and the play log. Settings stay.
+static func wipe_progress() -> void:
+	if not enabled:
+		return
+	for p in WIPE:
+		if in_memory:
+			_mem.erase(p)
+		elif FileAccess.file_exists(p):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
+	forget_meta()
+
+
 static func save_run(run: RunState) -> void:
 	if not enabled or in_memory or run == null or run.won or run.sandbox:
 		return

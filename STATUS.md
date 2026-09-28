@@ -335,7 +335,7 @@
   - **Accessibility:** shake and flash levels, reduce motion, large text, and Assist.
   - **Size:** a smaller download.
   - **Bench bot:** it dodges.
-  - **Progress** is kept from 0.21.
+  - **Progress** is kept from 0.21. To start over, use RESET SAVE in the Workshop's Terminal (three taps; settings stay).
   - **Play it:**
     - Is the first run clear?
     - Is a fight calm enough now?
