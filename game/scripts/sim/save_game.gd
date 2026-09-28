@@ -7,11 +7,11 @@ extends RefCounted
 const RUN_PATH := "user://run.json"
 const SETTINGS_PATH := "user://settings.json"
 const META_PATH := "user://meta.json"
-## A progress reset for every player (Bar, 2026-09-28, 0.18.1: a clean slate for playtest
+## A progress reset for every player (Bar, 2026-09-28, 0.18.1 and again in 0.18.2: a clean slate for playtest
 ## round 2). A save from an older epoch is wiped on launch: the run, the meta record (goals,
 ## unlocks, heat, logs, the story seen) and the play log. Settings stay. Raise EPOCH to reset
 ## everyone again.
-const EPOCH := 2
+const EPOCH := 3
 const EPOCH_PATH := "user://epoch.json"
 const WIPE := [RUN_PATH, META_PATH, "user://runlog.json"]
 ## Plan kinds that are boss fights (the Commit Wall marks a death there).
