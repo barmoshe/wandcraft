@@ -328,6 +328,14 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.23.0, Finish** (ADRs 0034 and 0035). Bar: "finish all the work".
+  - **Hold to inspect:** hold a card, shop item, spell slot or relic to read it; the lift does nothing.
+  - **Smaller, cached web build:** music ships as Ogg Vorbis (pck 28.3 to 24.3 MB), and the big files have hashed names, cached for a year.
+  - **Balance:** the bench's new-player bot clears World 1 40% (band 25 to 45%), a dodging bot 100%. The Glitch now lasts 68 s. Concurrency, the Singleton Wand and the Unsafe Staff are retuned. Every bench passes.
+  - **Play it:**
+    - Do the title and shop loops sound clean on a phone?
+    - Is holding to read a card easy, and never in the way?
+    - Do the Unsafe Staff and Singleton Wand still feel worth taking?
 - **Music as Ogg Vorbis** (ADR 0034): the web pck is 4 MB smaller (28.3 to 24.3 MB), loops tested sample-exact. **Bar:** listen to the title and shop loops on a phone.
 - **0.22.0, Polish** (ADR 0033, `research/polish-0.22.md`). Bar asked to research, design, fix and improve the game.
   - **Fixes:** the audit's 16 fixes (no disk reads in fights, exploits closed, story lines kept).
@@ -348,7 +356,7 @@
   - Does the Duck's post-mortem when you come home land?
 - The web build is at https://wandcraft-test.vercel.app (deployed from this session through Vercel's git build).
 - **Everyone starts over:** `SaveGame.EPOCH` is 4. On the first launch of 0.21 the run, the meta record and the play log are wiped; settings stay.
-- **Known, from before 0.21:** the pack bench flags the Concurrency and Version Control showcase wands (`tests/bench/test_pack_builds.gd`). The Kernel bench's check that the Glitch fight lasts 60 to 150 s fails too: it averaged 38 s because the bot dies fast there. Both need a look after the playtest.
+- **Fixed in 0.23:** the pack bench and the Kernel bench pass (ADR 0035).
 - **0.20.0 adds World 3, the residents and the true ending** (ADR 0028). Bar:
   - Play the Kernel on a phone.
     - Do the Interrupt's lock and the Data Race rule read without the Duck explaining them?

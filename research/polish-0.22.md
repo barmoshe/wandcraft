@@ -98,7 +98,8 @@ Where a site was blocked, the claim rests on the search summary of the cited pag
 - **Tests:** 436 pass.
 - **Overlap audit:** clean at three sizes, and with large text on the HUD cases.
 - **Size:** 1.1 MB smaller.
-- **Next:**
-  - Bench numbers with the dodging bot.
-  - Music as Vorbis: done (ADR 0034). A listening and CPU check on a phone is left.
-  - Hashed web file names for long caching.
+- **Finished in 0.23.0** (ADRs 0034 and 0035):
+  - Bench numbers with the dodging bot: done, with two bots (`research/balance-w1.md`).
+  - Music as Vorbis: done. A listening and CPU check on a phone is left.
+  - Hashed web file names for long caching: done.
+  - Hold to inspect: done.
