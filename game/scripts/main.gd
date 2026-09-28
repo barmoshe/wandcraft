@@ -109,7 +109,7 @@ func _ready() -> void:
 		_start_from_args()
 	elif _HUB_SCREENS.has(_args.get("screen", "")):
 		_show_hub(false)
-		_hub_use(_HUB_SCREENS[_args["screen"]], int(_args.get("arg", "0")))
+		_hub_use(_HUB_SCREENS[_args["screen"]], int(_args.get("arg", "1" if _args["screen"] in ["grep", "hotfix", "cache"] else "0")))
 	elif _args.get("screen", "") == "hub":
 		_show_hub(false)
 		if _args.has("at"):
@@ -196,7 +196,8 @@ func _hub_use(id := "", arg := -1) -> void:
 		_open(HubMenu.new(), func(res: Dictionary) -> void:
 			world.paused = false
 			if res.has("station"):
-				_hub_use.call_deferred(String(res["station"]), 0))
+				var st := String(res["station"])
+				_hub_use.call_deferred(st, 1 if Hub.STATIONS.get(st, {}).get("resident", false) else 0))
 		return
 	if id == "" or not Hub.STATIONS.has(id):
 		return
@@ -210,8 +211,18 @@ func _hub_use(id := "", arg := -1) -> void:
 			Story.say("hub_" + id)
 			return
 		"grep", "hotfix", "cache":
+			var rid := StringName(id)
+			if arg != 1 and world.hub.resident_use(rid) == "talk":
+				# 0.21: they talk in the Workshop, in bubbles over their heads; USE again
+				# (or the menu) opens their service
+				Dialogue.clear()
+				for l in Residents.talk(rid):
+					Dialogue.enqueue(l["who"], l["text"], l["id"])
+				world.hub.news[rid] = Residents.has_news(rid)
+				return
+			world.hub.talked = rid
 			var rs := ResidentScreen.new()
-			rs.who = StringName(id)
+			rs.who = rid
 			world.paused = true
 			_open(rs, func(_res: Dictionary) -> void:
 				world.paused = false
@@ -818,7 +829,9 @@ func _process(dt: float) -> void:
 ## Shots (--hudstress): every HUD message at once, the worst case for overlaps: a spoken
 ## line, a tip, a toast, and the boss's banner when there is a boss.
 func _hud_stress() -> void:
-	Dialogue.line_started.emit(Story.DUCK, "Quack. That wand reads left to right, and so does the bug that broke it.", "", 6.0)
+	var who := String(_args.get("say", Story.DUCK))
+	Dialogue.current = {"who": who, "text": "", "id": ""}
+	Dialogue.line_started.emit(who, "Quack. That wand reads left to right, and so does the bug that broke it.", "", 6.0)
 	Events.hint.emit("Tap a wand row to swap. Drag a spell to rearrange it.")
 	Events.toast.emit("Relic: Take-Back. The next hit you take is undone.")
 	if world.boss and not world.boss.dead:

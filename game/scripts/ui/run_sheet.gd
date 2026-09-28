@@ -18,12 +18,14 @@ func _paint() -> void:
 	dim(0.82)
 	var v := view()
 	var cx := v.x / 2.0
-	var r := Rect2(cx - 110, v.y / 2.0 - 96, 220, 192)
+	var r := Rect2(cx - 110, v.y / 2.0 - 102, 220, 204)
 	panel(r, true)
 	text_center(cx, r.position.y + 18, "THE PORTAL", GOLD, 16, "body")
 	var hero := Hub.next_hero(meta)
-	text_center(cx, r.position.y + 32, "As the %s  (change it at the Hero Hall)" % RunState.LOADOUTS[hero]["title"], MUTED)
-	var by := r.position.y + 44
+	# 0.21: two short lines, clear of BACK (one long line ran under it)
+	text_center(cx, r.position.y + 36, "As the %s" % RunState.LOADOUTS[hero]["title"], TEXT)
+	text_center(cx, r.position.y + 46, "(change it at the Hero Hall)", MUTED)
+	var by := r.position.y + 54
 	if has_save:
 		button(Rect2(cx - 80, by, 160, 30), "continue", "CONTINUE RUN", "primary")
 		by += 36

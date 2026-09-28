@@ -152,17 +152,31 @@ func glossary_panel() -> void:
 	panel(r, true)
 	text(r.position + Vector2(10, 16), "HOW WANDS WORK", GOLD, 8, "bold")
 	button(Rect2(r.end.x - 74, r.position.y + 4, 68, 24), "gloss_close", "CLOSE", "primary")
-	var y := r.position.y + 42
 	var f := Game.font("small")
+	# 0.21: one column when it fits; otherwise two, each term over its text (short screens)
+	var one := 0.0
 	for t in Glossary.TERMS:
-		var x := r.position.x + 10
+		one += maxf(1, _wrap(f, t[2], r.size.x - 130, 8).size()) * 10 + 5
+	var cols := 1 if one <= r.size.y - 48 else 2
+	var cw := (r.size.x - 20.0) / cols
+	var col := 0
+	var y := r.position.y + 42
+	for t in Glossary.TERMS:
+		var x := r.position.x + 10 + col * cw
+		var lines := _wrap(f, t[2], (r.size.x - 130) if cols == 1 else (cw - 10), 8)
+		var h: float = (maxf(1, lines.size()) * 10.0 + 5.0) if cols == 1 else (lines.size() * 10.0 + 15.0)
+		if cols == 2 and y + h - 10 > r.end.y and col == 0:
+			col = 1
+			y = r.position.y + 42
+			x = r.position.x + 10 + cw
 		if int(t[0]) >= 0:
 			socket_shape(Vector2(x + 6, y - 3), 5.0, int(t[0]), Color("#1a1330"), Color(FAM_COLORS[int(t[0])]))
 		text(Vector2(x + 16, y), String(t[1]).to_upper(), TEXT, 8, "bold")
-		var lines := _wrap(f, t[2], r.size.x - 130, 8)
+		var tx: float = (r.position.x + 120) if cols == 1 else x
+		var ty: float = y if cols == 1 else y + 10.0
 		for k in lines.size():
-			text(Vector2(r.position.x + 120, y + k * 10), lines[k], MUTED)
-		y += maxf(1, lines.size()) * 10 + 5
+			text(Vector2(tx, ty + k * 10), lines[k], MUTED)
+		y += h
 
 
 func hit(p: Vector2) -> String:
@@ -280,6 +294,18 @@ func para(r: Rect2, s: String, c: Color = TEXT, size := 8, kind := "small") -> f
 	return lines.size() * lh
 
 
+## A string cut to fit a width, ending in "..." when it had to be cut (0.21: a label never
+## runs out of its box; tools/uiaudit.sh checks).
+func fit(s: String, width: float, kind := "small", size := 8) -> String:
+	var f := Game.font(kind)
+	if f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= width:
+		return s
+	var t := s
+	while t.length() > 1 and f.get_string_size(t + "...", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width:
+		t = t.substr(0, t.length() - 1)
+	return t.strip_edges() + "..."
+
+
 func _wrap(f: Font, s: String, width: float, size: int) -> PackedStringArray:
 	var out := PackedStringArray()
 	var line := ""
@@ -337,7 +363,20 @@ func button(r: Rect2, id: String, label: String, kind := "normal", enabled := tr
 	var was := UiAudit.owner
 	UiAudit.owner = "btn:" + id
 	UiAudit.box(self, r)
-	text(Vector2(rr.get_center().x - w / 2.0, rr.get_center().y + 3.5), label, TEXT if enabled else MUTED.darkened(0.3), 8, "bold")
+	var lc := TEXT if enabled else MUTED.darkened(0.3)
+	if w > rr.size.x - 6.0 and label.contains(" ") and rr.size.y >= 22.0:
+		# 0.21: a label wider than its button breaks onto two lines ("VIBRATION" over "ON")
+		var cut := label.rfind(" ")
+		var l1 := label.substr(0, cut)
+		var l2 := label.substr(cut + 1)
+		for k in 2:
+			var ln := l1 if k == 0 else l2
+			var lw := f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+			text(Vector2(rr.get_center().x - lw / 2.0, rr.get_center().y - 1.5 + k * 9), fit(ln, rr.size.x - 4.0, "bold"), lc, 8, "bold")
+	else:
+		var shown := fit(label, rr.size.x - 4.0, "bold")
+		var sw := f.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		text(Vector2(rr.get_center().x - sw / 2.0, rr.get_center().y + 3.5), shown, lc, 8, "bold")
 	UiAudit.owner = was
 	if enabled:
 		var hr := r
@@ -366,14 +405,28 @@ static func item_tags(item: Dictionary) -> Array:
 
 
 ## Small tag chips in a centered row; returns the height used (0 when no tags).
-func chips(cx: float, y: float, tags: Array, col := Style.c("cyan:4")) -> float:
+## 0.21: `max_w` keeps the row inside its card; chips that don't fit fold into a "+N" chip.
+func chips(cx: float, y: float, tags: Array, col := Style.c("cyan:4"), max_w := INF) -> float:
 	if tags.is_empty():
 		return 0.0
 	var f := Game.font("small")
-	var ws: Array = tags.map(func(t: String) -> float: return f.get_string_size(t.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0)
+	var cw := func(t: String) -> float: return f.get_string_size(t.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0
+	tags = tags.duplicate()
+	var ws: Array = tags.map(cw)
 	var total := 0.0
 	for w in ws:
 		total += w + 3.0
+	while tags.size() > 1 and total - 3.0 > max_w:
+		var hidden := 1
+		if String(tags[-1]).begins_with("+") and String(tags[-1]).trim_prefix("+").is_valid_int():
+			hidden = int(String(tags[-1]).trim_prefix("+")) + 1
+			tags.pop_back()
+		tags.pop_back()
+		tags.append("+%d" % hidden)
+		ws = tags.map(cw)
+		total = 0.0
+		for w in ws:
+			total += w + 3.0
 	var x := cx - (total - 3.0) / 2.0
 	for i in tags.size():
 		var r := Rect2(x, y, ws[i], 10)

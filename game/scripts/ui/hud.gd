@@ -459,7 +459,12 @@ func _draw_hub(sr: Rect2, run: RunState) -> void:
 		draw_arc(c, 15.0, 0.0, TAU, 24, col, 2.0)
 		var g := Icons.glyph(st["glyph"], col)
 		draw_texture(g, (c - g.get_size() / 2.0).round())
-		_text(c + Vector2(-9, 26), "USE", col, 8, "bold")
+		# 0.21: a resident's button says what it does: talk first, then their service
+		var use := "USE"
+		if st.get("resident", false):
+			use = {"grep": "ASK", "hotfix": "SKINS", "cache": "PAGES"}.get(h.near, "USE") if h.talked == StringName(h.near) else "TALK"
+		var uw := Game.font("bold").get_string_size(use, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(c + Vector2(-roundf(uw / 2.0), 26), use, col, 8, "bold")
 		if not (Game.is_touch() or Game.touch_seen):
 			_text(c + Vector2(-26, 26), "E", Style.UI_MUTED, 8, "bold")
 		buttons["use"] = Rect2(c - Vector2(18, 18), Vector2(36, 36))
@@ -710,12 +715,19 @@ func _draw_messages(sr: Rect2) -> void:
 	var bottom := sr.end.y - 32.0
 	if hint_t > 0.0 and hint != "":
 		bottom = _draw_hint(sr, bottom) - 3.0
+	# 0.21: a speaker with a body here talks in a bubble over their head (drawn last, around
+	# everything else); one without (a voice over a story beat) keeps the box
+	var speaker := Vector2.INF
 	if say_t > 0.0 and say_text != "":
-		bottom = _draw_say(sr, cx, bottom) - 3.0
+		speaker = Bubbles.anchor(world, say_who)
+		if speaker == Vector2.INF:
+			bottom = _draw_say(sr, cx, bottom) - 3.0
 	if banner_t > 0.0 and banner != "":
 		_draw_banner(sr, cx, bottom)
 	if toast_t > 0.0 and toast != "":
 		_draw_toast(sr, cx)
+	if speaker != Vector2.INF:
+		_draw_bubble(sr, speaker)
 
 
 ## The room and boss banners: boss and phase banners sit low, over the boss bar, so the
@@ -758,6 +770,60 @@ func _draw_toast(sr: Rect2, cx: float) -> void:
 	for k in lines.size():
 		var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		_text(Vector2(cx - lw / 2.0, tr.position.y + 12 + k * 10), lines[k], Color(0.9, 0.95, 1.0, a), 8)
+
+
+## The speech bubble (0.21): the speaker's name in their colour, the line typed out, a tail
+## down to their head; pinned at the screen's edge with an arrow when they are off screen.
+func _draw_bubble(sr: Rect2, at: Vector2) -> void:
+	var el := say_len - say_t
+	var al := Bubbles.alpha(el, say_len)
+	var f := Game.font("small")
+	var lines := Bubbles.lines_for(f, say_text, 3 if world.hub else 2)
+	var wdt := f.get_string_size(say_who, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 4.0
+	var total := 0
+	for ln in lines:
+		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+		total += ln.length()
+	var size := Vector2(roundf(wdt) + Bubbles.PAD.x * 2.0, 15.0 + lines.size() * Bubbles.LINE_H)
+	var ct := get_viewport().get_canvas_transform()
+	var hero := ct * world.player.position
+	# the hero is never under a bubble (nor are the HUD's panels)
+	var keep: Array = _taken.duplicate()
+	keep.append(Rect2(hero + Vector2(-9, -36), Vector2(18, 38)))
+	var lay := Bubbles.layout(ct * at, size, sr, keep, hero)
+	var r: Rect2 = lay["rect"]
+	var col := Bubbles.color_of(say_who)
+	UiAudit.owner = "bubble"
+	_take(r)
+	# see-through in a fight (the room stays readable under it), solid in the Workshop
+	var body := Color(Style.c("night:1"), (0.92 if world.hub else 0.78) * al)
+	draw_rect(r, body)
+	draw_rect(r, Color(col, al), false, 1.0)
+	var tx: float = lay["tail_x"]
+	if lay["pinned"]:
+		# an arrow on the side toward the speaker
+		var d: Vector2 = lay["arrow"]
+		for k in 3:
+			var w := 5.0 - k * 2.0
+			if absf(d.x) > absf(d.y):
+				var x := (r.end.x + k) if d.x > 0.0 else (r.position.x - 1.0 - k)
+				draw_rect(Rect2(x, r.get_center().y - w / 2.0, 1, w).abs(), Color(col, al))
+			else:
+				var y := (r.end.y + k) if d.y > 0.0 else (r.position.y - 1.0 - k)
+				draw_rect(Rect2(clampf(tx, r.position.x + 4, r.end.x - 4) - w / 2.0, y, w, 1), Color(col, al))
+	else:
+		for k in 3:
+			var w := 5.0 - k * 2.0
+			var y := (r.position.y - 1.0 - k) if lay["tail_up"] else (r.end.y + k)
+			draw_rect(Rect2(tx - floorf(w / 2.0), y, w, 1), Color(col, al))
+	_text(r.position + Vector2(Bubbles.PAD.x, 11), say_who, Color(col, al), 8, "bold")
+	var left := Bubbles.shown_chars(el, total, say_len)
+	for k in lines.size():
+		if left <= 0:
+			break
+		var ln: String = lines[k].substr(0, left)
+		left -= lines[k].length()
+		_text(r.position + Vector2(Bubbles.PAD.x, 11 + (k + 1) * Bubbles.LINE_H), ln, Color(0.94, 0.95, 1.0, al), 8)
 
 
 ## Moves a message's rect off everything taken this frame (up for the bottom stack, down for

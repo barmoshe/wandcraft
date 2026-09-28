@@ -60,7 +60,7 @@ func _paint() -> void:
 	var rw := minf(220.0, sr.end.x - rx - 6.0)
 	var a := clampf((_age - 0.3) * 3.0, 0.0, 1.0)
 	text(Vector2(rx, top), "WORLD %d" % (to + 1), Color(MUTED, a), 8, "bold")
-	text(Vector2(rx, top + 20), String(card["title"]).to_upper(), Color(EMBER, a), 16, "body")
+	text(Vector2(rx, top + 20), fit(String(card["title"]).to_upper(), rw, "body", 16), Color(EMBER, a), 16, "body")
 	var y := top + 30.0 + para(Rect2(rx, top + 30, rw, 30), card["line"], Color(TEXT, a))
 	var fresh: Array = NEW_HERE.get(to, [])
 	if not fresh.is_empty():

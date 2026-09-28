@@ -54,7 +54,16 @@ func pixel_scale() -> float:
 		return 1.0
 	# the short side sets the scale, so a phone held upright (web) is not scaled to a speck
 	var sz := get_window().size
-	return maxf(1.0, roundf(float(mini(sz.x, sz.y)) / TARGET_HEIGHT))
+	return scale_for(sz)
+
+
+## The whole-number pixel scale for a window size: the short side sets it (270 virtual
+## pixels tall), but never so big that the long side falls under 480 (0.21: a 4:3 iPad
+## rounded 1536 / 270 up to 6 and got a 341 px wide screen, too narrow for the HUD and menus).
+static func scale_for(sz: Vector2i) -> float:
+	var k := roundf(float(mini(sz.x, sz.y)) / TARGET_HEIGHT)
+	k = minf(k, floorf(float(maxi(sz.x, sz.y)) / 480.0))
+	return maxf(1.0, k)
 
 
 ## True on phones and tablets: the native apps, and the web build in a phone's browser.

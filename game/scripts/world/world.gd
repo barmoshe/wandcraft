@@ -198,6 +198,9 @@ const JOIN_HP := 0.15         # and below what share of their HP
 ## 0.19: the Workshop, while the player is in it (null during a run).
 var hub: Hub = null
 var boss: Boss
+## 0.21: the Duck and LINT, following the hero through a run (world/companion.gd); hidden in
+## the Workshop, where the fixed ones stand.
+var companions: Array[Companion] = []
 var boss_t := 0.0
 var dead_t := 0.0
 ## Screen shake as "trauma" (0..1, decays linearly); the camera shakes by trauma², so
@@ -320,6 +323,12 @@ func setup(seed_value: int) -> void:
 	player.setup(self)
 	_actors.add_child(player)
 	var pl_light := make_light(Color(0.75, 0.8, 1.0), 1.05, 150.0)
+	for k in [&"duck", &"lint"]:
+		var c := Companion.new()
+		c.setup(self, k)
+		c.visible = false
+		_actors.add_child(c)
+		companions.append(c)
 	pl_light.position = Vector2(0, -6)
 	player.add_child(pl_light)
 	spells = SpellRunner.new(self)
@@ -522,6 +531,9 @@ func build_room(tpl: String, kind: StringName) -> void:
 	player.vel = Vector2.ZERO
 	player.reset_physics_interpolation()
 	waves = []
+	for c in companions:
+		c.visible = kind != &"hub"
+		c.snap()
 	wave_i = 0
 	wave_t = 0.8
 	wave_live.clear()
@@ -919,10 +931,9 @@ func _free_resident() -> void:
 	Residents.rescue(who)
 	run.stats["residents"] = int(run.stats.get("residents", 0)) + 1
 	Audio.sfx("resident_free", cage["pos"])
-	fx.text(cage["pos"] + Vector2(0, -40), "%s JOINS THE WORKSHOP" % String(Residents.DEFS[who]["name"]).to_upper(), Color("#72e06a"), 10)
-	if Game.quiet == 0 and run.daily == "":
-		for l in Residents.freed_lines(who):
-			Events.say.emit(l["who"], l["text"], l["id"])
+	# 0.21: the news sits under the cage, clear of the resident's first bubble over it
+	fx.text(cage["pos"] + Vector2(0, 22), "%s JOINS THE WORKSHOP" % String(Residents.DEFS[who]["name"]).to_upper(), Color("#72e06a"), 10)
+	cage["said"] = false   # they speak once they're out (step: after CAGE_REVEAL)
 	_open_doors()
 
 
@@ -1088,6 +1099,9 @@ func step(dt: float) -> void:
 		Audio.player_hp(run.hp / run.max_hp)
 	for e in enemies:
 		if not e.dead:
+	for c in companions:
+		if c.visible:
+			c.tick(dt)
 			e.tick(dt)
 	_separate()
 	_unstick()
@@ -1111,6 +1125,11 @@ func _update_room(dt: float) -> void:
 		if room_kind == &"mini" or room_kind == &"boss":
 			if boss == null:
 				boss_t -= dt
+		if not cage.get("said", true) and float(cage["t"]) >= CAGE_REVEAL:
+			cage["said"] = true
+			if Game.quiet == 0 and run.daily == "":
+				for l in Residents.freed_lines(cage["who"]):
+					Events.say.emit(l["who"], l["text"], l["id"])
 				if boss_t <= 0.0:
 					_spawn_boss()
 			elif boss.dead:

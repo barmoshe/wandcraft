@@ -48,6 +48,11 @@ CASES=(
   "end-won|--screen=end --won=1 --loadout=strong --bounties=world2,rescue --frames=60"
   "commit|--screen=commit --frames=60"
   "hub|--screen=hub --runs=3 --wins=1 --bits=140 --residents=grep,hotfix,cache --frames=150 --hudstress"
+  "hub-talk|--screen=hub --runs=3 --residents=grep,hotfix,cache --at=grep --frames=150 --hudstress --say=GREP"
+  "hub-duck|--screen=hub --runs=3 --at=duck --frames=150 --hudstress"
+  "cage-w3|--demo --world=3 --kind=resident --frames=200 --hudstress --say=CACHE"
+  "say-fallback|--demo --frames=240 --hudstress --say=GREP"
+  "lint-w1|--demo --frames=240 --seed=3 --hudstress --say=LINT"
   "hub-pkg|--screen=hub --runs=3 --bits=140 --at=pkg --frames=90 --hudstress"
   "runsheet|--screen=runsheet --runs=3 --frames=60"
   "heroes|--screen=heroes --runs=3 --frames=60"
@@ -70,7 +75,7 @@ run_case() {
   [[ "$res" == "2556x1179" ]] && extra="--touchdemo"
   # shellcheck disable=SC2086
   with_display -s "-screen 0 ${res}x24" \
-    "$HERE/godot.sh" --path "$GAME" --resolution "$res" --rendering-method "${RENDERER:-mobile}" -- \
+    timeout "${SHOT_TIMEOUT:-150}" "$HERE/godot.sh" --path "$GAME" --resolution "$res" --rendering-method "${RENDERER:-mobile}" -- \
     --shot="$OUT/$tag.png" --uiaudit $args $([[ "$args" == *--screen=* ]] || echo $extra) > "$OUT/$tag.log" 2>&1
   if ! grep -q "UIAUDIT: [0-9]* overlaps" "$OUT/$tag.log"; then
     echo "$tag: NO REPORT (see shots/uiaudit/$tag.log)"
@@ -78,7 +83,8 @@ run_case() {
   fi
   grep "^UIAUDIT: " "$OUT/$tag.log" | grep -v " overlaps$" | sed "s|^UIAUDIT: |$tag  |"
 }
-export -f run_case with_display
+command -v timeout >/dev/null 2>&1 || timeout() { shift; "$@"; }   # macOS has no timeout
+export -f run_case with_display timeout
 export HERE GAME OUT RENDERER
 
 for res in $RESES; do

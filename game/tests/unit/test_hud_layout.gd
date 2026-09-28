@@ -67,3 +67,12 @@ func test_the_layout_resets_each_frame() -> void:
 	eq(hud._eased.size(), 1, "a message drawn this frame keeps its eased y")
 	hud._ease_forget()
 	eq(hud._eased.size(), 0, "one that stopped showing forgets it, so it starts fresh next time")
+
+
+func test_the_screen_is_never_narrower_than_the_layout() -> void:
+	# 0.21: a 4:3 iPad rounded up to a scale that left a 341 px wide view
+	for sz in [Vector2i(2048, 1536), Vector2i(2732, 2048), Vector2i(2556, 1179), Vector2i(1920, 1080), Vector2i(2388, 1668), Vector2i(1280, 720)]:
+		var k: float = Game.scale_for(sz)
+		ok(sz.x / k >= 480.0 and sz.y / k >= 270.0, "%s at x%d is %dx%d" % [sz, k, sz.x / k, sz.y / k])
+	eq(Game.scale_for(Vector2i(1920, 1080)), 4.0, "a 1080p screen keeps 480x270")
+	eq(Game.scale_for(Vector2i(390, 844)), 1.0, "a phone held upright on the web is not scaled to a speck")

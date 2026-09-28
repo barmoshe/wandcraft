@@ -70,6 +70,9 @@ var world: World
 var anchors := {}            # station id -> Array[Vector2] (pixel centres)
 var near := ""               # the station in reach ("" for none)
 var near_arg := -1           # which pedestal, for the Hero Hall
+## 0.21: the resident you just talked to (USE again opens their service); cleared, and the
+## rest of their talk dropped, when you walk away.
+var talked: StringName = &""
 var dummy: Enemy
 var dps := 0.0
 var _armed := true           # the portal re-arms once you step away
@@ -209,6 +212,27 @@ func in_fire_zone(p: Vector2) -> bool:
 	return open("repl") and FIRE_ZONE.has_point(p)
 
 
+## USE on a resident: the first time you talk (their lines play as bubbles over them), the
+## next time their service opens. Returns "talk" or "service".
+func resident_use(id: StringName) -> String:
+	if talked == id:
+		return "service"
+	talked = id
+	return "talk"
+
+
+## The station whose speaker is talking right now ("" for none): its label and "!" step
+## aside for the bubble.
+static func speaking() -> String:
+	var who := String(Dialogue.current.get("who", ""))
+	if who == "":
+		return ""
+	var res := Residents.id_of(who)
+	if res != &"":
+		return String(res)
+	return "duck" if who == Story.DUCK else ("lint" if who == Story.LINT else "")
+
+
 func update(dt: float) -> void:
 	var p := world.player.position
 	# the station in reach: the nearest marker within USE_R
@@ -223,6 +247,9 @@ func update(dt: float) -> void:
 				best = d
 				near = id
 				near_arg = k
+	if talked != &"" and anchors.has(String(talked)) and p.distance_to(anchors[String(talked)][0]) > USE_R + 10.0:
+		Dialogue.drop_prefix("res.%s." % talked)
+		talked = &""
 	# the portal is the one walk-in (the doors in a run work the same way)
 	var pp: Vector2 = anchors.get("portal", [Vector2.INF])[0]
 	var dp := p.distance_to(pp)
@@ -373,7 +400,8 @@ func draw_top(ci: CanvasItem) -> void:
 		var nm := String(SHORT.get(id, STATIONS[id]["title"]))
 		var c := Color(STATIONS[id]["color"]) if open(id) else Color(0.5, 0.45, 0.6)
 		_label(ci, f, ap + Vector2(0, 16 if id != "portal" else 14), nm, Color(c, 0.8))
-	if near != "":
+	var talking := speaking()
+	if near != "" and near != talking:
 		var st: Dictionary = STATIONS[near]
 		var locked := not open(near)
 		var label := String(st["title"])
@@ -386,7 +414,7 @@ func draw_top(ci: CanvasItem) -> void:
 	# 0.20: a resident with a new beat to tell wears a "!"
 	for id in Residents.ORDER:
 		var key := String(id)
-		if anchors.has(key) and news.get(id, false):
+		if anchors.has(key) and news.get(id, false) and key != talking:
 			var ep: Vector2 = anchors[key][0] + Vector2(0, -34 + sin(t * 4.0) * 1.5)
 			_label(ci, f, ep, "!", Color(STATIONS[key]["color"]), 16)
 	if open("repl") and dummy and is_instance_valid(dummy):

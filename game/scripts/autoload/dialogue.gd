@@ -12,7 +12,7 @@ const DIR := "res://assets/voice/"
 const STALE := 6.0      # a line waiting longer than this is dropped, not played late
 const GAP := 0.35       # a breath between lines
 const DIP_DB := -6.0    # the music under speech
-const MAX_QUEUE := 4
+const MAX_QUEUE := 6    # 0.21: a resident's whole beat fits
 
 var _queue: Array = []
 var _busy := 0.0
@@ -43,15 +43,34 @@ static func stream(id: String) -> AudioStream:
 	return load(p) if ResourceLoader.exists(p) else null
 
 
-## How long a line stays up with no audio: enough to read it.
+## How long a line stays up with no audio (0.21, speech bubbles): the typewriter at 30
+## characters a second, then time to read it at 15 (at least 1.5 s), and half a second more.
 static func read_time(text: String) -> float:
-	return 2.2 + minf(3.0, text.length() / 22.0)
+	var n := text.length()
+	return n / 30.0 + maxf(1.5, n / 15.0) + 0.5
 
 
 func enqueue(who: String, text: String, id: String) -> void:
 	if _queue.size() >= MAX_QUEUE:
 		return
 	_queue.append({"who": who, "text": text, "id": id, "t": _now()})
+
+
+## Forgets waiting lines whose id starts with `prefix`, and cuts the current one short if it
+## is one of them (you walked away from a resident mid-talk).
+func drop_prefix(prefix: String) -> void:
+	_queue = _queue.filter(func(l: Dictionary) -> bool: return not String(l["id"]).begins_with(prefix))
+	if String(current.get("id", "")).begins_with(prefix):
+		if _player:
+			_player.stop()
+		_busy = minf(_busy, GAP)
+		current = {}
+
+
+## The exchange a line belongs to: its id without the last part ("res.grep.arc.0").
+static func group(id: String) -> String:
+	var cut := id.rfind(".")
+	return id.substr(0, cut) if cut > 0 else id
 
 
 ## Stops the voice and forgets what was waiting (a new screen, a new run).
@@ -87,6 +106,12 @@ func _start(l: Dictionary) -> float:
 		dur = st.get_length() + 0.1
 	current = l
 	_busy = dur + GAP
+	# 0.21: the rest of an exchange waits on this line, so it doesn't go stale behind it
+	var g := group(String(l["id"]))
+	if g != "":
+		for q in _queue:
+			if group(String(q["id"])) == g:
+				q["t"] = _now() + dur
 	line_started.emit(l["who"], l["text"], l["id"], dur)
 	return dur
 
@@ -105,7 +130,7 @@ func _process(dt: float) -> void:
 				_start(l)
 				break
 	# the music makes room while a line plays: 6 dB down, back over about 150 ms
-	var want := DIP_DB if _player.playing else 0.0
+	var want := DIP_DB if _player and _player.playing else 0.0
 	_dip = move_toward(_dip, want, dt * 40.0)
 	var au := get_node_or_null("/root/Audio")
 	if au and "voice_db" in au:

@@ -161,6 +161,7 @@ static func icons(s: Node) -> void:
 	all_spells.merge(IconSpellsC.ART)
 	all_spells.merge(IconSpellsD.ART)
 	all_spells.merge(IconSpellsE.ART)
+	all_spells.merge(IconSpellsF.ART)
 	for id in all_spells:
 		var e: Dictionary = all_spells[id]
 		var kind: int = KINDS.get(e.get("kind", ""), Catalog.spell(id).kind if Catalog.spells().has(id) else SpellDef.Kind.PROJ)
@@ -192,6 +193,17 @@ static func arsenal(s: Node) -> void:
 	s.section("0.20 relics")
 	for id in IconSpellsE.RELICS:
 		s.add(String(id), PixelArt.tex(Icons.framed(-1, IconSpellsE.RELICS[id])))
+
+
+## The 0.21 arsenal icons (IconSpellsF) in their frames, and the Pair Programmer on the field
+## (tools/artsheet.sh arsenal21).
+static func arsenal21(s: Node) -> void:
+	s.section("0.21 spells")
+	for id in IconSpellsF.ART:
+		s.add(String(id), PixelArt.tex(Icons.framed(Catalog.spell(id).kind, IconSpellsF.ART[id])))
+	s.section("0.21 summon")
+	for f in 2:
+		s.add("pair %d" % f, Props.familiar(&"pair", f))
 
 
 static func tiles(s: Node) -> void:
@@ -255,6 +267,12 @@ static func kernel_fx(s: Node) -> void:
 	s.section("speech faces: duck, lint | resident x mood (neutral happy worried stern), talk, blink")
 	s.add("duck", Hud.duck_face())
 	s.add("lint", Hud.lint_face())
+	# 0.21: the companions that walk the runs (feet, talking beak, the drone's eye)
+	for f in 2:
+		s.add("duck %d" % f, CompanionArt.duck(f, false))
+		s.add("lint %d" % f, CompanionArt.lint(f, false))
+	s.add("duck talk", CompanionArt.duck(0, true))
+	s.add("lint talk", CompanionArt.lint(0, true))
 	for id in [&"grep", &"hotfix", &"cache"]:
 		for m in 4:
 			s.add("%s %d" % [id, m], KernelArt.portrait(id, m, false, false))

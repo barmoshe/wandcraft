@@ -36,17 +36,17 @@ func _paint() -> void:
 			draw_circle(Vector2(sr.position.x + 8, y + 8), 3.0, c)
 			draw_rect(Rect2(sr.position.x + 7.5, y + 11, 1, rh - 6), Color(0.4, 0.35, 0.5))
 			text(Vector2(sr.position.x + 16, y + 11), String(e.get("id", "000000")), Color("#ffd05e"), 8, "bold")
-			text(Vector2(sr.position.x + 58, y + 11), message(e), TEXT)
+			text(Vector2(sr.position.x + 58, y + 11), fit(message(e), lw - 60.0), TEXT)
 			var meta_line := "%s  %s  %d:%02d  %s" % [RunState.LOADOUTS.get(StringName(e.get("hero", "apprentice")), {"title": "?"})["title"],
 				String(e.get("wand", "")), int(e.get("time", 0)) / 60, int(e.get("time", 0)) % 60, String(e.get("date", ""))]
-			text(Vector2(sr.position.x + 58, y + 20), meta_line, MUTED)
+			text(Vector2(sr.position.x + 58, y + 20), fit(meta_line, lw - 60.0), MUTED)
 		y += rh
 	_max_scroll = maxf(0.0, hist.size() * rh - (sr.end.y - top))
 	# the Source's own log, on the right
 	var rx := sr.position.x + lw + 10
 	var rr := Rect2(rx, top, sr.end.x - rx, sr.end.y - top)
 	panel(rr, false)
-	text(rr.position + Vector2(8, 13), "THE SOURCE'S LOG  %d/%d" % [Story.logs_found().size(), Story.LOGS.size()], Color("#5ce1ff"), 8, "bold")
+	text(rr.position + Vector2(8, 13), fit("THE SOURCE'S LOG  %d/%d" % [Story.logs_found().size(), Story.LOGS.size()], rr.size.x - 12.0, "bold"), Color("#5ce1ff"), 8, "bold")
 	var got: Array = Story.logs_found().map(func(l: Dictionary) -> String: return l["id"])
 	var ly := rr.position.y + 26
 	for l in Story.LOGS:

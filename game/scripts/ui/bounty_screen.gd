@@ -59,12 +59,12 @@ func _ticket(r: Rect2, b: Dictionary, fixed: bool) -> void:
 	draw_rect(Rect2(r.position, Vector2(3, r.size.y)), Color("#ff7b7b") if not fixed else Style.UI_GOOD)
 	var num := "#%03d" % (Meta.BOUNTIES.find(b) + 1)
 	text(r.position + Vector2(8, 11), num, Color("#ff7b7b") if not fixed else Style.UI_GOOD, 8, "bold")
-	text(r.position + Vector2(40, 11), String(b["text"]), TEXT, 8, "bold")
+	text(r.position + Vector2(40, 11), fit(String(b["text"]), r.size.x - 124.0, "bold"), TEXT, 8, "bold")
 	var reward := "+%d Bits" % int(b["bits"])
 	var names: Array = (b.get("unlocks", []) as Array).map(func(id: StringName) -> String: return Meta.title(id))
 	if not names.is_empty():
 		reward += "   opens " + ", ".join(names.slice(0, 3))
-	text(r.position + Vector2(40, 21), reward, Color("#7cf0c8"))
+	text(r.position + Vector2(40, 21), fit(reward, r.size.x - 124.0), Color("#7cf0c8"))
 	if fixed:
 		text_right(r.end.x - 76, r.position.y + 11, "FIXED", Style.UI_GOOD, 8, "bold")
 

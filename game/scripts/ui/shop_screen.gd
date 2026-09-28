@@ -42,7 +42,10 @@ func _paint() -> void:
 	var v := view()
 	var sr := safe()
 	text(sr.position + Vector2(4, 16), "MERCHANT" if mode == "shop" else "FORGE", GOLD, 16, "body")
-	text(sr.position + Vector2(4, 28), "Tap an item, then buy it." if mode == "shop" else "Upgrade a spell, add a slot, or compile a level-2 spell.", MUTED)
+	# 0.21: the line under the title wraps short of the gold and the buttons on narrow screens
+	var sub_w := (sr.end.x - (244.0 if mode == "shop" else 150.0)) - (sr.position.x + 4) - 6
+	var sub_h := para(Rect2(sr.position + Vector2(4, 20), Vector2(sub_w, 22)), "Tap an item, then buy it." if mode == "shop" else "Upgrade a spell, add a slot, or compile a level-2 spell.", MUTED)
+	var top := 38.0 + maxf(0.0, minf(sub_h, 22.0) - 11.0)
 	# gold
 	var gr := Rect2(sr.end.x - 150, sr.position.y + 4, 64, 22)
 	panel(gr)
@@ -54,22 +57,29 @@ func _paint() -> void:
 		button(Rect2(sr.end.x - 244, sr.position.y + 2, 90, 26), "reroll", "REROLL  %d" % rp, "ghost", run.gold >= rp)
 	var items := _items()
 	var info_w := minf(170.0, sr.size.x * 0.38)
-	var grid := Rect2(sr.position + Vector2(0, 38), Vector2(sr.size.x - info_w - 10, sr.size.y - 40))
+	var grid := Rect2(sr.position + Vector2(0, top), Vector2(sr.size.x - info_w - 10, sr.size.y - top - 2))
 	var tw := 44.0
 	var th := 52.0
 	var cols := maxi(1, int(grid.size.x / (tw + 6)))
+	# 0.21: a long forge list gets smaller tiles so every row stays on screen
+	var compact := ceili(items.size() / float(cols)) * (th + 6) > grid.size.y
+	if compact:
+		tw = 36.0
+		th = 40.0
+		cols = maxi(1, int(grid.size.x / (tw + 4)))
 	if items.is_empty():
 		para(Rect2(grid.position + Vector2(4, 8), Vector2(grid.size.x - 8, 60)), "Nothing to upgrade: every spell you own is already at the top level." if mode == "forge" else "Sold out.", MUTED)
 	for i in items.size():
 		var it: Dictionary = items[i]
-		var r := Rect2(grid.position + Vector2((i % cols) * (tw + 6), (i / cols) * (th + 6)), Vector2(tw, th))
+		var pitch := 4.0 if compact else 6.0
+		var r := Rect2(grid.position + Vector2((i % cols) * (tw + pitch), (i / cols) * (th + pitch)), Vector2(tw, th))
 		panel(r, i == sel)
 		draw_rect(Rect2(r.position + Vector2(2, 2), Vector2(r.size.x - 4, 2)), rarity_color(Rewards.item_rarity(it)).darkened(0.2))
 		if i == sel:
 			draw_rect(r.grow(1.0), GOLD, false, 1.0)
 		var mod := Color(1, 1, 1, 0.35) if it.get("sold", false) else Color.WHITE
-		icon_at(item_icon(it), r.position + Vector2(tw / 2.0, 18), 2.0, mod)
-		if mode == "forge" and it["t"] == &"spell":
+		icon_at(item_icon(it), r.position + Vector2(tw / 2.0, 15 if compact else 18), 1.0 if compact else 2.0, mod)
+		if mode == "forge" and it["t"] == &"spell" and not compact:
 			text_center(r.get_center().x, r.position.y + 38, "+".repeat(int(it["lv"]) - 1) + " > " + "+".repeat(int(it["lv"])), GOLD)
 		var price_c := GOLD if run.gold >= int(it["price"]) else Color("#ff6b7a")
 		if it.get("sale", false) and not it.get("sold", false):
@@ -77,7 +87,7 @@ func _paint() -> void:
 		text_center(r.get_center().x, r.end.y - 4, ("BANNED" if run.banned.has(it["id"]) else "SOLD") if it.get("sold", false) else ("COMPILE" if it["t"] == &"compile" else str(it["price"])), MUTED if it.get("sold", false) else price_c)
 		area(r, "item%d" % i)
 	# info panel
-	var ir := Rect2(sr.end.x - info_w, sr.position.y + 38, info_w, sr.size.y - 40)
+	var ir := Rect2(sr.end.x - info_w, sr.position.y + top, info_w, sr.size.y - top - 2)
 	panel(ir, true)
 	if sel >= 0 and sel < items.size():
 		var it: Dictionary = items[sel]
@@ -86,7 +96,7 @@ func _paint() -> void:
 		var rar := Rewards.item_rarity(it)
 		text(ir.position + Vector2(34, 28), "%s - %s" % [kind_label(it), Relics.RARITY_NAMES[rar]], rarity_color(rar))
 		var kl := kind_label(it).to_lower()
-		var ch := chips(ir.get_center().x, ir.position.y + 34, item_tags(it).filter(func(t: String) -> bool: return not kl.contains(t.to_lower())))
+		var ch := chips(ir.get_center().x, ir.position.y + 34, item_tags(it).filter(func(t: String) -> bool: return not kl.contains(t.to_lower())), Style.c("cyan:4"), ir.size.x - 8.0)
 		var lv: int = int(it.get("lv", 1)) + (1 if mode == "forge" else 0)
 		var room := ir.size.y - 90 - ch - (12.0 if it["t"] == &"spell" else 0.0)
 		var used := minf(para(Rect2(ir.position + Vector2(8, 40 + ch), Vector2(ir.size.x - 16, room)), Rewards.item_desc(it, lv), Style.c("bone:3")), room) + ch

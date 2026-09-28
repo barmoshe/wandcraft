@@ -56,7 +56,7 @@ func _paint() -> void:
 	if shelf.is_empty():
 		text_center(cx, sr.get_center().y, "Every pack is yours. The Guild is impressed.", MUTED)
 		return
-	text(sr.position + Vector2(2, 32), "Packs add spells and relics to every run after. What you see is what you get.", MUTED)
+	text(sr.position + Vector2(2, 32), fit("Packs add spells and relics to every run after. What you see is what you get.", sr.size.x - 4.0), MUTED)
 	var n := shelf.size()
 	var cw := minf(150.0, (sr.size.x - 8) / n - 6)
 	var x0 := cx - (n * (cw + 6) - 6) / 2.0

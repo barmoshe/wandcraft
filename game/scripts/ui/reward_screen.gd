@@ -113,11 +113,11 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 		draw_set_transform(Vector2.ZERO)
 	icon_at(item_icon(item), ic + Vector2(0, sin(_age * 2.0 + r.position.x) * (1.0 if selected else 0.0)), 1.0 if compact else 2.0)
 	var y := r.position.y + (46.0 if compact else 64.0)
-	text_center(cx, y, Rewards.item_title(item) + "+".repeat(lv - 1), TEXT, 8, "bold")
+	text_center(cx, y, fit(Rewards.item_title(item) + "+".repeat(lv - 1), r.size.x - 8.0, "bold"), TEXT, 8, "bold")
 	y += 4
-	y += chips(cx, y, tags)
+	y += chips(cx, y, tags, Style.c("cyan:4"), r.size.x - 8.0)
 	if not en.is_empty():
-		y += chips(cx, y + 2, en, Style.c("gold:4")) + 2
+		y += chips(cx, y + 2, en, Style.c("gold:4"), r.size.x - 8.0) + 2
 	para(Rect2(r.position.x + 7, y + 1, body_w, bottom - y - 1), desc, Style.c("bone:3"))
 	if foot[0] != "":
 		draw_rect(Rect2(r.position.x + 3, r.end.y - 14, r.size.x - 6, 1), RIM)

@@ -1,78 +1,58 @@
 class_name ResidentScreen
 extends Screen
-## A resident of the Workshop (0.20, Residents): their face, what they say (the next beat of
-## their story, else how your last run went, else small talk), and their service:
+## A resident's service (0.20, Residents), opened by using them a second time in the Workshop
+## (0.21: their talk plays as bubbles over their heads first, in the world):
 ##   Grep     SEARCH       one true hint a run
 ##   Hotfix   SKIN FORGE   wand skins for Bits (looks, never power)
 ##   Cache    THE STACKS   the Lost Pages, read like source files
+## A compact panel over the dimmed Workshop: their face and name, their story so far, and
+## the service.
 
 var who: StringName = &"grep"
-var lines: Array = []          # [{id, who, text}] said as the screen opened
 var hint := ""                 # Grep's answer, once asked
 var page := -1                 # Cache: the page being read
 var meta: Dictionary = {}
 
 
 func _opened() -> void:
-	lines = Residents.talk(who)
-	meta = SaveGame.load_meta()   # after the talk: it may have moved their story on
-	for l in lines:
-		Dialogue.enqueue(l["who"], l["text"], l["id"])
+	meta = SaveGame.load_meta()
 	if who == &"cache" and Residents.pages() > 0:
 		page = Residents.pages() - 1
 
 
-func _name_color(tag: String) -> Color:
-	for id in Residents.DEFS:
-		if Residents.DEFS[id]["who"] == tag:
-			return Color(Residents.DEFS[id]["color"])
-	return Style.UI_GOLD if tag == Story.DUCK else Color("#5ce1ff")
-
-
 func _paint() -> void:
-	dim(0.94)
+	dim(0.5)
 	var sr := safe()
 	var d: Dictionary = Residents.DEFS[who]
 	var col := Color(d["color"])
+	var r := Rect2(sr.get_center().x - minf(sr.size.x - 8.0, 340.0) / 2.0, sr.position.y + 4, minf(sr.size.x - 8.0, 340.0), sr.size.y - 8)
+	panel(r, true)
 	# the face and name
-	var talking := fmod(_age, 0.25) < 0.12 and _age < 2.5
-	var face := KernelArt.portrait(who, 1 if who == &"hotfix" else 0, talking, fmod(_age, 3.3) < 0.12)
-	var fs := face.get_size() * 3.0
-	draw_texture_rect(face, Rect2(sr.position + Vector2(2, 2), fs), false)
-	var fx := sr.position.x + fs.x + 10
-	text(Vector2(fx, sr.position.y + 16), String(d["name"]).to_upper(), col, 16, "body")
-	text(Vector2(fx, sr.position.y + 28), String(d["title"]), MUTED, 8, "bold")
-	button(Rect2(sr.end.x - 76, sr.position.y, 76, 24), "close", "BACK", "primary")
-	# what they said
-	var lw := sr.size.x * 0.44
-	var y := sr.position.y + maxf(44.0, fs.y + 8.0)
-	var lr := Rect2(sr.position.x, y, lw, sr.end.y - y)
-	panel(lr, false)
-	var ly := lr.position.y + 14
-	for l in lines:
-		var tag: String = l["who"]
-		text(Vector2(lr.position.x + 8, ly), tag, _name_color(tag), 8, "bold")
-		ly += para(Rect2(lr.position.x + 8, ly + 2, lr.size.x - 16, 40), String(l["text"]), TEXT) + 8
-	if hint != "":
-		text(Vector2(lr.position.x + 8, ly), "GREP", col, 8, "bold")
-		para(Rect2(lr.position.x + 8, ly + 2, lr.size.x - 16, 40), hint, Style.c("gold:4"))
+	var face := KernelArt.portrait(who, 1 if who == &"hotfix" else 0, false, fmod(_age, 3.3) < 0.12)
+	var fs := face.get_size() * 2.0
+	draw_texture_rect(face, Rect2(r.position + Vector2(6, 6), fs), false)
+	var fx := r.position.x + fs.x + 12
+	text(Vector2(fx, r.position.y + 18), String(d["name"]).to_upper(), col, 16, "body")
+	text(Vector2(fx, r.position.y + 29), fit(String(d["title"]), r.end.x - 70 - fx, "bold"), MUTED, 8, "bold")
+	button(Rect2(r.end.x - 62, r.position.y + 5, 56, 22), "close", "BACK", "primary")
 	# their story so far: a pip a beat, and what the next one waits for
 	var pr := Residents.progress(who, meta)
-	var py := lr.end.y - 22
+	var py := r.position.y + 40
 	for k in int(pr[1]):
-		var pc := Vector2(lr.position.x + 12 + k * 10, py)
+		var pc := Vector2(fx + 3 + k * 9, py)
 		if k < int(pr[0]):
 			draw_circle(pc, 3.0, col)
 		else:
 			draw_arc(pc, 2.5, 0.0, TAU, 10, MUTED, 1.0)
 	var wf := Residents.waits_for(who, meta)
-	text(Vector2(lr.position.x + 8, lr.end.y - 8), wf if wf != "" else "Their story is told.", MUTED)
+	var wx := fx + int(pr[1]) * 9 + 6
+	text(Vector2(wx, py + 3), fit(wf if wf != "" else "Their story is told.", r.end.x - 8 - wx), MUTED)
 	# the service
-	var rx := lr.end.x + 8
-	var rr := Rect2(rx, sr.position.y + 44, sr.end.x - rx, sr.end.y - sr.position.y - 44)
-	panel(rr, true)
+	var top := maxf(r.position.y + fs.y + 12, py + 10)
+	var rr := Rect2(r.position.x + 6, top, r.size.x - 12, r.end.y - top - 6)
+	panel(rr, false)
 	text(rr.position + Vector2(8, 13), String(d["service"]), col, 8, "bold")
-	text(rr.position + Vector2(8, 23), String(d["sub"]), MUTED)
+	text(rr.position + Vector2(8, 23), fit(String(d["sub"]), rr.size.x - 16), MUTED)
 	match who:
 		&"grep":
 			_paint_search(rr)
@@ -84,8 +64,11 @@ func _paint() -> void:
 
 func _paint_search(rr: Rect2) -> void:
 	var asked := int(meta.get("hint_run", -1)) == int(meta.get("runs", 0))
-	para(Rect2(rr.position.x + 8, rr.position.y + 36, rr.size.x - 16, 60),
+	para(Rect2(rr.position.x + 8, rr.position.y + 36, rr.size.x - 16, 30),
 		"Ask once a run. He answers literally, and he's always right.", TEXT)
+	if hint != "":
+		text(Vector2(rr.position.x + 8, rr.position.y + 74), "GREP", Color(Residents.DEFS[&"grep"]["color"]), 8, "bold")
+		para(Rect2(rr.position.x + 8, rr.position.y + 78, rr.size.x - 16, rr.size.y - 118), hint, Style.c("gold:4"))
 	button(Rect2(rr.position.x + 8, rr.end.y - 34, rr.size.x - 16, 26), "search", "ASK GREP" if not asked else "ASKED THIS RUN", "primary", hint == "")
 
 

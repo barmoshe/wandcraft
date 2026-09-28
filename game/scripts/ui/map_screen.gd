@@ -9,7 +9,7 @@ func _paint() -> void:
 	dim(0.92)
 	var v := view()
 	var sr := safe()
-	text_center(v.x / 2.0, sr.position.y + 18, "WORLD 1", GOLD, 16, "body")
+	text_center(v.x / 2.0, sr.position.y + 18, "WORLD %d" % (run.world + 1), GOLD, 16, "body")
 	text_center(v.x / 2.0, sr.position.y + 32, "%s  -  %s" % [Chapter.WORLDS[run.world]["name"], Chapter.area_name(run.step, run.world)], MUTED)
 	if run.map.is_empty():
 		run.map = Chapter.make_map(run)
@@ -65,12 +65,18 @@ func _paint() -> void:
 	text_center(x0 + gx * (a1 + n - 1) / 2.0, cy + gy + 30, String(areas[1]["name"]).to_upper(), [Style.c("violet:4"), Style.c("ember:4"), Style.c("glitch:4")][clampi(run.world, 0, 2)])
 	# design v2: the threat badges' legend
 	var lx := sr.position.x + 20
+	var ly := cy + gy + 48
 	for th in Chapter.THREATS:
 		var ti: Dictionary = Chapter.THREATS[th]
-		icon_at(Icons.glyph(ti["glyph"], Color(ti["color"])), Vector2(lx + 5, cy + gy + 48))
 		var ask: String = String(ti["ask"]).split(": ")[1] if String(ti["ask"]).contains(": ") else ti["ask"]
-		text(Vector2(lx + 14, cy + gy + 51), ask, MUTED)
-		lx += 14 + Game.font("small").get_string_size(ask, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 14
+		var aw := Game.font("small").get_string_size(ask, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		if lx + 14 + aw > sr.end.x - 4 and lx > sr.position.x + 20:
+			# 0.21: the legend wraps onto a second row instead of running off the screen
+			lx = sr.position.x + 20
+			ly += 12
+		icon_at(Icons.glyph(ti["glyph"], Color(ti["color"])), Vector2(lx + 5, ly))
+		text(Vector2(lx + 14, ly + 3), ask, MUTED)
+		lx += 14 + aw + 14
 	button(Rect2(v.x / 2.0 - 60, sr.end.y - 32, 120, 28), "close", "BACK", "primary")
 
 

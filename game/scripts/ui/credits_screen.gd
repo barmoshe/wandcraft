@@ -54,7 +54,16 @@ func _paint() -> void:
 	var v := view()
 	var sr := safe()
 	var y := sr.position.y + 16 - _scroll
-	for l in _lines:
+	if _wrapped_w != sr.size.x:
+		# 0.21: long licence lines wrap to the screen (they ran off both edges on narrow screens)
+		_wrapped_w = sr.size.x
+		_wrapped.clear()
+		for l in _lines:
+			var kind := "body" if l[2] > 8 else "small"
+			var parts := _wrap(Game.font(kind), l[0], sr.size.x - 16.0, l[2]) if l[0] != "" else PackedStringArray([""])
+			for part in parts:
+				_wrapped.append([part, l[1], l[2]])
+	for l in _wrapped:
 		if y > sr.position.y - 4 and y < sr.end.y - 30:
 			text_center(v.x / 2.0, y, l[0], l[1], l[2], "body" if l[2] > 8 else "small")
 		y += 18.0 if l[2] > 8 else 10.0
@@ -63,6 +72,8 @@ func _paint() -> void:
 
 
 var _max_scroll := 0.0
+var _wrapped: Array = []
+var _wrapped_w := -1.0
 
 
 func _input(ev: InputEvent) -> void:
