@@ -214,7 +214,8 @@ func _hub_use(id := "", arg := -1) -> void:
 			world.paused = true
 			_open(rs, func(_res: Dictionary) -> void:
 				world.paused = false
-				world.skin = Residents.skin(Residents.skin_on()))
+				world.skin = Residents.skin(Residents.skin_on())
+				world.hub.news[StringName(id)] = Residents.has_news(StringName(id)))
 			return
 		"portal":
 			world.paused = true

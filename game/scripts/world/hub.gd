@@ -77,6 +77,7 @@ var _hits: Array = []        # [time, damage] for the DPS window
 var _last_dmg := 0.0
 var _last_hit := -99.0
 var _runs := 0
+var news := {}               # 0.20: resident id -> a new beat is ready (read once, not per frame)
 
 
 func _init(w: World) -> void:
@@ -171,7 +172,11 @@ func populate() -> void:
 					if not anchors.has(id):
 						anchors[id] = []
 					anchors[id].append(Vector2(x * TS + TS / 2.0, y * TS + TS / 2.0))
-	_runs = int(SaveGame.load_meta().get("runs", 0))
+	var meta := SaveGame.load_meta()
+	_runs = int(meta.get("runs", 0))
+	news.clear()
+	for id in Residents.ORDER:
+		news[id] = Residents.has_news(id, meta)
 	_last_dmg = float(world.run.stats.get("damage", 0.0))
 	_spawn_dummy()
 
@@ -380,7 +385,7 @@ func draw_top(ci: CanvasItem) -> void:
 	# 0.20: a resident with a new beat to tell wears a "!"
 	for id in Residents.ORDER:
 		var key := String(id)
-		if anchors.has(key) and Residents.has_news(id):
+		if anchors.has(key) and news.get(id, false):
 			var ep: Vector2 = anchors[key][0] + Vector2(0, -34 + sin(t * 4.0) * 1.5)
 			_label(ci, f, ep, "!", Color(STATIONS[key]["color"]), 16)
 	if open("repl") and dummy and is_instance_valid(dummy):

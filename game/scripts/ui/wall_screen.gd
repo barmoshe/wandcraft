@@ -10,7 +10,7 @@ var _max_scroll := 0.0
 static func message(e: Dictionary) -> String:
 	var where := "w%d room %d" % [int(e.get("world", 0)) + 1, int(e.get("step", 0))]
 	if e.get("won", false):
-		return "feat: both worlds clean, heat %d" % int(e.get("heat", 0))
+		return "feat: all three worlds clean, heat %d" % int(e.get("heat", 0))
 	if e.get("quit", false):
 		return "revert(%s): abandoned" % where
 	var by := EndScreen.killer_text(String(e.get("by", "")))
