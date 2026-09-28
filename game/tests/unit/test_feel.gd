@@ -40,7 +40,7 @@ func test_every_sound_the_game_asks_for_exists() -> void:
 		for m in Audio.TRACKS[t]["stems"]:
 			if m == Audio.V2_MUSIC_MARKER and not Audio.music_v2():
 				continue
-			var s: AudioStreamWAV = load("res://assets/audio/%s.wav" % m)
+			var s: AudioStream = load(Audio.audio_path(m))
 			ok(s != null and s.get_length() > 7.0, "%s is a real loop (%.1fs)" % [m, s.get_length() if s else 0.0])
 	# pack spells (Catalog.PACK_ITEMS) fall back to the default cast until they get their own
 	for id in Catalog.spells():

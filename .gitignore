@@ -16,6 +16,8 @@ build/
 
 # voice pipeline (research/voices-plan.md): the venv and the Kokoro model files, never committed
 tools/.venv-voice/
+# music pipeline (tools/audio.sh): the Ogg encoder's venv
+tools/.venv-audio/
 tools/.voice-models/
 tools/__pycache__/
 

@@ -328,6 +328,7 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **Music as Ogg Vorbis** (ADR 0034): the web pck is 4 MB smaller (28.3 to 24.3 MB), loops tested sample-exact. **Bar:** listen to the title and shop loops on a phone.
 - **0.22.0, Polish** (ADR 0033, `research/polish-0.22.md`). Bar asked to research, design, fix and improve the game.
   - **Fixes:** the audit's 16 fixes (no disk reads in fights, exploits closed, story lines kept).
   - **Quiet fights:** the companions hold their lines until the room clears.

@@ -22,7 +22,8 @@ extends Node
 ##
 ## Music: title | shop | cellar | grove | foundry | kernel | mini | boss. Area tracks are stems in an
 ## AudioStreamSynchronized (base; drums while fighting; the lead at intensity 2). Every layer
-## switch lands on the next bar of the music's own sample clock.
+## switch lands on the next bar of the music's own sample clock. Music and ambience files are
+## Ogg Vorbis (music_*.ogg, ADR 0034); stingers and effects are WAV.
 
 # ------------------------------------------------------------------ the cue table
 
@@ -1344,10 +1345,16 @@ var _int_want := 0
 var _int_low_t := 0.0
 
 
+## The path of a plain file in res://assets/audio: the music and ambience (music_*) ship as
+## Ogg Vorbis that loops on import (ADR 0034), everything else as WAV.
+static func audio_path(name: String) -> String:
+	return "res://assets/audio/%s.%s" % [name, "ogg" if name.begins_with("music_") else "wav"]
+
+
 ## A plain file from res://assets/audio (cached; null when missing).
 func stream(name: String) -> AudioStream:
 	if not _streams.has(name):
-		var path := "res://assets/audio/%s.wav" % name
+		var path := audio_path(name)
 		_streams[name] = load(path) if ResourceLoader.exists(path) else null
 	return _streams[name]
 
@@ -1358,11 +1365,11 @@ static func has_track(track: String) -> bool:
 
 ## True when a track's first stem is on disk (the mini track waits for its files).
 static func track_ready(track: String) -> bool:
-	return TRACKS.has(track) and ResourceLoader.exists("res://assets/audio/%s.wav" % TRACKS[track]["stems"][0])
+	return TRACKS.has(track) and ResourceLoader.exists(audio_path(TRACKS[track]["stems"][0]))
 
 
 static func music_v2() -> bool:
-	return ResourceLoader.exists("res://assets/audio/%s.wav" % V2_MUSIC_MARKER)
+	return ResourceLoader.exists(audio_path(V2_MUSIC_MARKER))
 
 
 ## A track's tempo: the spec's, or the old one until the v2 music lands.

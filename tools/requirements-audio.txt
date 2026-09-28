@@ -1,0 +1,4 @@
+# tools/encode_music.py (tools/audio.sh installs it into tools/.venv-audio). soundfile's wheels
+# bundle libsndfile with libvorbis; the pin keeps the Ogg bytes the same between runs.
+soundfile==0.14.0
+numpy

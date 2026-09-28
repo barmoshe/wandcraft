@@ -4,10 +4,12 @@ extends "res://tests/unit/test_helpers.gd"
 ## keep its shrinking import settings (mono, 22.05 kHz, QOA).
 ##
 ## Measured 2026-09-28: voice 13.00 MB (629 files) + audio 13.74 MB (398 files) = 26.74 MB,
-## after the voices moved to 22.05 kHz (voice was 14.13 MB at 24 kHz). The budget leaves about
-## 1.3 MB for new lines and cues; raising it is a decision, not a fix (check size_report first).
+## after the voices moved to 22.05 kHz (voice was 14.13 MB at 24 kHz).
+## Then the music moved from QOA WAV to Ogg Vorbis q4 (ADR 0034): audio 9.74 MB (398 files),
+## 22.74 MB in all. The budget leaves about 1.3 MB for new lines and cues; raising it is a
+## decision, not a fix (check size_report first).
 
-const BUDGET_MB := 28.0
+const BUDGET_MB := 24.0
 const DIRS := ["res://assets/voice/", "res://assets/audio/"]
 
 
@@ -16,7 +18,7 @@ func _imported(dir: String) -> Vector2i:
 	var total := 0
 	var n := 0
 	for f in DirAccess.get_files_at(dir):
-		if not f.ends_with(".wav.import"):
+		if not (f.ends_with(".wav.import") or f.ends_with(".ogg.import")):
 			continue
 		var cfg := ConfigFile.new()
 		if cfg.load(dir + f) != OK:

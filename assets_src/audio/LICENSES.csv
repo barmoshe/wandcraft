@@ -1,28 +1,28 @@
 file,title,source,license,author,credit_required
-music_amb_cellar.wav,music amb cellar,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_amb_foundry.wav,music amb foundry,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_amb_grove.wav,music amb grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_amb_kernel.wav,music amb kernel,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_amb_ring.wav,music amb ring,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_boss_loop.wav,music boss loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_boss_p2.wav,music boss p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_boss_p3.wav,music boss p3,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_cellar_base.wav,music cellar base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_cellar_drums.wav,music cellar drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_cellar_lead.wav,music cellar lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_foundry_base.wav,music foundry base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_foundry_drums.wav,music foundry drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_foundry_lead.wav,music foundry lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_grove_base.wav,music grove base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_grove_drums.wav,music grove drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_grove_lead.wav,music grove lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_kernel_base.wav,music kernel base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_kernel_drums.wav,music kernel drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_kernel_lead.wav,music kernel lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_mini_loop.wav,music mini loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_mini_p2.wav,music mini p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_shop.wav,music shop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
-music_title.wav,music title,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_cellar.ogg,music amb cellar,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_foundry.ogg,music amb foundry,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_grove.ogg,music amb grove,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_kernel.ogg,music amb kernel,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_amb_ring.ogg,music amb ring,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_boss_loop.ogg,music boss loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_boss_p2.ogg,music boss p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_boss_p3.ogg,music boss p3,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_cellar_base.ogg,music cellar base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_cellar_drums.ogg,music cellar drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_cellar_lead.ogg,music cellar lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_foundry_base.ogg,music foundry base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_foundry_drums.ogg,music foundry drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_foundry_lead.ogg,music foundry lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_grove_base.ogg,music grove base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_grove_drums.ogg,music grove drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_grove_lead.ogg,music grove lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_kernel_base.ogg,music kernel base,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_kernel_drums.ogg,music kernel drums,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_kernel_lead.ogg,music kernel lead,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_mini_loop.ogg,music mini loop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_mini_p2.ogg,music mini p2,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_shop.ogg,music shop,tools/gen_music.gd,original,Bar Moshe (generated in code),no
+music_title.ogg,music title,tools/gen_music.gd,original,Bar Moshe (generated in code),no
 sfx_altar.wav,sfx altar,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_clank.wav,sfx amb clank,tools/gen_audio.gd,original,Bar Moshe (generated in code),no
 sfx_amb_clank_2.wav,sfx amb clank 2,tools/gen_audio.gd,original,Bar Moshe (generated in code),no

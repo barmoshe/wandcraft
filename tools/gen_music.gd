@@ -1,6 +1,8 @@
 extends SceneTree
-## Sound v2 (research/sound-v2.md §5): renders the music, the stingers and the ambience beds to
-## game/assets/audio/ (music_*.wav, sting_*.wav, music_amb_*.wav).
+## Sound v2 (research/sound-v2.md §5): renders the stingers to game/assets/audio/ (sting_*.wav)
+## and the music and ambience beds as WAV masters to build/music_wav/ (music_*.wav, outside git).
+## tools/encode_music.py turns the masters into the Ogg Vorbis files the game ships
+## (game/assets/audio/music_*.ogg, ADR 0034).
 ## Run: tools/audio.sh   (godot --headless --path game -s <abs path to this file>)
 ##
 ## Every note is generated here from the shared toolkit (tools/lib_dsp.gd, §3), so the music
@@ -32,10 +34,11 @@ extends SceneTree
 ##   pass is click-free too.
 ## - The loop point. Godot 4.7.2 plays a forward loop as the samples (loop_begin, loop_end],
 ##   inclusive of the sample AT loop_end and never replaying the one at loop_begin (measured
-##   with AudioStreamPlayback.mix_audio). So each loop file ends in one guard sample equal to
-##   the sample at loop_begin and loop_end = frames - 1 (the importer's default, -1): the
-##   heard period is exactly loop_end - loop_begin = whole bars. tools/audio.sh writes
-##   loop_begin into the .import files (204,800 for the boss, 120,000 for the mini boss).
+##   with AudioStreamPlayback.mix_audio). So each loop master ends in one guard sample equal to
+##   the sample at loop_begin and loop_end = frames - 1: the heard period is exactly
+##   loop_end - loop_begin = whole bars. The shipped Ogg (ADR 0034) is frames [0, loop_end)
+##   with loop_offset = loop_begin / rate (6.4 s for the boss, 3.75 s for the mini boss):
+##   tools/encode_music.py drops the guard, and tools/audio.sh writes the loop into the import.
 ## - Each note is rendered once per cue and mixed in as a copy (the note cache, §3.12).
 ## - Loudness (§5.1): the full mix of a cue (all layers on) is -20 LUFS-I, the base alone
 ##   -24.5 (the mini boss -23.6, still inside the ±1 LU tolerance, because it has one layer to
@@ -48,6 +51,8 @@ const D := preload("lib_dsp.gd")
 const SR := 32000
 const AMB_SR := 22050
 const OUT := "res://assets/audio/"
+## The music and bed masters: WAV, outside the game (tools/encode_music.py ships them as Ogg).
+var masters := ProjectSettings.globalize_path("res://").path_join("../build/music_wav/").simplify_path() + "/"
 const MUSIC_LUFS := -20.0
 const STING_LUFS := -19.0
 const AMB_LUFS := -30.0
@@ -98,6 +103,7 @@ func _lap(label: String) -> void:
 func _initialize() -> void:
 	var t0 := Time.get_ticks_msec()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
+	DirAccess.make_dir_recursive_absolute(masters)
 	_tp_init()
 	_retire()
 	# ONLY=cellar (a comma list) renders just those cues, for working on one
@@ -124,7 +130,7 @@ func _initialize() -> void:
 ## Deletes the files the v2 spec retired (and their import sidecars).
 func _retire() -> void:
 	for name in RETIRED:
-		for ext in [".wav", ".wav.import"]:
+		for ext in [".wav", ".wav.import", ".ogg", ".ogg.import"]:
 			var p := ProjectSettings.globalize_path(OUT + name + ext)
 			if FileAccess.file_exists(p):
 				DirAccess.remove_absolute(p)
@@ -1048,11 +1054,11 @@ func _master(layers: Array, base_lufs: float, deltas: Array) -> void:
 	_report.append("REPORT|%s-mix|lufs=%.2f|tp=%.2f" % [_cue, _lufs_of(h, g) + 20.0 * log(gain) / log(10.0), D.lin2db(tp * gain)])
 
 
-## Writes a loop with its guard sample (the sample at loop_begin, played at loop_end).
+## Writes a loop master with its guard sample (the sample at loop_begin, played at loop_end).
 func _save_loop(file: String, x: PackedFloat32Array, lb: int, k: float) -> void:
 	var y := x.duplicate()
 	y.append(x[lb])
-	D.save_wav(y, OUT + file + ".wav", k, D.sr)
+	D.save_wav(y, masters + file + ".wav", k, D.sr)
 
 
 ## Masters and saves a one-shot (a stinger): integrated loudness on target under the ceiling.
@@ -2055,6 +2061,6 @@ func _master_stereo(file: String, l: PackedFloat32Array, r: PackedFloat32Array, 
 	ll.append(l[0])
 	var rg := r.duplicate()
 	rg.append(r[0])
-	D.save_wav_stereo(ll, rg, OUT + file + ".wav", k, D.sr)
+	D.save_wav_stereo(ll, rg, masters + file + ".wav", k, D.sr)
 	_report.append("REPORT|%s|frames=%d|lufs=%.2f|tp=%.2f|mono_sum_db=%.2f" % [file, ll.size(), _lufs_of(h, [k, k]), D.lin2db(tp), 10.0 * log(e_sum / e_ch) / log(10.0)])
 	_loops.append("LOOP|%s|loop_begin=0|loop_end=%d" % [file, l.size()])
