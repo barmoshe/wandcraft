@@ -114,6 +114,10 @@ That comes to about 31 Bits for an early death, about 46 for a World 1 clear and
 
 ## Progress log
 - 2026-09-28: plan approved. Three agents built at once in the main tree, at Bar's request: hero looks, the new packs, and meta v2 plus the hub.
+- `f38ff6f` the four packs. The pack bench passes: every pack wand is within 0.7–1.4× of the better core wand, and Version Control, a single-target pack, beats core single (×1.49 against ×1.63). Diff and Cherry-Pick were tuned up.
+- `c562018` each hero has their own look.
+- `009bacb` the Workshop, meta v2, the station screens and 35 voiced lines. Tests: 281 pass. The tap test passes in all three modes, including its new hub phase.
+- Balance bench: the editing bot clears World 1 50% of the time (band 25–45%), wins the full run 10%; the never-editing bot 0%. The bench only uses the core pool, and the same bench on the untouched 0.18.1 tree gives the same 50% on the same seeds, so the edge predates 0.19. Tune after playtest round 2's run logs.
 
 ## Sources
 - [1] 3DM, 言呐呐, 24 Dec 2025: https://shouyou.3dmgame.com/gl/605486.html
