@@ -25,12 +25,13 @@ const ONLY := []   # debugging: set to e.g. [99] to bench one seed
 const LIMIT := 3600.0
 
 
-func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary:
+func _play(seed_value: int, edits := true, start: RunState = null, dash := true) -> Dictionary:
 	var world := World.new()
 	world.auto_step = false
 	runner.root.add_child(world)
 	world.setup(seed_value)
 	world.bot = true
+	world.bot_dash = dash
 	var res := {"won": false, "w1": false, "step": 0, "time": 0.0, "hp_lost": 0.0, "rooms": 0, "mini": -1.0, "boss": -1.0, "boss2": -1.0, "boss3": -1.0, "race": -1.0, "path": []}
 	var state := {"victory": false, "defeat": false}
 	world.ui_request.connect(_answer.bind(world, state, edits))
@@ -90,14 +91,19 @@ func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary
 func test_world_one_balance() -> void:
 	if OS.get_environment("BENCH") == "kernel":
 		return   # BENCH=kernel tools/balance.sh: only the World 3 bench
-	var rate := _bench(true)
+	# 0.23: the band is for a new player, whom the bot stands in for without dashing (it was
+	# set that way in 0.18, when humans found the 60% it then cleared easy). With its dodge on
+	# (0.22) it plays like a skilled player, reported and held to clearing World 1 more often.
+	var rate := _bench(true, false)
 	ok(rate >= 0.25 and rate <= 0.45, "editing bot: World 1 cleared %.0f%%, inside 25-45%%" % (rate * 100.0))
-	var lazy := _bench(false)
+	var lazy := _bench(false, false)
 	print("    editing %.0f%% vs never editing %.0f%%" % [rate * 100.0, lazy * 100.0])
 	ok(lazy < rate, "editing the wand matters (%.0f%% vs %.0f%%)" % [rate * 100.0, lazy * 100.0])
+	var skilled := _bench(true, true)
+	ok(skilled >= 0.6 and skilled >= rate, "a player who dodges clears World 1 most runs (%.0f%%)" % (skilled * 100.0))
 
 
-func _bench(edits: bool) -> float:
+func _bench(edits: bool, dash: bool) -> float:
 	Meta.core_only = true   # design v2: measure the pool a new player gets
 	Game.god_mode = false
 	Game.auto_fire = true
@@ -112,10 +118,10 @@ func _bench(edits: bool) -> float:
 	var bosses: Array = []
 	var room_t := 0.0
 	var rooms := 0
-	print("\n    %s bot" % ("EDITING" if edits else "NEVER-EDITING"))
+	print("\n    %s bot%s" % ["EDITING" if edits else "NEVER-EDITING", ", DODGING" if dash else ""])
 	print("    seed  result   w-step  time   hp_lost  rooms  dash  mini   boss  boss2")
 	for s in (ONLY if not ONLY.is_empty() else SEEDS):
-		var r := _play(s, edits)
+		var r := _play(s, edits, null, dash)
 		if r["w1"]:
 			wins += 1
 		if r["won"]:
@@ -139,8 +145,8 @@ func _bench(edits: bool) -> float:
 	print("    World 1 cleared %.0f%%, World 2 %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs, the Glitch avg %.0fs, %.0fs a room" % [rate * 100.0, 100.0 * w2 / SEEDS.size(), 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2), _avg(bosses3), room_t / maxi(1, rooms)])
 	SaveGame.enabled = true
 	eq(stalls, 0, "every run ends (a stall means a bot or game bug, not balance)")
-	if not edits:
-		return rate
+	if not edits or dash:
+		return rate   # the fight lengths are held for the new-player bot
 	if not minis.is_empty():
 		ok(_avg(minis) >= 20.0 and _avg(minis) <= 75.0, "mini-boss takes 20-75 s (%.0f)" % _avg(minis))
 	if not bosses.is_empty():
@@ -154,6 +160,8 @@ func _bench(edits: bool) -> float:
 ## 0.20: World 3 on its own. Each seed starts in the Kernel with the kit a run tends to have by
 ## then (two wands, a few upgrades, the world-clear HP), the editing bot, no god mode.
 func test_kernel_balance() -> void:
+	if OS.get_environment("BENCH") == "w1":
+		return   # BENCH=w1 tools/balance.sh: only the World 1 bench
 	Meta.core_only = true
 	Game.god_mode = false
 	Game.auto_fire = true

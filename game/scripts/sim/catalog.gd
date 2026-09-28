@@ -263,7 +263,7 @@ static func _build() -> void:
 	_s("broadcast", P, "Broadcast", "#b6e6ff", {"rar": 1, "mp": [12, 14, 16], "dmg": [2, 3, 4], "dl": 0.3, "beh": "cone", "p": {"len": 240.0, "arc": 360.0, "ring": 1}},
 		"A pulse that hits every enemy near you for a little damage. Coats on its left reach them all.")
 	# ---- Concurrency ----
-	_s("worker", F, "Worker Thread", "#ffb86b", {"rar": 1, "mp": [9, 11, 13], "dmg": [4, 5, 7], "carry": "daemon", "beh": "turret", "p": {"life": [7.0, 8.0, 10.0], "every": [1.0, 0.8, 0.6], "range": 190.0}},
+	_s("worker", F, "Worker Thread", "#ffb86b", {"rar": 1, "mp": [9, 11, 13], "dmg": [4, 5, 7], "carry": "daemon", "beh": "turret", "p": {"life": [7.0, 8.0, 10.0], "every": [1.0, 0.8, 0.6], "range": 260.0}},
 		"Plants a worker for {7/8/10} s that casts the shooting spell on its right at the nearest enemy every {1/0.8/0.6} s. Shares the Turret's limit of two.")
 	_s("spinlock", P, "Spinlock", "#ffe0a0", {"mp": [6, 8, 10], "dmg": [5, 7, 10], "p": {"speed": 100, "radius": 3.0, "life": [2.0, 2.5, 3.0], "count": 3, "spread": 240.0, "pierce": 99, "orbit": 1}},
 		"Three blades spin around you for {2/2.5/3} s, cutting enemies and stopping their shots.")
@@ -355,9 +355,9 @@ static func _build() -> void:
 	# 0.21 arsenal: six more rules (research/arsenal-0.21.md)
 	_w(&"channel_rod", "Channel Rod", 1, 6, 110, 22, 0.16, 0.55, 4, 1, false, "#9fe8ff", "Each cast while you stand still adds +8% damage, up to +80%. Moving resets it.")
 	_wands[&"channel_rod"].rule = &"channel"
-	_w(&"unsafe_staff", "Unsafe Staff", 2, 6, 60, 20, 0.12, 0.45, 5, 1, false, "#ff4d6d", "Spells cost HP instead of mana, 1 HP per 25 mana, and deal +50% damage. It never spends your last HP.")
+	_w(&"unsafe_staff", "Unsafe Staff", 2, 6, 60, 20, 0.12, 0.45, 5, 1, false, "#ff4d6d", "Spells cost HP instead of mana, 1 HP per 15 mana, and deal +40% damage. It never spends your last HP.")
 	_wands[&"unsafe_staff"].rule = &"blood"
-	_w(&"singleton", "Singleton Wand", 1, 7, 110, 24, 0.14, 0.5, 5, 1, false, "#e6fbff", "A repeat of a spell already on it is skipped. Every spell deals +8% damage for each different spell on it.")
+	_w(&"singleton", "Singleton Wand", 1, 7, 110, 24, 0.2, 0.8, 5, 1, false, "#e6fbff", "A repeat of a spell already on it is skipped. Every spell deals +5% damage for each different spell on it.")
 	_wands[&"singleton"].rule = &"singleton"
 	_w(&"decorator_rod", "Decorator Rod", 1, 7, 110, 22, 0.14, 0.5, 5, 1, false, "#ffd05e", "A boost here powers only the next spell, but counts twice.")
 	_wands[&"decorator_rod"].rule = &"decorator"

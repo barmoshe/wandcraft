@@ -107,3 +107,18 @@ Sound only; the bench is unchanged: **editing bot 80%, never-editing bot 10%** (
 The bench runs without the tutorial, the unlock locks, heat or dashing (the bots never dash), so it measures the same game: **editing bot 80%, never-editing bot 10%** (mini-boss about 80 s, boss about 39 s).
 
 The never-editing bot stays under its 15-30% band. It dies at the final boss; softening the boss would lift the editing bot past its 85% cap too, and the gap is what the band exists to show. Recorded and left (ADR 0020).
+
+## 0.23: a bot that dodges, and two benches in one (2026-09-28)
+0.22 taught the bench bot to dash out of telegraphed attacks and shots about to land (`World._bot_dash`). With it on, the editing bot cleared World 1 in 10 of 10 seeds and won the full run in 6. It dashes 120 to 480 times a run and reads every telegraph, so it plays like a skilled player, not a new one.
+
+The 25-45% band was set in 0.18 for a bot that never dashes, when humans found its 60% easy. So the bench now runs three bots (`World.bot_dash`):
+- **New player** (edits, never dashes), held to the band: **40%** World 1, 10% World 2, 0% full run. Mini-boss 38 s, the Loop 69 s, Deadlock 62 s, 38 s a room.
+- **Never edits, never dashes:** **0%** World 1. Editing matters.
+- **Skilled** (edits and dashes), held to clearing World 1 in at least 60%: **100%** World 1, 70% World 2, **60%** full run. The Glitch 74 s.
+
+The Kernel bench (from World 3's start, mid-game kit, dodging) now passes: World 3 cleared in 10 of 10, Data Race 51 s, **the Glitch 68 s** (target 60 to 150 s). Its 38 s in 0.21 was the bot dying fast, not the fight being short.
+
+The pack bench (god mode, fight length against the core wands):
+- **Concurrency** was x1.53, slowest on Copy-Paste (121 s), whose Ctrl+Z jumps out of a planted Worker Thread's reach. Worker range 190 to 260: **x1.39**.
+- **Linker** was x0.54. Its Singleton Wand alone, with core spells, was x0.58; the pack's spells on an Old Oak Staff were x0.93. So the wand was the cause: cast delay 0.14 to 0.2 s, recharge 0.5 to 0.8 s, and +5% (was +8%) per different spell: **x0.76**.
+- **Unsafe Code** was x0.47: 1 HP per 25 mana made 100 HP worth 2,500 mana. Now 1 HP per 15 mana and +40% damage (was +50%). God mode leaves HP as its only cost, so it wins the short fights fast and runs dry in Deadlock: it is held to no power creep only.

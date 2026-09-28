@@ -165,6 +165,9 @@ var room_time := 0.0
 var auto_step := true
 var paused := false
 var bot := false
+## 0.23: the bench's new-player bot never dashes (the band it is held to was set that way);
+## the skilled bot does (tests/bench/test_balance.gd).
+var bot_dash := true
 var run_seed := 1
 
 # room state
@@ -2273,7 +2276,8 @@ func shake(amount: float) -> void:
 ## by whoever listens to ui_request.
 func _bot_drive() -> void:
 	_bot_steer()
-	_bot_dash(player.position)
+	if bot_dash:
+		_bot_dash(player.position)
 
 
 func _bot_steer() -> void:

@@ -39,9 +39,9 @@ const RECYCLE_MANA := 12.0
 var channel := 0        # Channel Rod: casts made standing still (each one +8% damage)
 const CHANNEL_STEP := 0.08
 const CHANNEL_MAX := 10
-const BLOOD_HP := 0.04      # Unsafe Staff: HP per mana a cast would cost
-const BLOOD_DMG := 1.5
-const SINGLE_STEP := 0.08   # Singleton Wand: damage per different spell on it
+const BLOOD_HP := 1.0 / 15.0   # Unsafe Staff: HP per mana a cast would cost (0.23: 1 per 15, was 1 per 25)
+const BLOOD_DMG := 1.4      # 0.23: +40% (was +50%)
+const SINGLE_STEP := 0.05   # Singleton Wand: damage per different spell on it (0.23: was 0.08)
 const MONO_STEP := 0.1      # Monorepo: recharge per spell on it
 ## Runes that take the spell on their right out of the program: Ctrl+Alt+Del (it answers a
 ## hit on you) and onLoad() (it goes off each recharge).
@@ -246,7 +246,7 @@ func repeats() -> Array:
 	return out
 
 
-## Singleton Wand: +8% damage for each different spell on it.
+## Singleton Wand: +5% damage for each different spell on it.
 func singleton_mul() -> float:
 	if def.rule != &"singleton":
 		return 1.0

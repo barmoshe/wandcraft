@@ -18,3 +18,6 @@ build/
 tools/.venv-voice/
 tools/.voice-models/
 tools/__pycache__/
+
+# Agent worktrees (the harness makes them; never part of the game)
+.claude/worktrees/

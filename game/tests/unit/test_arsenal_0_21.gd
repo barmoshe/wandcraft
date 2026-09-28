@@ -328,7 +328,7 @@ func test_channel_rod_builds_while_still_and_resets_on_move() -> void:
 func test_unsafe_staff_pays_hp_and_never_the_last() -> void:
 	var plain := _one_cast([&"mote"])
 	var blood := _one_cast([&"mote"], &"unsafe_staff")
-	ok(absf(blood - plain * 1.5) < 0.6, "+50%% damage (%.1f vs %.1f)" % [blood, plain])
+	ok(absf(blood - plain * WandState.BLOOD_DMG) < 0.6, "+40%% damage (%.1f vs %.1f)" % [blood, plain])
 	_range_setup()
 	var w := _hold([&"burst"], &"unsafe_staff")
 	var p := world.player
@@ -348,7 +348,7 @@ func test_singleton_skips_repeats_and_rewards_variety() -> void:
 	var w := wand(["mote", "mote", "needle", "mote"], &"singleton")
 	eq(_ids(WandProgram.preview_cycle(w)), [&"mote", &"needle"], "repeats sit out")
 	eq(w.read_pos(1), -1, "and show no number")
-	ok(is_equal_approx(w.singleton_mul(), 1.16), "two different spells: +16%")
+	ok(is_equal_approx(w.singleton_mul(), 1.10), "two different spells: +10%")
 	var plain := _one_cast([&"mote"])
 	var one := _one_cast([&"mote"], &"singleton")
 	ok(absf(one - plain * 1.08) < 0.3, "one spell: +8%% (%.2f vs %.2f)" % [one, plain])
