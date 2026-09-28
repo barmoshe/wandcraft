@@ -41,7 +41,7 @@ func test_static_cone_hits_everything_in_front() -> void:
 
 func test_null_orb_drags_enemies_in() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var e := _dummy(Vector2(240, 150))
 	var before := e.position.x
 	_fire([&"null_orb"])
@@ -62,7 +62,7 @@ func test_split_rune_spreads_the_hit() -> void:
 
 func test_gravity_rune_pulls_toward_bolts() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var e := _dummy(Vector2(236, 120))
 	var before := e.position.x
 	_fire([&"gravity", &"quicken", &"mote"])

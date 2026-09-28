@@ -17,7 +17,7 @@ const BEAM_W := 4.0
 const REWRITE_SPD := 5.0      # px a second the rewrite closes in
 const REWRITE_MIN := 64.0     # the live rect never shrinks below this half-height
 const REVERT_EVERY := 4.5
-const REVERT_HIT := 0.07      # of max HP, per glyph
+const REVERT_HIT := 0.06      # of max HP, per glyph
 const REVERT_BACK := 28.0     # px of rewrite a glyph undoes
 
 var rows: Array = []          # {"y", "add"} for the current diff
@@ -39,7 +39,7 @@ func _init_boss() -> void:
 	title = "The Glitch"
 	subtitle = "commit a1f00d. Author: you."
 	phase_lines = ["", "The stack unwinds", "Revert it"]
-	max_hp = 2600.0
+	max_hp = 3400.0   # the Kernel bench: 47 s at 2600 and 50 s at 3000, under the 60-150 s band
 	r = 12.0
 	spd = 26.0
 	move_table = {

@@ -22,7 +22,7 @@ const PRESSURE_W2: Array[StringName] = [&"kernel_panic", &"spark_plug", &"kernel
 ## World 3, the Kernel (0.20, research/world3-0.20.md): Dangling Pointers lead the pressure,
 ## Page Leaks join the anchors, and an Interrupt takes the support slot most of the time.
 const PRESSURE_W3: Array[StringName] = [&"null_ptr", &"null_ptr", &"null_ptr", &"kernel_panic", &"spark_plug", &"blink_tick", &"bugling"]
-const ANCHORS_W3: Array[StringName] = [&"leak", &"leak", &"rot_weaver", &"sentry", &"golem", &"proxy"]
+const ANCHORS_W3: Array[StringName] = [&"leak", &"leak", &"rot_weaver", &"puffcap", &"golem", &"proxy"]
 const NEXT_AT := 0.5   # research/difficulty.md: 0.7 before; waves now overlap
 ## Design v3: the Grove's variants of the Cellar's enemies (Enemy.DEFS, Bestiary.VARIANTS).
 const GROVE_SWAP := {&"weaver": &"rot_weaver", &"tick": &"blink_tick", &"ram": &"thorn_ram"}          # share of a wave that must be down before the next one
@@ -54,7 +54,7 @@ static func puzzle_for(run: RunState, kind: StringName, rng: RandomNumberGenerat
 static func compose(run: RunState, kind: StringName, rng: RandomNumberGenerator, puzzle := &"") -> Array:
 	if puzzle != &"":
 		return (PUZZLES[puzzle]["waves"] as Array).duplicate(true)
-	var step := Chapter.depth(run) if run else 1
+	var step := Chapter.scale_depth(run) if run else 1.0
 	var w2 := run != null and run.world == 1
 	var w3 := run != null and run.world >= 2
 	var mult := 1.3 if kind == &"challenge" else (1.15 if kind == &"glitch" or kind == &"risk" else 1.0)

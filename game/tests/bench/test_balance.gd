@@ -83,6 +83,8 @@ func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary
 
 
 func test_world_one_balance() -> void:
+	if OS.get_environment("BENCH") == "kernel":
+		return   # BENCH=kernel tools/balance.sh: only the World 3 bench
 	var rate := _bench(true)
 	ok(rate >= 0.25 and rate <= 0.45, "editing bot: World 1 cleared %.0f%%, inside 25-45%%" % (rate * 100.0))
 	var lazy := _bench(false)
@@ -159,9 +161,10 @@ func test_kernel_balance() -> void:
 	for s in (ONLY if not ONLY.is_empty() else SEEDS):
 		var r := RunState.create(s)
 		r.tutorial = false
+		r.picked = true   # keep this kit: the start room's hero orb would swap it for a loadout
 		r.world = 2
 		r.step = 0
-		r.max_hp += 20.0
+		r.max_hp = 140.0   # the start HP, two world-clear bonuses and a few hearts
 		r.hp = r.max_hp
 		r.gold = 120
 		r.wand().set_slots([&"empower", &"twin", &"spark", &"ember"])

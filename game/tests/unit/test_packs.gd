@@ -38,7 +38,8 @@ func test_packs_stay_locked_until_bought() -> void:
 		if glitch.has(Rewards.roll_spell(run)):
 			break
 	eq(Meta.shelf().size(), Meta.SHELF, "the merchant shelves three")
-	eq(Meta.shelf()[0]["id"], "glitch", "cheapest first")
+	eq(Meta.shelf()[0]["id"], "triggers", "cheapest first: 0.20's Triggers pack")
+	ok(not Meta.CORE_SPELLS.has(&"then"), "triggers are not in the core pool (0.20)")
 	ok(not Meta.shelf().any(func(p: Dictionary) -> bool: return p["id"] == "debugger"), "the Debugger waits on the Loop")
 	ok(not Meta.buy_pack("net"), "120 Bits is too much for 70")
 	ok(Meta.buy_pack("glitch"), "60 is fine")

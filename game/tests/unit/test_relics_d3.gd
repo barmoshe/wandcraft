@@ -5,7 +5,7 @@ extends "res://tests/unit/world_fixture.gd"
 
 func _alone(pos: Vector2) -> Enemy:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var e := _dummy(pos)
 	world.hash.rebuild(world.enemies)
 	return e

@@ -5,7 +5,7 @@ extends "res://tests/unit/world_fixture.gd"
 
 func _open_room() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 
 
 func _foe(kind: StringName, pos: Vector2) -> Enemy:

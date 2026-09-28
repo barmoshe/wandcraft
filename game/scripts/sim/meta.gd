@@ -2,7 +2,8 @@ class_name Meta
 extends RefCounted
 ## Meta v2 (0.19, research/workshop-0.19.md): what carries over between runs, and how the
 ## rest of the game opens.
-##   - The CORE pool is the game a first-time player sees: 26 spells, 24 relics, 6 wands,
+##   - The CORE pool is the game a first-time player sees: 23 spells (0.20: triggers moved to
+##     their own pack), 24 relics, 6 wands,
 ##     the Apprentice (design v2, research/design-v2.md §3). It never changes.
 ##   - BITS are the one currency that survives a run: every run pays some (rooms, bosses, a
 ##     win, heat), and bounties pay more. They buy PACKS at the Workshop's merchant: themed
@@ -23,7 +24,7 @@ const CORE_SPELLS: Array[StringName] = [
 	&"mote", &"needle", &"lance", &"fan", &"moths", &"ember", &"frost", &"spark", &"burst",
 	&"turret", &"daemon",
 	&"empower", &"twin", &"keen", &"seek", &"phase", &"wide", &"ember_coat", &"frost_coat", &"static_coat",
-	&"then", &"callback", &"loop", &"seed",
+	&"seed",
 	&"mana_well", &"heatsink",
 ]
 const CORE_RELICS: Array[StringName] = [
@@ -43,7 +44,7 @@ const BOUNTIES := [
 	{"id": "clean", "text": "Clear a room without getting hit", "check": "clean>=1", "bits": 10, "unlocks": [&"heavy", &"deadline"]},
 	{"id": "runs1", "text": "Finish a run", "check": "runs>=1", "bits": 15, "unlocks": [&"disc", &"static", &"duck"]},
 	{"id": "mini", "text": "Defeat a mini-boss", "check": "bosses>=1", "bits": 20, "unlocks": [&"pyromancer", &"firewall", &"cold_start"]},
-	{"id": "triggers", "text": "Clear a room with 2 triggers in your wand", "check": "trigger_rooms>=1", "bits": 15, "unlocks": [&"ping"]},
+	{"id": "triggers", "text": "Clear a room with 2 triggers in your wand", "check": "trigger_rooms>=1", "bits": 15, "unlocks": [&"ping"], "needs": "triggers"},
 	{"id": "runs3", "text": "Play 3 runs", "check": "runs>=3", "bits": 10, "unlocks": [&"slot"]},
 	{"id": "big_hit", "text": "Deal 60 damage in one hit", "check": "max_hit>=60", "bits": 15},
 	{"id": "rich", "text": "Hold 150 gold", "check": "max_gold>=150", "bits": 15},
@@ -73,6 +74,11 @@ const BOARD_SIZE := 3
 ## open; the four ".pkg" packs are new content (Catalog.PACK_ITEMS). "needs" keeps a pack off
 ## the shelf until that bounty is fixed.
 const PACKS := [
+	# 0.20 (Bar, after playing): triggers leave the first run. The cheapest pack, so it's the
+	# first thing a first run's Bits can buy, once the wand has two spells to join.
+	{"id": "triggers", "title": "Triggers", "file": "triggers.pkg", "price": 30, "color": "#ff9a3a",
+		"blurb": "Chain one spell into the next: Then, Callback, While Loop.",
+		"items": [&"then", &"callback", &"loop"]},
 	{"id": "glitch", "title": "Glitch", "file": "glitch.pkg", "price": 60, "color": "#a060d8",
 		"blurb": "Marks, mines and rot: enemies that crash.",
 		"items": [&"hexcursor", &"mine", &"bitrot", &"rot_coat", &"null_orb", &"rot_index"]},

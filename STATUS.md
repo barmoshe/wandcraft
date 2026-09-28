@@ -158,6 +158,11 @@
     - **Residents:** Grep, Hotfix and Cache, caged one per world, move into the Workshop with arcs, reactions and services: a hint a run, wand skins for Bits, and twelve Lost Pages.
     - **Story:** six new commit logs, a descending wall clock, and the ending moved to the Glitch. A true ending, fix forward, opens after Grep's confession, and the Workshop then holds a blameless post-mortem.
     - **Tests:** `test_world_three`, `test_kernel_art`, and the bot clears all three worlds.
+    - **Bar's phone feedback on 0.19 (ADR 0029):**
+      - **The wizard:** he now holds the wand out in his fist at chest height (before, it came out of his belly).
+      - **The third lesson:** it no longer lights the Mote's slot for a trigger; it teaches a second shooting spell.
+      - **Triggers:** they are a 30-Bit pack, the first thing the Merchant shelves.
+      - **The Kernel:** tuned from a new World 3 bench (`BENCH=kernel tools/balance.sh`), whose numbers are in `research/world3-0.20.md`.
 
 ## Where we are (POC history)
 - **M0 Foundation: done.**

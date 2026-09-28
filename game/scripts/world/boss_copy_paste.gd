@@ -24,7 +24,7 @@ var _hero := &"apprentice"      # 0.19: the hero it copied (its look, Hero.LOOKS
 const SCALE := 1.25
 const LAG := 1.2
 const HAND := Vector2(0, -19)   # Player.HAND at the clone's scale
-const GRIP := Vector2(7.5, -20)  # Player.GRIP at the clone's scale
+const GRIP := Player.GRIP * SCALE   # the fist, at the clone's scale
 
 
 func _init_boss() -> void:
@@ -63,6 +63,7 @@ func _init_boss() -> void:
 	wand_sprite.position = GRIP
 	wand_sprite.scale = Vector2(SCALE, SCALE)
 	add_child(wand_sprite)
+	move_child(wand_sprite, sprite.get_index())   # under the body: the fist closes over it
 
 
 ## Where its copied spells leave: the tip of its wand.
@@ -277,7 +278,6 @@ func _animate() -> void:
 	var a := (world.player.position - position - HAND).angle()
 	wand_sprite.texture = _wand_tex[posmod(roundi(a / (TAU / 16.0)), 16)]
 	wand_sprite.position = _grip() + Vector2(sprite.position.x, 0)
-	wand_sprite.z_index = -1 if sin(a) < -0.3 else 0
 	var hot := move == &"copy_cast" and sm == &"tele"
 	wand_sprite.modulate = Color(1.6, 0.7, 1.4, sprite.modulate.a) if hot and fmod(t, 0.2) < 0.1 else Color(1, 1, 1, sprite.modulate.a)
 	queue_redraw()

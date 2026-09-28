@@ -93,7 +93,7 @@ Each agent brought 5–8 original ideas. Scored 1–3 on fun, fit with the code-
 | **Dangling Pointer** | pressure | Draws a pointer line toward you, then blinks to the line's end and snaps in a small ring | Step off the line |
 | **Interrupt** | support | While it lives, one of your wand's boosts or triggers is suspended (the HUD slot shows a lock, and the wand reads it as empty). It keeps away from you | Kill it first; it is fragile |
 
-- **Mini-boss: Data Race.** Two threads, A and B, lap the arena in opposite directions and burst where their paths cross. When one falls, the other has 2 seconds: if it isn't down too, the first one respawns at 40% HP. The counter is the wand, not the aim: split damage, then finish both.
+- **Mini-boss: Data Race.** Two threads, A and B, lap the arena in opposite directions and burst where their paths cross. When one falls, the other has 3 seconds: if it isn't down too, the first one respawns at 30% HP. The counter is the wand, not the aim: split damage, then finish both.
 - **Boss: the Glitch.** Titled "THE GLITCH", subtitled "commit a1f00d, author: you". Three phases:
   1. **Diff** (100–66%): red "−" rows are telegraphed across the arena and burn a moment later; green "+" rows stay safe. It shoots aimed bursts between diffs.
   2. **Stack unwind** (66–33%): the call stack unwinds through the run: echoes of the Loop (two Loop Jr.) and of Deadlock (a sweeping beam) come back in miniature, once each, while it keeps up the diffs.
@@ -145,4 +145,19 @@ Each is found in a run in a new **Resident** room (a door that shows a caged fig
 - Compendium entries for every new enemy and boss.
 
 ## 4. Progress
-(Filled in as slices land.)
+- `6f846d2` Research and design.
+- `a3f0b83` World 3, the residents and the two endings (the art agent's work included).
+- `ea22203` Kernel sound, compile-in boss entrances, resident progress, docs; version 0.20.0.
+- `baeb611` Voices for the residents and every new line (218 lines in all).
+- **Bar's feedback on 0.19 (ADR 0029):** the wizard's wand arm, the third lesson, and triggers as a pack.
+- **The Kernel bench** (`BENCH=kernel tools/balance.sh`): each seed starts in the Kernel with a mid-game kit, played by the editing bot without god mode.
+
+| Pass | What changed | World 3 cleared | Data Race | The Glitch |
+|---|---|---|---|---|
+| 1 | first run; the kit was swapped for a one-spell wand (a bench bug) | 0% (died in room 1) | never reached | never reached |
+| 2 | the kit kept; depth scaling slowed past Deadlock | 10% | 48 s | 47 s (one run) |
+| 3 | Data Race smaller bursts, no Sentries in the Kernel, the Glitch 3000 HP; a leak stall fixed | 10% | 41 s | 50 s (one run) |
+| 4 | Data Race at World 1 bullet damage, the Glitch 3400 HP, pointers snap less | 0% (4 reached the Glitch) | 41 s | none cleared |
+| 5 | Data Race threads 440 HP, a 3 s window and a 30% respawn | 0% (3 reached the Glitch) | 53 s | none cleared |
+
+*[I]* The bench bot never dashes and doesn't play Data Race's rule (it shoots the nearest thread, so the other keeps respawning), so these are floors, not a player's odds. The playtest decides the next pass. The first things to try if it's too hard: fewer Dangling Pointers in the pressure pool, and a spring before Data Race.

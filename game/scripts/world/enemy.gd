@@ -62,7 +62,7 @@ const DEFS := {
 	#                     wand reads the slot as empty). Fragile, keeps its distance
 	&"leak": {"title": "Page Leak", "ai": &"leak", "hp": 42.0, "spd": 16.0, "r": 7.0, "dmg": 6.0, "cost": 4, "gold": 4,
 		"role": &"anchor", "shot": {"n": 3, "spd": 70.0, "cd": 3.4}},
-	&"null_ptr": {"title": "Dangling Pointer", "ai": &"pointer", "hp": 14.0, "spd": 40.0, "r": 5.0, "dmg": 10.0, "cost": 2, "gold": 2,
+	&"null_ptr": {"title": "Dangling Pointer", "ai": &"pointer", "hp": 14.0, "spd": 40.0, "r": 5.0, "dmg": 8.0, "cost": 2, "gold": 2,
 		"role": &"pressure"},
 	&"interrupt": {"title": "Interrupt", "ai": &"support", "hp": 16.0, "spd": 40.0, "r": 5.0, "dmg": 0.0, "cost": 3, "gold": 3,
 		"role": &"support", "interrupt": true},
@@ -549,8 +549,9 @@ func tick(dt: float) -> void:
 					state = &"fuse"
 					st_t = 0.8
 		&"leak":
-			# drifts toward a middle distance, drips, and spills a slow spray now and then
-			var want := 1.0 if dd > 90.0 else (-0.6 if dd < 60.0 else 0.0)
+			# drifts in to a middle distance and holds there (it never backs off: a leak you
+			# can't catch is a stall, not a counter), drips, and spills a slow spray now and then
+			var want := 1.0 if dd > 80.0 or not world.enemy_sees(position) else 0.0
 			mv = _steer(dt, dir) * want + dir.orthogonal() * 0.3 * sin(t * 0.7 + ph)
 			drip_t -= adt
 			if drip_t <= 0.0:
@@ -575,7 +576,7 @@ func tick(dt: float) -> void:
 					world.pointer_snap(self, from, position)
 					atk_t = 0.2
 					state = &"move"
-					cd = world.rng.randf_range(2.2, 3.0)
+					cd = world.rng.randf_range(2.8, 3.6)
 			else:
 				mv = _steer(dt, dir)
 				cd -= adt

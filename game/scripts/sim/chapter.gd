@@ -138,6 +138,14 @@ static func depth(run: RunState) -> int:
 	return run.step + run.world * (PLAN.size() - 1) if run else 1
 
 
+## 0.20: how deep the numbers think you are. Past Deadlock (depth 20) enemy HP, damage and
+## the encounter budget grow a third as fast: World 3 is harder by its enemies' rules (leaks,
+## pointers, interrupts), not by ever-bigger numbers (the Kernel bench died in room 1).
+static func scale_depth(run: RunState) -> float:
+	var d := float(depth(run))
+	return d if d <= 20.0 else 20.0 + (d - 20.0) / 3.0
+
+
 ## The visible 3-lane map (D5): every room step has three nodes, the mini-boss and the boss
 ## one each. From lane L you can reach lanes L-1..L+1 on the next step. Rules:
 ##   the first two room steps are fights; no challenge, Glitch Door, altar or terminal

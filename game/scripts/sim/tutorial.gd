@@ -7,13 +7,15 @@ extends RefCounted
 ##   room 1  buglings only; the prize is Empower (a boost) -> the first wand edit
 ##   room 2  a Hex Weaver among fodder; the prize is Needle or Phase (pierce), because...
 ##   room 3  ...Rune Sentries are shielded and show BLOCKED to anything but pierce; the prize
-##           is a trigger (Then or Callback) -> the first trigger
+##           is a second shooting spell (Ember or Frost) -> a wand that takes turns
+##           (0.20: triggers left the first run. They were coached before the wand had two
+##           spells to join, and now come in the Triggers pack at the Merchant.)
 ##   mini    Copy-Paste turns your own wand against you
 ## Armour (Blast) and wards (Shock) are taught by a tip the first time they block you, in
 ## any run (Hints), not by a forced room.
 ##
-## Tested (tests/unit/test_onboarding_d9.gd): a new player's first edit by 120 s and first
-## trigger by 180 s of play.
+## Tested (tests/unit/test_onboarding_d9.gd): a new player's first edit by 120 s of play, and a
+## wand with two shooting spells before the mini-boss.
 
 const STEPS := {
 	1: {
@@ -31,15 +33,15 @@ const STEPS := {
 	3: {
 		"title": "Shields",
 		"waves": [[[&"sentry", false], [&"bugling", false], [&"bugling", false]], [[&"sentry", false], [&"slime", false]]],
-		"offer": [&"then", &"callback"],
-		"coach": "trigger",
+		"offer": [&"ember", &"frost"],
+		"coach": "second",
 	},
 }
 
 const COACH := {
 	"equip": "A boost powers up every spell on its right, so it goes left of your Mote. Drag EMPOWER onto the lit slot.",
 	"pierce": "Some enemies carry a shield that blocks hits from the front. A PIERCE spell breaks it. Drag it onto the lit slot.",
-	"trigger": "A trigger goes between two spells: when the one on its left ends, it casts the one on its right. Drag THEN onto the lit slot.",
+	"second": "A wand fires its spells left to right, one per shot, and boosts power up every spell on their right. Drag your new spell onto the lit slot.",
 }
 
 
@@ -66,8 +68,8 @@ static func title(run: RunState) -> String:
 	return STEPS[run.step]["title"]
 
 
-## A lesson prize: lesson 3's also grows the wand by one slot, so the trigger has room to sit
-## between two spells.
+## A lesson prize: lesson 3's also grows the wand by one slot, so the second shooting spell
+## has room beside the first.
 static func on_prize(run: RunState, lesson_step: int) -> void:
 	if run == null or not run.tutorial or not STEPS.has(lesson_step):
 		return
@@ -108,7 +110,8 @@ static func coach(run: RunState, lesson_step: int) -> Dictionary:
 ## The wand in hand as it should look after the lesson (spell ids, null for empty), built
 ## from what it holds now plus the lesson spell the player took:
 ##   a boost goes just left of the first shooting spell (boosts power up what is on their right)
-##   a shooting spell goes left of everything, into the empty room
+##   a shooting spell goes just left of the last one, so every boost powers it up too (0.20:
+##   it went left of everything, where the boosts never reached it)
 ##   a trigger goes right after the first shooting spell, so another one follows it
 ## The layout is right-aligned: spells sit at the right end, empty slots stay on the left.
 ## Returns [] when the lesson spell is not in the run at all.
@@ -147,7 +150,10 @@ static func layout(run: RunState, lesson_step: int) -> Array:
 						order.insert(after, sp["id"])
 						break
 		_:
-			order.push_front(prize)
+			# just left of the last shooting spell (the Mote, in its last slot): every boost
+			# on the wand sits left of it, so they all power the new spell up too
+			var last_caster := held.rfind(casters[-1]) if not casters.is_empty() else held.size()
+			order.insert(last_caster, prize)
 	# what does not fit goes to the bag; the empty slots stay on the left
 	var out: Array = []
 	var pad := w.slots.size() - order.size()

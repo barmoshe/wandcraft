@@ -1,7 +1,9 @@
 extends "res://tests/unit/test_helpers.gd"
 ## D9: the first run's curriculum (Tutorial). A new player plays it: the bot fights, takes
 ## each lesson prize and does exactly what the editor's coach says (and nothing more). The
-## design-plan §6 bar: the first wand edit by 120 s of play, the first trigger by 180 s.
+## design-plan §6 bar: the first wand edit by 120 s of play. 0.20: the third lesson hands over
+## a second shooting spell, not a trigger (triggers are a pack now), so the wand reaching the
+## mini-boss fires two spells in turn.
 
 const DT := 1.0 / 60.0
 
@@ -40,13 +42,13 @@ func _new_player_run(seed_value: int) -> Dictionary:
 			world.ui_done())
 	world.start_run(run)
 	var t := 0.0
-	# play on into the mini-boss until the new wand's trigger fires (or give up at 400 s)
-	while t < 400.0 and (not seen["mini"] or float(run.stats["first_trigger"]) < 0.0):
+	# play on until the mini-boss (or give up at 400 s)
+	while t < 400.0 and not seen["mini"]:
 		world.step(DT)
 		t += DT
 	if not seen["mini"]:
 		print("    STALL in ", world.room_kind, " cleared=", world.cleared, " wave ", world.wave_i, "/", world.waves.size(), " alive=", world.enemies.filter(func(e: Enemy) -> bool: return not e.dead).map(func(e: Enemy) -> String: return "%s hp%.0f sh%d" % [e.kind, e.hp, e.shield_hp]), " orb=", world.orb, " doors_open=", world.doors_open, " wand=", run.wand().slots)
-	var out := {"first_edit": float(run.stats["first_edit"]), "first_trigger": float(run.stats["first_trigger"]),
+	var out := {"first_edit": float(run.stats["first_edit"]),
 		"titles": seen["titles"], "offers": seen["offers"], "wand": run.wand().slots.duplicate(true), "reached_mini": seen["mini"]}
 	world.free()
 	SaveGame.enabled = true
@@ -54,35 +56,51 @@ func _new_player_run(seed_value: int) -> Dictionary:
 	return out
 
 
-func test_the_curriculum_teaches_an_edit_by_120s_and_a_trigger_by_180s() -> void:
+func test_the_curriculum_teaches_an_edit_by_120s_and_a_second_spell() -> void:
 	for seed_value in [5, 17, 29]:
 		var r := _new_player_run(seed_value)
-		print("    onboarding seed %d: first edit %.0f s, first trigger %.0f s, rooms %s" % [seed_value, r["first_edit"], r["first_trigger"], r["titles"]])
+		print("    onboarding seed %d: first edit %.0f s, rooms %s, wand %s" % [seed_value, r["first_edit"], r["titles"], r["wand"]])
 		ok(r["reached_mini"], "seed %d: the lessons lead to the mini-boss" % seed_value)
 		ok(r["first_edit"] >= 0.0 and r["first_edit"] <= 120.0, "seed %d: first wand edit by 120 s (%.0f)" % [seed_value, r["first_edit"]])
-		ok(r["first_trigger"] >= 0.0 and r["first_trigger"] <= 180.0, "seed %d: first trigger by 180 s (%.0f)" % [seed_value, r["first_trigger"]])
 		# offers[0] is the start room's loadout pick, then one prize per lesson
 		ok(r["offers"].size() >= 4 and r["offers"][1] == [&"empower"], "seed %d: the first lesson's prize is Empower" % seed_value)
-		ok(r["offers"].size() >= 4 and r["offers"][3].has(&"then"), "seed %d: the third lesson's prize is a trigger" % seed_value)
+		ok(r["offers"].size() >= 4 and r["offers"][3].has(&"ember"), "seed %d: the third lesson's prize is a second spell" % seed_value)
+		ok(r["offers"].all(func(o: Array) -> bool: return not o.any(func(id: StringName) -> bool: return Catalog.spell(id) != null and Catalog.spell(id).kind == SpellDef.Kind.TRIG)),
+			"seed %d: no trigger in the lessons" % seed_value)
+		var casters: Array = r["wand"].filter(func(sp: Variant) -> bool: return sp != null and Catalog.is_caster(Catalog.spell(sp["id"])))
+		ok(casters.size() >= 2, "seed %d: the wand fires two spells in turn (%s)" % [seed_value, r["wand"]])
 
 
-func test_the_trigger_lesson_ends_with_a_spell_after_the_trigger() -> void:
-	var run := RunState.create(3)
-	run.tutorial = true
-	run.wands[0].set_slots([&"empower", &"mote", &"needle"])
-	run.bag.append({"id": &"then", "lv": 1})
-	Tutorial.on_prize(run, 3)
-	ok(run.wand().slots.size() == 4, "the trigger prize grows the wand a slot")
-	for guard in 4:
-		var c := Tutorial.coach(run, 3)
-		if c.is_empty():
-			break
-		run.move_spell(c["from"], c["to"])
-	var ids: Array = run.wand().slots.map(func(s: Variant) -> Variant: return s["id"] if s != null else null)
-	var p := ids.find(&"then")
-	ok(p >= 1 and Catalog.is_caster(Catalog.spell(ids[p - 1])), "the trigger has a shooting spell on its left (%s)" % [ids])
-	ok(p >= 0 and p + 1 < ids.size() and ids[p + 1] != null and Catalog.is_caster(Catalog.spell(ids[p + 1])), "the trigger has a spell right after it (%s)" % [ids])
-	ok(ids[0] == &"empower", "the boost still leads (%s)" % [ids])
+## Bar's screenshot (0.19): Phase taken in lesson 2 left one shooting spell, so the trigger
+## lesson lit the Mote's own slot. Every lesson-2 pick must now end in a sound layout.
+func test_the_second_spell_lesson_works_after_either_pierce_pick() -> void:
+	for pierce in [&"phase", &"needle"]:
+		var run := RunState.create(3)
+		run.tutorial = true
+		run.wands[0].set_slots([null, &"empower", &"mote"])
+		run.bag.append({"id": pierce, "lv": 1})
+		Tutorial.on_prize(run, 2)
+		for guard in 4:
+			var c := Tutorial.coach(run, 2)
+			if c.is_empty():
+				break
+			run.move_spell(c["from"], c["to"])
+		run.bag.append({"id": &"ember", "lv": 1})
+		Tutorial.on_prize(run, 3)
+		ok(run.wand().slots.size() == 4, "%s: the lesson grows the wand a slot" % pierce)
+		var moves := 0
+		for guard in 6:
+			var c := Tutorial.coach(run, 3)
+			if c.is_empty():
+				break
+			ok(run.wand().slots[int(c["to"]["i"])] == null or run.wand().slots[int(c["to"]["i"])]["id"] != &"mote" or c["ids"] == [&"mote"],
+				"%s: the coach never lights the Mote's slot for another spell" % pierce)
+			run.move_spell(c["from"], c["to"])
+			moves += 1
+		var ids: Array = run.wand().slots.map(func(sp: Variant) -> Variant: return sp["id"] if sp != null else null)
+		ok(moves >= 1, "%s: the coach walked the lesson (%s)" % [pierce, ids])
+		ok(ids.has(&"ember") and ids.has(&"mote"), "%s: both spells on the wand (%s)" % [pierce, ids])
+		ok(ids.find(&"empower") < ids.find(&"ember"), "%s: the boost powers the new spell too (%s)" % [pierce, ids])
 
 
 func test_the_boost_lesson_puts_empower_before_the_mote() -> void:

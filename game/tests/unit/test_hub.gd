@@ -193,19 +193,19 @@ func test_station_screens() -> void:
 	SaveGame.save_meta(m)
 	var shop := _screen(PackScreen.new()) as PackScreen
 	shop.press("buy0")
-	eq(shop.bought, "glitch", "INSTALL buys the first pack on the shelf")
-	eq(Meta.bits(), 10, "for its price")
+	eq(shop.bought, "triggers", "INSTALL buys the first pack on the shelf (0.20: Triggers)")
+	eq(Meta.bits(), 40, "for its price")
 	shop.press("skip")
 	shop.finished.connect(func(r: Dictionary) -> void: got.append(r))
 	shop.press("done")
-	eq(got.back().get("bought"), "glitch", "DONE after the opening")
+	eq(got.back().get("bought"), "triggers", "DONE after the opening")
 	shop.free()
 	var r := RunState.create(3)
 	r.stats["rooms"] = 1
 	Meta.check(r)
 	var board := _screen(BountyScreen.new()) as BountyScreen
 	board.press("claim:room")
-	eq(Meta.bits(), 20, "CLAIM pays the ticket")
+	eq(Meta.bits(), 50, "CLAIM pays the ticket")
 	board.free()
 	var bench := EditorScreen.new()
 	bench.library = Hub.library()

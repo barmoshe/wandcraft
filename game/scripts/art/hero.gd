@@ -158,9 +158,16 @@ const BODY_BACK := [
 	"...SsLLLLLLLLLLsS...",
 ]
 
-## The wand hand, shown only while casting (the fire frame adds a gold smear behind it).
-const HAND := ["...............Yss", "...............ysz"]
-const HAND_FIRE := [".............wwYsss", "...............yssz"]
+## The wand hand: a forearm and fist held out at chest height, holding the wand (the fire
+## frame adds a gold smear behind it). 0.20 (Bar: "fix the wizard"): it was a fist inside the
+## torso at the hip, shown only while casting, so the wand seemed to come out of his belly.
+## Now the arm is out whenever the hero faces the camera, and the hanging right arm below it
+## is taken off the torso (ARM_OUT).
+const HAND := [".................Yss", ".................ySs"]
+const HAND_FIRE := ["...............wwYss", ".................ySs"]
+## The torso rows and columns of the hanging right arm (cuff and hand) the raised arm replaces.
+const ARM_ROWS := [4, 5, 6, 7, 8]
+const ARM_COLS := [15, 16]
 
 ## 0.19: each hero has its own look. A look is palette overrides (Style ramp keys, merged
 ## over PAL) plus optional replacement rows for the head and the torso, front and back, with
@@ -338,11 +345,12 @@ static func rig(back := false, hero := &"apprentice") -> RigDef:
 	r.h = H
 	r.pal = palette(hero)
 	r.add_part("legs", FEET[L_IDLE], Vector2i(0, 25))
-	r.add_part("torso", look.get("body_back", BODY_BACK) if back else look.get("body", BODY), Vector2i(0, 16))
+	var torso: Array = look.get("body_back", BODY_BACK) if back else _arm_out(look.get("body", BODY))
+	r.add_part("torso", torso, Vector2i(0, 16))
 	r.add_part("hair", head.slice(0, 5) + [head[4]], Vector2i.ZERO)
 	r.add_part("face", head.slice(5), Vector2i(0, 5))
-	# from behind, the wand hand is hidden by the body
-	r.add_part("hand", HAND, Vector2i(0, 19), true)
+	# the wand arm, out at chest height; from behind, the body hides it
+	r.add_part("hand", HAND, Vector2i(0, 17), back)
 	r.lag = {"hair": "face"}
 	var down := Vector2i(0, 1)
 	var stride: Array = FEET[L_STRIDE]
@@ -387,8 +395,27 @@ static func rig(back := false, hero := &"apprentice") -> RigDef:
 		{"legs": {"sq": 6}, "torso": {"off": Vector2i(0, 6), "sq": 2}, "face": Vector2i(1, 9), "_tear": torn, "_crumble": 0.45},
 		{"legs": {"sq": 6}, "torso": {"off": Vector2i(0, 6), "sq": 2}, "face": Vector2i(1, 9), "_tear": torn, "_crumble": 0.8},
 	])
+	# the arm moves with the torso (a bob, a lean) wherever a pose moves the torso
+	for c in r.clips:
+		for pose in r.clips[c]["poses"]:
+			if pose.has("torso") and not pose.has("hand"):
+				var tv: Variant = pose["torso"]
+				pose["hand"] = tv if tv is Vector2i else {"off": (tv as Dictionary).get("off", Vector2i.ZERO)}
 	_rigs[key] = r
 	return r
+
+
+## A front torso with its right arm off (ARM_ROWS x ARM_COLS): the wand arm replaces it.
+static func _arm_out(rows: Array) -> Array:
+	var out: Array = []
+	for i in rows.size():
+		var row := String(rows[i])
+		if ARM_ROWS.has(i):
+			for x in ARM_COLS:
+				if x < row.length():
+					row = row.substr(0, x) + "." + row.substr(x + 1)
+		out.append(row)
+	return out
 
 
 ## Every clip of one facing, baked: clip name -> Array[Texture2D].

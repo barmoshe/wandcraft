@@ -251,7 +251,7 @@ func bot_goal() -> Vector2:
 func ed() -> float:
 	# research/difficulty.md: 6 before; World 2's bosses hit 30% harder, World 3's 45%
 	var w := world.run.world if world and world.run else 0
-	return 8.0 * (1.45 if w >= 2 else (1.3 if w == 1 else 1.0))
+	return 8.0 * (1.35 if w >= 2 else (1.3 if w == 1 else 1.0))
 
 
 func ring(p: Vector2, n: int, speed: float, offset := 0.0, accel := 0.0) -> void:

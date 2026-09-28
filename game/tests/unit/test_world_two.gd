@@ -125,7 +125,7 @@ func test_phase_three_breaks_the_locks() -> void:
 
 func test_a_proxy_takes_its_allies_hits() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var p := _dummy(Vector2(208, 120))
 	p.def = Enemy.DEFS[&"proxy"]
 	var ally := _dummy(Vector2(230, 120))
@@ -141,7 +141,7 @@ func test_a_proxy_takes_its_allies_hits() -> void:
 
 func test_kernel_panic_runs_at_half_hp_and_bursts() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var e := world.spawn_enemy(&"kernel_panic", Vector2(208, 120))
 	e.spawn_t = 0.0
 	world.hash.rebuild(world.enemies)

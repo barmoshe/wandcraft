@@ -10,7 +10,7 @@ func _give(id: StringName) -> void:
 ## An empty room with dummies at the given spots.
 func _room(spots: Array) -> Array[Enemy]:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var out: Array[Enemy] = []
 	for p in spots:
 		out.append(_dummy(p))

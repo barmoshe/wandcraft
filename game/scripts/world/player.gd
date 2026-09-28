@@ -14,7 +14,7 @@ const AUTO_RANGE := 210.0
 const HAND := Vector2(0, -15)   # chest height: where familiars and orbits circle
 ## The wand's grip: the drawn hand at the side of the waist, on the side the hero faces
 ## (playtest: it used to sit at the middle of the hips, which read as something else).
-const GRIP := Vector2(6, -16)
+const GRIP := Vector2(9, -18)   # 0.20: the fist, held out at chest height (Hero.HAND)
 ## Busy Wait: seconds standing still (the next cast is charged at 0.6 s).
 var still_t := 0.0
 ## Buffer Overflow: overheal kept as a shield that takes hits first.
@@ -89,6 +89,7 @@ func setup(w: World) -> void:
 	wand_sprite.texture = wand_tex[0]
 	wand_sprite.position = GRIP
 	add_child(wand_sprite)
+	move_child(wand_sprite, sprite.get_index())   # 0.20: under the body, so the fist closes over it
 	tip_glow = Sprite2D.new()
 	tip_glow.texture = PixelArt.glow_texture(16)
 	var mat := CanvasItemMaterial.new()
@@ -427,7 +428,7 @@ func _animate() -> void:
 	tip_glow.visible = true
 	recoil = maxf(0.0, recoil - 0.5)
 	wand_sprite.position = (grip() - Vector2.from_angle(aim) * roundf(recoil)).round()
-	wand_sprite.z_index = -1 if back or sin(aim) < -0.3 else 0
+	# 0.20: the wand is a child before the body (setup), so the fist closes over its shaft
 	var w := wand()
 	tip_glow.position = grip() + Vector2.from_angle(aim) * 11.0
 	var c := w.def.color if w.cd > 0.0 else Color("#8fd8ff")

@@ -10,9 +10,9 @@ extends Boss
 ##   Phase 2  at 50% of A: they lap faster, and Crossfire joins (a ring from each)
 
 const LAP_W := 0.5            # radians a second
-const RACE_T := 2.0           # seconds the survivor has
-const RESPAWN := 0.4
-const THREAD_HP := 520.0
+const RACE_T := 3.0           # seconds the survivor has (2.0 before the Kernel bench)
+const RESPAWN := 0.3
+const THREAD_HP := 440.0   # the Kernel bench: a shorter fight, fewer bullets
 const CUT_SPD := 260.0
 
 var center := Vector2.ZERO
@@ -89,6 +89,12 @@ func _place() -> void:
 	position = pa if _off_a == Vector2.ZERO else _off_a
 	if thread_b:
 		thread_b.position = pb if _off_b == Vector2.ZERO else _off_b
+
+
+## Its shots hit like World 1's (the Kernel bench: at World 3's x1.35 it ended half the runs;
+## two bodies already double the bullets).
+func ed() -> float:
+	return 8.0
 
 
 ## Thread A's HP ran out: it falls only if B is already down (in the race window).
@@ -173,7 +179,7 @@ func tick(dt: float) -> void:
 		Audio.sfx("race_cross", at)
 		world.fx.ring(at, 3.0, 22.0, 0.3, Style.c("cyan:4"))
 		if not a_down and not b_down:
-			ring(at, 8 if phase == 0 else 12, 70.0, world.rng.randf())
+			ring(at, 6 if phase == 0 else 8, 66.0, world.rng.randf())   # bench: 12 was the run killer
 
 
 func _idle(dt: float) -> void:
@@ -218,9 +224,9 @@ func _go(m: StringName) -> void:
 		&"crossfire":
 			var o := world.rng.randf()
 			if not a_down:
-				ring(position, 10, 72.0, o)
+				ring(position, 8, 70.0, o)
 			if not b_down:
-				ring(thread_b.position, 10, 72.0, o + PI / 10.0)
+				ring(thread_b.position, 8, 70.0, o + PI / 8.0)
 			world.shake(0.15)
 
 
@@ -230,8 +236,8 @@ func _act(m: StringName, dt: float, _t_in: float) -> void:
 			_idle(dt)
 			_cd -= dt
 			if _cd <= 0.0:
-				_cd = 0.4
-				var who := int(mt / 0.4) % 2
+				_cd = 0.55
+				var who := int(mt / 0.55) % 2
 				if (who == 0 and not a_down) or (who == 1 and not b_down):
 					aimed(_alive_body(who) + Vector2(0, -6), 3, 0.32, 95.0)
 		&"cut":

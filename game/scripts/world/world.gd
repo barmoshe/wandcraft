@@ -658,7 +658,7 @@ const SPRING_HEAL := 0.5    # of max HP (0.3 at heat 4+); 0.6 / 0.4 before
 func spawn_enemy(kind: StringName, pos: Vector2, elite := false) -> Enemy:
 	var e := Enemy.new()
 	_uid += 1
-	var step := Chapter.depth(run) if run else 1
+	var step := Chapter.scale_depth(run) if run else 1.0
 	# enemy HP climbs with depth (heat 2 now raises damage instead, below)
 	# design v2: ten rooms, so HP climbs a little slower per room and ends where it did; in
 	# World 2 it keeps climbing from where World 1 ended
@@ -2128,7 +2128,7 @@ func _bot_dodge(p: Vector2, desire: Vector2) -> Vector2:
 		if boss and not boss.dead:
 			danger += boss.bot_danger(q)
 		if puddle_slow(q) < 1.0:
-			danger += 2.0
+			danger += 0.15   # a slow patch, not a threat: worth crossing to reach the fight
 		for e in enemies:
 			if not e.dead and e.spawn_t <= 0.0 and e.dmg > 0.0:
 				# where the body will be in a moment, not just where it is

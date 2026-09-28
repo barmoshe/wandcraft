@@ -45,7 +45,7 @@ func _dummy(pos: Vector2) -> Enemy:
 func _range_setup() -> void:
 	# an empty, cleared room so waves do not interfere
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	for p in [Vector2(208, 168), Vector2(208, 150), Vector2(186, 140), Vector2(230, 140)]:
 		_dummy(p)
 

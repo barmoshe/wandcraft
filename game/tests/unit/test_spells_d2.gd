@@ -5,7 +5,7 @@ extends "res://tests/unit/world_fixture.gd"
 
 func _alone(pos: Vector2) -> Enemy:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	var e := _dummy(pos)
 	world.hash.rebuild(world.enemies)
 	return e
@@ -139,7 +139,7 @@ func test_rubber_duck_draws_fire() -> void:
 
 func test_orbit_keeps_spells_around_you() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	_fire([&"orbit", &"mote"])
 	_steps(1.0)
 	eq(_live(&"mote"), 1, "the Mote is still out after a second")
@@ -197,7 +197,7 @@ func test_ifelse_picks_by_range() -> void:
 
 func test_pipeline_fires_in_a_line() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	_fire([&"pipeline", &"mote", &"mote", &"mote"])
 	eq(_live(&"mote"), 1, "the first goes out at once")
 	_steps(0.15)
@@ -206,7 +206,7 @@ func test_pipeline_fires_in_a_line() -> void:
 
 func test_sleep_fires_after_its_time() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	Game.inf_mana = true
 	_fire([&"quicken", &"mote", &"sleep", &"mote"])
 	_steps(0.3)
@@ -218,7 +218,7 @@ func test_sleep_fires_after_its_time() -> void:
 
 func test_reverse_fires_behind_at_bonus_damage() -> void:
 	world.build_room("hall", &"empty")
-	world.player.position = Vector2(208, 216)
+	world.player.position = Vector2(205, 216)   # 0.20: the hand (Player.GRIP) moved 3 px out; the tip stays where it was
 	_fire([&"reverse", &"mote"])
 	for b in world.bullets.active:
 		if b.alive and b.cast and b.cast.spell.id == &"mote":
