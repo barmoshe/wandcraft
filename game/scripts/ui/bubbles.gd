@@ -47,12 +47,12 @@ static func color_of(who: String) -> Color:
 
 
 ## Word wrap at the pixel font's size 8.
-static func wrap_text(f: Font, s: String, width: float) -> PackedStringArray:
+static func wrap_text(f: Font, s: String, width: float, size := 8) -> PackedStringArray:
 	var out := PackedStringArray()
 	var line := ""
 	for word in s.split(" "):
 		var t := word if line == "" else line + " " + word
-		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x > width and line != "":
+		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and line != "":
 			out.append(line)
 			line = word
 		else:
@@ -64,14 +64,14 @@ static func wrap_text(f: Font, s: String, width: float) -> PackedStringArray:
 
 ## The lines a bubble shows: at most `max_lines` (2 in a fight, 3 in the Workshop), wider
 ## when it must; a line too long even then ends in "...".
-static func lines_for(f: Font, s: String, max_lines: int) -> PackedStringArray:
-	var ls := wrap_text(f, s, WIDTH)
+static func lines_for(f: Font, s: String, max_lines: int, size := 8) -> PackedStringArray:
+	var ls := wrap_text(f, s, WIDTH, size)
 	if ls.size() > max_lines:
-		ls = wrap_text(f, s, WIDE)
+		ls = wrap_text(f, s, WIDE, size)
 	if ls.size() > max_lines:
 		var keep: PackedStringArray = ls.slice(0, max_lines)
 		var last: String = keep[max_lines - 1] + "..."
-		while f.get_string_size(last, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x > WIDE and last.length() > 4:
+		while f.get_string_size(last, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > WIDE and last.length() > 4:
 			last = last.substr(0, last.length() - 4) + "..."
 		keep[max_lines - 1] = last
 		ls = keep

@@ -3,7 +3,8 @@
 # sizes with --uiaudit and lists text that collides with other text or another element
 # (game/scripts/ui/ui_audit.gd). Exit 1 when anything overlaps.
 # Usage: tools/uiaudit.sh [filter]   e.g. tools/uiaudit.sh boss   (runs the matching cases)
-# RESES="2556x1179" limits the sizes; JOBS=4 sets how many run at once.
+# RESES="2556x1179" limits the sizes; JOBS=4 sets how many run at once; TEXT_BIG=1 audits the
+# large text setting.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/platform.sh"
@@ -76,7 +77,7 @@ run_case() {
   # shellcheck disable=SC2086
   with_display -s "-screen 0 ${res}x24" \
     timeout "${SHOT_TIMEOUT:-150}" "$HERE/godot.sh" --path "$GAME" --resolution "$res" --rendering-method "${RENDERER:-mobile}" -- \
-    --shot="$OUT/$tag.png" --uiaudit $args $([[ "$args" == *--screen=* ]] || echo $extra) > "$OUT/$tag.log" 2>&1
+    --shot="$OUT/$tag.png" --uiaudit ${TEXT_BIG:+--textbig} $args $([[ "$args" == *--screen=* ]] || echo $extra) > "$OUT/$tag.log" 2>&1
   if ! grep -q "UIAUDIT: [0-9]* overlaps" "$OUT/$tag.log"; then
     echo "$tag: NO REPORT (see shots/uiaudit/$tag.log)"
     return
@@ -88,7 +89,7 @@ if ! command -v timeout >/dev/null 2>&1; then
   timeout() { shift; "$@"; }   # macOS has no timeout
   export -f timeout
 fi
-export HERE GAME OUT RENDERER
+export HERE GAME OUT RENDERER TEXT_BIG
 
 for res in $RESES; do
   for c in "${CASES[@]}"; do

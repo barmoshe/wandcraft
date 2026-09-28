@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/heat_4.1.1.wav-b326d8b1aa27be0c5dba79aa0ca35b
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

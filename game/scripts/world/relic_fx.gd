@@ -118,7 +118,7 @@ func share_statuses(caught: Array) -> void:
 ## Summon Refund: a summon that ran out gives its wand back part of what it cost.
 func summon_ended(s: SpellRunner.Summon) -> void:
 	var run := world.run
-	if run == null or not run.has_relic(&"graceful_exit") or s.src == null or s.cost <= 0.0:
+	if run == null or not run.has_relic(&"graceful_exit") or s.src == null or s.cost <= 0.0 or s.src.def.rule == &"blood":
 		return
 	s.src.mana = minf(s.src.max_mana(), s.src.mana + s.cost * REFUND)
 	world.fx.sparks(s.pos + Vector2(0, -4), 5, Style.c("leaf:4"), 50.0)

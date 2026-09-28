@@ -11,15 +11,26 @@ var auto_fire := true
 ## > 0 while a sandbox world steps (the editor's firing range, WandSim): no sound, no buzz,
 ## no tips and no HUD events leak out of it.
 var quiet := 0
-var shake_scale := 1.0      # settings: screen shake (0 = off)
-var flash_fx := true        # settings: screen flash effects
+## 0.22 feel and accessibility. Shake and flash cycle 100% / 50% / OFF (SCALES).
+## shake_scale is what the camera uses: the Shake setting, halved by reduce motion.
+var shake_level := 1.0      # settings: screen shake (1.0 / 0.5 / 0.0)
+var shake_scale := 1.0      # effective shake (world.shake, the wand kick)
+var flash_scale := 1.0      # settings: screen flash intensity (1.0 / 0.5 / 0.0)
+var flash_fx := true        # flash_scale > 0 (the shockwave has no half setting)
 var haptics := true         # settings: vibration on hits and boss moments
+## No camera lead, a steady low-HP tint, half shake. On web it starts on when the
+## browser asks for reduced motion.
+var reduce_motion := false
+## Large text: the messages over play (speech bubbles, tips, toasts, the speech box) draw at 10
+## instead of 8 (Hud._msg_px); fixed menu layouts keep their size. text_px is the rule for a string.
+var text_big := false
 var sound := true
 var music := true
 var _fonts: Dictionary = {}
 
 
 func _ready() -> void:
+	reduce_motion = _web_reduced_motion()
 	apply_settings(SaveGame.load_settings())
 	if DisplayServer.get_name() == "headless":
 		return
@@ -153,8 +164,9 @@ func font(kind := "small") -> Font:
 
 
 func settings() -> Dictionary:
-	return {"auto_fire": auto_fire, "shake": shake_scale > 0.0, "flash": flash_fx, "haptics": haptics,
-		"sound": sound, "music": music, "gentle": gentle, "heartbeat": heartbeat, "voice": voice}
+	return {"auto_fire": auto_fire, "shake": shake_level, "flash": flash_scale, "haptics": haptics,
+		"sound": sound, "music": music, "assist": assist, "heartbeat": heartbeat, "voice": voice,
+		"reduce_motion": reduce_motion, "text_big": text_big}
 
 
 ## The Duck's and LINT's voices (Voice); the lines still show as text with it off.
@@ -166,31 +178,89 @@ var voice := true
 var heartbeat := true
 
 
-## Design v3 (after Hades' God Mode): opt in and every run you have lost takes 2% off the
-## damage you take, up to 40%. Never shown as a lesser way to play.
-var gentle := false
+## 0.22 Assist (replaces Gentle): take 25% or 50% less damage, enemy shots fly slower and
+## auto-aim reaches wider. A daily run played with it is marked ASSIST. Never shown as a
+## lesser way to play.
+const SCALES := [1.0, 0.5, 0.0]
+const ASSISTS := [0.0, 0.25, 0.5]
+const ASSIST_SHOT := 0.8     # enemy shot speed with assist on
+const ASSIST_CONE := 1.5     # auto-aim cone with assist on
+var assist := 0.0
 
 
-func gentle_resist() -> float:
-	if not gentle:
-		return 0.0
-	var m := SaveGame.load_meta()
-	return minf(0.4, 0.02 * maxi(0, int(m.get("runs", 0)) - int(m.get("wins", 0))))
+## The damage taken is cut by this much (0, 0.25 or 0.5). From settings only: no disk read.
+func assist_resist() -> float:
+	return assist
+
+
+func assist_shot_mul() -> float:
+	return ASSIST_SHOT if assist > 0.0 else 1.0
+
+
+func assist_cone_mul() -> float:
+	return ASSIST_CONE if assist > 0.0 else 1.0
+
+
+## The camera's walk lead: none with reduce motion on.
+func cam_lead(base: float) -> float:
+	return 0.0 if reduce_motion else base
+
+
+## The draw size of a string: size-8 small text is 10 with large text on, unless the bigger
+## string no longer fits `width` (when one is given).
+func text_px(size: int, kind := "small", s := "", width := -1.0) -> int:
+	if not text_big or size != 8 or kind != "small":
+		return size
+	if width > 0.0 and s != "" and font(kind).get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x > width:
+		return size
+	return 10
+
+
+## The next step of a cycle (100% > 50% > OFF > 100%, or OFF > 25% > 50% > OFF).
+static func next_step(steps: Array, v: float) -> float:
+	return steps[(steps.find(_snap(steps, v)) + 1) % steps.size()]
+
+
+## A saved level as one of `steps`. Saves before 0.22 held a bool: true is the first step
+## that is on (100% for shake and flash), false is OFF.
+static func _snap(steps: Array, v: Variant) -> float:
+	var off: float = steps.min()
+	if v is bool:
+		return (steps[1] if steps[0] == off else steps[0]) if v else off
+	if not (v is float or v is int):
+		return steps[0]
+	var best: float = steps[0]
+	for x in steps:
+		if absf(float(v) - x) < absf(float(v) - best):
+			best = x
+	return best
 
 
 func apply_settings(d: Dictionary) -> void:
 	auto_fire = bool(d.get("auto_fire", auto_fire))
-	shake_scale = 1.0 if bool(d.get("shake", true)) else 0.0
-	flash_fx = bool(d.get("flash", flash_fx))
+	shake_level = _snap(SCALES, d.get("shake", shake_level))
+	flash_scale = _snap(SCALES, d.get("flash", flash_scale))
+	flash_fx = flash_scale > 0.0
 	haptics = bool(d.get("haptics", haptics))
 	sound = bool(d.get("sound", sound))
 	music = bool(d.get("music", music))
-	gentle = bool(d.get("gentle", gentle))
+	# saves before 0.22 had "gentle": on reads as Assist 25%
+	assist = _snap(ASSISTS, d["assist"]) if d.has("assist") else (0.25 if bool(d.get("gentle", false)) else 0.0)
 	heartbeat = bool(d.get("heartbeat", heartbeat))
 	voice = bool(d.get("voice", voice))
-	var au := get_node_or_null("/root/Audio")
+	reduce_motion = bool(d.get("reduce_motion", reduce_motion))
+	text_big = bool(d.get("text_big", text_big))
+	shake_scale = shake_level * (0.5 if reduce_motion else 1.0)
+	var au := get_node_or_null("/root/Audio") if is_inside_tree() else null
 	if au:
 		au.apply(settings())
+
+
+## Web only: the browser's prefers-reduced-motion. False natively.
+func _web_reduced_motion() -> bool:
+	if not OS.has_feature("web"):
+		return false
+	return bool(JavaScriptBridge.eval("window.matchMedia('(prefers-reduced-motion: reduce)').matches", true))
 
 
 ## A short vibration on phones (hurt, boss moments), if the player allows it.
@@ -209,6 +279,8 @@ func haptic(kind: String) -> void:
 	buzz(int(HAPTICS.get(kind, 10)))
 
 
+## Native phones only: a browser's vibration is one flat buzz with no tiers, and iOS Safari
+## has none (the VIBRATION setting is hidden on web).
 func buzz(ms: int) -> void:
-	if haptics and quiet == 0 and is_touch():
+	if haptics and quiet == 0 and OS.has_feature("mobile"):
 		Input.vibrate_handheld(ms)

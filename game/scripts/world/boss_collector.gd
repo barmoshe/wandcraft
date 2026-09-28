@@ -122,6 +122,12 @@ func _end(m: StringName) -> void:
 			_fade_trash()
 
 
+## 0.22, the bot's dash: Collect's circle is the pull on your shots, not a hit (what it spits
+## back comes as shots).
+func bot_threat(q: Vector2, t0: float, t1: float) -> float:
+	return 0.0 if move == &"collect" else super.bot_threat(q, t0, t1)
+
+
 ## Compact's trash lies still for a moment.
 func _fade_trash() -> void:
 	for b in world.ebullets.active:

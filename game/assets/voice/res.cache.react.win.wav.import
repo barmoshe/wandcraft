@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/res.cache.react.win.wav-20f1f72f6d2b2558a48f3
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

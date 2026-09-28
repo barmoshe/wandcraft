@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/run.3.wav-b1dd742b7f29325324c64fb29c90fda8.sa
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

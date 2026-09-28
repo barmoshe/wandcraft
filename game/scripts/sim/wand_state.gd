@@ -268,8 +268,14 @@ func channel_mul() -> float:
 
 
 ## Hot-Reload Wand: switching to it ends its recharge at once. True when it did.
+## Hot-Reload: switching to it ends its recharge, if it rested on the belt at least HOT_BENCH
+## seconds (0.22: flicking back and forth used to skip every recharge).
+const HOT_BENCH := 2.0
+var bench := 0.0   # seconds since it was last in hand (Player.tick; not saved)
+
+
 func swap_in() -> bool:
-	if def.rule != &"hot_reload" or rech <= 0.0:
+	if def.rule != &"hot_reload" or rech <= 0.0 or bench < HOT_BENCH:
 		return false
 	rech = 0.0
 	cd = 0.0

@@ -10,8 +10,15 @@ var sel := -1
 var _forge_refs: Array = []
 
 
+var _new: Array = []   # 0.22: items on the shelf for the first time ever ("NEW")
+
+
 func _opened() -> void:
 	_refresh()
+	if mode == "shop":
+		var ids: Array = _items().filter(func(it: Dictionary) -> bool: return it["t"] != &"compile").map(func(it: Dictionary) -> StringName: return it["id"])
+		_new = ids.filter(func(id: StringName) -> bool: return Meta.is_new(id))
+		Meta.mark_seen(ids)
 
 
 func _refresh() -> void:
@@ -84,6 +91,8 @@ func _paint() -> void:
 		var price_c := GOLD if run.gold >= int(it["price"]) else Color("#ff6b7a")
 		if it.get("sale", false) and not it.get("sold", false):
 			text_center(r.get_center().x, r.position.y + 10, "SALE", Style.c("leaf:4"))
+		elif _new.has(it["id"]) and not it.get("sold", false):
+			text_center(r.get_center().x, r.position.y + 10, "NEW", Style.c("gold:4"), 8, "bold")
 		text_center(r.get_center().x, r.end.y - 4, ("BANNED" if run.banned.has(it["id"]) else "SOLD") if it.get("sold", false) else ("COMPILE" if it["t"] == &"compile" else str(it["price"])), MUTED if it.get("sold", false) else price_c)
 		area(r, "item%d" % i)
 	# info panel

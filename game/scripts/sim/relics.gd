@@ -136,7 +136,7 @@ const INHERIT_STEP := 0.15 # Shared Boosts: +15% summon damage a boost in its wa
 const CLONE_ROOMS := 2     # Relic Copy: rooms cleared before it turns
 ## Relic Copy may only turn into a relic whose copy adds something (its stats fold twice, or
 ## its on-gain effect repeats). Corrupted ones never.
-const CLONE_SAFE := [&"hot_patch", &"heap_overflow", &"interest", &"off_by_one", &"version_pin"]
+const CLONE_SAFE := [&"hot_patch", &"heap_overflow", &"interest", &"off_by_one"]   # 0.22: not Fixed Vitals (its +40% would stack)
 
 
 static func def(id: StringName) -> Dictionary:
@@ -268,6 +268,7 @@ static func on_room_clear(run: RunState) -> StringName:
 	var pick: StringName = pool[run.rng.randi() % pool.size()]
 	run.relics.erase(&"git_clone")
 	run.stats.erase("clone_rooms")
+	run.stats["cloned"] = true   # 0.22: once turned, never offered again this run
 	run.relics.append(pick)   # a second entry: stats fold twice (stat())
 	on_gain(run, pick)
 	return pick
@@ -345,6 +346,8 @@ static func gold_mul(run: RunState) -> float:
 static func offerable(run: RunState, id: StringName, corrupted := false) -> bool:
 	if run.relics.has(id):
 		return false
+	if id == &"git_clone" and run.stats.has("cloned"):
+		return false   # 0.22: Relic Copy turns once a run
 	var d: Dictionary = DEFS[id]
 	if (int(d["rar"]) == 3) != corrupted:
 		return false

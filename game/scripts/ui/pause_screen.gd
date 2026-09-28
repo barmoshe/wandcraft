@@ -74,23 +74,38 @@ func _paint_terminal(sr: Rect2, cx: float) -> void:
 		glossary_panel()
 
 
+## 0.22: two rows. Play and feel (auto-fire, assist, shake, flash, reduce motion as MOTION
+## LOW, text size), then
+## sound and vibration. Vibration is hidden on web (browsers give it no tiers; iOS has none).
 func _settings_rows(sr: Rect2, cx: float, y: float) -> float:
 	var bw := 96.0
-	var s := Game.settings()
 	var rows := [
-		[["auto", "AUTO-FIRE", s["auto_fire"]], ["shake", "SHAKE", s["shake"]], ["flash", "FLASH", s["flash"]], ["gentle", "GENTLE", s["gentle"]]],
-		[["sound", "SOUND", s["sound"]], ["music", "MUSIC", s["music"]], ["voice", "VOICE", s["voice"]], ["haptics", "VIBRATION", s["haptics"]], ["heartbeat", "HEARTBEAT", s["heartbeat"]]],
+		[["auto", "AUTO-FIRE " + _on(Game.auto_fire)], ["assist", "ASSIST " + _pct(Game.assist)],
+			["shake", "SHAKE " + _pct(Game.shake_level)], ["flash", "FLASH " + _pct(Game.flash_scale)],
+			["motion", "MOTION " + ("LOW" if Game.reduce_motion else "FULL")], ["text", "TEXT " + ("LARGE" if Game.text_big else "NORMAL")]],
+		[["sound", "SOUND " + _on(Game.sound)], ["music", "MUSIC " + _on(Game.music)], ["voice", "VOICE " + _on(Game.voice)],
+			["heartbeat", "HEARTBEAT " + _on(Game.heartbeat)]],
 	]
-	# design v3: four across (Gentle joins the first row, the low-HP heartbeat the second), narrower when the screen is
+	if not OS.has_feature("web"):
+		(rows[1] as Array).append(["haptics", "VIBRATION " + _on(Game.haptics)])
 	for row in rows:
 		var n: int = row.size()
 		var sbw := minf(bw, (sr.size.x - 30.0) / n)
 		var x0 := cx - (sbw * n + 6.0 * (n - 1)) / 2.0
 		for k in n:
 			var b: Array = row[k]
-			button(Rect2(x0 + k * (sbw + 6), y, sbw, 26), b[0], "%s %s" % [b[1], "ON" if b[2] else "OFF"])
+			button(Rect2(x0 + k * (sbw + 6), y, sbw, 26), b[0], b[1])
 		y += 30
 	return y + 4
+
+
+static func _on(v: bool) -> String:
+	return "ON" if v else "OFF"
+
+
+## 1.0 > "100%", 0.5 > "50%", 0.25 > "25%", 0 > "OFF".
+static func _pct(v: float) -> String:
+	return "%d%%" % roundi(v * 100.0) if v > 0.0 else "OFF"
 
 
 func _web_diag(sr: Rect2, cx: float, y: float) -> void:
@@ -127,15 +142,27 @@ func _on_button(id: String) -> void:
 		"hints":
 			Hints.reset()
 			toast("Tips will show again")
-		"auto", "shake", "flash", "sound", "music", "voice", "haptics", "gentle", "heartbeat":
+		"auto", "sound", "music", "voice", "haptics", "heartbeat", "motion", "text":
 			var s := Game.settings()
-			var key: String = {"auto": "auto_fire", "shake": "shake", "flash": "flash", "sound": "sound", "music": "music", "voice": "voice", "haptics": "haptics", "gentle": "gentle", "heartbeat": "heartbeat"}[id]
+			var key: String = {"auto": "auto_fire", "motion": "reduce_motion", "text": "text_big"}.get(id, id)
 			s[key] = not s[key]
-			Game.apply_settings(s)
-			SaveGame.save_settings(s)
-			if id == "gentle" and Game.gentle:
-				toast("Gentle: you take %d%% less damage now (2%% per run lost, up to 40%%)" % roundi(Game.gentle_resist() * 100.0))
+			_save(s)
+		"shake", "flash":
+			var s := Game.settings()
+			s[id] = Game.next_step(Game.SCALES, s[id])
+			_save(s)
+		"assist":
+			var s := Game.settings()
+			s["assist"] = Game.next_step(Game.ASSISTS, s["assist"])
+			_save(s)
+			if Game.assist > 0.0:
+				toast("Assist: %d%% less damage, slower shots, wider aim" % roundi(Game.assist * 100.0))
 		_:
 			if id.begins_with("relic"):
 				var i := int(id.substr(5))
 				sel_relic = -1 if sel_relic == i else i
+
+
+func _save(s: Dictionary) -> void:
+	Game.apply_settings(s)
+	SaveGame.save_settings(Game.settings())

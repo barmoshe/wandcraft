@@ -645,10 +645,18 @@ static func lint_review(wand: WandState, now: float = 0.0, talk := false, rng: R
 	var kinds: Array = found.map(func(s: Dictionary) -> String: return String(s["smell"]))
 	var m := Story._meta()
 	var b := _mem_of(m)
-	var lint: Dictionary = b.get("lint", {"pending": [], "fixes": 0, "trick": false})
-	var pending: Array = lint.get("pending", [])
+	var lint: Dictionary = b.get("lint", {"pending": {}, "fixes": 0, "trick": false})
+	# 0.22: smells are remembered per wand, so swapping to a clean wand fixes nothing
+	# (a player could farm the trick by flipping between two wands)
+	var per: Variant = lint.get("pending", {})
+	if not per is Dictionary:
+		per = {}
+	var key := String(wand.def.id) if wand != null and wand.def != null else ""
+	var pending: Array = (per as Dictionary).get(key, [])
 	var fixed := pending.filter(func(k: Variant) -> bool: return not kinds.has(String(k)))
-	lint["pending"] = pending.filter(func(k: Variant) -> bool: return kinds.has(String(k)))
+	pending = pending.filter(func(k: Variant) -> bool: return kinds.has(String(k)))
+	(per as Dictionary)[key] = pending
+	lint["pending"] = per
 	b["lint"] = lint
 	if not fixed.is_empty():
 		lint["fixes"] = int(lint.get("fixes", 0)) + fixed.size()
@@ -658,9 +666,9 @@ static func lint_review(wand: WandState, now: float = 0.0, talk := false, rng: R
 		Story._save(m)
 		return pick(&"lint", {"trick": true} if unlock else {"fixed": true}, now, rng)
 	for k in Story.SMELLS:
-		if kinds.has(k) and (talk or not (lint["pending"] as Array).has(k)):
-			if not (lint["pending"] as Array).has(k):
-				(lint["pending"] as Array).append(k)
+		if kinds.has(k) and (talk or not pending.has(k)):
+			if not pending.has(k):
+				pending.append(k)
 			Story._save(m)
 			return pick(&"lint", {"smell": k}, now, rng)
 	Story._save(m)

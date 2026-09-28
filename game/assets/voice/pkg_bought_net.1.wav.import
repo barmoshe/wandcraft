@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/pkg_bought_net.1.wav-2ddea9231b1b69ab8b7e63a5
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

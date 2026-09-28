@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/true_ending.2.wav-51b7f4be7f7589a916f075700ed
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

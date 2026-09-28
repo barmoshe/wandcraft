@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/bark.pm_gc.0.wav-08604feb089392d22225e35dd845
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

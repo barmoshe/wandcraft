@@ -85,7 +85,7 @@ func test_companions_follow_and_never_stand_in_walls() -> void:
 	world.build_room("hall", &"empty")
 	var p0 := world.player.position
 	for k in 180:
-		world.player.position = p0 + Vector2(sin(k / 30.0) * 60.0, cos(k / 45.0) * 30.0)
+		world.player.position = p0 + Vector2(sin(k / 30.0) * 60.0, -absf(cos(k / 45.0)) * 30.0)   # on the floor (below it is wall)
 		world.step(DT)
 		for c in world.companions:
 			ok(c.position.distance_to(world.player.position) <= Companion.LEASH + 0.5, "%s stays close" % c.kind)

@@ -165,6 +165,26 @@ func tick(dt: float) -> void:
 			pl.hurt(ed() + 2.0, q, "beam:Deadlock")
 
 
+## 0.22, the bot's dash: the burning beam (or a sweep about to light), where it will be
+## between t0 and t1 seconds from now. It spins with the pair, so it's sampled along the way.
+func bot_threat(q: Vector2, t0: float, t1: float) -> float:
+	var n := super.bot_threat(q, t0, t1)
+	if mutex_b == null or mutex_b.dead:
+		return n
+	var sweeping := move == &"sweep" and (sm == &"act" or (sm == &"tele" and st_t <= t1))
+	if beam != 2 and not sweeping:
+		return n
+	var spin := SWEEP_W * (1.3 if phase > 0 else 1.0) if sweeping else w
+	var c := q + Vector2(0, -6)
+	var pad := BEAM_W + world.player.r + 2.0
+	for k in 5:
+		var th := theta + spin * lerpf(t0, t1, k / 4.0)
+		var off := Vector2(cos(th) * rx, sin(th) * ry)
+		if c.distance_to(Geometry2D.get_closest_point_to_segment(c, center + off + CORE, center - off + CORE)) < pad:
+			return n + 1.0
+	return n
+
+
 func _idle(dt: float) -> void:
 	theta += w * dt
 	w = move_toward(w, ORBIT_W * (1.4 if phase > 0 else 1.0), dt)

@@ -66,6 +66,7 @@ class Opt:
 	var ignore := -1       # enemy uid this emission must not hit first
 	var sc := 0.0          # base scatter in degrees
 	var tries := 0         # Retry: recasts already spent on this spell
+	var echo := false      # 0.22: a Pair Programmer copy (not "released by a trigger")
 
 var world: World
 var bullets: BulletPool
@@ -95,6 +96,7 @@ class Summon:
 	var soak := 0
 	var reach := 130.0      # a turret's range (a Worker Thread reaches further)
 	var echo_slot := -1     # 0.21 Pair Programmer: the wand slot it copies
+	var echo_id: StringName = &""   # 0.22: ... and the spell that was there (an edit ends the pairing)
 	var echo := 0.5         # and at what share of the damage
 	var hit_cd := 0.0
 	var color := Color.WHITE
@@ -156,7 +158,8 @@ func wand_fire(w: WandState, origin: Vector2, ang: float) -> bool:
 		# sound v2: one "empty" per dry spell, not one per retry
 		if world.time - w.dry_at > 0.25:
 			Audio.sfx("mana_empty", origin)
-			world.bark(&"mana_empty", {"rule": String(w.def.rule)})
+			if not blood:   # 0.22: an Unsafe Staff that can't pay is out of HP, not mana
+				world.bark(&"mana_empty", {"rule": String(w.def.rule)})
 		w.dry_at = world.time
 		return false
 	var low := w.mana < w.max_mana() * 0.25
@@ -286,7 +289,7 @@ func emit_cast(c: CastNode, pos: Vector2, ang: float, opt: Opt, now := false) ->
 	var lv := c.level
 	var run := world.run
 	var dmg := (d.damage_at(lv) * m.dmg * opt.gm + opt.add) * opt.mul
-	if opt.depth > 0 and run and run.has_relic(&"recursion"):
+	if opt.depth > 0 and not opt.echo and run and run.has_relic(&"recursion"):
 		dmg *= 1.3
 	if m.jit > 0 and opt.src:
 		dmg *= 1.0 + minf(JIT_STEP[m.jit - 1] * opt.src.jit_n, JIT_CAP[m.jit - 1])
@@ -743,6 +746,8 @@ func _summon(c: CastNode, pos: Vector2, ang: float, dmg: float, crit: float, opt
 	s.soak = roundi(float(d.param("soak", c.level, 0)) * c.fuse)   # Squash makes a duck tougher
 	s.echo = float(d.param("echo", c.level, 0.5)) * c.fuse
 	s.echo_slot = c.echo
+	if s.src and c.echo >= 0 and c.echo < s.src.slots.size() and s.src.slots[c.echo] != null:
+		s.echo_id = StringName(s.src.slots[c.echo]["id"])
 	s.reach = float(d.param("range", c.level, 130.0))
 	var drop := pos + Vector2.from_angle(ang) * (14.0 if kind == &"daemon" or kind == &"pair" else 22.0)
 	s.pos = drop if not world.solid_at(drop) else pos
@@ -1336,7 +1341,7 @@ func end_bullet(b: Bullet, hit_e: Enemy) -> void:
 ## enemy gives its share of the spell's mana back to its wand (bombs and blasts excluded).
 func _refund_miss(b: Bullet) -> void:
 	var c := b.cast
-	if c == null or b.src == null or c.free_copy or c.p_blast or c.spell.behavior != &"bolt" or b.orbit or b.cost <= 0.0:
+	if c == null or b.src == null or c.free_copy or c.p_blast or c.spell.behavior != &"bolt" or b.orbit or b.cost <= 0.0 or b.src.def.rule == &"blood":
 		return
 	var share := b.cost / float(maxi(1, int(c.spell.param("count", c.level, 1))) * (1 + c.mods.multi))
 	b.src.mana = minf(b.src.max_mana(), b.src.mana + share)
@@ -1551,13 +1556,14 @@ func _pair_echo(w: WandState, out: Array[CastNode], ang: float, opt: Opt) -> voi
 		if s.kind != &"pair" or s.src != w or s.echo_slot < 0:
 			continue
 		for g in out:
-			if g.slot != s.echo_slot or g.free_copy:
+			if g.slot != s.echo_slot or g.free_copy or (s.echo_id != &"" and g.spell.id != s.echo_id):
 				continue
 			var o := Opt.new()
 			o.gm = opt.gm
 			o.mul = s.echo
 			o.src = w
 			o.depth = 1   # a copy: it refunds nothing and never retries
+			o.echo = true
 			o.sc = opt.sc
 			var from := s.pos + Vector2(0, -4)
 			var tgt := target_near(from, 200.0)

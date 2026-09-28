@@ -37,8 +37,12 @@ esac
 
 "$VENV/bin/python" "$HERE/gen_voices.py" "$LINES"
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
+# speech ships mono at 22.05 kHz (0.22 speed-and-size: the renders are 24 kHz; the top
+# 11-12 kHz carries nothing a phone speaker plays), QOA-compressed, never looped
 for f in "$GAME"/assets/voice/*.wav.import; do
-  sed_inplace -e "s/^edit\/loop_mode=.*/edit\/loop_mode=1/" -e "s/^compress\/mode=.*/compress\/mode=2/" "$f"
+  sed_inplace -e "s/^edit\/loop_mode=.*/edit\/loop_mode=1/" -e "s/^compress\/mode=.*/compress\/mode=2/" \
+    -e "s/^force\/mono=.*/force\/mono=true/" -e "s/^force\/max_rate=.*/force\/max_rate=true/" \
+    -e "s/^force\/max_rate_hz=.*/force\/max_rate_hz=22050/" "$f"
 done
 "$HERE/godot.sh" --headless --path "$GAME" --import >/dev/null 2>&1 || true
 

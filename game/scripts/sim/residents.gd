@@ -367,6 +367,20 @@ static func has_news(id: StringName, m: Dictionary = {}) -> bool:
 
 ## What they say when you walk up and talk: [{id, who, text}]. Tells the next beat (and
 ## applies its flag, log and gift), else the last run's reaction once a run, else idle.
+## 0.22: the story beat just told was walked away from before its last line: it waits for
+## the next talk (its flags and gifts stay; they are safe to give twice).
+static func rewind(id: StringName) -> void:
+	var m := _meta()
+	var rec: Dictionary = _rec(m)
+	var r: Dictionary = rec.get(String(id), {})
+	if int(r.get("beat", 0)) <= 0:
+		return
+	r["beat"] = int(r["beat"]) - 1
+	rec[String(id)] = r
+	m["residents"] = rec
+	_save(m)
+
+
 static func talk(id: StringName, rng: RandomNumberGenerator = null) -> Array:
 	var m := _meta()
 	if not rescued(id, m):

@@ -349,11 +349,44 @@ var skin: Dictionary = {}
 
 ## 0.21: the companions react (Barks): the event and its facts go to the bark rules, and
 ## whatever they pick is said (a bubble over the speaker). Quiet in bot runs and dailies.
+## 0.22 (Bar: quiet in fights): while a room is being fought only the moments that matter
+## right now speak (low HP, a boss phase, a rule wand's first cast); the rest is held and
+## the best of it is said when the room clears. Never in the Workshop, a daily or a lesson.
+const FIGHT_BARKS: Array[StringName] = [&"low_hp", &"boss_phase", &"rule_first"]
+const HELD_ORDER: Array[StringName] = [&"elite_kill", &"big_hit", &"status", &"mana_empty"]
+const BARK_GAP := 2.0   # an event asks at most this often (a burst of big hits asks once)
+var _held := {}         # event -> facts, this room
+var _bark_at := {}      # event -> world time it last asked
+
+
 func bark(event: StringName, facts: Dictionary = {}) -> void:
-	if bot or Game.quiet > 0 or run == null or run.tutorial:
+	if bot or Game.quiet > 0 or run == null or run.tutorial or run.sandbox or hub != null or run.daily != "":
 		return
+	if time - float(_bark_at.get(event, -99.0)) < BARK_GAP:
+		return
+	_bark_at[event] = time
+	if not cleared and not FIGHT_BARKS.has(event):
+		_held[event] = facts
+		return
+	_say_bark(event, facts)
+
+
+func _say_bark(event: StringName, facts: Dictionary) -> void:
 	for l in Barks.pick(event, facts, Time.get_ticks_msec() / 1000.0):
 		Events.say.emit(l[0], l[1], l[2])
+
+
+## The room is clear: the best moment held back during the fight gets its line, or a quick
+## clear gets one. At most one.
+func _flush_barks() -> void:
+	for ev in HELD_ORDER:
+		if _held.has(ev):
+			var f: Dictionary = _held[ev]
+			_held.clear()
+			_say_bark(ev, f)
+			return
+	if room_time < 12.0 and room_kind != &"start":
+		bark(&"room_fast", {"time": room_time})
 
 
 func _on_boss_phase(n: int, _line: String) -> void:
@@ -604,8 +637,11 @@ func build_room(tpl: String, kind: StringName) -> void:
 	wave_live.clear()
 	puzzle = &""
 	cage = {}
-	_squiggle = hub == null and run != null and not run.tutorial and Barks.lint_trick()
+	_squiggle = hub == null and run != null and not run.tutorial and run.daily == "" and Barks.lint_trick()
 	_squiggled = false
+	_held.clear()
+	_status_barked = false
+	_low_barked = false
 	puddles.clear()
 	if run:
 		for w in run.wands:
@@ -822,8 +858,7 @@ func _clear_room(reward := true) -> void:
 		return
 	run.stats["rooms"] += 1
 	_status_barked = false
-	if room_time < 12.0 and room_kind != &"start":
-		bark(&"room_fast", {"time": room_time})
+	_flush_barks()
 	if run.world == 2 and not run.stats.has("archive_said"):
 		run.stats["archive_said"] = true
 		Story.say("archive")   # the Page Archive's first cleared room
@@ -1006,18 +1041,26 @@ func _free_resident() -> void:
 	cage["open"] = true
 	cage["t"] = 0.0
 	var who: StringName = cage["who"]
-	Residents.rescue(who)
-	run.stats["residents"] = int(run.stats.get("residents", 0)) + 1
+	var fresh := not Residents.rescued(who)
+	if not bot:   # 0.22: a bench or demo run never writes the player's Workshop
+		Residents.rescue(who)
+	if fresh:     # a resumed room never counts the rescue twice
+		run.stats["residents"] = int(run.stats.get("residents", 0)) + 1
 	Audio.sfx("resident_free", cage["pos"])
 	# 0.21: the news sits under the cage, clear of the resident's first bubble over it
 	fx.text(cage["pos"] + Vector2(0, 22), "%s JOINS THE WORKSHOP" % String(Residents.DEFS[who]["name"]).to_upper(), Color("#72e06a"), 10)
-	cage["said"] = false   # they speak once they're out (step: after CAGE_REVEAL)
+	# 0.22: they speak as the cage opens (the reveal plays under the bubble), so leaving at
+	# once never skips them
+	cage["said"] = true
+	if fresh and Game.quiet == 0 and run.daily == "" and not bot:
+		for l in Residents.freed_lines(who):
+			Events.say.emit(l["who"], l["text"], l["id"])
 	_open_doors()
 
 
 ## 0.20: once Cache lives in the Workshop, each boss and mini-boss drops a Lost Page.
 func _lost_page() -> void:
-	if run.daily != "":
+	if run.daily != "" or bot:
 		return
 	var i := Residents.find_page()
 	if i < 0:
@@ -1150,6 +1193,8 @@ func step(dt: float) -> void:
 	time += dt
 	room_time += dt
 	run.stats["time"] += dt
+	if Game.assist > 0.0:
+		run.stats["assist"] = true   # 0.22: a daily played with Assist shows ASSIST
 	trauma = maxf(0.0, trauma - TRAUMA_DECAY * dt)
 	kick = kick.move_toward(Vector2.ZERO, dt * 24.0)
 	if dead_t > 0.0:
@@ -1350,7 +1395,7 @@ func enemy_shoot(pos: Vector2, ang: float, spd: float, dmg: float, accel := 0.0,
 	b.pos = pos
 	b.prev = pos
 	# Bug Reports 3+: race conditions, shots fly 15% faster
-	b.vel = Vector2.from_angle(ang) * spd * (1.15 if run and run.heat >= 3 else 1.0)
+	b.vel = Vector2.from_angle(ang) * spd * (1.15 if run and run.heat >= 3 else 1.0) * Game.assist_shot_mul()
 	b.life = 4.0
 	b.max_life = 4.0
 	b.dmg = dmg
@@ -1616,13 +1661,14 @@ func hitstop(t: float) -> void:
 	_last_stop = time
 
 
-## A brief full-screen flash (white, never red; at most ~3 per second), if the player allows it.
+## A brief full-screen flash (white, never red; at most ~3 per second), if the player allows it,
+## scaled by the Flash setting (100% / 50% / OFF).
 func flash(amount: float, c := Color.WHITE) -> void:
 	if not Game.flash_fx or time - _flash_t < 0.34:
 		return
 	_flash_t = time
 	if Game.quiet == 0:
-		Events.screen_flash.emit(c, amount)
+		Events.screen_flash.emit(c, amount * Game.flash_scale)
 
 
 func hazard_at(p: Vector2) -> bool:
@@ -1832,7 +1878,7 @@ func hurt_enemy(e: Enemy, dmg: float, from: Vector2, crit_chance: float, kb: flo
 	if not e.heavy and kb > 0.0:
 		e.knock += (e.position - from).normalized() * kb * (70.0 if crit else 38.0)
 	if crit and time - _last_stop > 0.25:
-		hitstop(0.045)
+		hitstop(0.06)   # 0.22: 45 ms read as a stutter, 60 ms as a hit
 		shake(0.15)
 	if not dot:
 		fx.number(e.position + Vector2(0, -e.r - 10), dmg, crit, e.uid)
@@ -2064,7 +2110,8 @@ func kill_enemy(e: Enemy) -> void:
 			w.on_kill()   # 0.20: a Recycle Bin refills on kills
 		if run.has_relic(&"garbage_collector"):
 			for w in run.wands:
-				w.mana = minf(w.max_mana(), w.mana + 3.0)
+				if w.def.rule != &"blood":   # 0.22: an Unsafe Staff has no mana to refill
+					w.mana = minf(w.max_mana(), w.mana + 3.0)
 		if run.has_relic(&"leech_loop"):
 			_kill_streak += 1
 			if _kill_streak % 6 == 0:
@@ -2222,8 +2269,14 @@ func shake(amount: float) -> void:
 # ------------------------------------------------------------------ bot (tests, demo)
 
 ## Keeps a fighting distance from the nearest enemy, collects rewards, walks through the
-## first door. Reward, shop and forge screens are answered by whoever listens to ui_request.
+## first door, and (0.22) dashes out of trouble. Reward, shop and forge screens are answered
+## by whoever listens to ui_request.
 func _bot_drive() -> void:
+	_bot_steer()
+	_bot_dash(player.position)
+
+
+func _bot_steer() -> void:
 	controls.fire = true
 	var p := player.position
 	if not orb.is_empty():
@@ -2280,32 +2333,105 @@ func _bot_dodge(p: Vector2, desire: Vector2) -> Vector2:
 			continue
 		if hazard_at(q) and spikes_up():
 			continue
-		var danger := 0.0
-		for b in ebullets.active:
-			if not b.alive:
-				continue
-			var rel := b.pos - q
-			if rel.length_squared() > 120.0 * 120.0:
-				continue
-			var tt := clampf(-rel.dot(b.vel) / maxf(1.0, b.vel.length_squared()), 0.0, 0.4)
-			var close := (rel + b.vel * tt).length()
-			if close < 12.0:
-				danger += (12.0 - close) * (1.4 - tt * 2.0)
-		if boss and not boss.dead:
-			danger += boss.bot_danger(q)
-		if puddle_slow(q) < 1.0:
-			danger += 0.15   # a slow patch, not a threat: worth crossing to reach the fight
-		for e in enemies:
-			if not e.dead and e.spawn_t <= 0.0 and e.dmg > 0.0:
-				# where the body will be in a moment, not just where it is
-				var dist := minf(e.position.distance_to(q), (e.position + e.vel * 0.25).distance_to(q))
-				if dist < e.r + 16.0:
-					danger += (e.r + 16.0 - dist) * 1.5
-		var score := danger * 4.0 - dir.dot(desire)
+		var score := _bot_danger_at(q) * 4.0 - dir.dot(desire)
 		if score < best_score:
 			best_score = score
 			best = dir
 	return best
+
+
+## How dangerous standing at q is for the walking dodge: shots about to pass close, a boss's
+## hazards, a slow puddle, bodies about to touch.
+func _bot_danger_at(q: Vector2) -> float:
+	var danger := 0.0
+	for b in ebullets.active:
+		if not b.alive:
+			continue
+		var rel := b.pos - q
+		if rel.length_squared() > 120.0 * 120.0:
+			continue
+		var tt := clampf(-rel.dot(b.vel) / maxf(1.0, b.vel.length_squared()), 0.0, 0.4)
+		var close := (rel + b.vel * tt).length()
+		if close < 12.0:
+			danger += (12.0 - close) * (1.4 - tt * 2.0)
+	if boss and not boss.dead:
+		danger += boss.bot_danger(q)
+	if puddle_slow(q) < 1.0:
+		danger += 0.15   # a slow patch, not a threat: worth crossing to reach the fight
+	for e in enemies:
+		if not e.dead and e.spawn_t <= 0.0 and e.dmg > 0.0:
+			# where the body will be in a moment, not just where it is
+			var dist := minf(e.position.distance_to(q), (e.position + e.vel * 0.25).distance_to(q))
+			if dist < e.r + 16.0:
+				danger += (e.r + 16.0 - dist) * 1.5
+	return danger
+
+
+## 0.22: the bot dashes like a player. When something will hit it within BOT_DASH_LOOK
+## seconds (a shot on course, a boss attack at the end of its telegraph, an enemy's slam,
+## burst, charge or snap about to land) and the dash is ready (Player.dash_cd, exactly the
+## player's cooldown), it dashes the way that lands clear, if one does. No randomness: the
+## same seed plays the same run.
+const BOT_DASH_LOOK := 0.3
+## An enemy telegraph this full (0..1) is about to release: 0.3-0.35 s left on a slam or burst.
+const BOT_DASH_FILL := 0.65
+
+
+func _bot_dash(p: Vector2) -> void:
+	if player.dash_cd > 0.0 or player.dash_t > 0.0 or player.dead:
+		return
+	var now := _bot_threat(p, 0.0, BOT_DASH_LOOK)
+	if now <= 0.0:
+		return
+	var reach := Player.DASH_SPEED * Player.DASH_T
+	var want := controls.move
+	var best := Vector2.ZERO
+	var best_score := INF
+	for k in 8:
+		var dir := Vector2.from_angle(k * TAU / 8.0)
+		var q := move_body(p, player.r, dir * reach)
+		if q.distance_to(p) < reach * 0.5:
+			continue   # a wall would eat the dash
+		if hazard_at(q):
+			continue
+		# the i-frames cover the dash itself; what counts is what's coming where it lands
+		var threat := _bot_threat(q, Player.DASH_T, Player.DASH_T + BOT_DASH_LOOK)
+		if threat >= now:
+			continue
+		var score := threat * 100.0 + _bot_danger_at(q) - dir.dot(want)
+		if score < best_score:
+			best_score = score
+			best = dir
+	if best != Vector2.ZERO:
+		controls.move = best
+		controls.dash = true
+
+
+## What will hit a body standing at q between t0 and t1 seconds from now, counted in hits.
+func _bot_threat(q: Vector2, t0: float, t1: float) -> float:
+	var n := 0.0
+	var c := q + (Player.HURT_TOP + Player.HURT_LOW) / 2.0   # the hurt capsule's middle
+	var half := (Player.HURT_LOW - Player.HURT_TOP).length() / 2.0
+	for b in ebullets.active:
+		if not b.alive or b.life <= t0:
+			continue
+		var rel := b.pos + b.vel * t0 - c
+		var reach := b.vel.length() * (t1 - t0) + 20.0
+		if rel.length_squared() > reach * reach:
+			continue
+		var span := minf(t1, b.life) - t0
+		var tt := clampf(-rel.dot(b.vel) / maxf(1.0, b.vel.length_squared()), 0.0, span)
+		if (rel + b.vel * tt).length() < b.r + player.r + half + 1.0:
+			n += 1.0
+	if boss and not boss.dead:
+		n += boss.bot_threat(q, t0, t1)
+	for e in enemies:
+		if e.dead or e.spawn_t > 0.0 or e is Boss or e.dmg <= 0.0:
+			continue
+		var tl := e.telegraph()
+		if not tl.is_empty() and float(tl.get("fill", 0.0)) >= BOT_DASH_FILL and Boss.tele_hits(tl, q, player.r + 2.0):
+			n += 1.0
+	return n
 
 
 ## Direction along the shortest walkable path from p to goal (breadth-first search over

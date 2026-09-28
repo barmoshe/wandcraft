@@ -23,6 +23,18 @@ static var enabled := true
 ## player's files and every shot starts from a first-time player's state.
 static var in_memory := false
 static var _mem := {}
+## 0.22: the meta record, parsed once and kept (each caller gets its own copy). Before this,
+## a big hit, an elite kill or a frame of the Workshop read and parsed meta.json from disk.
+static var _meta_cache := {}
+static var _meta_ok := false
+static var _meta_mode := false   # the in_memory flag the kept record belongs to
+static var meta_reads := 0     # disk reads of meta.json (tests check fights and the Workshop do none)
+
+
+## Drops the kept meta record (the next load reads the file).
+static func forget_meta() -> void:
+	_meta_ok = false
+	_meta_cache = {}
 
 
 ## Wipes progress saved under an older epoch. Returns true when it did.
@@ -38,6 +50,7 @@ static func reset_if_stale() -> bool:
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
 			wiped = true
 	_write(EPOCH_PATH, {"epoch": EPOCH})
+	forget_meta()
 	return wiped
 
 
@@ -75,17 +88,32 @@ static func save_settings(d: Dictionary) -> void:
 
 ## Lifetime numbers shown on the title screen.
 static func load_meta() -> Dictionary:
-	var d: Variant = _read(META_PATH)
+	var d: Variant
+	if _meta_ok and _meta_mode == in_memory:
+		d = _meta_cache
+	else:
+		meta_reads += 1
+		d = _read(META_PATH)
+	# the defaults go under whatever was read or kept (a write may have been a partial record)
 	var m := {"runs": 0, "wins": 0, "best_step": 0, "kills": 0, "hints": [], "hero": "apprentice", "heat": 0}
 	if d is Dictionary:
 		for k in d:
-			m[k] = d[k]
-	return Meta.migrate(m)
+			m[k] = (d[k] as Variant).duplicate(true) if (d[k] is Dictionary or d[k] is Array) else d[k]
+	if _meta_ok and _meta_mode == in_memory:
+		return m
+	m = Meta.migrate(m)
+	_meta_cache = m.duplicate(true)
+	_meta_ok = true
+	_meta_mode = in_memory
+	return m
 
 
 static func save_meta(m: Dictionary) -> void:
 	if enabled:
 		_write(META_PATH, m)
+		_meta_cache = m.duplicate(true)
+		_meta_ok = true
+		_meta_mode = in_memory
 
 
 ## How many runs the Commit Wall keeps.
@@ -126,7 +154,8 @@ static func record_run(run: RunState, how := "", by := "") -> void:
 	if run.daily != "":
 		# the best daily result for that date: furthest room, then a win, then the faster time
 		var best: Dictionary = m.get("daily", {})
-		var mine := {"date": run.daily, "step": run.step, "won": run.won, "time": roundi(float(run.stats["time"]))}
+		var mine := {"date": run.daily, "step": run.step, "won": run.won, "time": roundi(float(run.stats["time"])),
+			"assist": bool(run.stats.get("assist", false))}   # 0.22: played with Assist on
 		var better: bool = best.get("date", "") != run.daily or run.step > int(best.get("step", 0)) \
 			or (run.step == int(best.get("step", 0)) and run.won and int(mine["time"]) < int(best.get("time", 99999)))
 		if better:
@@ -141,6 +170,11 @@ static func record_run(run: RunState, how := "", by := "") -> void:
 
 
 static func _write(path: String, d: Dictionary) -> void:
+	if path == META_PATH:
+		# every write of meta.json (save_meta, record_run, ...) keeps the kept copy in step
+		_meta_cache = d.duplicate(true)
+		_meta_ok = true
+		_meta_mode = in_memory
 	if in_memory:
 		_mem[path] = d.duplicate(true)
 		return

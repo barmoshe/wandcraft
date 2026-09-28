@@ -247,6 +247,43 @@ func bot_goal() -> Vector2:
 	return Vector2.INF
 
 
+## 0.22, the bench bot's dash: how many of this boss's attacks land on a body at q between t0
+## and t1 seconds from now. The base reads the telegraph decals, once the wind-up has t1 or
+## less to go (a player dashes at the end of a telegraph, not at its start); bosses with live
+## hazards (beams, burning rows, the rewrite) add them.
+func bot_threat(q: Vector2, _t0: float, t1: float) -> float:
+	if sm != &"tele" or st_t > t1:
+		return 0.0
+	var n := 0.0
+	for tl in tele:
+		if tele_hits(tl, q, world.player.r + 2.0):
+			n += 1.0
+	return n
+
+
+## Whether a telegraph decal ({"k": line|circle|rect|track, ...}, as Boss.tele and
+## Enemy.telegraph() describe them) covers q, with pad px to spare. A cone is a shooter's
+## aim, not a landing zone (its shots are judged as shots), so it never covers anything.
+static func tele_hits(tl: Dictionary, q: Vector2, pad: float) -> bool:
+	match String(tl.get("k", "")):
+		"line":
+			var p: Vector2 = tl["p"]
+			var e := p + Vector2.from_angle(float(tl["a"])) * float(tl["len"])
+			return q.distance_to(Geometry2D.get_closest_point_to_segment(q, p, e)) < float(tl["w"]) / 2.0 + pad
+		"circle":
+			return q.distance_to(tl["p"]) < float(tl["r"]) + pad
+		"rect":
+			return (tl["rect"] as Rect2).grow(pad).has_point(q)
+		"track":
+			# the Loop's lap: an oval band the body runs along
+			var d: Vector2 = q - (tl["p"] as Vector2)
+			var rx := maxf(1.0, float(tl["r"]))
+			var ry := maxf(1.0, float(tl["ry"]))
+			var k := sqrt(pow(d.x / rx, 2) + pow(d.y / ry, 2))
+			return absf(k - 1.0) * (rx + ry) / 2.0 < 8.0 + pad
+	return false
+
+
 # ---- emitters
 func ed() -> float:
 	# research/difficulty.md: 6 before; World 2's bosses hit 30% harder, World 3's 45%

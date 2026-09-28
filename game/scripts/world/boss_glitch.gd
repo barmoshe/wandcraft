@@ -242,6 +242,31 @@ func bot_danger(q: Vector2) -> float:
 	return d
 
 
+## 0.22, the bot's dash: a burning row, the unwound beam where it will sweep between t0 and
+## t1 seconds from now, and the rewrite as it closes in (the diff's wind-up is a telegraph
+## decal, which Boss.bot_threat reads).
+func bot_threat(q: Vector2, t0: float, t1: float) -> float:
+	var n := super.bot_threat(q, t0, t1)
+	if burning:
+		for row in rows:
+			if not row["add"] and absf(q.y - float(row["y"])) < ROW_H / 2.0 + 4.0:
+				n += 1.0
+				break
+	var warming := move == &"unwind" and sm == &"tele" and st_t <= t1
+	if beam_on == 2 or warming:
+		var spin := (1.1 if phase < 2 else 1.4) if beam_on == 2 else 0.0
+		var c := q + Vector2(0, -6)
+		var a := position + Vector2(0, -12)
+		for k in 5:
+			var e := a + Vector2.from_angle(beam_a + spin * lerpf(t0, t1, k / 4.0)) * BEAM_LEN
+			if c.distance_to(Geometry2D.get_closest_point_to_segment(c, a, e)) < BEAM_W + world.player.r + 2.0:
+				n += 1.0
+				break
+	if phase >= 2 and sm != &"intro" and not live_rect().grow(-(REWRITE_SPD * t1 + 2.0)).has_point(q):
+		n += 1.0
+	return n
+
+
 func bot_goal() -> Vector2:
 	return glyph
 

@@ -150,6 +150,8 @@ func tick(dt: float) -> void:
 	inv = maxf(0.0, inv - dt)
 	cast_t = maxf(0.0, cast_t - dt)
 	swap_cd = maxf(0.0, swap_cd - dt)
+	for i in wands.size():
+		wands[i].bench = 0.0 if i == cur else wands[i].bench + dt   # 0.22: time on the belt
 	if undo_t > 0.0:
 		_undo_tick(dt)
 	if controls.select_wand >= 0:
@@ -292,10 +294,10 @@ func lead(e: Enemy) -> Vector2:
 ## Snaps the aim onto an enemy inside the assist cone: one you can see (a shot snapped onto an
 ## enemy behind a pillar only hits the pillar), the one nearest the aim line, and led from
 ## the hand. A mouse is precise already, so its cone is narrow (playtest: the wide stick
-## cone pulled mouse shots off the Loop into the walls).
+## cone pulled mouse shots off the Loop into the walls). Assist mode (0.22) widens it.
 func _assist(ang: float) -> float:
 	var hand := origin()
-	var cone := ASSIST_CONE_MOUSE if controls.precise else ASSIST_CONE
+	var cone := (ASSIST_CONE_MOUSE if controls.precise else ASSIST_CONE) * Game.assist_cone_mul()
 	var best := ang
 	var bd := cone
 	for e in world.enemies:
@@ -328,7 +330,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 		Audio.sfx("caught")
 		world.fx.ring(position + Vector2(0, -6), 2.0, 16.0, 0.3, Color("#9ab0ff"))
 		return
-	amount *= Relics.damage_taken_mul(run) * (1.0 - Game.gentle_resist())
+	amount *= Relics.damage_taken_mul(run) * (1.0 - Game.assist_resist())
 	if run.has_relic(&"cornered") and world.cornered():
 		amount *= 0.7
 	if shield > 0.0:

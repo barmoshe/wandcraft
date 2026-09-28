@@ -284,8 +284,13 @@ static func grant(run: RunState, item: Dictionary) -> bool:
 	if item.get("locked", false):
 		return false
 	if item.has("hp_cost"):
-		run.max_hp = maxf(20.0, roundf(run.max_hp * (1.0 - float(item["hp_cost"]))))
-		run.hp = minf(run.hp, run.max_hp)
+		if run.has_relic(&"version_pin"):
+			# 0.22: Fixed Vitals locks max HP, so the Altar takes the same share of HP instead
+			# (it used to make every Altar pick free)
+			run.hp = maxf(1.0, roundf(run.hp - run.max_hp * float(item["hp_cost"])))
+		else:
+			run.max_hp = maxf(20.0, roundf(run.max_hp * (1.0 - float(item["hp_cost"]))))
+			run.hp = minf(run.hp, run.max_hp)
 	match item["t"]:
 		&"spell":
 			return run.add_spell(item["id"])

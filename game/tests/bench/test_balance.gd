@@ -47,9 +47,13 @@ func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary
 	var t := 0.0
 	var boss_t0 := -1.0
 	var last_kind: StringName = &""
+	var dashes := 0
 	while t < LIMIT and not state["victory"] and not state["defeat"]:
+		var was := world.player.dash_t
 		world.step(DT)
 		t += DT
+		if was <= 0.0 and world.player.dash_t > 0.0:
+			dashes += 1   # 0.22: the bot dashes
 		if world.room_kind != last_kind:
 			last_kind = world.room_kind
 		if world.boss and not world.boss.dead and boss_t0 < 0.0:
@@ -63,6 +67,7 @@ func _play(seed_value: int, edits := true, start: RunState = null) -> Dictionary
 			boss_t0 = -1.0
 	Events.player_hurt.disconnect(on_hurt)
 	res["won"] = state["victory"]
+	res["dashes"] = dashes
 	res["w1"] = world.run.world >= 1 or state["victory"]
 	res["w2"] = world.run.world >= 2 or state["victory"]
 	res["world"] = world.run.world + 1
@@ -108,7 +113,7 @@ func _bench(edits: bool) -> float:
 	var room_t := 0.0
 	var rooms := 0
 	print("\n    %s bot" % ("EDITING" if edits else "NEVER-EDITING"))
-	print("    seed  result   w-step  time   hp_lost  rooms  mini   boss  boss2")
+	print("    seed  result   w-step  time   hp_lost  rooms  dash  mini   boss  boss2")
 	for s in (ONLY if not ONLY.is_empty() else SEEDS):
 		var r := _play(s, edits)
 		if r["w1"]:
@@ -129,7 +134,7 @@ func _bench(edits: bool) -> float:
 			bosses.append(r["boss"])
 		room_t += r["time"]
 		rooms += maxi(1, r["rooms"])
-		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5d  %5.0f  %5.0f  %5.0f   %s" % [s, "WIN" if r["won"] else ("W1" if r["w1"] else "died"), r["world"], r["step"], r["time"], r["hp_lost"], r["rooms"], r["mini"], r["boss"], r["boss2"], _top_sources(r["by"])])
+		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5d  %4d  %5.0f  %5.0f  %5.0f   %s" % [s, "WIN" if r["won"] else ("W1" if r["w1"] else "died"), r["world"], r["step"], r["time"], r["hp_lost"], r["rooms"], r["dashes"], r["mini"], r["boss"], r["boss2"], _top_sources(r["by"])])
 	var rate := float(wins) / SEEDS.size()
 	print("    World 1 cleared %.0f%%, World 2 %.0f%%, full run won %.0f%%, mini-boss avg %.0fs, Loop avg %.0fs, Deadlock avg %.0fs, the Glitch avg %.0fs, %.0fs a room" % [rate * 100.0, 100.0 * w2 / SEEDS.size(), 100.0 * full / SEEDS.size(), _avg(minis), _avg(bosses), _avg(bosses2), _avg(bosses3), room_t / maxi(1, rooms)])
 	SaveGame.enabled = true
@@ -157,7 +162,7 @@ func test_kernel_balance() -> void:
 	var races: Array = []
 	var glitches: Array = []
 	print("\n    WORLD 3 (from the Kernel's start, mid-game kit)")
-	print("    seed  result   w-step  time   hp_lost  race  glitch   top damage")
+	print("    seed  result   w-step  time   hp_lost  dash  race  glitch   top damage")
 	for s in (ONLY if not ONLY.is_empty() else SEEDS):
 		var r := RunState.create(s)
 		r.tutorial = false
@@ -178,7 +183,7 @@ func test_kernel_balance() -> void:
 			races.append(res["race"])
 		if res["boss3"] >= 0.0:
 			glitches.append(res["boss3"])
-		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %5.0f  %5.0f   %s" % [s, "CLEAR" if res["won"] else "died", res["world"], res["step"], res["time"], res["hp_lost"], res["race"], res["boss3"], _top_sources(res["by"])])
+		print("    %4d  %-7s  %d-%-4d  %4.0fs  %7.0f  %4d  %5.0f  %5.0f   %s" % [s, "CLEAR" if res["won"] else "died", res["world"], res["step"], res["time"], res["hp_lost"], res["dashes"], res["race"], res["boss3"], _top_sources(res["by"])])
 	print("    World 3 cleared %.0f%%, Data Race avg %.0fs, the Glitch avg %.0fs" % [100.0 * clears / SEEDS.size(), _avg(races), _avg(glitches)])
 	SaveGame.enabled = true
 	if not glitches.is_empty():

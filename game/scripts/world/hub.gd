@@ -73,6 +73,21 @@ var near_arg := -1           # which pedestal, for the Hero Hall
 ## 0.21: the resident you just talked to (USE again opens their service); cleared, and the
 ## rest of their talk dropped, when you walk away.
 var talked: StringName = &""
+var talk_last := ""     # the last line id of the talk just started (main.gd)
+var talk_arc := false   # ... and whether it was a story beat
+## 0.22: what the Workshop draws from the save (Bits, the board, trophies, locked heroes),
+## read twice a second instead of from meta.json every frame.
+var snap := {}
+var _snap_t := 0.0
+
+
+func refresh_snap() -> void:
+	var locked := {}
+	for id in HEROES:
+		locked[id] = Meta.is_locked(id)
+	snap = {"bits": Meta.bits(), "done": Meta.bounties_done(), "board": Meta.board().size(),
+		"waiting": Meta.unclaimed().size(), "locked": locked}
+	_snap_t = 0.5
 var dummy: Enemy
 var dps := 0.0
 var _armed := true           # the portal re-arms once you step away
@@ -234,6 +249,9 @@ static func speaking() -> String:
 
 
 func update(dt: float) -> void:
+	_snap_t -= dt
+	if _snap_t <= 0.0 or snap.is_empty():
+		refresh_snap()
 	var p := world.player.position
 	# the station in reach: the nearest marker within USE_R
 	near = ""
@@ -248,6 +266,9 @@ func update(dt: float) -> void:
 				near = id
 				near_arg = k
 	if talked != &"" and anchors.has(String(talked)) and p.distance_to(anchors[String(talked)][0]) > USE_R + 10.0:
+		if talk_arc and Dialogue.last_started != talk_last:
+			Residents.rewind(talked)   # left before the beat's last line: it keeps for next time
+		talk_arc = false
 		Dialogue.drop_prefix("res.%s." % talked)
 		talked = &""
 	# the portal is the one walk-in (the doors in a run work the same way)
@@ -306,13 +327,13 @@ func draw_deco(ci: CanvasItem) -> void:
 			continue
 		var fr: Array = Hero.frames(id)
 		var tex: Texture2D = fr[int(t * 2.0 + k) % 2]
-		var locked := Meta.is_locked(id)
+		var locked: bool = snap.get("locked", {}).get(id, false)
 		ci.draw_texture(tex, (p + Vector2(-tex.get_width() / 2.0, 5 - tex.get_height())).round(), Color(0.06, 0.04, 0.12, 0.92) if locked else Color.WHITE)
 	# the portal's frame in the top wall (its swirl is drawn on top)
 	var pp: Vector2 = anchors.get("portal", [Vector2.ZERO])[0]
 	ci.draw_texture(Props.door(Color("#ffe066"), true), Vector2(pp.x - TS - 5, -9))
 	# trophies either side of the portal
-	var done := Meta.bounties_done()
+	var done: Array = snap.get("done", [])
 	for k in TROPHIES.size():
 		var tr: Dictionary = TROPHIES[k]
 		var tp := pp + Vector2(-34 - k * 14 if k < 2 else 30, 6)
@@ -335,11 +356,11 @@ func draw_deco(ci: CanvasItem) -> void:
 	var qp: Vector2 = anchors.get("bounty", [Vector2.ZERO])[0]
 	ci.draw_rect(Rect2(qp + Vector2(-9, -20), Vector2(18, 22)), Color("#6b4a2e"))
 	ci.draw_rect(Rect2(qp + Vector2(-8, -19), Vector2(16, 20)), Color("#b08a5a"))
-	var board := Meta.board()
-	var waiting := Meta.unclaimed().size()
+	var board: int = snap.get("board", 0)
+	var waiting: int = snap.get("waiting", 0)
 	for k in 3:
 		var tk := Rect2(qp + Vector2(-6 + (k % 2) * 7, -17 + k * 6), Vector2(6, 5))
-		ci.draw_rect(tk, Color("#f4eeff") if k < board.size() else Color("#8a6a44"))
+		ci.draw_rect(tk, Color("#f4eeff") if k < board else Color("#8a6a44"))
 	if waiting > 0:
 		ci.draw_circle(qp + Vector2(8, -20), 4.0 + sin(t * 5.0), Color("#72e06a"))
 	# the Compendium: a bookshelf of coloured spines

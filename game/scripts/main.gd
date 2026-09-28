@@ -39,6 +39,8 @@ func _ready() -> void:
 	if _args.has("shot"):
 		SaveGame.in_memory = true   # screenshots never touch the player's save
 	UiAudit.on = _args.has("uiaudit")   # 0.20: record text and panel rects for tools/uiaudit.sh
+	if _args.has("textbig"):
+		Game.text_big = true   # 0.22: shots and the audit at the large text setting
 	SaveGame.reset_if_stale()       # 0.18.1: everyone starts over (SaveGame.EPOCH)
 	if _args.has("nohints"):
 		Hints.mark_all_seen()       # store screenshots: no first-run tips over the scene
@@ -181,15 +183,17 @@ func _hub_greet() -> void:
 	# 0.21: coming home after a run, the Duck's post-mortem (Barks) replaces the plain
 	# greeting; what the run's bubbles missed comes up a little later
 	Barks.reset()
-	var pm := Barks.hub_return(_now())
-	if not pm.is_empty() and ev in ["hub_death", "hub_boss", "hub_win", "hub_quit", "hub_back", ""]:
-		get_tree().create_timer(0.8).timeout.connect(func() -> void:
-			if _hub and screen == null:
-				_say_lines(pm))
-	elif ev != "":
-		get_tree().create_timer(0.8).timeout.connect(func() -> void:
-			if _hub and screen == null:
-				Story.say(ev))
+	# 0.22: the post-mortem is only taken (and spent) when it is actually said; a first-time,
+	# unlock or epilogue greeting keeps it for the next visit
+	var replaceable: bool = ev in ["hub_death", "hub_boss", "hub_win", "hub_quit", "hub_back", ""]
+	get_tree().create_timer(0.8).timeout.connect(func() -> void:
+		if not _hub or screen != null:
+			return
+		var pm: Array = Barks.hub_return(_now()) if replaceable else []
+		if not pm.is_empty():
+			_say_lines(pm)
+		elif ev != "":
+			Story.say(ev))
 	get_tree().create_timer(9.0).timeout.connect(func() -> void:
 		if _hub and screen == null:
 			_say_lines(Barks.carry_over(_now())))
@@ -263,8 +267,11 @@ func _hub_use(id := "", arg := -1) -> void:
 				# 0.21: they talk in the Workshop, in bubbles over their heads; USE again
 				# (or the menu) opens their service
 				Dialogue.clear()
-				for l in Residents.talk(rid):
+				var said := Residents.talk(rid)
+				for l in said:
 					Dialogue.enqueue(l["who"], l["text"], l["id"])
+				world.hub.talk_last = String(said[-1]["id"]) if not said.is_empty() else ""
+				world.hub.talk_arc = not said.is_empty() and String(said[0]["id"]).contains(".arc.")
 				world.hub.news[rid] = Residents.has_news(rid)
 				return
 			world.hub.talked = rid
@@ -627,6 +634,8 @@ func _open(s: Screen, done: Callable) -> void:
 		Audio.snapshot(&"menu")
 	s.finished.connect(func(res: Dictionary) -> void:
 		Audio.ui("ui_close")
+		if world.hub:
+			world.hub.refresh_snap()   # a purchase or a claim shows straight away
 		if screen == s:
 			screen = null
 		s.queue_free()
@@ -922,7 +931,8 @@ func _follow_camera(snap := false, dt := 1.0 / 60.0) -> void:
 	var lo := Vector2(-PAD_SIDE, -PAD_TOP)
 	var hi := room + Vector2(PAD_SIDE, PAD_BOTTOM)
 	var c := Vector2.ZERO
-	var want_lead := (world.player.vel / Player.SPEED).limit_length(1.0) * CAM_LEAD
+	# 0.22: reduce motion drops the lead (Game.cam_lead)
+	var want_lead := (world.player.vel / Player.SPEED).limit_length(1.0) * Game.cam_lead(CAM_LEAD)
 	_cam_lead = _cam_lead.lerp(want_lead, 1.0 - pow(0.95, dt * 60.0))
 	var lead := _cam_lead
 	for ax in 2:

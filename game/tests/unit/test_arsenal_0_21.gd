@@ -374,6 +374,14 @@ func test_hot_reload_ends_its_recharge_when_switched_to() -> void:
 	_again(hot)
 	ok(hot.rech > 1.0 and hot.cd > 1.0, "it is recharging (%.2f s)" % hot.rech)
 	world.run.cur = 0
+	# 0.22: a flick back and forth does nothing; it must rest on the belt first
+	world.step(DT)
+	world.player.controls.select_wand = 1
+	world.step(DT)
+	ok(hot.rech > 0.5, "straight back from the belt: still recharging")
+	world.run.cur = 0
+	hot.rech = 3.0
+	hot.bench = WandState.HOT_BENCH
 	world.player.controls.select_wand = 1
 	world.step(DT)
 	eq(world.run.cur, 1, "switched to it")

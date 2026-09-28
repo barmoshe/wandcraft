@@ -328,6 +328,18 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.22.0, Polish** (ADR 0033, `research/polish-0.22.md`). Bar asked to research, design, fix and improve the game.
+  - **Fixes:** the audit's 16 fixes (no disk reads in fights, exploits closed, story lines kept).
+  - **Quiet fights:** the companions hold their lines until the room clears.
+  - **Clarity:** NEW flags, "Fits your wand", and tag chips that explain themselves.
+  - **Accessibility:** shake and flash levels, reduce motion, large text, and Assist.
+  - **Size:** a smaller download.
+  - **Bench bot:** it dodges.
+  - **Progress** is kept from 0.21.
+  - **Play it:**
+    - Is the first run clear?
+    - Is a fight calm enough now?
+    - Are Assist and large text easy to find (pause, and the Workshop's Terminal)?
 - **0.21.0, Speak Up** (ADRs 0030 to 0032). Bar, play it on a phone:
   - Are the bubbles readable mid-fight, and do the Duck and LINT ever get in the way?
   - Is one message at a time calm enough, or is anything still too busy?

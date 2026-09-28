@@ -24,9 +24,13 @@ var kind: StringName = &"spell"
 var offer: Array = []
 var sel := -1
 var _layouts: Dictionary = {}   # card index -> the wand laid out with it (spells), cached
+var _new: Array = []            # 0.22: ids offered for the first time ever ("NEW")
+var _best := -2                 # 0.22: the pick that fits the wand best ("Fits your wand"); -2 not yet known
 
 
 func _paint() -> void:
+	if _best == -2:
+		_best = best_fit()
 	dim()
 	var v := view()
 	var sr := safe()
@@ -85,6 +89,13 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	draw_rect(Rect2(hb.position, Vector2(hb.size.x, 1)), rc.darkened(0.2))
 	var band: String = "STARTER" if item["t"] == &"loadout" else Style.RARITY_NAMES[clampi(rar, 0, 3)].to_upper()
 	text(hb.position + Vector2(4, 9), band, rc.lightened(0.2))
+	if _new.has(item["id"]):
+		# first time you've seen it: a gold NEW flag hanging over the band's top edge
+		var nw := Game.font("bold").get_string_size("NEW", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 6
+		var nr := Rect2(r.get_center().x - nw / 2.0, r.position.y - 6, nw, 12)
+		draw_rect(nr, Style.c("night:1"))
+		draw_rect(nr, Style.c("gold:3"), false, 1.0)
+		text(nr.position + Vector2(3, 9), "NEW", Style.c("gold:4"), 8, "bold")
 	text_right(hb.end.x - 4, hb.position.y + 9, kind_label(item).to_upper(), Style.c("bone:3"))
 	var lv := Rewards.level_after(run, item["id"]) if item["t"] == &"spell" else 1
 	var desc := Rewards.item_desc(item, lv)
@@ -97,6 +108,8 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 	var gain := _gain(item, lv)
 	if gain >= 1.0:
 		en.push_front("+%d damage/s" % roundi(gain))
+	if _best >= 0 and offer[_best] == item:
+		en.push_front("Fits your wand")
 	var foot := _footer(item, lv)
 	# the body gets whatever the header, icon and chips leave; a long text shrinks the icon
 	var chip_h := (12.0 if not tags.is_empty() else 0.0) + (14.0 if not en.is_empty() else 0.0)
@@ -145,6 +158,25 @@ func _card(r: Rect2, item: Dictionary, selected: bool) -> void:
 ## Damage per second this pick adds to the wand in hand, measured on the firing range
 ## (0 while it is measured, or when it adds nothing there). Spells: as an editing player
 ## would slot it. Relics: the same wand with the relic.
+## The offer that fits the wand best: the one that switches the most on (Rewards.enables),
+## then the most damage gained. -1 when none helps, or for a hero pick.
+func best_fit() -> int:
+	if offer.size() < 2 or run == null:
+		return -1
+	var best := -1
+	var top := 0.0
+	for i in offer.size():
+		var it: Dictionary = offer[i]
+		if it["t"] == &"loadout" or it.get("locked", false):
+			continue
+		var lv := Rewards.level_after(run, it["id"]) if it["t"] == &"spell" else 1
+		var score := Rewards.enables(run, it).size() * 10.0 + _gain(it, lv) + (5.0 if lv > 1 else 0.0)
+		if score > top:
+			top = score
+			best = i
+	return best
+
+
 func _gain(item: Dictionary, lv: int) -> float:
 	if run == null or run.wands.is_empty() or not (item["t"] == &"spell" or item["t"] == &"relic"):
 		return 0.0
@@ -213,6 +245,10 @@ func _fit_line(r: Rect2, long: String, short: String, c := Style.c("cyan:4")) ->
 
 ## Preselect the one card you can take when there is only one (the start, lesson prizes).
 func _opened() -> void:
+	# 0.22 (research/polish-0.22.md: Balatro's NEW, Magicraft's beginner advice as a hint)
+	_new = offer.filter(func(o: Dictionary) -> bool: return o["t"] != &"loadout" and Meta.is_new(o["id"])).map(func(o: Dictionary) -> StringName: return o["id"])
+	Meta.mark_seen(offer.map(func(o: Dictionary) -> StringName: return o["id"]))
+	_best = -2   # worked out on the first paint (the damage probe needs the tree)
 	var free := []
 	for i in offer.size():
 		if not offer[i].get("locked", false):

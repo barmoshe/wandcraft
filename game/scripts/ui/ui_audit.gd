@@ -4,7 +4,9 @@ extends RefCounted
 ## rect of every string, panel and button they draw; report() lists the collisions:
 ## - text on text (two strings drawn over each other),
 ## - text on another element's box (a label under the speech box, a tip over a button),
-## - text that leaves the screen.
+## - text that leaves the screen,
+## - (0.22) a tap area under MIN_TAP (32 x 32 base px): a Screen's buttons and areas, the
+##   HUD's buttons. A thumb misses anything smaller.
 ## Each canvas item (the HUD, each Screen) is its own layer: a menu drawn over the HUD dims
 ## it, so only collisions inside one layer count. `owner` names the element being drawn
 ## (the HUD sets it per element, a button sets it for its label), and an element's own
@@ -16,6 +18,31 @@ static var owner := ""
 static var layers := {}
 
 const SLACK := 1.0   # the 1-2 px outline may touch a neighbour; a real overlap is bigger
+const MIN_TAP := 32.0
+
+
+## Tap areas under MIN_TAP, one line each. `taps`: [[Rect2 hit area, id]].
+static func small_taps(name: String, taps: Array) -> PackedStringArray:
+	var out := PackedStringArray()
+	for t in taps:
+		var r: Rect2 = t[0]
+		if r.size.x < MIN_TAP - 0.01 or r.size.y < MIN_TAP - 0.01:
+			out.append("%s: small tap: [%s] %dx%d" % [name, t[1], roundi(r.size.x), roundi(r.size.y)])
+	return out
+
+
+## The tap areas a canvas item registered in its last draw: a Screen's `_buttons`
+## ([Rect2, id]) or the HUD's `buttons` (id -> Rect2).
+static func taps_of(item: CanvasItem) -> Array:
+	var out: Array = []
+	var list: Variant = item.get("_buttons")
+	if list is Array:
+		out.append_array(list)
+	var dict: Variant = item.get("buttons")
+	if dict is Dictionary:
+		for id in dict:
+			out.append([dict[id], id])
+	return out
 
 
 ## Starts a fresh record for a canvas item (called at the top of its _draw).
@@ -90,6 +117,8 @@ static func report(bounds: Rect2) -> PackedStringArray:
 		var texts: Array = l["texts"]
 		var boxes: Array = l["boxes"]
 		var name: String = l["name"]
+		if not l.get("world", false):
+			out.append_array(small_taps(name, taps_of(item)))
 		for i in texts.size():
 			var a: Rect2 = texts[i][0]
 			if not l.get("world", false) and not bounds.grow(1.0).encloses(a):

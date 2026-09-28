@@ -39,7 +39,8 @@ func _paint() -> void:
 		var dl: Dictionary = meta.get("daily", {})
 		var d := Time.get_date_dict_from_system()
 		if dl.get("date", "") == "%04d-%02d-%02d" % [d["year"], d["month"], d["day"]]:
-			text_center(cx, by + 34, "Today's best: %s" % ("a win" if dl.get("won", false) else "room %d" % int(dl.get("step", 0))), MUTED)
+			text_center(cx, by + 34, "Today's best: %s%s" % ["a win" if dl.get("won", false) else "room %d" % int(dl.get("step", 0)),
+				"  ASSIST" if dl.get("assist", false) else ""], MUTED)
 		by += 40
 	var max_heat := mini(5, int(meta.get("wins", 0)))
 	if max_heat > 0:

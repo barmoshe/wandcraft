@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/res.grep.freed.1.wav-2055b2b3bb772a1695123817
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

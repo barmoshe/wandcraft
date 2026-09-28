@@ -1,5 +1,5 @@
 extends "res://tests/unit/test_helpers.gd"
-## Design v3 V6: runs that differ (shop decisions, reachable compiles, gentle mode).
+## Design v3 V6: runs that differ (shop decisions, reachable compiles, assist mode).
 
 
 func setup(_t: SceneTree) -> void:
@@ -8,7 +8,7 @@ func setup(_t: SceneTree) -> void:
 
 func teardown() -> void:
 	SaveGame.in_memory = false
-	Game.gentle = false
+	Game.assist = 0.0
 
 
 func test_the_shop_rerolls_for_a_rising_price_and_has_a_sale() -> void:
@@ -35,13 +35,12 @@ func test_a_level_two_base_compiles() -> void:
 	eq(r.wand().slots[2]["id"], &"storm_protocol", "into Storm Protocol")
 
 
-func test_gentle_mode_scales_with_runs_lost() -> void:
-	SaveGame.save_meta({"runs": 6, "wins": 1})
-	eq(Game.gentle_resist(), 0.0, "off by default")
-	Game.gentle = true
-	ok(is_equal_approx(Game.gentle_resist(), 0.1), "five runs lost: 10%% (%.2f)" % Game.gentle_resist())
+func test_assist_mode_is_a_flat_setting() -> void:
+	# 0.22: Assist replaced Gentle; it no longer grows with runs lost (see test_settings)
 	SaveGame.save_meta({"runs": 60, "wins": 1})
-	ok(is_equal_approx(Game.gentle_resist(), 0.4), "capped at 40%")
+	eq(Game.assist_resist(), 0.0, "off by default")
+	Game.assist = 0.25
+	eq(Game.assist_resist(), 0.25, "25% whatever the runs lost")
 
 
 func test_one_untouched_door_a_run_and_room_twists() -> void:

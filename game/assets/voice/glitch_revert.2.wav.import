@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/glitch_revert.2.wav-a8ad6caeb6b1ad39016991823
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

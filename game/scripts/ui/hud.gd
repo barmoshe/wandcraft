@@ -64,6 +64,10 @@ func _ready() -> void:
 		banner_low = false
 		banner_t = 1.4)
 	Events.hint.connect(func(s: String) -> void: _hint_queue.append(s))
+	# 0.22: a line cut short (you walked off, a screen opened, a new run) takes its bubble with it
+	Dialogue.line_cut.connect(func() -> void:
+		say_t = 0.0
+		say_text = "")
 	Dialogue.line_started.connect(func(who: String, s: String, _id: String, dur: float) -> void:
 		say_who = who
 		say_text = s
@@ -151,10 +155,17 @@ func hit_wand(p: Vector2) -> int:
 
 ## Id of the HUD button under a point ("pause", "edit"), or "".
 func hit_button(p: Vector2) -> String:
+	# 0.22: tap areas are at least 32 px and may overlap; the nearest one to the finger wins
+	var best := ""
+	var bd := INF
 	for id in buttons:
-		if (buttons[id] as Rect2).has_point(p):
-			return id
-	return ""
+		var r: Rect2 = buttons[id]
+		if r.has_point(p):
+			var d := r.get_center().distance_squared_to(p)
+			if d < bd:
+				bd = d
+				best = id
+	return best
 
 
 func _draw() -> void:
@@ -206,7 +217,8 @@ func _draw_low_hp(run: RunState) -> void:
 	var k := run.hp / run.max_hp
 	if k >= 0.3 or world.player.dead:
 		return
-	var a := (0.3 - k) / 0.3 * (0.22 + 0.1 * sin(world.time * 3.0))
+	# 0.22: reduce motion holds it as a steady tint
+	var a := (0.3 - k) / 0.3 * (0.22 + (0.0 if Game.reduce_motion else 0.1 * sin(world.time * 3.0)))
 	var v := get_viewport_rect().size
 	for i in 10:
 		var c := Color(0.85, 0.1, 0.2, a * (1.0 - i / 10.0))
@@ -219,15 +231,17 @@ func _draw_low_hp(run: RunState) -> void:
 func _draw_hint(sr: Rect2, bottom: float) -> float:
 	var a := clampf(hint_t * 2.0, 0.0, 1.0) * clampf((5.0 - hint_t) * 4.0, 0.0, 1.0)
 	var f := Game.font("small")
-	var w := f.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var ms := _msg_px()
+	var w := f.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, ms).x
+	var bh := 10.0 + ms
 	UiAudit.owner = "hint"
-	var r := _place(Rect2(sr.get_center().x - w / 2.0 - 20, bottom - 18.0, w + 30, 18), true, "hint")
+	var r := _place(Rect2(sr.get_center().x - w / 2.0 - 20, bottom - bh, w + 30, bh), true, "hint")
 	UiAudit.box(self, r)
 	draw_rect(r, Color(0.07, 0.05, 0.13, 0.9 * a))
 	draw_rect(r, Color(GOLD.r, GOLD.g, GOLD.b, a), false, 1.0)
-	draw_circle(r.position + Vector2(10, 9), 5.0, Color(GOLD.r, GOLD.g, GOLD.b, a))
-	_text(r.position + Vector2(8, 13), "?", Color(0.1, 0.06, 0.15, a), 8, "bold")
-	_text(r.position + Vector2(20, 13), hint, Color(1, 0.96, 0.85, a), 8)
+	draw_circle(r.position + Vector2(10, bh / 2.0), 5.0, Color(GOLD.r, GOLD.g, GOLD.b, a))
+	_text(r.position + Vector2(8, bh / 2.0 + 4), "?", Color(0.1, 0.06, 0.15, a), 8, "bold")
+	_text(r.position + Vector2(20, bh / 2.0 + ms / 2.0), hint, Color(1, 0.96, 0.85, a), ms)
 	return r.position.y
 
 
@@ -436,13 +450,15 @@ func _draw_dash(sr: Rect2) -> void:
 func _draw_hub(sr: Rect2, run: RunState) -> void:
 	var h := world.hub
 	# the Bits, top left
-	var bits := Meta.bits()
+	if h.snap.is_empty():
+		h.refresh_snap()
+	var bits: int = h.snap["bits"]
 	UiAudit.owner = "bits"
 	_take(Rect2(sr.position, Vector2(92, 18)))
 	draw_rect(Rect2(sr.position, Vector2(92, 18)), Color(0.05, 0.03, 0.1, 0.7))
 	draw_texture(Icons.glyph("chip", Color("#7cf0c8")), (sr.position + Vector2(2, 1)).round())
 	_text(sr.position + Vector2(20, 13), "%d BITS" % bits, Color("#7cf0c8"), 8, "bold")
-	var waiting := Meta.unclaimed().size()
+	var waiting: int = h.snap["waiting"]
 	if waiting > 0:
 		_text(sr.position + Vector2(2, 28), "%d bount%s to claim" % [waiting, "y" if waiting == 1 else "ies"], Style.UI_GOOD, 8)
 	# MENU, top right
@@ -497,11 +513,12 @@ func _draw_say(sr: Rect2, cx: float, bottom: float) -> float:
 	if res != &"":
 		col = Color(Residents.DEFS[res]["color"])
 	var f := Game.font("small")
-	var lines := _wrap_lines(f, say_text, minf(250.0, sr.size.x - 150.0))
+	var ms := _msg_px()
+	var lines := _wrap_lines(f, say_text, minf(250.0, sr.size.x - 150.0), ms)
 	var wdt := 0.0
 	for ln in lines:
-		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
-	var h := maxf(24.0, lines.size() * 10.0 + 14.0)
+		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, ms).x)
+	var h := maxf(24.0, lines.size() * (ms + 2.0) + 14.0)
 	UiAudit.owner = "say"
 	var r := _place(Rect2(cx - (wdt + 34.0) / 2.0, bottom - h, wdt + 34.0, h), true, "say")
 	UiAudit.box(self, r)
@@ -513,7 +530,7 @@ func _draw_say(sr: Rect2, cx: float, bottom: float) -> float:
 	draw_texture(face, (r.position + Vector2(5, 4)).round(), Color(1, 1, 1, a))
 	_text(r.position + Vector2(26, 10), say_who, Color(col, a), 8)
 	for k in lines.size():
-		_text(r.position + Vector2(26, 20 + k * 10), lines[k], Color(0.92, 0.95, 1.0, a), 8)
+		_text(r.position + Vector2(26, 12 + ms + k * (ms + 2.0)), lines[k], Color(0.92, 0.95, 1.0, a), ms)
 	return r.position.y
 
 
@@ -553,12 +570,18 @@ static func duck_face() -> Texture2D:
 		]), {"y": "gold:2", "Y": "gold:3", "w": "#ffffff", "k": "night:0", "o": "ember:3", "O": "ember:4"}))
 
 
-func _wrap_lines(f: Font, s: String, width: float) -> PackedStringArray:
+## 0.22: the size messages are drawn at: 8, or 10 with the large text setting (only the
+## messages, which are placed around the HUD; fixed layouts keep their size).
+static func _msg_px() -> int:
+	return 10 if Game.text_big else 8
+
+
+func _wrap_lines(f: Font, s: String, width: float, size := 8) -> PackedStringArray:
 	var out := PackedStringArray()
 	var line := ""
 	for word in s.split(" "):
 		var t := word if line == "" else line + " " + word
-		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x > width and line != "":
+		if f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and line != "":
 			out.append(line)
 			line = word
 		else:
@@ -606,14 +629,17 @@ func _draw_top_right(tr: Vector2, run: RunState) -> void:
 		draw_rect(Rect2(mp - Vector2(8, 7), Vector2(16, 14)), Color(0.07, 0.05, 0.13, 0.85))
 		var more := "+%d" % (run.relics.size() - shown)
 		var mw := Game.font("bold").get_string_size(more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		var was := UiAudit.owner
+		UiAudit.owner = "relics"
 		_text(mp + Vector2(-roundf(mw / 2.0), 3), more, GOLD, 8, "bold")
-		buttons["relics_more"] = Rect2(mp - Vector2(10, 10), Vector2(20, 20))
+		UiAudit.owner = was
+		buttons["relics_more"] = Rect2(mp - Vector2(16, 16), Vector2(32, 32))
 	for i in shown:
 		var p := Vector2(tr.x - 9 - i * 19, tr.y + BTN + 12)
 		var ic := Icons.relic(run.relics[i])
 		_take(Rect2(p - Vector2(9, 9), Vector2(18, 18)), "relics")
 		draw_texture(ic, (p - ic.get_size() / 2.0).round())
-		buttons["relic%d" % i] = Rect2(p - Vector2(10, 10), Vector2(20, 20))   # design v2: tap to read
+		buttons["relic%d" % i] = Rect2(p - Vector2(16, 16), Vector2(32, 32))   # design v2: tap to read (0.22: a 32 px target)
 		# counter pips (D3): a count, or a lit dot when the relic is ready right now
 		var pip := relic_pip(run.relics[i])
 		if pip.is_empty():
@@ -715,7 +741,7 @@ func _draw_map(run: RunState) -> void:
 	draw_rect(_map, Color(0.05, 0.03, 0.1, 0.6))
 	# which world you're in, before its rooms (research/story.md: the switch is always clear)
 	_text(Vector2(x0 - 21, y + 3), "W%d" % (run.world + 1), [Color(0.75, 0.7, 0.85), Color("#ff9a3a"), Color("#c79bff")][clampi(run.world, 0, 2)], 8, "bold")
-	buttons["map"] = Rect2(x0 - 10, y - 10, (n - 1) * gap + 20, 22)   # tap the strip for the map
+	buttons["map"] = Rect2(x0 - 10, y - 16, (n - 1) * gap + 20, 32)   # tap the strip for the map
 	for i in n:
 		var p := Vector2(x0 + i * gap, y)
 		if i > 0:
@@ -800,17 +826,18 @@ func _draw_banner(sr: Rect2, cx: float, bottom: float) -> void:
 func _draw_toast(sr: Rect2, cx: float) -> void:
 	var a := clampf(toast_t * 2.0, 0.0, 1.0)
 	var f := Game.font("small")
-	var lines := _wrap_lines(f, toast, minf(320.0, sr.size.x - 40.0))
+	var ms := _msg_px()
+	var lines := _wrap_lines(f, toast, minf(320.0, sr.size.x - 40.0), ms)
 	var wdt := 0.0
 	for ln in lines:
-		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, ms).x)
 	UiAudit.owner = "toast"
-	var tr := _place(Rect2(cx - wdt / 2.0 - 8, sr.position.y + 26, wdt + 16, lines.size() * 10 + 8), false, "toast")
+	var tr := _place(Rect2(cx - wdt / 2.0 - 8, sr.position.y + 26, wdt + 16, lines.size() * (ms + 2.0) + 8), false, "toast")
 	UiAudit.box(self, tr)
 	draw_rect(tr, Color(0.07, 0.05, 0.13, 0.85 * a))
 	for k in lines.size():
-		var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-		_text(Vector2(cx - lw / 2.0, tr.position.y + 12 + k * 10), lines[k], Color(0.9, 0.95, 1.0, a), 8)
+		var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, ms).x
+		_text(Vector2(cx - lw / 2.0, tr.position.y + 4 + ms + k * (ms + 2.0)), lines[k], Color(0.9, 0.95, 1.0, a), ms)
 
 
 ## The speech bubble (0.21): the speaker's name in their colour, the line typed out, a tail
@@ -819,13 +846,15 @@ func _draw_bubble(sr: Rect2, at: Vector2) -> void:
 	var el := say_len - say_t
 	var al := Bubbles.alpha(el, say_len)
 	var f := Game.font("small")
-	var lines := Bubbles.lines_for(f, say_text, 3 if world.hub else 2)
+	var ms := _msg_px()
+	var lh := ms + 2.0
+	var lines := Bubbles.lines_for(f, say_text, 3 if world.hub else 2, ms)
 	var wdt := f.get_string_size(say_who, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 4.0
 	var total := 0
 	for ln in lines:
-		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+		wdt = maxf(wdt, f.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, ms).x)
 		total += ln.length()
-	var size := Vector2(roundf(wdt) + Bubbles.PAD.x * 2.0, 15.0 + lines.size() * Bubbles.LINE_H)
+	var size := Vector2(roundf(wdt) + Bubbles.PAD.x * 2.0, 15.0 + lines.size() * lh)
 	var ct := get_viewport().get_canvas_transform()
 	var hero := ct * world.player.position
 	# the hero is never under a bubble (nor are the HUD's panels)
@@ -864,7 +893,7 @@ func _draw_bubble(sr: Rect2, at: Vector2) -> void:
 			break
 		var ln: String = lines[k].substr(0, left)
 		left -= lines[k].length()
-		_text(r.position + Vector2(Bubbles.PAD.x, 11 + (k + 1) * Bubbles.LINE_H), ln, Color(0.94, 0.95, 1.0, al), 8)
+		_text(r.position + Vector2(Bubbles.PAD.x, 11 + (k + 1) * lh), ln, Color(0.94, 0.95, 1.0, al), ms)
 
 
 ## Moves a message's rect off everything taken this frame (up for the bottom stack, down for

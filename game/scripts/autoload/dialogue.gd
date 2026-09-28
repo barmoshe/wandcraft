@@ -19,6 +19,8 @@ var _busy := 0.0
 var _player: AudioStreamPlayer
 var _dip := 0.0
 var current := {}        # the line playing or showing: {who, text, id}
+var last_started := ""   # 0.22: the id of the last line that began (a resident's beat counts once heard)
+signal line_cut          # 0.22: the line showing was cut short (a walk-away, a new screen)
 
 
 func _ready() -> void:
@@ -65,6 +67,7 @@ func drop_prefix(prefix: String) -> void:
 			_player.stop()
 		_busy = minf(_busy, GAP)
 		current = {}
+		line_cut.emit()
 
 
 ## The exchange a line belongs to: its id without the last part ("res.grep.arc.0").
@@ -79,6 +82,8 @@ func clear() -> void:
 	if _player:
 		_player.stop()
 	_busy = 0.0
+	if not current.is_empty():
+		line_cut.emit()
 	current = {}
 
 
@@ -105,6 +110,7 @@ func _start(l: Dictionary) -> float:
 		_player.play()
 		dur = st.get_length() + 0.1
 	current = l
+	last_started = String(l.get("id", ""))
 	_busy = dur + GAP
 	# 0.21: the rest of an exchange waits on this line, so it doesn't go stale behind it
 	var g := group(String(l["id"]))

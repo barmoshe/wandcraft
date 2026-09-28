@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/res.cache.arc.4.1.wav-69fd2a8506b344f63d1045a
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

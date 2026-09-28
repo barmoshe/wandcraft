@@ -132,6 +132,9 @@ func press(id: String) -> void:
 	if id == "gloss":
 		show_glossary = true
 		return
+	if id.begins_with("kw:"):
+		toast(String(Glossary.KEYWORDS.get(id.substr(3), "")))   # 0.22: a tapped tag chip explains itself
+		return
 	if id == "gloss_close":
 		show_glossary = false
 		return
@@ -180,10 +183,18 @@ func glossary_panel() -> void:
 
 
 func hit(p: Vector2) -> String:
+	# 0.22: tap areas are at least MIN_TAP and neighbours may overlap: of the areas under the
+	# finger, the one whose middle is nearest wins (the later one on a tie, as before)
+	var best := ""
+	var bd := INF
 	for i in range(_buttons.size() - 1, -1, -1):
-		if (_buttons[i][0] as Rect2).has_point(p):
-			return _buttons[i][1]
-	return ""
+		var r: Rect2 = _buttons[i][0]
+		if r.has_point(p):
+			var d := r.get_center().distance_squared_to(p)
+			if d < bd:
+				bd = d
+				best = _buttons[i][1]
+	return best
 
 
 func toast(s: String) -> void:
@@ -433,13 +444,21 @@ func chips(cx: float, y: float, tags: Array, col := Style.c("cyan:4"), max_w := 
 		draw_rect(r, Style.c("night:3"))
 		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Style.c("night:4"))
 		text(r.position + Vector2(4, 8), String(tags[i]).to_upper(), col)
+		if Glossary.KEYWORDS.has(String(tags[i])):
+			area(r.grow_individual(0, 3, 0, 3), "kw:" + String(tags[i]))   # tap to read what it means
 		x += ws[i] + 3.0
 	return 12.0
 
 
 ## Registers an invisible tappable area (cards, slots).
+## 0.22: the tap area grows to at least MIN_TAP each way (44 pt on a phone), centred on it.
 func area(r: Rect2, id: String) -> void:
-	_buttons.append([r, id])
+	var hr := r
+	if hr.size.x < MIN_TAP:
+		hr = hr.grow_individual((MIN_TAP - hr.size.x) / 2.0, 0, (MIN_TAP - hr.size.x) / 2.0, 0)
+	if hr.size.y < MIN_TAP:
+		hr = hr.grow_individual(0, (MIN_TAP - hr.size.y) / 2.0, 0, (MIN_TAP - hr.size.y) / 2.0)
+	_buttons.append([hr, id])
 
 
 func icon_at(tex: Texture2D, center: Vector2, scale := 1.0, mod := Color.WHITE) -> void:

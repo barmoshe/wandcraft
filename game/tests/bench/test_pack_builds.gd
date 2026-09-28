@@ -5,19 +5,44 @@ extends "res://tests/unit/test_helpers.gd"
 ## Band: a pack wand takes 0.7-1.4x the better core wand's time (the geometric mean over the
 ## four fights), and it never beats both core wands by more than 25% on all three bosses
 ## (that would be power creep: a pack you buy must not be the new best build).
+## 0.22: one showcase per 0.20/0.21 arsenal pack joins them (Meta.PACKS). A pack that sells a
+## wand shows on that wand ("wand"); a relic-only pack puts its relics on the core crowd wand.
+## PACKS=Refactor,Memory tools/balance.sh --only=test_pack_builds runs the core and those only.
 
 const DT := 1.0 / 60.0
 const LIMIT := 240.0
 const FIGHTS := ["Copy-Paste", "the Loop", "Deadlock", "room-8 crowd"]
 const CORE := ["core single", "core crowd"]
+const CROWD: Array[StringName] = [&"fan", &"ember", &"burst", &"frost", &"mote"]
 const BUILDS := {
 	"core single": {"slots": [&"empower", &"needle", &"needle", &"keen", &"needle"]},
-	"core crowd": {"slots": [&"fan", &"ember", &"burst", &"frost", &"mote"]},
+	"core crowd": {"slots": CROWD},
 	"Networking": {"slots": [&"static_coat", &"broadcast", &"traceroute", &"multicast", &"burst"]},
 	"Concurrency": {"slots": [&"worker", &"mote", &"spinlock", &"daemon", &"spark", &"scheduler"], "relics": [&"thread_pool"]},
 	"Version Control": {"slots": [&"blame", &"empower", &"diff", &"needle", &"cherry_pick", &"burst"], "kind": "core single"},
 	"Hardware": {"slots": [&"undervolt", &"cosmic_ray", &"then", &"burst", &"emp"]},
+	# 0.20 arsenal packs
+	"Refactor": {"slots": [&"fan", &"ember", &"burst", &"frost", &"mote", &"empower"], "relics": [&"hoisting", &"polyglot"]},
+	"Interrupts": {"wand": &"pinned_tab", "slots": [&"empower", &"retry", &"needle", &"await_hit", &"burst", &"blue_screen"]},
+	"Compiler": {"wand": &"palindrome", "slots": [&"jit", &"mote", &"drill_bit", &"needle", &"zip_bomb"]},
+	"Kernel Mode": {"slots": CROWD, "relics": [&"thread_join", &"warm_cache"]},
+	"Memory": {"wand": &"double_buffer", "slots": [&"buffering", &"fan", &"ember", &"burst", &"tarball", &"needle", &"frost", &"cache_hit"]},
+	# 0.21 arsenal packs
+	"Blast Radius": {"slots": [&"flame_graph", &"burst", &"breakpoint", &"frost", &"ember"], "relics": [&"chain_reaction", &"burn_in"]},
+	"Status Codes": {"slots": [&"code_freeze", &"crunch_time", &"daisy_chain", &"frost", &"cruft"], "relics": [&"live_wire", &"overvoltage"]},
+	"Daemons": {"slots": [&"empower", &"pair_prog", &"needle", &"squash", &"daemon", &"turret"], "relics": [&"inheritance", &"hive_mind"]},
+	"Linker": {"wand": &"singleton", "slots": [&"empower", &"pointer", &"needle", &"on_load", &"burst", &"fan", &"ember"]},
+	"Unsafe Code": {"wand": &"unsafe_staff", "slots": [&"empower", &"needle", &"symlink", &"keen", &"burst", &"fan"], "relics": [&"version_pin"]},
 }
+
+
+## The builds this run benches: the core pair and every pack, or the packs named in $PACKS.
+func _names() -> Array:
+	var only := OS.get_environment("PACKS")
+	if only == "":
+		return BUILDS.keys()
+	var want := Array(only.split(","))
+	return BUILDS.keys().filter(func(n: String) -> bool: return CORE.has(n) or want.has(n))
 
 
 func _fight(build: Dictionary, fight: String) -> float:
@@ -30,7 +55,7 @@ func _fight(build: Dictionary, fight: String) -> float:
 	world.setup(7)
 	world.bot = true
 	var r := RunState.create(7)
-	r.wands[0] = WandState.make(Catalog.wand(&"oak"), build["slots"])
+	r.wands[0] = WandState.make(Catalog.wand(build.get("wand", &"oak")), build["slots"])
 	for id in build.get("relics", []):
 		r.relics.append(id)
 	world.start_run(r)
@@ -66,13 +91,14 @@ func _fight(build: Dictionary, fight: String) -> float:
 
 func test_pack_wands_stay_in_the_core_band() -> void:
 	var times := {}
-	for name in BUILDS:
+	var names := _names()
+	for name in names:
 		times[name] = {}
 		for f in FIGHTS:
 			times[name][f] = _fight(BUILDS[name], f)
 	print("\n    %-16s %11s %11s %11s %13s   ratio" % ["wand", FIGHTS[0], FIGHTS[1], FIGHTS[2], FIGHTS[3]])
 	var gms := {}
-	for name in BUILDS:
+	for name in names:
 		var row := "    %-16s" % name
 		var logr := 0.0
 		for f in FIGHTS:

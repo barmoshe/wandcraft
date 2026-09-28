@@ -17,6 +17,7 @@ var prev_pos := Vector2.ZERO
 var face := 1.0
 var _t := 0.0
 var _sprite: Sprite2D
+var _free := Vector2.ZERO   # the last spot it stood that was clear
 
 
 func setup(w: World, k: StringName) -> void:
@@ -41,9 +42,14 @@ func head() -> Vector2:
 
 ## Straight to the hero's side (a new room, a door).
 func snap() -> void:
+	# its side, else the other side, else just below the hero; never on the hero itself
+	var p := world.player.position
 	position = _target()
-	if world.body_solid_at(position):
-		position = world.player.position
+	for cand in [_target(true), p + Vector2(0, 10), p + Vector2(0, -10), p + Vector2(16, 0), p + Vector2(-16, 0)]:
+		if not _blocked(position):
+			break
+		position = cand
+	_free = position
 	prev_pos = position
 	reset_physics_interpolation()
 
@@ -72,6 +78,18 @@ func tick(dt: float) -> void:
 	var off := position - world.player.position
 	if off.length() > LEASH:
 		position = world.player.position + off.normalized() * LEASH
+	# 0.22: the leash never leaves it in a wall or over a pit: back to its last free spot
+	if _blocked(position):
+		var hp := world.player.position
+		var back := hp + Vector2(0, 8)
+		if not _blocked(_free) and _free.distance_to(hp) <= LEASH:
+			position = _free
+		elif not _blocked(back):
+			position = back
+		else:
+			position = hp
+	else:
+		_free = position
 	var dx := world.player.position.x + cos(world.player.aim) * 20.0 - position.x
 	if absf(dx) > 2.0:
 		face = signf(dx)

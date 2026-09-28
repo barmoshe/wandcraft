@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/death.0.1.wav-d394b4a79d15eb4b4bd26e6b7a0ffd8
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

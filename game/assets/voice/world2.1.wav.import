@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/world2.1.wav-16bc5e0e5d66a457daf0b2ce5a8c603c
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

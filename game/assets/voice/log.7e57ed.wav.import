@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/log.7e57ed.wav-e13b29f4a26f45c92bf386cc26c5eb
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1

@@ -209,6 +209,29 @@ static func is_core(id: StringName) -> bool:
 	return bounty_for(id).is_empty() and pack_for(id).is_empty()
 
 
+## 0.22: items a player has been offered at least once ("NEW" on the first sight, rewards
+## and the Merchant). Only for a real player's save (and tests that set test_meta).
+static func is_new(id: StringName) -> bool:
+	if not (test_meta != null or (active and SaveGame.enabled)):
+		return false
+	return not (_load().get("seen_items", []) as Array).has(String(id))
+
+
+static func mark_seen(ids: Array) -> void:
+	if not (test_meta != null or (active and SaveGame.enabled)):
+		return
+	var m := _load()
+	var seen: Array = m.get("seen_items", [])
+	var changed := false
+	for id in ids:
+		if not seen.has(String(id)):
+			seen.append(String(id))
+			changed = true
+	if changed:
+		m["seen_items"] = seen
+		_store(m)
+
+
 static func enforced() -> bool:
 	return core_only or test_meta != null or (active and SaveGame.enabled)
 

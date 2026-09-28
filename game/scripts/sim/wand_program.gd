@@ -124,6 +124,7 @@ func _run(w: WandState, start_ptr: int, acc_in: Mods) -> Plan:
 	if not wrapped and not groups.is_empty() and _peek() < 0:
 		ptr = 0
 		wrapped = true
+		deco.clear()   # 0.22: a Decorator boost in the last slot never reaches slot 1 over the wrap
 		acc = Mods.new()
 	var plan := Plan.new()
 	plan.groups = groups
@@ -301,6 +302,7 @@ func _next(can_wrap: bool) -> int:
 			ptr = 0
 			wrapped = true
 			acc = Mods.new()
+			deco.clear()
 		var i := _idx(ptr)
 		ptr += 1
 		reads += 1
@@ -375,6 +377,7 @@ func _draw_cast(depth: int, can_wrap: bool) -> CastNode:
 				mana += d.mana_at(lv) * cs_mp
 				if d.id == &"end_scope":
 					acc = acc.scope_end()   # End Block: every boost on its left stops here
+					deco.clear()            # 0.22: and so does a Decorator boost waiting for a spell
 					continue
 				if d.id == &"mirror":
 					dup = true

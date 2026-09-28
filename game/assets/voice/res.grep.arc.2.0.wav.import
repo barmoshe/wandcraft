@@ -13,9 +13,9 @@ dest_files=["res://.godot/imported/res.grep.arc.2.0.wav-703fdd9d22bbd0977ee64e87
 [params]
 
 force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
+force/mono=true
+force/max_rate=true
+force/max_rate_hz=22050
 edit/trim=false
 edit/normalize=false
 edit/loop_mode=1
