@@ -67,6 +67,10 @@ var _hero := &"apprentice" # 0.19: whose look is drawn (Hero.LOOKS; set_look)
 const FIDGET_AFTER := 4.0
 const FIDGET_EVERY := 7.0
 var _fidget_at := FIDGET_AFTER
+## 0.26: the casting stance (the free hand up and sparking) holds this long after each shot,
+## so a burst of fire reads as one steady stance, not an arm pumping on every shot.
+const STANCE_T := 0.35
+var stance_t := 0.0
 ## D9: the dash (design-plan §10): 0.18 s, 0.14 s of i-frames, three afterimages, then a
 ## 0.35 s cooldown. It goes where you move, or where you aim when standing still.
 const DASH_T := 0.18
@@ -154,6 +158,7 @@ func tick(dt: float) -> void:
 	prev_pos = position
 	inv = maxf(0.0, inv - dt)
 	cast_t = maxf(0.0, cast_t - dt)
+	stance_t = maxf(0.0, stance_t - dt)
 	swap_cd = maxf(0.0, swap_cd - dt)
 	for i in wands.size():
 		wands[i].bench = 0.0 if i == cur else wands[i].bench + dt   # 0.22: time on the belt
@@ -239,7 +244,7 @@ func tick(dt: float) -> void:
 		w.rech = maxf(0.0, w.rech - dt)
 	if firing and world.spells.wand_fire(wand(), tip(), aim):
 		cast_t = 0.12
-		clip_t = 0.0   # each shot replays the cast clip from its anticipation frame
+		stance_t = STANCE_T
 		recoil = 2.0
 		world.fx.muzzle(tip(), aim, wand().def.color)
 		world.kick = (world.kick - Vector2.from_angle(aim) * 0.7 * Game.shake_scale).limit_length(1.5)
@@ -431,8 +436,9 @@ func pick_clip() -> String:
 		return "hurt"
 	if dash_t > 0.0:
 		return "dash"
-	if cast_t > 0.0:
-		return "cast"
+	# 0.26: casting on the move keeps the legs running (run_cast shares the run's phase)
+	if cast_t > 0.0 or stance_t > 0.0:
+		return "run_cast" if vel.length() > 12.0 else "cast"
 	if vel.length() > 12.0:
 		return "run"
 	if still_t < 0.1:
@@ -471,12 +477,12 @@ func _animate() -> void:
 		back = false
 	var want := pick_clip()
 	if want != clip:
-		# a cast restarts on every shot; the walk keeps its phase from the distance walked
+		# the run and run_cast keep their phase from the distance walked (walk_t)
 		clip = want
 		clip_t = 0.0
 	clip_t += dt
 	var rig := Hero.rig(back, _hero)
-	var t := walk_t * 0.75 if clip == "run" else clip_t
+	var t := walk_t * 0.75 if clip == "run" or clip == "run_cast" else clip_t
 	var fr: Array = (clips_back if back else clips_front)[clip]
 	var fi := rig.frame_at(clip, t)
 	sprite.texture = fr[fi]

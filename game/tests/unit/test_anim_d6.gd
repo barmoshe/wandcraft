@@ -24,14 +24,14 @@ func teardown() -> void:
 
 
 func test_hero_meets_the_frame_budget_in_both_facings() -> void:
-	# decisions/0038 (was design-plan §8's 25): idle 6, run 8, cast 4, dash 5, hurt 3, death 8,
-	# fidget 10 (44 per facing)
-	var want := {"idle": 6, "run": 8, "cast": 4, "dash": 5, "hurt": 3, "death": 8, "fidget": 10}
+	# decisions/0038 (was design-plan §8's 25): idle 6, run 8, cast 4, run_cast 8, dash 5,
+	# hurt 3, death 8, fidget 10 (52 per facing)
+	var want := {"idle": 6, "run": 8, "cast": 4, "run_cast": 8, "dash": 5, "hurt": 3, "death": 8, "fidget": 10}
 	for back in [false, true]:
 		var c := Hero.clips(back)
 		for k in want:
 			ok(c.has(k) and (c[k] as Array).size() == want[k], "hero %s %s has %d frames" % ["back" if back else "front", k, want[k]])
-		ok(Hero.rig(back).frame_count() == 44, "44 frames per facing")
+		ok(Hero.rig(back).frame_count() == 52, "52 frames per facing")
 		var sz: Vector2i = (c["idle"][0] as Texture2D).get_size()
 		for k in c:
 			for t in c[k]:
@@ -124,11 +124,30 @@ func test_the_hero_fidgets_after_standing_still() -> void:
 	p.cast_t = 0.1
 	ok(p.pick_clip() == "cast", "a cast cuts the fidget off")
 	p.cast_t = 0.0
+	p.stance_t = 0.0
+
+
+func test_casting_on_the_move_keeps_running() -> void:
+	var p := world.player
+	p.hurt_t = 0.0
+	p.dash_t = 0.0
+	p.cast_t = 0.0
+	p.stance_t = Player.STANCE_T
+	p.vel = Vector2(80, 0)
+	ok(p.pick_clip() == "run_cast", "firing while running keeps the legs running")
+	p.vel = Vector2.ZERO
+	ok(p.pick_clip() == "cast", "firing standing still holds the casting stance")
+	p.stance_t = 0.0
+	ok(p.pick_clip() != "cast", "the stance ends after the last shot")
+	# run and run_cast share their legs, frame by frame, so switching never trips him up
+	var r := Hero.rig(false)
+	for i in 8:
+		ok(r.clips["run"]["poses"][i]["legs"] == r.clips["run_cast"]["poses"][i]["legs"], "run frame %d and run_cast frame %d share legs" % [i, i])
 
 
 func test_the_wand_stays_in_the_fist() -> void:
-	# the release frame leans in: the fist, and so the wand, moves with it
-	ok(Hero.hand_offset(false, &"apprentice", "cast", 1) == Vector2i(2, 0), "the cast's release carries the fist forward")
+	# the casting stance leans in: the fist, and so the wand, moves with it
+	ok(Hero.hand_offset(false, &"apprentice", "cast", 1) == Vector2i(2, 0), "the casting stance carries the fist forward")
 	ok(Hero.hand_offset(false, &"apprentice", "idle", 0) == Vector2i.ZERO, "at rest the fist is at the grip")
 	var bob := Hero.hand_offset(false, &"apprentice", "run", 1)
 	ok(bob.y == 1, "the run's down frame lowers the fist (%s)" % bob)

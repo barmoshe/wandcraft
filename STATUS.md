@@ -328,13 +328,23 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
-- **0.26.0, the hero redrawn** (ADR 0038). Bar: "improve the main character design and animations, be creative".
-  - **3/4 view:** the head turns where he faces (the quiff rises at the front, nose, ear, the shades' temple arm), brogues point the way, the far leg is in shade. Same identity: quiff, teal shades, beard, yellow shirt, red tie, suspenders.
-  - **New parts:** a knit scarf that trails behind (an ember sash for the Pyromancer, a red rag for the Tinkerer), a free arm, shades that move on their own.
-  - **Every clip redone:** breathing idle, an 8-frame run, a cast with a spark from the free hand, a dash with the scarf streaming, the shades popping up when hit, and a "blue screen" crash before he crumbles.
-  - **New fidget:** stand still 4 s and he pushes his shades up his nose (a glint, a nod). From behind he scratches his head; the Tinkerer twirls his moustache. The Pyromancer's hair flickers.
-  - The wand now moves with the fist. Tests 454 of 454; the tap test passes.
-  - **Play it:** stand still, dash, get hit, die once. Does the turn read on a phone, and is the scarf too busy in a fight?
+- **0.26.0, the hero redrawn** (ADR 0038). Bar: "improve the main character design and animations, be creative". After a first pass, Bar: "It look weird" (the head and body disagreed, the wand arm was a rod, the face read as a mask, the motion was off). Second pass:
+  - **3/4 view that holds together:**
+    - A 12 px head on an 11 px body.
+    - The pompadour juts forward; the hair is lighter so it has volume.
+    - Cheeks show above a jaw beard.
+    - The torso turns with the head (a lit side, the front with the tie).
+    - The near arm is in front of the body; the wand is held up in a bent arm.
+    - Brogues point the way.
+  - **Firing on the move:** the legs keep running (`run_cast`), and a steady casting stance (the free hand up, sparking) holds through a burst instead of the arm pumping on every shot.
+  - **A knit scarf** trails behind (an ember sash for the Pyromancer, a red rag for the Tinkerer). The Pyromancer's hair flickers.
+  - **Every clip redone:**
+    - breathing idle and an 8-frame run;
+    - a dash with the scarf streaming;
+    - the shades pop up when he's hit;
+    - a "blue screen" crash before he crumbles;
+    - a new fidget (stand still 4 s: he pushes his shades up; from behind he scratches his head; the Tinkerer twirls his moustache).
+  - **Play it:** run while firing, stand still, dash, die once. Does anything still look weird?
 - **0.25.0, the desktop Workshop** (ADR 0037). Bar: "fix desktop workshop ux/ui".
   - The Duck and LINT moved by the way in, and bubbles keep off station names.
   - On desktop: an "[E] USE" prompt at the station, a click on a station walks you there and uses it, the banner sits over the forest, and ESC shows on the menu.
