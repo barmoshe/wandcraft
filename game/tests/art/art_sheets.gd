@@ -100,6 +100,18 @@ static func anim(s: Node) -> void:
 		s.add("%d" % i, wa[i])
 
 
+## 0.26: every clip of every hero look, front then back (`only` picks a look: --only=pyro).
+static func hero(s: Node) -> void:
+	for h in Hero.LOOKS:
+		for back in [false, true]:
+			var c := Hero.clips(back, h)
+			for k in c:
+				s.section("%s %s: %s" % [h, "back" if back else "front", k])
+				var fr: Array = c[k]
+				for i in fr.size():
+					s.add("%s %d" % [h, i], fr[i])
+
+
 static func chars(s: Node) -> void:
 	# 0.19: every hero's look, front frames then the back view
 	for h in Hero.LOOKS:

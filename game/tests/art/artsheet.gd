@@ -3,7 +3,7 @@ extends Node2D
 ## ground with a label, saved to shots/artsheet-<name>.png. Run: tools/artsheet.sh [name].
 ## Sheets: chars, icons, tiles, fx, ui, all (default); style; check (D1 readability);
 ## kernel (World 3's new art), rooms (every room theme), arsenal (the 0.20 spell and relic icons),
-## duck (the Debug Duck, every piece).
+## duck (the Debug Duck, every piece); hero (every clip of every hero look, both facings).
 
 var S := 4
 const PAD := 6
@@ -57,7 +57,7 @@ func add(label: String, t: Texture2D) -> void:
 
 
 func section(title: String) -> void:
-	if only == "":
+	if only == "" or title.contains(only):
 		items.append(["#" + title, null])
 
 
@@ -90,6 +90,8 @@ func _collect() -> void:
 		ArtSheets.arsenal21(self)
 	if sheet == "duck":
 		ArtSheets.duck(self)
+	if sheet == "hero":
+		ArtSheets.hero(self)
 
 
 var _layout: Array = []

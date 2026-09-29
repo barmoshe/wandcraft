@@ -1,6 +1,6 @@
 # wandcraft — STATUS
 
-- Updated: 2026-09-28
+- Updated: 2026-09-29
 
 ## MVP: design-first (ADR 0011, `research/design-plan.md`)
 - **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
@@ -328,6 +328,13 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.26.0, the hero redrawn** (ADR 0038). Bar: "improve the main character design and animations, be creative".
+  - **3/4 view:** the head turns where he faces (the quiff rises at the front, nose, ear, the shades' temple arm), brogues point the way, the far leg is in shade. Same identity: quiff, teal shades, beard, yellow shirt, red tie, suspenders.
+  - **New parts:** a knit scarf that trails behind (an ember sash for the Pyromancer, a red rag for the Tinkerer), a free arm, shades that move on their own.
+  - **Every clip redone:** breathing idle, an 8-frame run, a cast with a spark from the free hand, a dash with the scarf streaming, the shades popping up when hit, and a "blue screen" crash before he crumbles.
+  - **New fidget:** stand still 4 s and he pushes his shades up his nose (a glint, a nod). From behind he scratches his head; the Tinkerer twirls his moustache. The Pyromancer's hair flickers.
+  - The wand now moves with the fist. Tests 454 of 454; the tap test passes.
+  - **Play it:** stand still, dash, get hit, die once. Does the turn read on a phone, and is the scarf too busy in a fight?
 - **0.25.0, the desktop Workshop** (ADR 0037). Bar: "fix desktop workshop ux/ui".
   - The Duck and LINT moved by the way in, and bubbles keep off station names.
   - On desktop: an "[E] USE" prompt at the station, a click on a station walks you there and uses it, the banner sits over the forest, and ESC shows on the menu.
@@ -393,7 +400,7 @@
 ## How to look at it
 - Tests: `tools/test.sh`. Real-touch menu test: `tools/taptest.sh` (xvfb). Balance bench: `tools/balance.sh` (a few minutes).
 - Regenerate assets: `tools/audio.sh` (sound and music), `tools/voices.sh` (the voices; `--audition`, `--check`), `tools/icon.sh` (icon and splash).
-- Art review: `tools/artsheet.sh chars|icons|tiles|fx|style [-- --only=name --scale=8]` writes contact sheets to `shots/`.
+- Art review: `tools/artsheet.sh chars|icons|tiles|fx|style|hero [-- --only=name --scale=8]` writes contact sheets to `shots/` (`hero`: every clip of every hero look, both facings).
 - Android APK: `tools/build_android.sh`. It writes to `build/`, and the first run downloads the SDK outside the repo.
 - Web (iPhone Safari): `tools/build_web.sh`, then `tools/deploy_web.sh` publishes it to https://wandcraft-test.vercel.app.
 - Screenshots: `tools/shots.sh`. Useful options (see `game/scripts/main.gd`):

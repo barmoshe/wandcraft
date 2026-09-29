@@ -24,13 +24,14 @@ func teardown() -> void:
 
 
 func test_hero_meets_the_frame_budget_in_both_facings() -> void:
-	# design-plan §8: idle 4, run 6, cast 3, dash 4, hurt 2, death 6 (25 per facing)
-	var want := {"idle": 4, "run": 6, "cast": 3, "dash": 4, "hurt": 2, "death": 6}
+	# decisions/0038 (was design-plan §8's 25): idle 6, run 8, cast 4, dash 5, hurt 3, death 8,
+	# fidget 10 (44 per facing)
+	var want := {"idle": 6, "run": 8, "cast": 4, "dash": 5, "hurt": 3, "death": 8, "fidget": 10}
 	for back in [false, true]:
 		var c := Hero.clips(back)
 		for k in want:
 			ok(c.has(k) and (c[k] as Array).size() == want[k], "hero %s %s has %d frames" % ["back" if back else "front", k, want[k]])
-		ok(Hero.rig(back).frame_count() == 25, "25 frames per facing")
+		ok(Hero.rig(back).frame_count() == 44, "44 frames per facing")
 		var sz: Vector2i = (c["idle"][0] as Texture2D).get_size()
 		for k in c:
 			for t in c[k]:
@@ -102,6 +103,52 @@ func test_the_player_turns_away_when_aiming_up() -> void:
 	ok(not p.back, "aiming down shows the front")
 	p.cast_t = 0.1
 	ok(p.pick_clip() == "cast", "casting picks the cast clip")
+
+
+## 0.26 (decisions/0038): the redrawn hero's new behaviour.
+func test_the_hero_fidgets_after_standing_still() -> void:
+	var p := world.player
+	p.vel = Vector2.ZERO
+	p.cast_t = 0.0
+	p.hurt_t = 0.0
+	p.still_t = 0.0
+	p.clip = "idle"
+	ok(p.pick_clip() == "idle", "freshly stopped: idle")
+	p.still_t = Player.FIDGET_AFTER + 0.1
+	ok(p.pick_clip() == "fidget", "still for a while: he fidgets")
+	p.clip = "fidget"
+	p.clip_t = 0.2
+	ok(p.pick_clip() == "fidget", "the fidget plays through")
+	p.clip_t = 5.0
+	ok(p.pick_clip() == "idle", "then back to idle until the next one")
+	p.cast_t = 0.1
+	ok(p.pick_clip() == "cast", "a cast cuts the fidget off")
+	p.cast_t = 0.0
+
+
+func test_the_wand_stays_in_the_fist() -> void:
+	# the release frame leans in: the fist, and so the wand, moves with it
+	ok(Hero.hand_offset(false, &"apprentice", "cast", 1) == Vector2i(2, 0), "the cast's release carries the fist forward")
+	ok(Hero.hand_offset(false, &"apprentice", "idle", 0) == Vector2i.ZERO, "at rest the fist is at the grip")
+	var bob := Hero.hand_offset(false, &"apprentice", "run", 1)
+	ok(bob.y == 1, "the run's down frame lowers the fist (%s)" % bob)
+	var p := world.player
+	p.aim = 0.0
+	p.vel = Vector2.ZERO
+	p.cast_t = 0.0
+	p.hurt_t = 0.0
+	p.still_t = 0.0
+	p.clip = "idle"
+	p._animate()
+	ok(p.wand_sprite.position == p.grip().round(), "the wand sits at the grip in the idle pose")
+
+
+func test_hurt_and_death_change_the_face() -> void:
+	for h in Hero.LOOKS:
+		var c := Hero.clips(false, h)
+		var idle := (c["idle"][0] as Texture2D).get_image()
+		ok(idle.get_data() != (c["hurt"][0] as Texture2D).get_image().get_data(), "%s flinches when hurt" % h)
+		ok(idle.get_data() != (c["fidget"][3] as Texture2D).get_image().get_data(), "%s's fidget moves a hand" % h)
 
 
 func test_telegraphs_fill_as_the_attack_nears() -> void:

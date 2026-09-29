@@ -62,6 +62,11 @@ var back := false          # aiming up: the hero turns away from the camera
 var hurt_t := 0.0          # seconds of the hurt clip left
 var _gem := "frost"        # the held wand's gem ramp (follows the wand in hand)
 var _hero := &"apprentice" # 0.19: whose look is drawn (Hero.LOOKS; set_look)
+## 0.26: standing still this long (s), he fidgets (pushes his shades up); then again every
+## FIDGET_EVERY seconds while he stays put.
+const FIDGET_AFTER := 4.0
+const FIDGET_EVERY := 7.0
+var _fidget_at := FIDGET_AFTER
 ## D9: the dash (design-plan §10): 0.18 s, 0.14 s of i-frames, three afterimages, then a
 ## 0.35 s cooldown. It goes where you move, or where you aim when standing still.
 const DASH_T := 0.18
@@ -343,7 +348,7 @@ func hurt(amount: float, from: Vector2, by := "") -> void:
 			inv = 0.4
 			return
 	last_hurt_by = by
-	hurt_t = 0.2
+	hurt_t = 0.25   # 0.26: the three hurt frames (the shades pop, hold, drop back)
 	if by.begins_with("shot"):
 		Hints.show("dash")
 	_hit_relics(amount)
@@ -428,7 +433,16 @@ func pick_clip() -> String:
 		return "dash"
 	if cast_t > 0.0:
 		return "cast"
-	return "run" if vel.length() > 12.0 else "idle"
+	if vel.length() > 12.0:
+		return "run"
+	if still_t < 0.1:
+		_fidget_at = FIDGET_AFTER
+	if clip == "fidget" and clip_t < Hero.rig(back, _hero).clip_length("fidget"):
+		return "fidget"
+	if still_t >= _fidget_at:
+		_fidget_at = still_t + FIDGET_EVERY
+		return "fidget"
+	return "idle"
 
 
 ## Plays the death clip while the world counts down to the retry prompt.
@@ -464,7 +478,8 @@ func _animate() -> void:
 	var rig := Hero.rig(back, _hero)
 	var t := walk_t * 0.75 if clip == "run" else clip_t
 	var fr: Array = (clips_back if back else clips_front)[clip]
-	sprite.texture = fr[rig.frame_at(clip, t)]
+	var fi := rig.frame_at(clip, t)
+	sprite.texture = fr[fi]
 	sprite.flip_h = face < 0
 	sprite.visible = inv <= 0.0 or fmod(inv, 0.12) > 0.05
 	# the wand is drawn pre-rotated (16 angles), never rotated as a sprite
@@ -482,10 +497,13 @@ func _animate() -> void:
 	wand_sprite.visible = true
 	tip_glow.visible = true
 	recoil = maxf(0.0, recoil - 0.5)
-	wand_sprite.position = (grip() - Vector2.from_angle(aim) * roundf(recoil)).round()
+	# 0.26: the wand stays in the fist through a bob, a lean or a cast (Hero.hand_offset)
+	var ho := Hero.hand_offset(back, _hero, clip, fi)
+	var hand := grip() + Vector2(ho.x * face, ho.y)
+	wand_sprite.position = (hand - Vector2.from_angle(aim) * roundf(recoil)).round()
 	# 0.20: the wand is a child before the body (setup), so the fist closes over its shaft
 	var w := wand()
-	tip_glow.position = grip() + Vector2.from_angle(aim) * 11.0
+	tip_glow.position = hand + Vector2.from_angle(aim) * 11.0
 	var c := w.def.color if w.cd > 0.0 else Color("#8fd8ff")
 	tip_glow.modulate = Color(c.r, c.g, c.b, 0.55 + (0.4 if cast_t > 0.0 else 0.0))
 	queue_redraw()
