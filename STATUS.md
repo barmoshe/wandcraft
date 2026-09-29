@@ -1,6 +1,6 @@
 # wandcraft — STATUS
 
-- Updated: 2026-09-28
+- Updated: 2026-09-29
 
 ## MVP: design-first (ADR 0011, `research/design-plan.md`)
 - **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
@@ -328,6 +328,12 @@
   - `tools/webtest.sh` measures real audio output.
 
 ## Next action
+- **0.26.0, the hero keeps his look** (ADR 0038, `research/hero-motion.md`). Bar: "improve the main character design and animations". A 3/4-view redraw was tried and rejected ("It was better before"); it is parked on the branch `claude/hero-3-4-experiment`. Then, after web research, with his drawing kept:
+  - **Legs keep running while he fires** (they used to freeze and he slid). A burst holds one steady lean instead of rocking on every shot.
+  - **A livelier run:** an uneven bob (down, down, up), the head leading, the free arm swinging, and the run played backwards when he backpedals.
+  - **A pixel polish:** a sheen in the quiff, beard strands, collar points, a buckle, shaded trouser legs with rolled cuffs, toe shines. It covers all three heroes.
+  - The wand stays in his fist as he bobs.
+  - **Play it:** run while firing, backpedal. Does he still look like himself, and does the run feel better?
 - **0.25.0, the desktop Workshop** (ADR 0037). Bar: "fix desktop workshop ux/ui".
   - The Duck and LINT moved by the way in, and bubbles keep off station names.
   - On desktop: an "[E] USE" prompt at the station, a click on a station walks you there and uses it, the banner sits over the forest, and ESC shows on the menu.

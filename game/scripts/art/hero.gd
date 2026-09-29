@@ -20,40 +20,43 @@ const PAL := {
 	"Q": "cyan:2", "k": "gold:2", "L": "wood:1",
 	# trousers and shoes
 	"P": "blood:2", "p": "blood:3", "K": "night:2", "l": "night:1",
+	# 0.26 polish (decisions/0038): the quiff's sheen, beard strands, the inner shade of each
+	# trouser leg, the belt buckle and a shine on each toe
+	"i": "slate:2", "I": "slate:4", "b": "slate:2", "d": "blood:1", "x": "gold:4", "j": "slate:3",
 }
 
 const W := 20
 const H := 36
 
 const HEAD := [
-	"...........Hh.......",
-	"..........HHhh.h....",
-	"......hhhHHhhhhh....",
-	".....hHHhhhhhhhhh...",
-	".....hhhhhhhhhhh....",
+	"...........IH.......",
+	"..........HIHh.h....",
+	"......hhiHHihhhh....",
+	".....hiHHihhhiihh...",
+	".....hhiihhhhhhh....",
 	".....hSssssssssh....",
 	".....hssssssssss....",
 	".....ooooooooooo....",
 	".....oGgGGoGgGGo....",
 	".....soGGosoGGos....",
 	".....sssssnsssss....",
-	".....BsBBBBBBBsB....",
+	".....BsbbBBBbbsB....",
 	".....BBBBmmmBBBB....",
-	".....BBBBBBBBBBB....",
+	".....BBbBBBBBbBB....",
 	"......BBBBBBBBB.....",
 	".......BBBBBBB......",
 ]
 
 const BODY := [
-	".....YYQYcccYQy.....",
-	"...YYwYQYYTYYQyyy...",
+	".....YYQcccccQy.....",
+	"...YYwYQYcTcYQyyy...",
 	"...YYwYQYYTYYQyyy...",
 	"...YYwYQYYtYYQyyy...",
 	"...kkwYQYYTYYQykk...",
 	"...ssYYQYYTYYQyss...",
 	"...ssYYQYYtYYQyss...",
-	"...ssYYQYYTYYQyss...",
-	"...SsLLLLLkLLLLsS...",
+	"...ssyyxyyTyyxyss...",
+	"...SsLLLLLxLLLLsS...",
 ]
 
 ## Legs: idle and a 4-step walk cycle.
@@ -61,66 +64,66 @@ const FEET := [
 	[
 		".....PPPPPPPPPP.....",
 		".....PpPPPPpPPP.....",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......PPP..PPP......",
-		"......KKKK.KKKK.....",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......ppp..ppp......",
+		"......KKKj.KKKj.....",
 		"......llll.llll.....",
 	],
 	[
 		".....PPPPPPPPPP.....",
 		".....pPPPPPPpPP.....",
-		".....pPP....pPP.....",
-		".....pPP....pPP.....",
-		".....pPP....pPP.....",
-		".....pPP....pPP.....",
-		".....pPP....pPP.....",
-		".....pPP....PPP.....",
-		".....PPP....KKKK....",
-		".....KKKK...llll....",
+		".....pPd....pPd.....",
+		".....pPd....pPd.....",
+		".....pPd....pPd.....",
+		".....pPd....pPd.....",
+		".....pPd....pPd.....",
+		".....pPd....ppp.....",
+		".....ppp....KKKj....",
+		".....KKKj...llll....",
 		".....llll...........",
 	],
 	[
 		".....PPPPPPPPPP.....",
 		".....PpPPPPpPPP.....",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......PPP..PPP......",
-		"......KKKK.KKKK.....",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......ppp..ppp......",
+		"......KKKj.KKKj.....",
 		"......llll.llll.....",
 	],
 	[
 		".....PPPPPPPPPP.....",
 		".....PPpPPpPPPP.....",
-		".......pPPpPP.......",
-		".......pPPpPP.......",
-		".......pPPpPP.......",
-		".......pPPpPP.......",
-		".......pPPpPP.......",
-		".......PPPpPP.......",
-		".......KKKPPP.......",
-		".......lllKKKK......",
+		".......pPdpPd.......",
+		".......pPdpPd.......",
+		".......pPdpPd.......",
+		".......pPdpPd.......",
+		".......pPdpPd.......",
+		".......ppppPd.......",
+		".......KKjppp.......",
+		".......lllKKKj......",
 		"..........llll......",
 	],
 	[
 		".....PPPPPPPPPP.....",
 		".....PpPPPPpPPP.....",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......pPP..pPP......",
-		"......PPP..PPP......",
-		"......KKKK.KKKK.....",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......pPd..pPd......",
+		"......ppp..ppp......",
+		"......KKKj.KKKj.....",
 		"......llll.llll.....",
 	],
 ]
@@ -128,16 +131,16 @@ const FEET := [
 
 ## D6: the back view, for aiming up (hair, ears, the beard's edge; suspenders cross).
 const HEAD_BACK := [
-	"...........Hh.......",
-	"..........HHhh.h....",
-	"......hhhHHhhhhh....",
-	".....hHHhhhhhhhhh...",
-	".....hhhhhhhhhhh....",
-	".....hhhhHhhhhhh....",
-	".....hhHhhhhhhhh....",
+	"...........IH.......",
+	"..........HIHh.h....",
+	"......hhiHHihhhh....",
+	".....hiHHihhhiihh...",
+	".....hhiihhhhhhh....",
+	".....hhhhiihhhhh....",
+	".....hhiihhhiihh....",
 	".....hhhhhhhhhhh....",
 	".....shhhhhhhhhs....",
-	".....shhhhhhhhhs....",
+	".....shhiihhhhhs....",
 	".....BhhhhhhhhhB....",
 	".....BBsssssssBB....",
 	".....BBBsssssBBB....",
@@ -185,6 +188,7 @@ const LOOKS := {
 			"Y": "blood:1", "y": "blood:0", "u": "blood:2", "w": "ember:4",
 			"f": "ember:2", "L": "ember:1", "k": "gold:3",
 			"P": "slate:2", "p": "slate:3", "K": "ember:1", "l": "night:1",
+			"d": "slate:1", "j": "ember:3",
 		},
 		"head": [
 			".........H..........",
@@ -255,6 +259,7 @@ const LOOKS := {
 			"A": "leaf:2", "a": "leaf:1", "b": "steel:4", "k": "steel:3",
 			"L": "wood:2", "t": "steel:3", "T": "steel:4", "r": "blood:2",
 			"P": "leaf:2", "p": "leaf:3", "K": "wood:2", "l": "wood:1",
+			"d": "leaf:1", "j": "wood:4",
 		},
 		"head": [
 			"....................",
@@ -329,8 +334,9 @@ static var _wand := {}
 const WAND := ["........gG.", "wwwwwwwwgGG", "WWWWWWWWgG."]
 
 
-## The hero as a rig (design-plan §8: idle 4, run 6, cast 3, dash 4, hurt 2, death 6 per
-## facing). The quiff lags the head by a frame; bobs and squashes are whole pixel rows.
+## The hero as a rig (design-plan §8, and decisions/0038): idle 4, run 6, cast 2 (the lean
+## held while he fires), run_cast 6, dash 4, hurt 2, death 6 per facing. The quiff lags the
+## head by a frame; bobs and squashes are whole pixel rows.
 ## `hero` picks the look (LOOKS); the apprentice keeps the ids "hero_front" and "hero_back",
 ## the others are "hero_<id>_front" and "hero_<id>_back".
 static func rig(back := false, hero := &"apprentice") -> RigDef:
@@ -345,8 +351,11 @@ static func rig(back := false, hero := &"apprentice") -> RigDef:
 	r.h = H
 	r.pal = palette(hero)
 	r.add_part("legs", FEET[L_IDLE], Vector2i(0, 25))
-	var torso: Array = look.get("body_back", BODY_BACK) if back else _arm_out(look.get("body", BODY))
-	r.add_part("torso", torso, Vector2i(0, 16))
+	var body: Array = look.get("body_back", BODY_BACK) if back else _arm_out(look.get("body", BODY))
+	# 0.26: the free arm comes off the torso so it can swing (it is the look's own pixels)
+	r.add_part("torso", _cut(body, FREE_ARM_ROWS, FREE_ARM_COLS), Vector2i(0, 16))
+	var arm := _free_arm(body)
+	r.add_part("arm", arm["hang"], Vector2i(0, 16))
 	r.add_part("hair", head.slice(0, 5) + [head[4]], Vector2i.ZERO)
 	r.add_part("face", head.slice(5), Vector2i(0, 5))
 	# the wand arm, out at chest height; from behind, the body hides it
@@ -362,23 +371,31 @@ static func rig(back := false, hero := &"apprentice") -> RigDef:
 		{"torso": down, "face": down},
 		{},
 	])
-	r.add_clip("run", 12.0, true, [
-		{"legs": {"rows": stride}},
-		{"legs": {"rows": stride, "sq": 1}, "torso": down, "face": down},
-		{"legs": {"rows": passing}},
-		{"legs": {"rows": stride}},
-		{"legs": {"rows": stride, "sq": 1}, "torso": down, "face": down},
-		{"legs": {"rows": FEET[L_IDLE]}},
-	])
+	# 0.26 (decisions/0038): the run bobs unevenly (down 1, down 1, up 2: research/hero-motion.md),
+	# the head leads by a pixel, and the free arm swings against the stride. run_cast is the
+	# same run with the arm held still: firing on the move keeps the legs running.
+	var legs := [{"rows": stride}, {"rows": stride, "sq": 1}, {"rows": passing}, {"rows": stride}, {"rows": stride, "sq": 1}, {"rows": FEET[L_IDLE]}]
+	var bob := [1, 2, 0, 1, 2, 0]
+	var swing := ["back", "back", "hang", "fwd", "fwd", "hang"]
+	var run: Array = []
+	var run_cast: Array = []
+	for i in 6:
+		var b := Vector2i(0, bob[i])
+		var pose := {"legs": legs[i], "torso": b, "face": b + Vector2i(1, 0)}
+		run.append(pose.merged({"arm": {"off": b, "rows": arm[swing[i]]}}))
+		run_cast.append(pose.duplicate())
+	r.add_clip("run", 12.0, true, run)
+	# 0.26: a steady lean while he fires. Each shot replays the smear frame; the body holds still
+	# between shots instead of rocking on every one.
 	r.add_clip("cast", 25.0, false, [
-		{"torso": Vector2i(-1, 0), "face": Vector2i(-1, 0), "hand": {"off": Vector2i(-1, 0), "show": show}},
 		{"torso": Vector2i(1, 0), "face": Vector2i(1, 0), "hand": {"off": Vector2i(1, 0), "rows": HAND_FIRE, "show": show}},
-		{"hand": {"show": show}},
+		{"torso": Vector2i(1, 0), "face": Vector2i(1, 0), "hand": {"off": Vector2i(1, 0), "show": show}},
 	])
+	r.add_clip("run_cast", 12.0, true, run_cast)
 	r.add_clip("dash", 20.0, false, [
 		{"legs": {"sq": 1}, "torso": down, "face": down},
-		{"legs": {"rows": stride}, "torso": Vector2i(1, 0), "face": Vector2i(2, 0)},
-		{"legs": {"rows": stride}, "torso": Vector2i(1, -1), "face": Vector2i(2, -1)},
+		{"legs": {"rows": stride}, "torso": Vector2i(1, 0), "face": Vector2i(2, 0), "arm": {"off": Vector2i(1, 0), "rows": arm["back"]}},
+		{"legs": {"rows": stride}, "torso": Vector2i(1, -1), "face": Vector2i(2, -1), "arm": {"off": Vector2i(1, -1), "rows": arm["back"]}},
 		{"legs": {"rows": passing}, "torso": Vector2i(1, 0), "face": Vector2i(1, 0)},
 	])
 	r.add_clip("hurt", 10.0, false, [
@@ -395,14 +412,77 @@ static func rig(back := false, hero := &"apprentice") -> RigDef:
 		{"legs": {"sq": 6}, "torso": {"off": Vector2i(0, 6), "sq": 2}, "face": Vector2i(1, 9), "_tear": torn, "_crumble": 0.45},
 		{"legs": {"sq": 6}, "torso": {"off": Vector2i(0, 6), "sq": 2}, "face": Vector2i(1, 9), "_tear": torn, "_crumble": 0.8},
 	])
-	# the arm moves with the torso (a bob, a lean) wherever a pose moves the torso
+	# both arms move with the torso (a bob, a lean, a fold) wherever a pose moves it
 	for c in r.clips:
 		for pose in r.clips[c]["poses"]:
-			if pose.has("torso") and not pose.has("hand"):
-				var tv: Variant = pose["torso"]
+			if not pose.has("torso"):
+				continue
+			var tv: Variant = pose["torso"]
+			if not pose.has("hand"):
 				pose["hand"] = tv if tv is Vector2i else {"off": (tv as Dictionary).get("off", Vector2i.ZERO)}
+			if not pose.has("arm"):
+				pose["arm"] = tv
 	_rigs[key] = r
 	return r
+
+
+## 0.26: the free arm (the left of the sprite): its sleeve, rolled cuff and hand, in the
+## torso's rows and columns. `_free_arm` lifts it off a torso and poses it.
+const FREE_ARM_ROWS := [1, 2, 3, 4, 5, 6, 7, 8]
+const FREE_ARM_COLS := [3, 4]
+## Per arm row (FREE_ARM_ROWS order): the sideways shift of a swing, and -99 to drop the row
+## (a hand swung toward or away from the camera looks a row shorter).
+const ARM_SWING := {
+	"hang": [0, 0, 0, 0, 0, 0, 0, 0],
+	"back": [0, 0, -1, -1, -2, -2, -2, -99],
+	"fwd": [0, 0, 0, 1, 1, 1, 1, -99],
+}
+
+
+## The free arm of a torso, posed: swing name -> full-width rows starting at the torso's row 0.
+static func _free_arm(body: Array) -> Dictionary:
+	var out := {}
+	for k in ARM_SWING:
+		var rows: Array = []
+		for i in body.size():
+			rows.append(".".repeat(W))
+		var dx: Array = ARM_SWING[k]
+		for n in FREE_ARM_ROWS.size():
+			var y: int = FREE_ARM_ROWS[n]
+			if int(dx[n]) == -99 or y >= body.size():
+				continue
+			var line: String = rows[y]
+			for x in FREE_ARM_COLS:
+				var ch := String(body[y])[x] if x < String(body[y]).length() else "."
+				var to: int = x + int(dx[n])
+				if ch != "." and to >= 0 and to < W:
+					line = line.substr(0, to) + ch + line.substr(to + 1)
+			rows[y] = line
+		out[k] = rows
+	return out
+
+
+## `rows` with the given rows x columns cleared.
+static func _cut(rows: Array, ys: Array, xs: Array) -> Array:
+	var out: Array = []
+	for i in rows.size():
+		var row := String(rows[i])
+		if ys.has(i):
+			for x in xs:
+				if x < row.length():
+					row = row.substr(0, x) + "." + row.substr(x + 1)
+		out.append(row)
+	return out
+
+
+## Where the wand hand is drawn in a clip's frame, relative to rest (whole pixels): the wand
+## stays in the fist through a bob, a lean or a cast.
+static func hand_offset(back: bool, hero: StringName, clip_name: String, frame: int) -> Vector2i:
+	var poses: Array = rig(back, hero).clips[clip_name]["poses"]
+	var pose: Dictionary = poses[clampi(frame, 0, poses.size() - 1)]
+	var off: Vector2i = pose.get("_all", Vector2i.ZERO)
+	var h: Variant = pose.get("hand", Vector2i.ZERO)
+	return off + (h as Vector2i if h is Vector2i else ((h as Dictionary).get("off", Vector2i.ZERO) as Vector2i))
 
 
 ## A front torso with its right arm off (ARM_ROWS x ARM_COLS): the wand arm replaces it.
@@ -426,7 +506,8 @@ static func clips(back := false, hero := &"apprentice") -> Dictionary:
 	return _clips[key]
 
 
-## idle0, idle1, run0..3, cast (the pre-D6 order, kept for the title screen and art sheets).
+## idle0, idle1, four run frames, the cast (the pre-D6 order, kept for the title screen and
+## art sheets).
 static func frames(hero := &"apprentice") -> Array[Texture2D]:
 	var c := clips(false, hero)
 	var run: Array = c["run"]

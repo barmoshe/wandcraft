@@ -24,13 +24,14 @@ func teardown() -> void:
 
 
 func test_hero_meets_the_frame_budget_in_both_facings() -> void:
-	# design-plan §8: idle 4, run 6, cast 3, dash 4, hurt 2, death 6 (25 per facing)
-	var want := {"idle": 4, "run": 6, "cast": 3, "dash": 4, "hurt": 2, "death": 6}
+	# design-plan §8 and decisions/0038: idle 4, run 6, cast 2, run_cast 6, dash 4, hurt 2,
+	# death 6 (30 per facing)
+	var want := {"idle": 4, "run": 6, "cast": 2, "run_cast": 6, "dash": 4, "hurt": 2, "death": 6}
 	for back in [false, true]:
 		var c := Hero.clips(back)
 		for k in want:
 			ok(c.has(k) and (c[k] as Array).size() == want[k], "hero %s %s has %d frames" % ["back" if back else "front", k, want[k]])
-		ok(Hero.rig(back).frame_count() == 25, "25 frames per facing")
+		ok(Hero.rig(back).frame_count() == 30, "30 frames per facing")
 		var sz: Vector2i = (c["idle"][0] as Texture2D).get_size()
 		for k in c:
 			for t in c[k]:
@@ -102,6 +103,57 @@ func test_the_player_turns_away_when_aiming_up() -> void:
 	ok(not p.back, "aiming down shows the front")
 	p.cast_t = 0.1
 	ok(p.pick_clip() == "cast", "casting picks the cast clip")
+
+
+## 0.26 (decisions/0038): firing on the move keeps the legs running, a burst holds one
+## steady lean, the free arm swings, and the wand stays in the fist.
+func test_firing_on_the_move_keeps_the_legs_running() -> void:
+	var p := world.player
+	p.hurt_t = 0.0
+	p.dash_t = 0.0
+	p.cast_t = 0.0
+	p.stance_t = Player.STANCE_T
+	p.vel = Vector2(80, 0)
+	ok(p.pick_clip() == "run_cast", "firing while running keeps the legs running")
+	p.vel = Vector2.ZERO
+	ok(p.pick_clip() == "cast", "firing standing still holds the lean")
+	p.stance_t = 0.0
+	ok(p.pick_clip() == "idle", "the lean ends after the last shot")
+	for back in [false, true]:
+		var r := Hero.rig(back)
+		for i in 6:
+			ok(r.clips["run"]["poses"][i]["legs"] == r.clips["run_cast"]["poses"][i]["legs"], "run and run_cast share legs (frame %d)" % i)
+	var c := Hero.clips(false)
+	ok((c["cast"][0] as Texture2D).get_image().get_data() != (c["cast"][1] as Texture2D).get_image().get_data(), "each shot's frame shows the sleeve smear")
+
+
+func test_the_run_swings_the_free_arm_and_bobs() -> void:
+	var c := Hero.clips(false)
+	var back := (c["run"][0] as Texture2D).get_image()
+	var fwd := (c["run"][3] as Texture2D).get_image()
+	ok(back.get_data() != fwd.get_data(), "the free arm swings between strides")
+	var r := Hero.rig(false)
+	var ys := {}
+	for pose in r.clips["run"]["poses"]:
+		ys[(pose["torso"] as Vector2i).y] = true
+	ok(ys.size() == 3, "the run bobs over three heights (down 1, down 1, up 2)")
+	for h in Hero.LOOKS:
+		ok((Hero.clips(false, h)["run"][0] as Texture2D).get_size() == (Hero.clips(false, h)["idle"][0] as Texture2D).get_size(), "%s's run frames keep the canvas" % h)
+
+
+func test_the_wand_stays_in_the_fist() -> void:
+	ok(Hero.hand_offset(false, &"apprentice", "idle", 0) == Vector2i.ZERO, "at rest the fist is at the grip")
+	ok(Hero.hand_offset(false, &"apprentice", "run", 1).y == 2, "the run's low frame lowers the fist")
+	ok(Hero.hand_offset(false, &"apprentice", "cast", 0) == Vector2i(1, 0), "the cast's lean carries the fist")
+	var p := world.player
+	p.aim = 0.0
+	p.vel = Vector2.ZERO
+	p.cast_t = 0.0
+	p.stance_t = 0.0
+	p.hurt_t = 0.0
+	p.clip = "idle"
+	p._animate()
+	ok(p.wand_sprite.position == p.grip().round(), "the wand sits at the grip in the idle pose")
 
 
 func test_telegraphs_fill_as_the_attack_nears() -> void:

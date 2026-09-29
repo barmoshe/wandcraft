@@ -62,6 +62,10 @@ var back := false          # aiming up: the hero turns away from the camera
 var hurt_t := 0.0          # seconds of the hurt clip left
 var _gem := "frost"        # the held wand's gem ramp (follows the wand in hand)
 var _hero := &"apprentice" # 0.19: whose look is drawn (Hero.LOOKS; set_look)
+## 0.26 (decisions/0038): the cast lean holds this long after each shot, so a burst reads as
+## one steady pose; fired on the move, the legs keep running (the run_cast clip).
+const STANCE_T := 0.35
+var stance_t := 0.0
 ## D9: the dash (design-plan §10): 0.18 s, 0.14 s of i-frames, three afterimages, then a
 ## 0.35 s cooldown. It goes where you move, or where you aim when standing still.
 const DASH_T := 0.18
@@ -149,6 +153,7 @@ func tick(dt: float) -> void:
 	prev_pos = position
 	inv = maxf(0.0, inv - dt)
 	cast_t = maxf(0.0, cast_t - dt)
+	stance_t = maxf(0.0, stance_t - dt)
 	swap_cd = maxf(0.0, swap_cd - dt)
 	for i in wands.size():
 		wands[i].bench = 0.0 if i == cur else wands[i].bench + dt   # 0.22: time on the belt
@@ -234,7 +239,9 @@ func tick(dt: float) -> void:
 		w.rech = maxf(0.0, w.rech - dt)
 	if firing and world.spells.wand_fire(wand(), tip(), aim):
 		cast_t = 0.12
-		clip_t = 0.0   # each shot replays the cast clip from its anticipation frame
+		stance_t = STANCE_T
+		if clip == "cast":
+			clip_t = 0.0   # each shot replays the smear frame; the lean holds between shots
 		recoil = 2.0
 		world.fx.muzzle(tip(), aim, wand().def.color)
 		world.kick = (world.kick - Vector2.from_angle(aim) * 0.7 * Game.shake_scale).limit_length(1.5)
@@ -426,9 +433,10 @@ func pick_clip() -> String:
 		return "hurt"
 	if dash_t > 0.0:
 		return "dash"
-	if cast_t > 0.0:
-		return "cast"
-	return "run" if vel.length() > 12.0 else "idle"
+	var moving := vel.length() > 12.0
+	if cast_t > 0.0 or stance_t > 0.0:
+		return "run_cast" if moving else "cast"
+	return "run" if moving else "idle"
 
 
 ## Plays the death clip while the world counts down to the retry prompt.
@@ -457,14 +465,19 @@ func _animate() -> void:
 		back = false
 	var want := pick_clip()
 	if want != clip:
-		# a cast restarts on every shot; the walk keeps its phase from the distance walked
+		# the run and run_cast keep their phase from the distance walked (walk_t)
 		clip = want
 		clip_t = 0.0
 	clip_t += dt
 	var rig := Hero.rig(back, _hero)
-	var t := walk_t * 0.75 if clip == "run" else clip_t
+	var walking := clip == "run" or clip == "run_cast"
+	var t := walk_t * 0.75 if walking else clip_t
 	var fr: Array = (clips_back if back else clips_front)[clip]
-	sprite.texture = fr[rig.frame_at(clip, t)]
+	var fi := rig.frame_at(clip, t)
+	# 0.26: backpedalling (moving against the way he faces) plays the run backwards
+	if walking and signf(vel.x) == -face and absf(vel.x) > 12.0:
+		fi = fr.size() - 1 - fi
+	sprite.texture = fr[fi]
 	sprite.flip_h = face < 0
 	sprite.visible = inv <= 0.0 or fmod(inv, 0.12) > 0.05
 	# the wand is drawn pre-rotated (16 angles), never rotated as a sprite
@@ -482,10 +495,13 @@ func _animate() -> void:
 	wand_sprite.visible = true
 	tip_glow.visible = true
 	recoil = maxf(0.0, recoil - 0.5)
-	wand_sprite.position = (grip() - Vector2.from_angle(aim) * roundf(recoil)).round()
+	# 0.26: the wand stays in the fist through a bob, a lean or a cast (Hero.hand_offset)
+	var ho := Hero.hand_offset(back, _hero, clip, fi)
+	var hand := grip() + Vector2(ho.x * face, ho.y)
+	wand_sprite.position = (hand - Vector2.from_angle(aim) * roundf(recoil)).round()
 	# 0.20: the wand is a child before the body (setup), so the fist closes over its shaft
 	var w := wand()
-	tip_glow.position = grip() + Vector2.from_angle(aim) * 11.0
+	tip_glow.position = hand + Vector2.from_angle(aim) * 11.0
 	var c := w.def.color if w.cd > 0.0 else Color("#8fd8ff")
 	tip_glow.modulate = Color(c.r, c.g, c.b, 0.55 + (0.4 if cast_t > 0.0 else 0.0))
 	queue_redraw()
