@@ -1,6 +1,13 @@
 # wandcraft — STATUS
 
-- Updated: 2026-09-29
+- Updated: 2026-10-11
+
+## 0.27.0 (2026-10-11): Playmark and a new Thornback
+- **Playmark** (`game/addons/playmark`, https://github.com/barmoshe/playmark): Ctrl+Shift+M in a dev build freezes the
+  frame for a playtest mark (pin or box, category, note); marks land in `game/.playmark/` (git-ignored) for
+  `/playmark:triage`. `main.gd` `_hook_playmark()` scopes ghosts by room and adds the run and wand state.
+- **Thornback redrawn** from a Playmark mark: a hunched charger with bramble spikes, a curled horn, a glowing eye
+  and a wool chest (`bestiary.gd`), instead of the loaf with leaves.
 
 ## MVP: design-first (ADR 0011, `research/design-plan.md`)
 - **v0.4.1 is the POC.** Bar redirected the MVP on 2026-09-25: game design, level design, graphics, animation, music and feel come first. The store and CI now come after D9 (ADR 0010's M10–M11).
