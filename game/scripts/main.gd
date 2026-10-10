@@ -57,6 +57,7 @@ func _ready() -> void:
 	cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(cam)
 	cam.make_current()
+	_hook_playmark()
 	var ui := CanvasLayer.new()
 	ui.layer = 10
 	add_child(ui)
@@ -1092,3 +1093,34 @@ func _unhandled_input(event: InputEvent) -> void:
 				world.controls.dash = true
 			JOY_BUTTON_BACK:
 				_open_editor()
+
+
+## Playmark (dev-only playtest marks, addons/playmark): ghosts are scoped to the room
+## layout, every mark carries the run and wand state, and warp relaunches the same room.
+func _hook_playmark() -> void:
+	var pm := get_node_or_null("/root/Playmark")
+	if pm == null or not pm.enabled:
+		return
+	pm.set_player(world.player)
+	Events.room_entered.connect(func(_def: Dictionary) -> void: pm.set_player(world.player))
+	pm.set_scope(func() -> String:
+		return "hub" if world.hub else "%s/%s" % [world.room_kind, world.room_tpl])
+	pm.add_context("run", func() -> Dictionary:
+		var r := world.run
+		return {"seed": r.seed_value, "step": r.step, "room": "%s/%s" % [world.room_kind, world.room_tpl],
+			"hp": "%d/%d" % [r.hp, r.max_hp], "gold": r.gold, "relics": r.relics, "wave": world.wave_i,
+			"enemies": world.enemies.size(), "room_time": world.room_time})
+	pm.add_context("wands", func() -> Array:
+		var out := []
+		for i in world.run.wands.size():
+			var w: WandState = world.run.wands[i]
+			out.append({"title": w.def.title, "current": i == world.run.cur, "mana": "%d/%d" % [w.mana, w.def.max_mana],
+				"slots": w.slots.map(func(s): return "-" if s == null else "%s+%d" % [s.id, s.lv])})
+		return out)
+	pm.set_warp(func() -> Dictionary:
+		return {"args": ["--seed=%d" % world.run.seed_value, "--step=%d" % world.run.step,
+			"--kind=%s" % world.room_kind, "--room=%s" % world.room_tpl],
+			"player": [world.player.global_position.x, world.player.global_position.y]},
+		func(d: Dictionary) -> void:
+			if d.has("player"):
+				world.player.global_position = Vector2(d.player[0], d.player[1]))
