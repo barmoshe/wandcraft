@@ -30,6 +30,7 @@ var _stamps: Array[Button] = []
 var _inbox_label: Label
 var _hint: Label
 var _busy := false
+var save_button: Button
 
 
 func _init(shot: Image, frames: Array, offsets: Array, info_: Dictionary, sfx_: Node) -> void:
@@ -314,6 +315,7 @@ func _build() -> void:
 	save.custom_minimum_size = Vector2(196, 50)
 	save.pressed.connect(submit)
 	right.add_child(save)
+	save_button = save
 	var cancel := Button.new()
 	cancel.theme_type_variation = "GhostButton"
 	cancel.text = "ESC  CANCEL"
@@ -332,8 +334,6 @@ func _dateline() -> String:
 	var parts := ["MARK #%d" % info.get("seq", 0), "%02d:%02d" % [t.hour, t.minute]]
 	if not scene.is_empty():
 		parts.insert(1, scene)
-	if info.get("fps"):
-		parts.append("%d FPS" % info.fps)
 	return "   ".join(parts)
 
 

@@ -96,10 +96,9 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.always = _args.has("playmark-selftest")
 	add_child(hud)
-	# Its own canvas layer that follows the camera, so the game's CanvasModulate
-	# (ambient darkness) can't dim the ghosts.
+	# Their own canvas layer, so the game's CanvasModulate (ambient darkness) can't dim
+	# them. Ghosts place themselves through the camera and draw in screen pixels.
 	_ghost_layer = CanvasLayer.new()
-	_ghost_layer.follow_viewport_enabled = true
 	_ghost_layer.layer = 90
 	add_child(_ghost_layer)
 	ghosts = Ghosts.new()
@@ -111,6 +110,14 @@ func _ready() -> void:
 		_warp_to.call_deferred(str(_args["playmark-warp"]))
 	elif _args.has("playmark-smoke"):
 		_smoke.call_deferred(str(_args["playmark-smoke"]))
+	# --playmark-driver=<file.gd>: a script (extends Node) that drives Playmark for tests or
+	# recordings. Loaded from outside the project, so nothing ships in the game.
+	if _args.has("playmark-driver"):
+		var driver_script = load(str(_args["playmark-driver"]))
+		if driver_script:
+			var driver: Node = driver_script.new()
+			driver.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(driver)
 	else:
 		_welcome.call_deferred()
 

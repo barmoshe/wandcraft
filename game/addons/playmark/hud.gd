@@ -15,6 +15,7 @@ var _current := {}
 var _card := {}
 var _until := 0.0
 var _slide := 0.0
+var _clock := 0.0  # process time, so toasts last the same under fixed-step recording
 var _body: Body
 
 
@@ -45,7 +46,8 @@ func card(data: Dictionary) -> void:
 
 
 func _process(delta: float) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
+	_clock += delta
+	var now := _clock
 	if not _current.is_empty() and now >= _until:
 		_current = {}
 	if _current.is_empty() and not _queue.is_empty():
